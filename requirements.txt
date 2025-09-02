@@ -1,0 +1,43 @@
+# Django y dependencias principales
+Django==5.2.5
+djangorestframework==3.14.0
+
+# Base de datos
+psycopg2-binary==2.9.7
+
+# Cache y Redis
+redis==4.6.0
+django-redis==5.3.0
+
+# Configuración desde .env
+python-decouple==3.8
+
+# Archivos y media
+Pillow==10.0.0
+
+# CORS y utilidades
+django-cors-headers==4.3.0
+
+# Formularios y validación
+django-crispy-forms==2.0
+crispy-bootstrap5==0.7
+
+# Fechas y tiempo
+pytz==2023.3
+
+# Archivos de audio
+mutagen==1.47.0
+
+# Reportes y análisis
+pandas==2.1.0
+openpyxl==3.1.2
+
+# API y autenticación
+djangorestframework-simplejwt==5.3.0
+
+# Servidor de producción
+gunicorn==21.2.0
+whitenoise==6.5.0
+
+# Base de datos URL parsing
+dj-database-url==2.1.0

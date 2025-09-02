@@ -1,0 +1,260 @@
+# =============================================================================
+# DJANGO
+# =============================================================================
+*.log
+*.pot
+*.pyc
+__pycache__/
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Media files (archivos subidos por usuarios)
+media/
+!media/.gitkeep
+
+# Static files collected
+staticfiles/
+!static/.gitkeep
+
+# Migrations (opcional - algunas personas prefieren incluirlas)
+# */migrations/*
+# !*/migrations/__init__.py
+
+# =============================================================================
+# VARIABLES DE ENTORNO Y CONFIGURACIÓN SENSIBLE
+# =============================================================================
+.env
+.env.local
+.env.production
+.env.staging
+.env.development
+
+# Archivos de configuración con credenciales
+config.json
+secrets.json
+credentials.json
+
+# =============================================================================
+# PYTHON
+# =============================================================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# =============================================================================
+# DOCKER
+# =============================================================================
+# Evitar que archivos temporales de Docker se suban
+.docker/
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Volúmenes de Docker (si se crean localmente)
+postgres_data/
+redis_data/
+
+# =============================================================================
+# IDEs Y EDITORES
+# =============================================================================
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+
+# =============================================================================
+# SISTEMA OPERATIVO
+# =============================================================================
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# =============================================================================
+# LOGS Y ARCHIVOS TEMPORALES
+# =============================================================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# =============================================================================
+# ARCHIVOS ESPECÍFICOS DE PUBLICTRACK
+# =============================================================================
+# Archivos de audio temporales
+temp_audio/
+*.tmp
+
+# Archivos de backup
+backup/
+*.backup
+*.bak
+
+# Archivos de reportes generados
+reports/generated/
+*.pdf
+*.xlsx
+*.csv
+
+# Archivos de configuración local
+local_config.py
+production_settings.py
+
+# Archivos de certificados SSL (si los usas)
+*.key
+*.crt
+*.pem
+
+# =============================================================================
+# NODE.JS (si usas frontend con Node)
+# =============================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.eslintcache
+
+# =============================================================================
+# OTROS
+# =============================================================================
+# Archivos comprimidos
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Archivos de base de datos
+*.db
+*.sqlite
+*.sqlite3
+
+# Archivos de configuración de herramientas
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/extensions.json
