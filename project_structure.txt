@@ -1,0 +1,188 @@
+🚀 DOCUMENTACIÓN DE ESTRUCTURA DEL PROYECTO
+============================================================
+📁 Proyecto: app
+📍 Ruta: /app
+🏷️  Tipo de proyecto: Django Project, Python Project, Dockerized Project, Docker Compose Project
+
+📊 RESUMEN DEL PROYECTO
+==================================================
+📂 Total de directorios: 48
+📄 Total de archivos: 115
+📅 Generado: 2025-09-08 17:22:55
+
+🏆 TIPOS DE ARCHIVOS MÁS COMUNES:
+------------------------------
+  .py: 101 archivos
+  .html: 7 archivos
+  (sin extensión): 2 archivos
+  .txt: 2 archivos
+  .ps1: 1 archivos
+  .yml: 1 archivos
+  .sh: 1 archivos
+
+🌲 ESTRUCTURA COMPLETA DEL PROYECTO
+============================================================
+📁 PUBLICTRACK/
+├── 📄 .gitignore (4.7KB)
+├── 📄 create_structure.ps1 (5.8KB)
+├── ⚙️ docker-compose.yml (1.8KB)
+├── 📄 dockerfile (1.0KB)
+├── 🐍 documenter.py (10.3KB)
+├── 📄 entrypoint.sh (1.4KB)
+├── 🐍 manage.py (689B)
+├── 📄 project_structure.txt (3.1KB)
+├── 📄 requirements.txt (717B)
+├── 📁 apps/
+│   ├── 🐍 __init__.py (0B)
+│   ├── 📁 authentication/
+│   │   ├── 🐍 __init__.py (0B)
+│   │   ├── 🐍 admin.py (66B)
+│   │   ├── 🐍 apps.py (171B)
+│   │   ├── 🐍 models.py (60B)
+│   │   ├── 🐍 tests.py (63B)
+│   │   ├── 🐍 views.py (66B)
+│   │   └── 📁 migrations/
+│   │       └── 🐍 __init__.py (0B)
+│   ├── 📁 content_management/
+│   │   ├── 🐍 __init__.py (0B)
+│   │   ├── 🐍 admin.py (66B)
+│   │   ├── 🐍 apps.py (178B)
+│   │   ├── 🐍 models.py (60B)
+│   │   ├── 🐍 tests.py (63B)
+│   │   ├── 🐍 views.py (66B)
+│   │   ├── 📁 migrations/
+│   │   │   └── 🐍 __init__.py (0B)
+│   │   └── 📁 storage/
+│   │       ├── 🐍 __init__.py (0B)
+│   │       └── 🐍 audio_handlers.py (0B)
+│   ├── 📁 financial_management/
+│   │   ├── 🐍 __init__.py (0B)
+│   │   ├── 🐍 admin.py (66B)
+│   │   ├── 🐍 apps.py (182B)
+│   │   ├── 🐍 models.py (60B)
+│   │   ├── 🐍 tests.py (63B)
+│   │   ├── 🐍 views.py (66B)
+│   │   ├── 📁 migrations/
+│   │   │   └── 🐍 __init__.py (0B)
+│   │   └── 📁 utils/
+│   │       ├── 🐍 __init__.py (0B)
+│   │       ├── 🐍 accounting.py (0B)
+│   │       └── 🐍 calculations.py (0B)
+│   ├── 📁 notifications/
+│   │   ├── 🐍 __init__.py (0B)
+│   │   ├── 🐍 admin.py (66B)
+│   │   ├── 🐍 apps.py (169B)
+│   │   ├── 🐍 models.py (60B)
+│   │   ├── 🐍 tests.py (63B)
+│   │   ├── 🐍 views.py (66B)
+│   │   ├── 📁 migrations/
+│   │   │   └── 🐍 __init__.py (0B)
+│   │   └── 📁 services/
+│   │       ├── 🐍 __init__.py (0B)
+│   │       ├── 🐍 email_service.py (0B)
+│   │       ├── 🐍 push_notifications.py (0B)
+│   │       └── 🐍 sms_service.py (0B)
+│   ├── 📁 reports_analytics/
+│   │   ├── 🐍 __init__.py (0B)
+│   │   ├── 🐍 admin.py (66B)
+│   │   ├── 🐍 apps.py (176B)
+│   │   ├── 🐍 models.py (60B)
+│   │   ├── 🐍 tests.py (63B)
+│   │   ├── 🐍 views.py (66B)
+│   │   ├── 📁 generators/
+│   │   │   ├── 🐍 __init__.py (0B)
+│   │   │   ├── 🐍 dashboard_data.py (0B)
+│   │   │   ├── 🐍 financial_reports.py (0B)
+│   │   │   └── 🐍 operational_reports.py (0B)
+│   │   └── 📁 migrations/
+│   │       └── 🐍 __init__.py (0B)
+│   ├── 📁 sales_management/
+│   │   ├── 🐍 __init__.py (0B)
+│   │   ├── 🐍 admin.py (66B)
+│   │   ├── 🐍 apps.py (174B)
+│   │   ├── 🐍 models.py (60B)
+│   │   ├── 🐍 tests.py (63B)
+│   │   ├── 🐍 views.py (66B)
+│   │   ├── 📁 commission/
+│   │   │   ├── 🐍 __init__.py (0B)
+│   │   │   └── 🐍 calculator.py (0B)
+│   │   └── 📁 migrations/
+│   │       └── 🐍 __init__.py (0B)
+│   ├── 📁 system_configuration/
+│   │   ├── 🐍 __init__.py (0B)
+│   │   ├── 🐍 admin.py (66B)
+│   │   ├── 🐍 apps.py (182B)
+│   │   ├── 🐍 models.py (60B)
+│   │   ├── 🐍 tests.py (63B)
+│   │   ├── 🐍 views.py (66B)
+│   │   ├── 📁 management/
+│   │   │   ├── 🐍 __init__.py (0B)
+│   │   │   └── 📁 commands/
+│   │   │       ├── 🐍 __init__.py (0B)
+│   │   │       ├── 🐍 backup_system.py (0B)
+│   │   │       └── 🐍 setup_initial_data.py (0B)
+│   │   └── 📁 migrations/
+│   │       └── 🐍 __init__.py (0B)
+│   ├── 📁 traffic_light_system/
+│   │   ├── 🐍 __init__.py (0B)
+│   │   ├── 🐍 admin.py (66B)
+│   │   ├── 🐍 apps.py (181B)
+│   │   ├── 🐍 models.py (60B)
+│   │   ├── 🐍 tests.py (63B)
+│   │   ├── 🐍 views.py (66B)
+│   │   ├── 📁 migrations/
+│   │   │   └── 🐍 __init__.py (0B)
+│   │   └── 📁 utils/
+│   │       ├── 🐍 __init__.py (0B)
+│   │       └── 🐍 status_calculator.py (0B)
+│   └── 📁 transmission_control/
+│       ├── 🐍 __init__.py (0B)
+│       ├── 🐍 admin.py (66B)
+│       ├── 🐍 apps.py (182B)
+│       ├── 🐍 models.py (60B)
+│       ├── 🐍 tests.py (63B)
+│       ├── 🐍 views.py (66B)
+│       ├── 📁 migrations/
+│       │   └── 🐍 __init__.py (0B)
+│       └── 📁 scheduler/
+│           ├── 🐍 __init__.py (0B)
+│           ├── 🐍 monitoring.py (0B)
+│           └── 🐍 transmission_scheduler.py (0B)
+├── 📁 publictrack/
+│   ├── 🐍 __init__.py (0B)
+│   ├── 🐍 asgi.py (415B)
+│   ├── 🐍 settings.py (9.7KB)
+│   ├── 🐍 urls.py (789B)
+│   └── 🐍 wsgi.py (415B)
+├── 📁 static/
+│   ├── 📁 audio/
+│   ├── 📁 css/
+│   ├── 📁 images/
+│   └── 📁 js/
+├── 📁 templates/
+│   ├── 🌐 base.html (0B)
+│   ├── 📁 content/
+│   │   └── 🌐 library.html (0B)
+│   ├── 📁 dashboard/
+│   │   └── 🌐 index.html (0B)
+│   ├── 📁 financial/
+│   │   └── 🌐 dashboard.html (0B)
+│   ├── 📁 reports/
+│   │   └── 🌐 analytics.html (0B)
+│   ├── 📁 sales/
+│   │   └── 🌐 reports.html (0B)
+│   └── 📁 transmissions/
+│       └── 🌐 schedule.html (0B)
+├── 📁 tests/
+│   ├── 🐍 __init__.py (0B)
+│   ├── 📁 fixtures/
+│   ├── 📁 test_content/
+│   ├── 📁 test_financial/
+│   ├── 📁 test_sales/
+│   └── 📁 test_transmissions/
+└── 📁 utils/
+    ├── 🐍 __init__.py (0B)
+    ├── 🐍 helpers.py (0B)
+    ├── 🐍 mixins.py (0B)
+    ├── 🐍 permissions.py (0B)
+    └── 🐍 validators.py (0B)
