@@ -186,3 +186,30 @@
     ├── 🐍 mixins.py (0B)
     ├── 🐍 permissions.py (0B)
     └── 🐍 validators.py (0B)
+
+
+
+
+
+🎯 Plan de Desarrollo Recomendado:FASE 1: Autenticación y Usuarios ⭐ (EMPEZAMOS AQUÍ)
+
+✅ Sistema de login/logout
+✅ Gestión de usuarios con roles (Admin, Vendedor, Cliente)
+✅ Perfiles de usuario
+FASE 2: Gestión Básica
+
+Registro de cuñas publicitarias
+Sistema de semaforización básico
+FASE 3: Finanzas
+
+Contabilidad (cuentas por cobrar/pagar)
+Asientos contables
+Comisiones de vendedores
+FASE 4: Control de Transmisiones
+
+Programación de transmisiones
+Control de tiempo y duración
+FASE 5: Notificaciones y Reportes
+
+Sistema de notificaciones
+Dashboard y reportes
