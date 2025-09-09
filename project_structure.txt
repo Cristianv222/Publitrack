@@ -213,3 +213,50 @@ FASE 5: Notificaciones y Reportes
 
 Sistema de notificaciones
 Dashboard y reportes
+
+
+templates/
+├── base.html
+└── authentication/
+    ├── login.html
+    ├── profile.html
+    ├── edit_profile.html
+    ├── user_list.html
+    ├── user_detail.html
+    ├── register.html
+    ├── change_password.html
+    ├── vendedor_dashboard.html
+    ├── mis_clientes.html
+    └── user_reports.html
+
+
+
+
+    URLs disponibles ahora:
+Autenticación:
+
+http://localhost:8000/auth/login/ - Página de login
+http://localhost:8000/auth/logout/ - Cerrar sesión
+http://localhost:8000/ - Redirige según el usuario
+
+Perfiles:
+
+http://localhost:8000/auth/profile/ - Ver perfil
+http://localhost:8000/auth/profile/edit/ - Editar perfil
+http://localhost:8000/auth/profile/change-password/ - Cambiar contraseña
+
+Administración (solo admin):
+
+http://localhost:8000/auth/users/ - Lista de usuarios
+http://localhost:8000/auth/users/register/ - Crear usuario
+http://localhost:8000/auth/users/{id}/ - Detalle de usuario
+http://localhost:8000/auth/reports/ - Reportes
+
+Vendedores:
+
+http://localhost:8000/auth/dashboard/vendedor/ - Dashboard de vendedor
+http://localhost:8000/auth/mis-clientes/ - Clientes del vendedor
+
+Admin Django:
+
+http://localhost:8000/admin/ - Panel de administración

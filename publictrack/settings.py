@@ -1,5 +1,7 @@
 """
 Django settings for publictrack project.
+Sistema de gestión de publicidad radial - PubliTrack
+VERSIÓN CORREGIDA - SIN ERRORES DE LOGGING
 """
 
 from pathlib import Path
@@ -10,34 +12,38 @@ from decouple import config, Csv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # =============================================================================
+# CONFIGURACIÓN DE USUARIO PERSONALIZADO - DEBE IR AL INICIO
+# =============================================================================
+AUTH_USER_MODEL = 'authentication.CustomUser'
+
+# =============================================================================
 # CONFIGURACIÓN BÁSICA DE DJANGO
 # =============================================================================
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY')
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
-
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-production')
+DEBUG = config('DEBUG', default=True, cast=bool)
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,0.0.0.0', cast=Csv())
 
 # =============================================================================
 # APPLICATION DEFINITION
 # =============================================================================
 
-INSTALLED_APPS = [
+DJANGO_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
-    # Third party apps
+]
+
+THIRD_PARTY_APPS = [
     'rest_framework',
+    'rest_framework.authtoken',
     'corsheaders',
-    
-    # Apps del proyecto PublicTrack
+]
+
+LOCAL_APPS = [
     'apps.authentication',
     'apps.financial_management',
     'apps.content_management',
@@ -48,6 +54,8 @@ INSTALLED_APPS = [
     'apps.reports_analytics',
     'apps.system_configuration',
 ]
+
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -76,6 +84,8 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.media',
                 'django.template.context_processors.static',
+                'django.template.context_processors.i18n',
+                'django.template.context_processors.tz',
             ],
         },
     },
@@ -93,24 +103,53 @@ DATABASES = {
         'NAME': config('DB_NAME', default='publictrack'),
         'USER': config('DB_USER', default='postgres'),
         'PASSWORD': config('DB_PASSWORD', default='postgres'),
-        'HOST': config('DB_HOST', default='db'),
+        'HOST': config('DB_HOST', default='db'),  # Corregido para docker-compose
         'PORT': config('DB_PORT', default='5432'),
+        'OPTIONS': {
+            'connect_timeout': 60,
+        },
     }
 }
 
 # =============================================================================
-# CONFIGURACIÓN DE CACHE Y REDIS
+# CONFIGURACIÓN DE CACHE - OPCIONAL
 # =============================================================================
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': config('REDIS_URL', default='redis://redis:6379/1'),
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+# Simplificado - solo si tienes Redis funcionando
+try:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': config('REDIS_URL', default='redis://redis:6379/1'),
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            },
+            'KEY_PREFIX': 'publictrack',
+            'TIMEOUT': 300,
         }
     }
-}
+    SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+    SESSION_CACHE_ALIAS = 'default'
+except:
+    # Fallback a sesiones en DB si Redis falla
+    SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
+# =============================================================================
+# CONFIGURACIÓN DE AUTENTICACIÓN
+# =============================================================================
+
+LOGIN_URL = 'authentication:login'
+LOGIN_REDIRECT_URL = 'authentication:profile'  
+LOGOUT_REDIRECT_URL = 'authentication:login'
+
+SESSION_COOKIE_AGE = config('SESSION_COOKIE_AGE', default=1209600, cast=int)  # 2 semanas
+SESSION_EXPIRE_AT_BROWSER_CLOSE = config('SESSION_EXPIRE_AT_BROWSER_CLOSE', default=False, cast=bool)
+SESSION_SAVE_EVERY_REQUEST = config('SESSION_SAVE_EVERY_REQUEST', default=True, cast=bool)
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 # =============================================================================
 # VALIDACIÓN DE CONTRASEÑAS
@@ -119,9 +158,16 @@ CACHES = {
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        'OPTIONS': {
+            'user_attributes': ('username', 'first_name', 'last_name', 'email'),
+            'max_similarity': 0.7,
+        }
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 8,
+        }
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -136,8 +182,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # =============================================================================
 
 LANGUAGE_CODE = config('LANGUAGE_CODE', default='es-es')
-TIME_ZONE = config('TIME_ZONE', default='America/Mexico_City')
+TIME_ZONE = config('TIME_ZONE', default='America/Lima')
 USE_I18N = True
+USE_L10N = True
 USE_TZ = True
 
 # =============================================================================
@@ -152,6 +199,10 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+FILE_UPLOAD_MAX_MEMORY_SIZE = config('FILE_UPLOAD_MAX_MEMORY_SIZE', default=5242880, cast=int)  # 5MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = config('DATA_UPLOAD_MAX_MEMORY_SIZE', default=5242880, cast=int)  # 5MB
+FILE_UPLOAD_PERMISSIONS = 0o644
+
 # =============================================================================
 # CONFIGURACIÓN DE EMAIL
 # =============================================================================
@@ -162,84 +213,32 @@ EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@publictrack.com')
 
 # =============================================================================
 # CONFIGURACIÓN DE SEGURIDAD
 # =============================================================================
 
-SESSION_COOKIE_AGE = config('SESSION_COOKIE_AGE', default=86400, cast=int)
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-
 SECURE_BROWSER_XSS_FILTER = config('SECURE_BROWSER_XSS_FILTER', default=True, cast=bool)
 SECURE_CONTENT_TYPE_NOSNIFF = config('SECURE_CONTENT_TYPE_NOSNIFF', default=True, cast=bool)
+SECURE_REFERRER_POLICY = 'same-origin'
+X_FRAME_OPTIONS = 'DENY'
 
 # =============================================================================
-# CONFIGURACIÓN DE LOGGING
+# LOGGING - SIMPLIFICADO SIN ERRORES
 # =============================================================================
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
-        },
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {
-        'file': {
-            'level': config('LOG_LEVEL', default='INFO'),
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / config('LOG_FILE', default='publictrack.log'),
-            'formatter': 'verbose',
-        },
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
-        },
-    },
-    'root': {
-        'handlers': ['console', 'file'],
-        'level': config('LOG_LEVEL', default='INFO'),
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'publictrack': {
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-    },
-}
+# Desactivar logging personalizado problemático
+LOGGING_CONFIG = None
 
-# =============================================================================
-# CONFIGURACIONES ESPECÍFICAS DE PUBLICTRACK
-# =============================================================================
-
-# Configuración de archivos de audio
-AUDIO_UPLOAD_PATH = 'audio_spots/'
-MAX_AUDIO_UPLOAD_SIZE = config('MAX_AUDIO_UPLOAD_SIZE', default=50 * 1024 * 1024, cast=int)
-
-# Formatos de fecha y hora personalizados
-DATETIME_FORMAT = 'd/m/Y H:i:s'
-DATE_FORMAT = 'd/m/Y'
-TIME_FORMAT = 'H:i:s'
-
-# Configuración para el sistema de transmisiones
-TRANSMISSION_SCHEDULE_INTERVAL = config('TRANSMISSION_SCHEDULE_INTERVAL', default=15, cast=int)
-AUDIO_FORMATS_ALLOWED = config('AUDIO_FORMATS_ALLOWED', default='.mp3,.wav,.aac,.m4a', cast=Csv())
-
-# Configuración para reportes
-REPORTS_CACHE_TIMEOUT = 3600
+# Logging básico solo para desarrollo
+import logging
+if DEBUG:
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(levelname)s %(asctime)s %(message)s',
+        handlers=[logging.StreamHandler()]
+    )
 
 # =============================================================================
 # CONFIGURACIÓN DE DJANGO REST FRAMEWORK
@@ -248,32 +247,121 @@ REPORTS_CACHE_TIMEOUT = 3600
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
+    'PAGE_SIZE': config('API_PAGE_SIZE', default=20, cast=int),
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
     ],
+    'DATETIME_FORMAT': '%d/%m/%Y %H:%M:%S',
+    'DATE_FORMAT': '%d/%m/%Y',
+    'TIME_FORMAT': '%H:%M:%S',
+    'USE_TZ': True,
 }
 
 # =============================================================================
 # CONFIGURACIÓN DE CORS
 # =============================================================================
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-]
+CORS_ALLOWED_ORIGINS = config(
+    'CORS_ALLOWED_ORIGINS',
+    default='http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000,http://127.0.0.1:8000',
+    cast=Csv()
+)
 
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=False, cast=bool)
 
 # =============================================================================
-# DEFAULT PRIMARY KEY FIELD TYPE
+# CONFIGURACIONES ESPECÍFICAS DE PUBLICTRACK
 # =============================================================================
 
+# Configuración de archivos de audio
+AUDIO_UPLOAD_PATH = 'audio_spots/'
+MAX_AUDIO_UPLOAD_SIZE = config('MAX_AUDIO_UPLOAD_SIZE', default=50 * 1024 * 1024, cast=int)  # 50MB
+AUDIO_FORMATS_ALLOWED = config('AUDIO_FORMATS_ALLOWED', default='.mp3,.wav,.aac,.m4a,.ogg', cast=Csv())
+
+# Formatos de fecha y hora personalizados
+DATETIME_FORMAT = 'd/m/Y H:i:s'
+DATE_FORMAT = 'd/m/Y'
+TIME_FORMAT = 'H:i:s'
+USE_L10N = False
+
+# Configuración para el sistema de transmisiones
+TRANSMISSION_SCHEDULE_INTERVAL = config('TRANSMISSION_SCHEDULE_INTERVAL', default=15, cast=int)
+TRANSMISSION_OVERLAP_TOLERANCE = config('TRANSMISSION_OVERLAP_TOLERANCE', default=5, cast=int)
+
+# Configuración para reportes
+REPORTS_CACHE_TIMEOUT = config('REPORTS_CACHE_TIMEOUT', default=3600, cast=int)
+REPORTS_EXPORT_FORMATS = ['pdf', 'xlsx', 'csv']
+
+# Configuración del sistema de semáforos
+TRAFFIC_LIGHT_COLORS = {
+    'verde': '#28a745',    # Pagado/Transmitido
+    'amarillo': '#ffc107', # Pendiente/Por vencer
+    'rojo': '#dc3545',     # Vencido/Error
+}
+
+# Configuración financiera
+DEFAULT_CURRENCY = config('DEFAULT_CURRENCY', default='PEN')
+TAX_RATE = config('TAX_RATE', default=18.0, cast=float)
+INVOICE_NUMBER_PREFIX = config('INVOICE_NUMBER_PREFIX', default='FT-')
+RECEIPT_NUMBER_PREFIX = config('RECEIPT_NUMBER_PREFIX', default='RC-')
+
+# Configuración de comisiones
+DEFAULT_COMMISSION_RATE = config('DEFAULT_COMMISSION_RATE', default=10.0, cast=float)
+MIN_COMMISSION_RATE = config('MIN_COMMISSION_RATE', default=0.0, cast=float)
+MAX_COMMISSION_RATE = config('MAX_COMMISSION_RATE', default=50.0, cast=float)
+
+# Configuración de créditos
+DEFAULT_CREDIT_DAYS = config('DEFAULT_CREDIT_DAYS', default=30, cast=int)
+MAX_CREDIT_LIMIT = config('MAX_CREDIT_LIMIT', default=50000.0, cast=float)
+
+# =============================================================================
+# CONFIGURACIÓN DE DESARROLLO
+# =============================================================================
+
+if DEBUG:
+    INTERNAL_IPS = [
+        '127.0.0.1',
+        'localhost',
+        '0.0.0.0',
+    ]
+    
+    # Email en consola para desarrollo - FORZADO
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    
+    # Configuraciones adicionales de desarrollo
+    CORS_ALLOW_ALL_ORIGINS = True  # Solo para desarrollo
+    
+else:
+    # Configuraciones para producción
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+# =============================================================================
+# CONFIGURACIÓN ADICIONAL PERSONALIZADA
+# =============================================================================
+
+APP_VERSION = config('APP_VERSION', default='1.0.0')
+COMPANY_NAME = config('COMPANY_NAME', default='PubliTrack')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# =============================================================================
+# MENSAJE DE CONFIRMACIÓN
+# =============================================================================
+
+print("✅ Settings de PubliTrack cargados correctamente")
+if DEBUG:
+    print(f"🔧 Modo: DESARROLLO")
+    print(f"🗄️  Base de datos: {DATABASES['default']['NAME']} en {DATABASES['default']['HOST']}")
+    print(f"📧 Email backend: {EMAIL_BACKEND}")
+else:
+    print(f"🚀 Modo: PRODUCCIÓN")
+    print(f"🔒 Configuraciones de seguridad activadas")

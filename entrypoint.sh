@@ -19,8 +19,8 @@ while attempt < max_attempts:
         conn = psycopg2.connect(
             host=os.environ.get('DB_HOST', 'db'),
             port=os.environ.get('DB_PORT', '5432'),
-            user=os.environ.get('DB_USER', 'publictrack_user'),
-            password=os.environ.get('DB_PASSWORD', 'publictrack_password'),
+            user=os.environ.get('DB_USER', 'postgres'),           # ← Corregido
+            password=os.environ.get('DB_PASSWORD', 'postgres'),   # ← Corregido
             database=os.environ.get('DB_NAME', 'publictrack')
         )
         conn.close()
@@ -39,8 +39,43 @@ END
 # Esperar a que la base de datos esté disponible
 wait_for_db
 
-echo "Ejecutando migraciones..."
-python manage.py migrate --noinput
+# Verificar si es la primera vez (no existen migraciones de authentication)
+if [ ! -f "/app/apps/authentication/migrations/0001_initial.py" ]; then
+    echo "Primera inicialización detectada..."
+    
+    # PASO 1: Crear migraciones para authentication primero
+    echo "Creando migraciones para authentication..."
+    python manage.py makemigrations authentication
+    
+    # PASO 2: Crear migraciones para otras apps
+    echo "Creando migraciones para otras apps..."
+    python manage.py makemigrations
+    
+    # PASO 3: Aplicar migraciones
+    echo "Aplicando migraciones..."
+    python manage.py migrate --noinput
+    
+    echo "Creando superusuario..."
+    python manage.py shell << 'EOF'
+from apps.authentication.models import CustomUser
+if not CustomUser.objects.filter(username='admin').exists():
+    CustomUser.objects.create_superuser(
+        username='admin',
+        email='admin@publictrack.com',
+        password='admin123',
+        first_name='Administrador',
+        last_name='Sistema'
+    )
+    print("✅ Superusuario 'admin' creado")
+    print("📧 Email: admin@publictrack.com") 
+    print("🔑 Password: admin123")
+EOF
+
+else
+    echo "Sistema ya inicializado, aplicando migraciones pendientes..."
+    python manage.py makemigrations
+    python manage.py migrate --noinput
+fi
 
 echo "Recolectando archivos estáticos..."
 python manage.py collectstatic --noinput
