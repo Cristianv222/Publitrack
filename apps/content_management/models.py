@@ -8,7 +8,7 @@ import uuid
 from decimal import Decimal
 from datetime import datetime, timedelta
 from django.db import models
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
 from django.utils import timezone
 from django.urls import reverse
@@ -17,8 +17,6 @@ from mutagen import File as MutagenFile
 from mutagen.mp3 import MP3
 from mutagen.wave import WAVE
 from mutagen.mp4 import MP4
-
-User = get_user_model()
 
 def audio_upload_path(instance, filename):
     """
@@ -254,7 +252,7 @@ class ArchivoAudio(models.Model):
     )
     
     subido_por = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         related_name='archivos_audio_subidos',
@@ -403,9 +401,9 @@ class CuñaPublicitaria(models.Model):
         help_text='Descripción detallada del contenido publicitario'
     )
     
-    # Relaciones
+    # Relaciones - CAMBIO PRINCIPAL: Usar settings.AUTH_USER_MODEL en lugar de User
     cliente = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         limit_choices_to={'groups__name': 'Clientes'},
         related_name='cuñas_publicitarias',
@@ -413,7 +411,7 @@ class CuñaPublicitaria(models.Model):
     )
     
     vendedor_asignado = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         limit_choices_to={'groups__name': 'Vendedores'},
@@ -507,7 +505,7 @@ class CuñaPublicitaria(models.Model):
     
     # Información de aprobación
     aprobada_por = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -562,7 +560,7 @@ class CuñaPublicitaria(models.Model):
     
     # Metadatos
     created_by = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         related_name='cuñas_creadas',
@@ -756,7 +754,7 @@ class HistorialCuña(models.Model):
     )
     
     usuario = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         verbose_name='Usuario'

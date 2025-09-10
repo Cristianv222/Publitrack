@@ -20,23 +20,9 @@ __author__ = 'PubliTrack Development Team'
 __email__ = 'dev@publitrack.com'
 __description__ = 'Sistema de gestión de contenido publicitario para radio'
 
-# Exportar modelos principales para facilitar importación
-from .models import (
-    CategoriaPublicitaria,
-    TipoContrato,
-    ArchivoAudio,
-    CuñaPublicitaria,
-    HistorialCuña
-)
-
-# Exportar formularios principales
-from .forms import (
-    CategoriaPublicitariaForm,
-    TipoContratoForm,
-    ArchivoAudioForm,
-    CuñaPublicitariaForm,
-    CuñaFiltroForm
-)
+# ✅ REMOVIDAS LAS IMPORTACIONES DIRECTAS DE MODELOS Y FORMULARIOS
+# Las importaciones de modelos y formularios se hacen cuando son necesarias,
+# no a nivel de módulo para evitar AppRegistryNotReady
 
 # Configuración del módulo
 MODULE_CONFIG = {
@@ -60,6 +46,49 @@ MODULE_CONFIG = {
         'mutagen',
     ]
 }
+
+# Funciones para importación lazy de modelos
+def get_models():
+    """
+    Importación lazy de modelos para evitar AppRegistryNotReady
+    """
+    from .models import (
+        CategoriaPublicitaria,
+        TipoContrato,
+        ArchivoAudio,
+        CuñaPublicitaria,
+        HistorialCuña
+    )
+    return {
+        'CategoriaPublicitaria': CategoriaPublicitaria,
+        'TipoContrato': TipoContrato,
+        'ArchivoAudio': ArchivoAudio,
+        'CuñaPublicitaria': CuñaPublicitaria,
+        'HistorialCuña': HistorialCuña
+    }
+
+def get_forms():
+    """
+    Importación lazy de formularios para evitar AppRegistryNotReady
+    """
+    try:
+        from .forms import (
+            CategoriaPublicitariaForm,
+            TipoContratoForm,
+            ArchivoAudioForm,
+            CuñaPublicitariaForm,
+            CuñaFiltroForm
+        )
+        return {
+            'CategoriaPublicitariaForm': CategoriaPublicitariaForm,
+            'TipoContratoForm': TipoContratoForm,
+            'ArchivoAudioForm': ArchivoAudioForm,
+            'CuñaPublicitariaForm': CuñaPublicitariaForm,
+            'CuñaFiltroForm': CuñaFiltroForm
+        }
+    except ImportError:
+        # Los formularios pueden no existir aún
+        return {}
 
 # Estado del módulo
 def get_module_status():
