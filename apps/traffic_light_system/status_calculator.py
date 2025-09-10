@@ -22,7 +22,7 @@ class StatusCalculator:
         Inicializa la calculadora con una configuración específica
         """
         if configuracion is None:
-            from ..models import ConfiguracionSemaforo
+            from .models import ConfiguracionSemaforo
             configuracion = ConfiguracionSemaforo.get_active()
         
         self.configuracion = configuracion
@@ -271,7 +271,7 @@ class StatusCalculator:
         Returns:
             Instancia de EstadoSemaforo actualizada
         """
-        from ..models import EstadoSemaforo, HistorialEstadoSemaforo
+        from .models import EstadoSemaforo, HistorialEstadoSemaforo
         
         # Calcular nuevo estado
         nuevo_estado = self.calcular_estado_cuña(cuña)
@@ -406,7 +406,7 @@ class StatusCalculator:
         """
         Obtiene estadísticas resumidas del estado actual
         """
-        from ..models import EstadoSemaforo
+        from .models import EstadoSemaforo
         from django.db.models import Count, Q
         
         # Contadores básicos
@@ -453,14 +453,14 @@ class AlertasManager:
     """
     
     def __init__(self):
-        from ..models import ConfiguracionSemaforo
+        from .models import ConfiguracionSemaforo
         self.configuracion = ConfiguracionSemaforo.get_active()
     
     def generar_alertas_pendientes(self) -> Dict[str, int]:
         """
         Genera alertas para estados que las requieren
         """
-        from ..models import EstadoSemaforo, AlertaSemaforo
+        from .models import EstadoSemaforo, AlertaSemaforo
         from django.db.models import Q
         
         stats = {
@@ -495,7 +495,7 @@ class AlertasManager:
     
     def _crear_alerta_para_estado(self, estado_semaforo):
         """Crea una alerta específica para un estado de semáforo"""
-        from ..models import AlertaSemaforo
+        from .models import AlertaSemaforo
         
         cuña = estado_semaforo.cuña
         color = estado_semaforo.color_actual

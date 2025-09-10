@@ -50,8 +50,8 @@ urlpatterns = [
     
     # TODO: Agregar URLs de otras apps cuando estén listas
     # path('financial/', include('apps.financial_management.urls')),
-    # path('content/', include('apps.content_management.urls')),
-    # path('traffic/', include('apps.traffic_light_system.urls')),
+    path('content/', include('apps.content_management.urls')),
+    path('traffic/', include('apps.traffic_light_system.urls')),
     # path('transmission/', include('apps.transmission_control.urls')),
     # path('notifications/', include('apps.notifications.urls')),
     # path('sales/', include('apps.sales_management.urls')),

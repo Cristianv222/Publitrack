@@ -6,19 +6,19 @@
 
 📊 RESUMEN DEL PROYECTO
 ==================================================
-📂 Total de directorios: 48
-📄 Total de archivos: 115
-📅 Generado: 2025-09-08 17:22:55
+📂 Total de directorios: 52
+📄 Total de archivos: 133
+📅 Generado: 2025-09-10 03:11:24
 
 🏆 TIPOS DE ARCHIVOS MÁS COMUNES:
 ------------------------------
-  .py: 101 archivos
+  .py: 120 archivos
   .html: 7 archivos
   (sin extensión): 2 archivos
-  .txt: 2 archivos
   .ps1: 1 archivos
   .yml: 1 archivos
   .sh: 1 archivos
+  .txt: 1 archivos
 
 🌲 ESTRUCTURA COMPLETA DEL PROYECTO
 ============================================================
@@ -28,29 +28,51 @@
 ├── ⚙️ docker-compose.yml (1.8KB)
 ├── 📄 dockerfile (1.0KB)
 ├── 🐍 documenter.py (10.3KB)
-├── 📄 entrypoint.sh (1.4KB)
+├── 📄 entrypoint.sh (2.6KB)
 ├── 🐍 manage.py (689B)
-├── 📄 project_structure.txt (3.1KB)
 ├── 📄 requirements.txt (717B)
 ├── 📁 apps/
 │   ├── 🐍 __init__.py (0B)
 │   ├── 📁 authentication/
 │   │   ├── 🐍 __init__.py (0B)
-│   │   ├── 🐍 admin.py (66B)
+│   │   ├── 🐍 admin.py (9.7KB)
 │   │   ├── 🐍 apps.py (171B)
-│   │   ├── 🐍 models.py (60B)
+│   │   ├── 🐍 decorators.py (12.6KB)
+│   │   ├── 🐍 forms.py (16.2KB)
+│   │   ├── 🐍 models.py (22.7KB)
+│   │   ├── 🐍 permissions.py (13.1KB)
 │   │   ├── 🐍 tests.py (63B)
-│   │   ├── 🐍 views.py (66B)
+│   │   ├── 🐍 urls.py (2.0KB)
+│   │   ├── 🐍 views.py (17.5KB)
+│   │   ├── 📁 management/
+│   │   │   ├── 🐍 __init__.py (0B)
+│   │   │   └── 📁 commands/
+│   │   │       ├── 🐍 __init__.py (0B)
+│   │   │       └── 🐍 init_permissions.py (7.7KB)
 │   │   └── 📁 migrations/
+│   │       ├── 🐍 0001_initial.py (8.8KB)
+│   │       ├── 🐍 0002_role_permission_rolepermission_role_permissions.py (5.2KB)
 │   │       └── 🐍 __init__.py (0B)
 │   ├── 📁 content_management/
-│   │   ├── 🐍 __init__.py (0B)
-│   │   ├── 🐍 admin.py (66B)
-│   │   ├── 🐍 apps.py (178B)
-│   │   ├── 🐍 models.py (60B)
-│   │   ├── 🐍 tests.py (63B)
-│   │   ├── 🐍 views.py (66B)
+│   │   ├── 🐍 __init__.py (3.8KB)
+│   │   ├── 🐍 admin.py (20.4KB)
+│   │   ├── 🐍 apps.py (2.7KB)
+│   │   ├── 🐍 checks.py (18.8KB)
+│   │   ├── 🐍 forms.py (21.5KB)
+│   │   ├── 🐍 models.py (29.4KB)
+│   │   ├── 🐍 signals.py (19.3KB)
+│   │   ├── 🐍 task.py (17.0KB)
+│   │   ├── 🐍 tests.py (27.6KB)
+│   │   ├── 🐍 urls.py (3.2KB)
+│   │   ├── 🐍 views.py (25.6KB)
+│   │   ├── 📁 management/
+│   │   │   ├── 🐍 __init__.py (0B)
+│   │   │   └── 📁 commands/
+│   │   │       ├── 🐍 __init__.py (0B)
+│   │   │       ├── 🐍 setup_content_data.py (14.8KB)
+│   │   │       └── 🐍 validate_content_integrity.py (18.0KB)
 │   │   ├── 📁 migrations/
+│   │   │   ├── 🐍 0001_initial.py (14.1KB)
 │   │   │   └── 🐍 __init__.py (0B)
 │   │   └── 📁 storage/
 │   │       ├── 🐍 __init__.py (0B)
@@ -151,8 +173,8 @@
 ├── 📁 publictrack/
 │   ├── 🐍 __init__.py (0B)
 │   ├── 🐍 asgi.py (415B)
-│   ├── 🐍 settings.py (9.7KB)
-│   ├── 🐍 urls.py (789B)
+│   ├── 🐍 settings.py (13.9KB)
+│   ├── 🐍 urls.py (4.2KB)
 │   └── 🐍 wsgi.py (415B)
 ├── 📁 static/
 │   ├── 📁 audio/
@@ -188,10 +210,7 @@
     └── 🐍 validators.py (0B)
 
 
-
-
-
-🎯 Plan de Desarrollo Recomendado:FASE 1: Autenticación y Usuarios ⭐ (EMPEZAMOS AQUÍ)
+    🎯 Plan de Desarrollo Recomendado:FASE 1: Autenticación y Usuarios ⭐ (EMPEZAMOS AQUÍ)
 
 ✅ Sistema de login/logout
 ✅ Gestión de usuarios con roles (Admin, Vendedor, Cliente)
