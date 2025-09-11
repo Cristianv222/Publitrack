@@ -306,3 +306,14 @@ financial_management (contabilidad)
 notifications (alertas avanzadas)
 reports_analytics (dashboards y reportes)
 system_configuration (configuración avanzada)
+
+Modulo principal transmison Control
+
+🎮 URLs Principales
+
+/transmisiones/ - Dashboard principal
+/transmisiones/monitor/ - Monitor en tiempo real
+/transmisiones/programaciones/ - Gestión de programaciones
+/transmisiones/calendario/ - Calendario de transmisiones
+/transmisiones/logs/ - Logs del sistema
+/transmisiones/configuracion/ - Configuración del sistema

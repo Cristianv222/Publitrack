@@ -7,7 +7,7 @@ from .models import CustomUser, UserLoginHistory
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
-    """Administración personalizada para CustomUser"""
+    """Administración personalizada para CustomUser con campos dinámicos"""
     
     # Campos que se muestran en la lista
     list_display = (
@@ -35,7 +35,7 @@ class CustomUserAdmin(UserAdmin):
         'date_joined', 'last_login'
     )
     
-    # Configuración de fieldsets para el formulario
+    # Configuración de fieldsets para el formulario de edición
     fieldsets = (
         ('Información Básica', {
             'fields': ('username', 'password', 'first_name', 'last_name', 'email')
@@ -77,7 +77,7 @@ class CustomUserAdmin(UserAdmin):
         }),
     )
     
-    # Fieldsets para agregar usuario
+    # Fieldsets para agregar usuario - TODOS los campos disponibles
     add_fieldsets = (
         ('Información Básica', {
             'classes': ('wide',),
@@ -86,12 +86,43 @@ class CustomUserAdmin(UserAdmin):
         }),
         ('Rol y Estado', {
             'fields': ('rol', 'status'),
+            'description': 'Selecciona el rol para mostrar campos específicos'
         }),
-        ('Información Adicional', {
+        ('Información de Contacto', {
             'fields': ('telefono', 'direccion'),
+        }),
+        ('Información de Cliente/Empresa', {
+            'fields': ('empresa', 'ruc_dni', 'razon_social', 'giro_comercial', 'vendedor_asignado', 'limite_credito', 'dias_credito'),
+            'classes': ('cliente-fields',),
+            'description': '⚠️ REQUERIDO para clientes: Al menos empresa o RUC/DNI'
+        }),
+        ('Información de Vendedor', {
+            'fields': ('comision_porcentaje', 'meta_mensual', 'supervisor'),
+            'classes': ('vendedor-fields',),
+            'description': 'Solo para vendedores'
+        }),
+        ('Configuraciones', {
+            'fields': ('notificaciones_email', 'notificaciones_sms'),
             'classes': ('collapse',),
         }),
     )
+    
+    # JavaScript para mostrar/ocultar campos según el rol
+    class Media:
+        js = ('admin/js/rol_dependent_fields.js',)
+        css = {
+            'all': ('admin/css/custom_admin.css',)
+        }
+    
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        """Personaliza el formulario según si es creación o edición"""
+        form = super().get_form(request, obj, change, **kwargs)
+        
+        # Si es creación de usuario, agregar JavaScript
+        if not change:  # Creación
+            form.Media.js = form.Media.js + ('admin/js/rol_dependent_fields.js',)
+            
+        return form
     
     # Acciones personalizadas
     actions = ['activar_usuarios', 'desactivar_usuarios', 'marcar_como_pendientes']
@@ -134,6 +165,16 @@ class CustomUserAdmin(UserAdmin):
                 rol='admin', status='activo'
             )
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
+    
+    def save_model(self, request, obj, form, change):
+        """Validación adicional antes de guardar"""
+        if obj.rol == 'cliente':
+            if not obj.empresa and not obj.ruc_dni:
+                from django.core.exceptions import ValidationError
+                from django.contrib import messages
+                messages.error(request, 'Los clientes deben tener al menos empresa o RUC/DNI.')
+                raise ValidationError('Los clientes deben tener al menos empresa o RUC/DNI.')
+        super().save_model(request, obj, form, change)
     
     # Acciones personalizadas
     def activar_usuarios(self, request, queryset):
