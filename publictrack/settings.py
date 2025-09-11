@@ -41,6 +41,7 @@ THIRD_PARTY_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
+    'pwa',  # django-pwa agregado aquí
 ]
 
 LOCAL_APPS = [
@@ -86,7 +87,6 @@ TEMPLATES = [
                 'django.template.context_processors.static',
                 'django.template.context_processors.i18n',
                 'django.template.context_processors.tz',
-                'apps.context_processors.pwa_context',  # Context processor para PWA
             ],
         },
     },
@@ -195,7 +195,6 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
-    BASE_DIR / 'static' / 'icons',  # Agregado para PWA
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
@@ -208,7 +207,7 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = config('DATA_UPLOAD_MAX_MEMORY_SIZE', default=5242
 FILE_UPLOAD_PERMISSIONS = 0o644
 
 # =============================================================================
-# CONFIGURACIÓN PWA (Progressive Web App)
+# CONFIGURACIÓN PWA (Progressive Web App) - django-pwa
 # =============================================================================
 
 PWA_APP_NAME = 'PublicTrack'
@@ -220,9 +219,109 @@ PWA_APP_SCOPE = '/'
 PWA_APP_ORIENTATION = 'any'
 PWA_APP_START_URL = '/'
 PWA_APP_STATUS_BAR_COLOR = 'default'
-PWA_APP_LANG = 'es'
+PWA_APP_LANG = 'es-ES'
 PWA_APP_DIR = 'ltr'
-PWA_APP_ICONS_PATH = 'icons/'
+PWA_APP_ICONS = [
+    {
+        'src': '/static/icons/icon-72x72.png',
+        'sizes': '72x72',
+        'type': 'image/png'
+    },
+    {
+        'src': '/static/icons/icon-96x96.png',
+        'sizes': '96x96',
+        'type': 'image/png'
+    },
+    {
+        'src': '/static/icons/icon-128x128.png',
+        'sizes': '128x128',
+        'type': 'image/png'
+    },
+    {
+        'src': '/static/icons/icon-144x144.png',
+        'sizes': '144x144',
+        'type': 'image/png'
+    },
+    {
+        'src': '/static/icons/icon-152x152.png',
+        'sizes': '152x152',
+        'type': 'image/png'
+    },
+    {
+        'src': '/static/icons/icon-192x192.png',
+        'sizes': '192x192',
+        'type': 'image/png',
+        'purpose': 'any maskable'
+    },
+    {
+        'src': '/static/icons/icon-384x384.png',
+        'sizes': '384x384',
+        'type': 'image/png'
+    },
+    {
+        'src': '/static/icons/icon-512x512.png',
+        'sizes': '512x512',
+        'type': 'image/png',
+        'purpose': 'any maskable'
+    }
+]
+PWA_APP_ICONS_APPLE = [
+    {
+        'src': '/static/icons/icon-192x192.png',
+        'sizes': '192x192',
+        'type': 'image/png'
+    }
+]
+PWA_APP_SPLASH_SCREEN = [
+    {
+        'src': '/static/images/splash-640x1136.png',
+        'media': '(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)'
+    },
+    {
+        'src': '/static/images/splash-750x1334.png',
+        'media': '(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)'
+    },
+    {
+        'src': '/static/images/splash-1242x2208.png',
+        'media': '(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)'
+    },
+    {
+        'src': '/static/images/splash-1125x2436.png',
+        'media': '(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)'
+    },
+    {
+        'src': '/static/images/splash-1536x2048.png',
+        'media': '(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2)'
+    },
+    {
+        'src': '/static/images/splash-1668x2224.png',
+        'media': '(device-width: 834px) and (device-height: 1112px) and (-webkit-device-pixel-ratio: 2)'
+    },
+    {
+        'src': '/static/images/splash-2048x2732.png',
+        'media': '(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)'
+    }
+]
+PWA_SERVICE_WORKER_PATH = os.path.join(BASE_DIR, 'static', 'serviceworker.js')
+PWA_APP_DEBUG_MODE = DEBUG  # Muestra errores en desarrollo
+
+# Shortcuts para la PWA
+PWA_APP_SHORTCUTS = [
+    {
+        'name': 'Nueva Cuña',
+        'short_name': 'Nueva Cuña',
+        'description': 'Registrar nueva cuña publicitaria',
+        'url': '/content/nueva-cuna/',
+        'icons': [{'src': '/static/icons/icon-96x96.png', 'sizes': '96x96'}]
+    },
+    {
+        'name': 'Transmisiones',
+        'short_name': 'Transmisiones',
+        'description': 'Ver programación de transmisiones',
+        'url': '/transmisiones/',
+        'icons': [{'src': '/static/icons/icon-96x96.png', 'sizes': '96x96'}]
+    }
+]
 
 # =============================================================================
 # CONFIGURACIÓN DE EMAIL
@@ -379,7 +478,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # =============================================================================
 
 print("✅ Settings de PubliTrack cargados correctamente")
-print("📱 PWA configurada y lista")
+print("📱 PWA con django-pwa configurada")
 if DEBUG:
     print(f"🔧 Modo: DESARROLLO")
     print(f"🗄️  Base de datos: {DATABASES['default']['NAME']} en {DATABASES['default']['HOST']}")

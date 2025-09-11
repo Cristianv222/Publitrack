@@ -249,6 +249,8 @@ urlpatterns = [
     path('sw.js', serve_service_worker, name='service_worker'),
     path('offline/', offline_page, name='offline'),
     path('sw.js', TemplateView.as_view(template_name='../static/sw.js',content_type='application/javascript'), name='service_worker'),
+    path('', include('pwa.urls')),
+    
     # ============================================================================
     # ADMINISTRACIÓN DE DJANGO
     # ============================================================================
