@@ -336,6 +336,93 @@ class CustomUser(AbstractUser):
         """Verifica si puede configurar el sistema"""
         return self.es_admin
     
+    # MÉTODOS DE PERMISOS AVANZADOS
+    def has_permission(self, permission_codename):
+        """Verifica si el usuario tiene un permiso específico"""
+        if not self.is_active or self.status != 'activo':
+            return False
+        
+        # Superusuarios tienen todos los permisos
+        if self.is_superuser:
+            return True
+        
+        # Verificar permisos por rol
+        try:
+            role = Role.objects.get(codename=self.rol, is_active=True)
+            return role.permissions.filter(
+                codename=permission_codename,
+                is_active=True
+            ).exists()
+        except Role.DoesNotExist:
+            return False
+
+    def has_module_access(self, module_name):
+        """Verifica si el usuario tiene acceso a un módulo"""
+        if not self.is_active or self.status != 'activo':
+            return False
+        
+        if self.is_superuser:
+            return True
+        
+        # Por ahora, dar acceso basado en rol
+        module_permissions = {
+            'authentication': ['admin'],
+            'content_management': ['admin', 'vendedor'],
+            'financial_management': ['admin'],
+            'traffic_light_system': ['admin', 'vendedor'],
+            'transmission_control': ['admin', 'vendedor'],
+            'notifications': ['admin', 'vendedor'],
+            'sales_management': ['admin', 'vendedor'],
+            'reports_analytics': ['admin', 'vendedor'],
+            'system_configuration': ['admin'],
+        }
+        
+        return self.rol in module_permissions.get(module_name, [])
+
+    def get_user_permissions(self):
+        """Retorna todos los permisos del usuario"""
+        if not self.is_active or self.status != 'activo':
+            return Permission.objects.none()
+        
+        if self.is_superuser:
+            return Permission.objects.filter(is_active=True) if Permission.objects.exists() else Permission.objects.none()
+        
+        try:
+            role = Role.objects.get(codename=self.rol, is_active=True)
+            return role.permissions.filter(is_active=True)
+        except Role.DoesNotExist:
+            return Permission.objects.none()
+
+    def get_permissions_by_module(self):
+        """Retorna permisos del usuario agrupados por módulo"""
+        from collections import defaultdict
+        perms_by_module = defaultdict(list)
+        
+        for perm in self.get_user_permissions():
+            perms_by_module[perm.module].append(perm)
+        
+        return dict(perms_by_module)
+
+    def can_manage_users(self):
+        """Verifica si puede gestionar usuarios"""
+        return self.has_permission('manage_users') or self.es_admin
+
+    def can_view_reports(self):
+        """Verifica si puede ver reportes"""
+        return self.has_permission('view_reports') or self.rol in ['admin', 'vendedor']
+
+    def can_manage_content(self):
+        """Verifica si puede gestionar contenido"""
+        return self.has_permission('manage_content') or self.rol in ['admin', 'vendedor']
+
+    def can_manage_finances(self):
+        """Verifica si puede gestionar finanzas"""
+        return self.has_permission('manage_finances') or self.es_admin
+
+    def can_configure_system(self):
+        """Verifica si puede configurar el sistema"""
+        return self.has_permission('configure_system') or self.es_admin
+    
     # MÉTODOS DE RELACIONES
     def get_clientes(self):
         """Obtiene los clientes asignados (para vendedores)"""
@@ -432,7 +519,7 @@ class CustomUser(AbstractUser):
         self.save(update_fields=['status', 'is_active'])
 
 
-# Modelo para historial de conexiones (opcional pero útil)
+# Modelo para historial de conexiones
 class UserLoginHistory(models.Model):
     """Historial de conexiones de usuarios"""
     
@@ -462,8 +549,7 @@ class UserLoginHistory(models.Model):
         if self.logout_time:
             return self.logout_time - self.login_time
         return None
-    
-# Agregar al final de tu models.py existente
+
 
 class Permission(models.Model):
     """
@@ -662,97 +748,3 @@ class RolePermission(models.Model):
     
     def __str__(self):
         return f"{self.role.name} - {self.permission.name}"
-
-
-# Extender el modelo CustomUser existente
-# Agregar estos métodos a tu clase CustomUser:
-
-def has_permission(self, permission_codename):
-    """
-    Verifica si el usuario tiene un permiso específico
-    """
-    if not self.is_active or self.status != 'activo':
-        return False
-    
-    # Superusuarios tienen todos los permisos
-    if self.is_superuser:
-        return True
-    
-    # Verificar permisos por rol
-    try:
-        role = Role.objects.get(codename=self.rol, is_active=True)
-        return role.permissions.filter(
-            codename=permission_codename,
-            is_active=True
-        ).exists()
-    except Role.DoesNotExist:
-        return False
-
-def has_module_access(self, module_name):
-    """
-    Verifica si el usuario tiene acceso a un módulo
-    """
-    if not self.is_active or self.status != 'activo':
-        return False
-    
-    if self.is_superuser:
-        return True
-    
-    try:
-        role = Role.objects.get(codename=self.rol, is_active=True)
-        return role.permissions.filter(
-            module=module_name,
-            is_active=True
-        ).exists()
-    except Role.DoesNotExist:
-        return False
-
-def get_user_permissions(self):
-    """
-    Retorna todos los permisos del usuario
-    """
-    if not self.is_active or self.status != 'activo':
-        return Permission.objects.none()
-    
-    if self.is_superuser:
-        return Permission.objects.filter(is_active=True)
-    
-    try:
-        role = Role.objects.get(codename=self.rol, is_active=True)
-        return role.permissions.filter(is_active=True)
-    except Role.DoesNotExist:
-        return Permission.objects.none()
-
-def get_permissions_by_module(self):
-    """
-    Retorna permisos del usuario agrupados por módulo
-    """
-    from collections import defaultdict
-    perms_by_module = defaultdict(list)
-    
-    for perm in self.get_user_permissions():
-        perms_by_module[perm.module].append(perm)
-    
-    return dict(perms_by_module)
-
-def can_manage_users(self):
-    """Verifica si puede gestionar usuarios"""
-    return self.has_permission('manage_users') or self.es_admin
-
-def can_view_reports(self):
-    """Verifica si puede ver reportes"""
-    return self.has_permission('view_reports') or self.rol in ['admin', 'vendedor']
-
-def can_manage_content(self):
-    """Verifica si puede gestionar contenido"""
-    return self.has_permission('manage_content') or self.rol in ['admin', 'vendedor']
-
-def can_manage_finances(self):
-    """Verifica si puede gestionar finanzas"""
-    return self.has_permission('manage_finances') or self.es_admin
-
-def can_configure_system(self):
-    """Verifica si puede configurar el sistema"""
-    return self.has_permission('configure_system') or self.es_admin
-
-# Agregar estos métodos a la clase CustomUser existente

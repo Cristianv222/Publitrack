@@ -331,9 +331,9 @@ def usuario_salio(sender, request, user, **kwargs):
             accion='sistema_pausado',
             descripcion=f'Usuario {user.username} salió del sistema de transmisiones',
             usuario=user,
-            ip_address=request.META.get('REMOTE_ADDR')
+            ip_address=request.META.get('REMOTE_ADDR'),
+            user_agent=request.META.get('HTTP_USER_AGENT', '')  # ← AGREGAR ESTA LÍNEA
         )
-
 
 # ==================== SEÑALES DE LOGS ====================
 

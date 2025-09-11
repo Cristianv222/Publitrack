@@ -41,13 +41,12 @@ def get_client_ip(request):
 def login_view(request):
     """Vista para el login de usuarios"""
     if request.user.is_authenticated:
-        # Redirigir según el rol del usuario
-        if request.user.es_admin:
-            return redirect('dashboard:admin')
-        elif request.user.es_vendedor:
-            return redirect('dashboard:vendedor')
+        if request.user.es_admin:  # CORREGIDO: request.user
+            return redirect('authentication:admin_dashboard')
+        elif request.user.es_vendedor:  # CORREGIDO: request.user
+            return redirect('authentication:vendedor_dashboard')
         else:
-            return redirect('dashboard:cliente')
+            return redirect('authentication:cliente_dashboard')
     
     if request.method == 'POST':
         form = LoginForm(request.POST)
@@ -90,12 +89,13 @@ def login_view(request):
                     if next_url:
                         return redirect(next_url)
                     
+                    # CORREGIDO: cada rol a su dashboard correspondiente
                     if user.es_admin:
-                        return redirect('dashboard:admin')
+                        return redirect('authentication:admin_dashboard')
                     elif user.es_vendedor:
-                        return redirect('dashboard:vendedor')
+                        return redirect('authentication:vendedor_dashboard')
                     else:
-                        return redirect('dashboard:cliente')
+                        return redirect('authentication:cliente_dashboard')
                 else:
                     if user.status == 'suspendido':
                         messages.error(request, 'Tu cuenta ha sido suspendida. Contacta al administrador.')
@@ -385,7 +385,7 @@ def vendedor_dashboard(request):
             'usuarios_recientes': CustomUser.objects.filter(status='activo').order_by('-created_at')[:5],
         })
     
-    return render(request, 'authentication/vendedor_dashboard.html', context)
+    return render(request, 'dashboard/vendedor.html', context)
 
 @login_required
 def mis_clientes_view(request):
@@ -454,3 +454,30 @@ def user_reports_view(request):
     }
     
     return render(request, 'authentication/user_reports.html', context)
+@login_required
+def admin_dashboard(request):
+    """Dashboard para administradores"""
+    if not request.user.es_admin:
+        messages.error(request, 'No tienes permisos para ver esta página.')
+        return redirect('authentication:profile')
+    
+    context = {
+        'total_usuarios': CustomUser.objects.filter(status='activo').count(),
+        'total_vendedores': CustomUser.objects.filter(rol='vendedor', status='activo').count(),
+        'total_clientes': CustomUser.objects.filter(rol='cliente', status='activo').count(),
+        'usuarios_recientes': CustomUser.objects.order_by('-created_at')[:5],
+    }
+    return render(request, 'dashboard/admin.html', context)
+
+@login_required
+def cliente_dashboard(request):
+    """Dashboard para clientes"""
+    if not request.user.es_cliente:
+        messages.error(request, 'No tienes permisos para ver esta página.')
+        return redirect('authentication:profile')
+    
+    context = {
+        'user': request.user,
+        'vendedor': request.user.get_vendedor(),
+    }
+    return render(request, 'dashboard/cliente.html', context)
