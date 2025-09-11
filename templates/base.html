@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -5,12 +6,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}PublicTrack - Sistema de Gestión Radial{% endblock %}</title>
     
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Meta tags para PWA -->
+    <meta name="theme-color" content="#1976d2">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="PublicTrack">
+    
+    <!-- Icono para iOS -->
+    <link rel="apple-touch-icon" href="{% static 'icons/icon-192x192.png' %}">
     
     <!-- Custom CSS -->
     <style>
@@ -66,6 +79,32 @@
             height: 1rem;
             border-width: 0.2em;
         }
+        
+        /* Estilos para el botón de instalación PWA */
+        #pwa-install-banner {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            display: none;
+            animation: slideUp 0.5s ease-out;
+        }
+        
+        #pwa-install-banner.show {
+            display: block;
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateX(-50%) translateY(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
     </style>
     
     {% block extra_css %}{% endblock %}
@@ -83,6 +122,12 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
+                    <!-- Botón de Instalar App (solo se muestra cuando está disponible) -->
+                    <li class="nav-item me-2" id="install-nav-item" style="display: none;">
+                        <button class="btn btn-success btn-sm" id="install-nav-btn">
+                            <i class="fas fa-download me-1"></i> Instalar App
+                        </button>
+                    </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user-circle me-1"></i>
@@ -110,6 +155,27 @@
         </div>
     </nav>
     {% endif %}
+    
+    <!-- Banner de instalación PWA -->
+    <div id="pwa-install-banner" class="card shadow-lg">
+        <div class="card-body d-flex align-items-center">
+            <div class="me-3">
+                <i class="fas fa-mobile-alt fa-2x text-primary"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h6 class="mb-1">Instalar PublicTrack</h6>
+                <small class="text-muted">Accede más rápido desde tu dispositivo</small>
+            </div>
+            <div>
+                <button class="btn btn-primary btn-sm me-2" id="pwa-install-accept">
+                    <i class="fas fa-download"></i> Instalar
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" id="pwa-install-dismiss">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
     
     <!-- Mensajes Flash -->
     {% if messages %}
@@ -140,6 +206,141 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jQuery (opcional) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- PWA Installation Script UNIFICADO -->
+    <script>
+        let deferredPrompt;
+        const installBanner = document.getElementById('pwa-install-banner');
+        const installNavItem = document.getElementById('install-nav-item');
+        const installNavBtn = document.getElementById('install-nav-btn');
+        const installAcceptBtn = document.getElementById('pwa-install-accept');
+        const installDismissBtn = document.getElementById('pwa-install-dismiss');
+        
+        // REGISTRO ÚNICO DEL SERVICE WORKER
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(registration => {
+                        console.log('✅ Service Worker registrado exitosamente:', registration.scope);
+                        
+                        // Activar inmediatamente
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'activated') {
+                                    console.log('✅ Service Worker activado');
+                                    if (navigator.serviceWorker.controller) {
+                                        console.log('✅ Controller activo:', navigator.serviceWorker.controller);
+                                    }
+                                }
+                            });
+                        });
+                        
+                        // Verificar si ya está activo
+                        if (registration.active) {
+                            console.log('✅ Service Worker ya está activo');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('❌ Error registrando Service Worker:', error);
+                    });
+            });
+        }
+        
+        // Capturar evento de instalación
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('🎯 beforeinstallprompt evento capturado');
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Mostrar el banner de instalación
+            if (installBanner) {
+                installBanner.classList.add('show');
+            }
+            
+            // Mostrar botón en navbar si existe
+            if (installNavItem) {
+                installNavItem.style.display = 'block';
+            }
+        });
+        
+        // Función para instalar la PWA
+        async function installPWA() {
+            if (!deferredPrompt) {
+                console.log('No hay prompt disponible');
+                // En desarrollo, mostrar instrucciones
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    alert('Para instalar:\n\n1. Chrome: Menú ⋮ → "Instalar PublicTrack"\n2. Edge: Menú → "Aplicaciones" → "Instalar este sitio como aplicación"\n\nO espera a que aparezca el prompt automático.');
+                }
+                return;
+            }
+            
+            // Mostrar el prompt
+            deferredPrompt.prompt();
+            
+            // Esperar la respuesta del usuario
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`Usuario eligió: ${outcome}`);
+            
+            if (outcome === 'accepted') {
+                console.log('✅ PWA instalada');
+                // Ocultar elementos de instalación
+                if (installBanner) installBanner.classList.remove('show');
+                if (installNavItem) installNavItem.style.display = 'none';
+            }
+            
+            deferredPrompt = null;
+        }
+        
+        // Event listeners para los botones
+        if (installAcceptBtn) {
+            installAcceptBtn.addEventListener('click', installPWA);
+        }
+        
+        if (installNavBtn) {
+            installNavBtn.addEventListener('click', installPWA);
+        }
+        
+        if (installDismissBtn) {
+            installDismissBtn.addEventListener('click', () => {
+                installBanner.classList.remove('show');
+            });
+        }
+        
+        // Detectar si ya está instalada
+        window.addEventListener('appinstalled', () => {
+            console.log('✅ PWA ya está instalada');
+            if (installBanner) installBanner.classList.remove('show');
+            if (installNavItem) installNavItem.style.display = 'none';
+        });
+        
+        // Para desarrollo - mostrar botón después de 3 segundos
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            setTimeout(() => {
+                if (!deferredPrompt) {
+                    console.log('📱 Mostrando opciones de instalación en desarrollo');
+                    if (installBanner) {
+                        installBanner.classList.add('show');
+                    }
+                    if (installNavItem) {
+                        installNavItem.style.display = 'block';
+                    }
+                }
+            }, 3000);
+        }
+        
+        // Verificar estado del Service Worker cada 2 segundos (solo para debugging)
+        let checkCount = 0;
+        const checkSW = setInterval(() => {
+            if (navigator.serviceWorker.controller) {
+                console.log('✅ Service Worker Controller activo');
+                clearInterval(checkSW);
+            } else if (checkCount++ > 5) {
+                console.log('⚠️ Service Worker aún no tiene controller después de 10 segundos');
+                clearInterval(checkSW);
+            }
+        }, 2000);
+    </script>
     
     {% block extra_js %}{% endblock %}
 </body>

@@ -1,5 +1,6 @@
 """
 URLs principales del proyecto PubliTrack
+Incluye soporte para Progressive Web App (PWA)
 """
 
 from django.contrib import admin
@@ -7,7 +8,10 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import redirect
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
+from django.views.generic import TemplateView
+from django.views.decorators.cache import cache_control
+from django.templatetags.static import static as static_url
 
 def home_redirect(request):
     """Redirige a la página apropiada según el estado del usuario"""
@@ -29,6 +33,208 @@ def health_check(request):
     """Endpoint simple para verificar que el sistema funciona"""
     return HttpResponse("OK - PubliTrack funcionando correctamente", content_type="text/plain")
 
+def serve_manifest(request):
+    """Sirve el manifest.json con las URLs absolutas correctas"""
+    manifest = {
+        "name": "PublicTrack - Sistema de Gestión Radial",
+        "short_name": "PublicTrack",
+        "description": "Sistema integral de gestión para emisoras de radio",
+        "start_url": "/",
+        "display": "standalone",
+        "background_color": "#ffffff",
+        "theme_color": "#1976d2",
+        "orientation": "any",
+        "scope": "/",
+        "lang": "es",
+        "dir": "ltr",
+        "categories": ["business", "productivity", "utilities"],
+        "prefer_related_applications": False,
+        "icons": [
+            {
+                "src": static_url('icons/icon-72x72.png'),
+                "sizes": "72x72",
+                "type": "image/png",
+                "purpose": "maskable any"
+            },
+            {
+                "src": static_url('icons/icon-96x96.png'),
+                "sizes": "96x96",
+                "type": "image/png",
+                "purpose": "maskable any"
+            },
+            {
+                "src": static_url('icons/icon-128x128.png'),
+                "sizes": "128x128",
+                "type": "image/png",
+                "purpose": "maskable any"
+            },
+            {
+                "src": static_url('icons/icon-144x144.png'),
+                "sizes": "144x144",
+                "type": "image/png",
+                "purpose": "maskable any"
+            },
+            {
+                "src": static_url('icons/icon-152x152.png'),
+                "sizes": "152x152",
+                "type": "image/png",
+                "purpose": "maskable any"
+            },
+            {
+                "src": static_url('icons/icon-192x192.png'),
+                "sizes": "192x192",
+                "type": "image/png",
+                "purpose": "maskable any"
+            },
+            {
+                "src": static_url('icons/icon-384x384.png'),
+                "sizes": "384x384",
+                "type": "image/png",
+                "purpose": "maskable any"
+            },
+            {
+                "src": static_url('icons/icon-512x512.png'),
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "maskable any"
+            }
+        ],
+        "screenshots": [
+            {
+                "src": static_url('screenshots/desktop-home.png'),
+                "sizes": "1920x1080",
+                "type": "image/png",
+                "platform": "wide",
+                "label": "Dashboard Principal"
+            },
+            {
+                "src": static_url('screenshots/mobile-home.png'),
+                "sizes": "750x1334",
+                "type": "image/png",
+                "platform": "narrow",
+                "label": "Vista Móvil"
+            }
+        ],
+        "shortcuts": [
+            {
+                "name": "Nueva Cuña",
+                "short_name": "Nueva Cuña",
+                "description": "Registrar nueva cuña publicitaria",
+                "url": "/content/nueva-cuna/",
+                "icons": [
+                    {
+                        "src": static_url('icons/shortcut-new.png'),
+                        "sizes": "96x96"
+                    }
+                ]
+            },
+            {
+                "name": "Transmisiones",
+                "short_name": "Transmisiones",
+                "description": "Ver programación de transmisiones",
+                "url": "/transmisiones/",
+                "icons": [
+                    {
+                        "src": static_url('icons/shortcut-transmission.png'),
+                        "sizes": "96x96"
+                    }
+                ]
+            },
+            {
+                "name": "Reportes",
+                "short_name": "Reportes",
+                "description": "Ver reportes y análisis",
+                "url": "/reports/",
+                "icons": [
+                    {
+                        "src": static_url('icons/shortcut-reports.png'),
+                        "sizes": "96x96"
+                    }
+                ]
+            }
+        ]
+    }
+    
+    return JsonResponse(manifest)
+
+def serve_service_worker(request):
+    """Sirve el Service Worker (cuando lo implementes)"""
+    sw_content = """
+    // Service Worker básico para PublicTrack
+    const CACHE_NAME = 'publictrack-v1';
+    const urlsToCache = [
+        '/',
+        '/static/css/style.css',
+        '/static/js/main.js',
+    ];
+
+    self.addEventListener('install', event => {
+        event.waitUntil(
+            caches.open(CACHE_NAME)
+                .then(cache => cache.addAll(urlsToCache))
+        );
+    });
+
+    self.addEventListener('fetch', event => {
+        event.respondWith(
+            caches.match(event.request)
+                .then(response => response || fetch(event.request))
+        );
+    });
+    """
+    return HttpResponse(sw_content, content_type='application/javascript')
+
+def offline_page(request):
+    """Página que se muestra cuando no hay conexión"""
+    html = """
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Sin Conexión - PublicTrack</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+            .offline-container {
+                background: white;
+                padding: 40px;
+                border-radius: 10px;
+                text-align: center;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            }
+            h1 { color: #333; }
+            p { color: #666; }
+            button {
+                background: #1976d2;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 5px;
+                cursor: pointer;
+                margin-top: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="offline-container">
+            <h1>📡 Sin Conexión</h1>
+            <p>Estás trabajando en modo offline</p>
+            <p>Los cambios se sincronizarán cuando vuelva la conexión</p>
+            <button onclick="location.reload()">Reintentar</button>
+        </div>
+    </body>
+    </html>
+    """
+    return HttpResponse(html)
+
 urlpatterns = [
     # ============================================================================
     # URLS PRINCIPALES
@@ -36,6 +242,13 @@ urlpatterns = [
     path('', home_redirect, name='home'),
     path('health/', health_check, name='health'),
     
+    # ============================================================================
+    # URLS PWA (Progressive Web App)
+    # ============================================================================
+    path('manifest.json', serve_manifest, name='manifest'),
+    path('sw.js', serve_service_worker, name='service_worker'),
+    path('offline/', offline_page, name='offline'),
+    path('sw.js', TemplateView.as_view(template_name='../static/sw.js',content_type='application/javascript'), name='service_worker'),
     # ============================================================================
     # ADMINISTRACIÓN DE DJANGO
     # ============================================================================

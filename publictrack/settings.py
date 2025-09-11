@@ -1,7 +1,7 @@
 """
 Django settings for publictrack project.
 Sistema de gestión de publicidad radial - PubliTrack
-VERSIÓN CORREGIDA - SIN ERRORES DE LOGGING
+VERSIÓN CORREGIDA - CON SOPORTE PWA
 """
 
 from pathlib import Path
@@ -86,6 +86,7 @@ TEMPLATES = [
                 'django.template.context_processors.static',
                 'django.template.context_processors.i18n',
                 'django.template.context_processors.tz',
+                'apps.context_processors.pwa_context',  # Context processor para PWA
             ],
         },
     },
@@ -192,7 +193,10 @@ USE_TZ = True
 # =============================================================================
 
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+    BASE_DIR / 'static' / 'icons',  # Agregado para PWA
+]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
@@ -202,6 +206,23 @@ MEDIA_ROOT = BASE_DIR / 'media'
 FILE_UPLOAD_MAX_MEMORY_SIZE = config('FILE_UPLOAD_MAX_MEMORY_SIZE', default=5242880, cast=int)  # 5MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = config('DATA_UPLOAD_MAX_MEMORY_SIZE', default=5242880, cast=int)  # 5MB
 FILE_UPLOAD_PERMISSIONS = 0o644
+
+# =============================================================================
+# CONFIGURACIÓN PWA (Progressive Web App)
+# =============================================================================
+
+PWA_APP_NAME = 'PublicTrack'
+PWA_APP_DESCRIPTION = 'Sistema integral de gestión para emisoras de radio'
+PWA_APP_THEME_COLOR = '#1976d2'
+PWA_APP_BACKGROUND_COLOR = '#ffffff'
+PWA_APP_DISPLAY = 'standalone'
+PWA_APP_SCOPE = '/'
+PWA_APP_ORIENTATION = 'any'
+PWA_APP_START_URL = '/'
+PWA_APP_STATUS_BAR_COLOR = 'default'
+PWA_APP_LANG = 'es'
+PWA_APP_DIR = 'ltr'
+PWA_APP_ICONS_PATH = 'icons/'
 
 # =============================================================================
 # CONFIGURACIÓN DE EMAIL
@@ -358,6 +379,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # =============================================================================
 
 print("✅ Settings de PubliTrack cargados correctamente")
+print("📱 PWA configurada y lista")
 if DEBUG:
     print(f"🔧 Modo: DESARROLLO")
     print(f"🗄️  Base de datos: {DATABASES['default']['NAME']} en {DATABASES['default']['HOST']}")
