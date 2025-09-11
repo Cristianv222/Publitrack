@@ -12,6 +12,11 @@ from django.db.models import Q, Count
 from django.core.paginator import Paginator
 from .models import CustomUser, UserLoginHistory
 from .forms import LoginForm, UserRegistrationForm, UserProfileForm, PasswordChangeForm
+from django.db.models import Count, Sum, Q, F, Avg
+from datetime import timedelta, datetime
+from decimal import Decimal
+import json
+from django.conf import settings
 
 # ============================================================================
 # FUNCIONES AUXILIARES PARA PERMISOS
@@ -454,19 +459,137 @@ def user_reports_view(request):
     }
     
     return render(request, 'authentication/user_reports.html', context)
+import json  # Agregar al inicio del archivo con los otros imports
+
 @login_required
 def admin_dashboard(request):
-    """Dashboard para administradores"""
+    """Dashboard completo para administradores con datos reales"""
     if not request.user.es_admin:
         messages.error(request, 'No tienes permisos para ver esta página.')
         return redirect('authentication:profile')
     
-    context = {
-        'total_usuarios': CustomUser.objects.filter(status='activo').count(),
-        'total_vendedores': CustomUser.objects.filter(rol='vendedor', status='activo').count(),
-        'total_clientes': CustomUser.objects.filter(rol='cliente', status='activo').count(),
-        'usuarios_recientes': CustomUser.objects.order_by('-created_at')[:5],
+    # Obtener fechas para filtros
+    hoy = timezone.now().date()
+    hace_7_dias = hoy - timedelta(days=7)
+    inicio_mes = hoy.replace(day=1)
+    
+    # ========== ESTADÍSTICAS DE USUARIOS ==========
+    usuarios_stats = {
+        'total': CustomUser.objects.count(),
+        'activos': CustomUser.objects.filter(status='activo').count(),
+        'vendedores': CustomUser.objects.filter(rol='vendedor', status='activo').count(),
+        'clientes': CustomUser.objects.filter(rol='cliente', status='activo').count(),
+        'admins': CustomUser.objects.filter(rol='admin', status='activo').count(),
+        'nuevos_mes': CustomUser.objects.filter(created_at__gte=inicio_mes).count(),
+        'conectados_hoy': UserLoginHistory.objects.filter(
+            login_time__date=hoy
+        ).values('user').distinct().count(),
     }
+    
+    # ========== ESTADÍSTICAS DE CUÑAS (con manejo de errores) ==========
+    try:
+        from apps.content_management.models import CuñaPublicitaria
+        cuñas_stats = {
+            'total': CuñaPublicitaria.objects.count(),
+            'activas': CuñaPublicitaria.objects.filter(estado='activa').count(),
+            'pendientes': CuñaPublicitaria.objects.filter(estado='pendiente_revision').count(),
+            'proximas_vencer': CuñaPublicitaria.objects.filter(
+                fecha_fin__range=[hoy, hoy + timedelta(days=7)],
+                estado__in=['activa', 'aprobada']
+            ).count(),
+            'creadas_mes': CuñaPublicitaria.objects.filter(created_at__gte=inicio_mes).count(),
+        }
+        
+        ingresos_mes = CuñaPublicitaria.objects.filter(
+            created_at__gte=inicio_mes,
+            estado__in=['activa', 'aprobada', 'finalizada']
+        ).aggregate(Sum('precio_total'))['precio_total__sum'] or Decimal('0.00')
+        
+        ultimas_cuñas = CuñaPublicitaria.objects.select_related(
+            'cliente', 'vendedor_asignado'
+        ).order_by('-created_at')[:5]
+        
+        # Datos para el gráfico
+        cuñas_por_dia = []
+        for i in range(7):
+            dia = hoy - timedelta(days=6-i)
+            count = CuñaPublicitaria.objects.filter(created_at__date=dia).count()
+            cuñas_por_dia.append({
+                'dia': dia.strftime('%d/%m'),
+                'cantidad': count
+            })
+    except:
+        cuñas_stats = {'total': 0, 'activas': 0, 'pendientes': 0, 'proximas_vencer': 0, 'creadas_mes': 0}
+        ingresos_mes = Decimal('0.00')
+        ultimas_cuñas = []
+        cuñas_por_dia = []
+    
+    # ========== ESTADÍSTICAS DE TRANSMISIONES ==========
+    try:
+        from apps.transmission_control.models import ProgramacionTransmision, TransmisionActual, LogTransmision
+        transmisiones_stats = {
+            'programadas_hoy': ProgramacionTransmision.objects.filter(
+                fecha_inicio__date=hoy,
+                estado='programada'
+            ).count(),
+            'activas_ahora': TransmisionActual.objects.filter(estado='transmitiendo').count(),
+            'completadas_hoy': TransmisionActual.objects.filter(
+                fin_real__date=hoy,
+                estado='completada'
+            ).count(),
+        }
+    except:
+        transmisiones_stats = {'programadas_hoy': 0, 'activas_ahora': 0, 'completadas_hoy': 0}
+    
+    # ========== SISTEMA DE SEMÁFOROS ==========
+    try:
+        from apps.traffic_light_system.models import EstadoSemaforo, AlertaSemaforo
+        semaforos_stats = EstadoSemaforo.objects.aggregate(
+            verde=Count('id', filter=Q(color_actual='verde')),
+            amarillo=Count('id', filter=Q(color_actual='amarillo')),
+            rojo=Count('id', filter=Q(color_actual='rojo')),
+            gris=Count('id', filter=Q(color_actual='gris'))
+        )
+        
+        alertas_pendientes = AlertaSemaforo.objects.filter(
+            estado='pendiente'
+        ).select_related('cuña')[:5]
+        
+        alertas_count = AlertaSemaforo.objects.filter(estado='pendiente').count()
+    except:
+        semaforos_stats = {'verde': 0, 'amarillo': 0, 'rojo': 0, 'gris': 0}
+        alertas_pendientes = []
+        alertas_count = 0
+    
+    # Últimos usuarios registrados
+    ultimos_usuarios = CustomUser.objects.order_by('-created_at')[:5]
+    
+    # Top vendedores
+    top_vendedores = CustomUser.objects.filter(
+        rol='vendedor',
+        status='activo'
+    ).annotate(
+        total_clientes=Count('clientes_asignados', filter=Q(clientes_asignados__status='activo'))
+    ).order_by('-total_clientes')[:5]
+    
+    # ========== CONTEXT ==========
+    context = {
+        'usuarios_stats': usuarios_stats,
+        'cuñas_stats': cuñas_stats,
+        'transmisiones_stats': transmisiones_stats,
+        'semaforos_stats': semaforos_stats,
+        'alertas_count': alertas_count,
+        'ingresos_mes': ingresos_mes,
+        'alertas_pendientes': alertas_pendientes,
+        'ultimas_cuñas': ultimas_cuñas,
+        'ultimos_usuarios': ultimos_usuarios,
+        'top_vendedores': top_vendedores,
+        'cuñas_por_dia': json.dumps(cuñas_por_dia),  # Convertir a JSON
+        'hoy': hoy,
+        'inicio_mes': inicio_mes,
+        'debug': settings.DEBUG,  # Para debugging
+    }
+    
     return render(request, 'dashboard/admin.html', context)
 
 @login_required

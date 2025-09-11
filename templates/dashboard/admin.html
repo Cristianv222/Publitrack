@@ -1,69 +1,372 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Dashboard Administrador - PublicTrack{% endblock %}
 
-{% block content %}
-<div class="container-fluid">
-    <h1 class="h3 mb-4">
-        <i class="fas fa-tachometer-alt me-2"></i>Dashboard Administrador
-    </h1>
+{% block extra_css %}
+<style>
+    .stat-card {
+        border-left: 4px solid;
+        transition: transform 0.2s;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    .stat-card.primary { border-left-color: #007bff; }
+    .stat-card.success { border-left-color: #28a745; }
+    .stat-card.warning { border-left-color: #ffc107; }
+    .stat-card.danger { border-left-color: #dc3545; }
+    .stat-card.info { border-left-color: #17a2b8; }
     
-    <div class="row">
-        <!-- Tarjetas de estadísticas -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
+    .semaforo-badge {
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+    }
+    .semaforo-verde { background-color: #28a745; }
+    .semaforo-amarillo { background-color: #ffc107; }
+    .semaforo-rojo { background-color: #dc3545; }
+    .semaforo-gris { background-color: #6c757d; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-0">
+                <i class="fas fa-tachometer-alt me-2"></i>Dashboard Administrativo
+                <small class="text-muted ms-2">{{ hoy|date:"d/m/Y" }}</small>
+            </h1>
+        </div>
+    </div>
+
+    <!-- Estadísticas Principales -->
+    <div class="row mb-4">
+        <!-- Usuarios -->
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card stat-card primary h-100">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs fw-bold text-primary text-uppercase mb-1">
                                 Usuarios Activos
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">150</div>
+                            <div class="h5 mb-0 fw-bold">{{ usuarios_stats.activos|default:0 }}</div>
+                            <small class="text-muted">
+                                Total: {{ usuarios_stats.total|default:0 }} | Nuevos: +{{ usuarios_stats.nuevos_mes|default:0 }}
+                            </small>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                            <i class="fas fa-users fa-2x text-primary opacity-50"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <!-- Más tarjetas aquí... -->
-    </div>
-    
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-chart-line me-2"></i>Actividad Reciente
-                    </h6>
-                </div>
+
+        <!-- Cuñas Activas -->
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card stat-card success h-100">
                 <div class="card-body">
-                    <p>Gráficos y estadísticas aquí...</p>
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs fw-bold text-success text-uppercase mb-1">
+                                Cuñas Activas
+                            </div>
+                            <div class="h5 mb-0 fw-bold">{{ cuñas_stats.activas|default:0 }}</div>
+                            <small class="text-muted">
+                                Total: {{ cuñas_stats.total|default:0 }} | Por vencer: {{ cuñas_stats.proximas_vencer|default:0 }}
+                            </small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-bullhorn fa-2x text-success opacity-50"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <div class="col-lg-4">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-bell me-2"></i>Notificaciones
+
+        <!-- Transmisiones -->
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card stat-card info h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs fw-bold text-info text-uppercase mb-1">
+                                Transmisiones Hoy
+                            </div>
+                            <div class="h5 mb-0 fw-bold">{{ transmisiones_stats.programadas_hoy|default:0 }}</div>
+                            <small class="text-muted">
+                                Completadas: {{ transmisiones_stats.completadas_hoy|default:0 }}
+                            </small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-broadcast-tower fa-2x text-info opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ingresos -->
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card stat-card warning h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs fw-bold text-warning text-uppercase mb-1">
+                                Ingresos del Mes
+                            </div>
+                            <div class="h5 mb-0 fw-bold">S/. {{ ingresos_mes|floatformat:2|default:"0.00" }}</div>
+                            <small class="text-muted">
+                                {{ cuñas_stats.creadas_mes|default:0 }} cuñas nuevas
+                            </small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-warning opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Segunda fila -->
+    <div class="row mb-4">
+        <!-- Semáforos -->
+        <div class="col-lg-4 mb-3">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="fas fa-traffic-light me-2"></i>Sistema de Semáforos
                     </h6>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-warning" role="alert">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        5 cuñas por vencer
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div><span class="semaforo-badge semaforo-verde"></span>Verde</div>
+                        <span class="badge bg-success">{{ semaforos_stats.verde|default:0 }}</span>
                     </div>
-                    <div class="alert alert-info" role="alert">
-                        <i class="fas fa-info-circle me-2"></i>
-                        3 nuevos clientes registrados
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div><span class="semaforo-badge semaforo-amarillo"></span>Amarillo</div>
+                        <span class="badge bg-warning">{{ semaforos_stats.amarillo|default:0 }}</span>
                     </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div><span class="semaforo-badge semaforo-rojo"></span>Rojo</div>
+                        <span class="badge bg-danger">{{ semaforos_stats.rojo|default:0 }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div><span class="semaforo-badge semaforo-gris"></span>Gris</div>
+                        <span class="badge bg-secondary">{{ semaforos_stats.gris|default:0 }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alertas -->
+        <div class="col-lg-8 mb-3">
+            <div class="card h-100">
+                <div class="card-header bg-light d-flex justify-content-between">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="fas fa-bell me-2"></i>Alertas Pendientes
+                    </h6>
+                    <span class="badge bg-danger">{{ alertas_count|default:0 }}</span>
+                </div>
+                <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                    {% if alertas_pendientes %}
+                        {% for alerta in alertas_pendientes %}
+                        <div class="alert alert-sm alert-warning py-2 mb-2">
+                            <small>
+                                <strong>{{ alerta.titulo }}</strong>
+                                {% if alerta.cuña %} - {{ alerta.cuña.codigo }}{% endif %}
+                            </small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center">No hay alertas pendientes</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico de Cuñas -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="fas fa-chart-line me-2"></i>Cuñas Creadas (Últimos 7 días)
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="cuñasChart" height="80"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tablas -->
+    <div class="row">
+        <!-- Últimas Cuñas -->
+        <div class="col-lg-6 mb-3">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="fas fa-history me-2"></i>Últimas Cuñas
+                    </h6>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Título</th>
+                                <th>Cliente</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cuña in ultimas_cuñas %}
+                            <tr>
+                                <td>{{ cuña.codigo }}</td>
+                                <td>{{ cuña.titulo|truncatewords:3 }}</td>
+                                <td>{{ cuña.cliente.nombre_completo|default:cuña.cliente.username }}</td>
+                                <td>
+                                    <span class="badge bg-{% if cuña.estado == 'activa' %}success{% else %}secondary{% endif %}">
+                                        {{ cuña.get_estado_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center">No hay datos</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Vendedores -->
+        <div class="col-lg-6 mb-3">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="fas fa-trophy me-2"></i>Top Vendedores
+                    </h6>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Vendedor</th>
+                                <th>Clientes</th>
+                                <th>Meta</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for vendedor in top_vendedores %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ vendedor.nombre_completo|default:vendedor.username }}</td>
+                                <td>{{ vendedor.total_clientes }}</td>
+                                <td>
+                                    {% if vendedor.meta_mensual %}
+                                        {{ vendedor.get_porcentaje_meta|floatformat:0 }}%
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center">No hay datos</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Pasar datos de Django a JavaScript de forma segura -->
+<script type="application/json" id="chart-data">
+    {{ cuñas_por_dia|safe }}
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Obtener el elemento canvas
+    const canvasElement = document.getElementById('cuñasChart');
+    
+    if (canvasElement) {
+        try {
+            // Obtener los datos
+            const chartDataElement = document.getElementById('chart-data');
+            let chartData = [];
+            
+            if (chartDataElement && chartDataElement.textContent) {
+                chartData = JSON.parse(chartDataElement.textContent);
+            }
+            
+            // Si no hay datos, mostrar mensaje
+            if (!chartData || chartData.length === 0) {
+                canvasElement.parentElement.innerHTML = '<p class="text-center text-muted py-4">No hay datos disponibles para el gráfico</p>';
+                return;
+            }
+            
+            // Extraer labels y data
+            const labels = chartData.map(item => item.dia || '');
+            const data = chartData.map(item => item.cantidad || 0);
+            
+            // Crear el gráfico
+            const ctx = canvasElement.getContext('2d');
+            const myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Cuñas Creadas',
+                        data: data,
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1,
+                                precision: 0
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error creando el gráfico:', error);
+            canvasElement.parentElement.innerHTML = '<p class="text-center text-muted py-4">Error al cargar el gráfico</p>';
+        }
+    }
+});
+</script>
 {% endblock %}
