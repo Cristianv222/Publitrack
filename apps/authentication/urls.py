@@ -28,9 +28,9 @@ urlpatterns = [
     # ============================================================================
     # DASHBOARD Y VENDEDORES
     # ============================================================================
-    path('dashboard/vendedor/', views.vendedor_dashboard, name='vendedor_dashboard'),
-    path('mis-clientes/', views.mis_clientes_view, name='mis_clientes'),
-    
+    path('dashboard/admin/', views.admin_dashboard, name='admin_dashboard'),
+    path('dashboard/vendedor/', views.vendedor_dashboard, name='vendedor_dashboard'),  # ← AGREGAR ESTA LÍNEA
+    path('dashboard/cliente/', views.cliente_dashboard, name='cliente_dashboard'),
     # ============================================================================
     # REPORTES Y API
     # ============================================================================
