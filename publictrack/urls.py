@@ -16,9 +16,8 @@ from django.templatetags.static import static as static_url
 def home_redirect(request):
     """Redirige a la página apropiada según el estado del usuario"""
     if request.user.is_authenticated:
-        # Si está logueado, redirigir según su rol
         if hasattr(request.user, 'es_admin') and request.user.es_admin:
-            return redirect('admin:index')
+            return redirect('custom_admin:dashboard')  # ← CAMBIAR ESTA LÍNEA
         elif hasattr(request.user, 'es_vendedor') and request.user.es_vendedor:
             return redirect('authentication:vendedor_dashboard')
         elif hasattr(request.user, 'es_cliente') and request.user.es_cliente:
@@ -26,9 +25,8 @@ def home_redirect(request):
         else:
             return redirect('authentication:profile')
     else:
-        # Si no está logueado, ir al login
         return redirect('authentication:login')
-
+    
 def health_check(request):
     """Endpoint simple para verificar que el sistema funciona"""
     return HttpResponse("OK - PubliTrack funcionando correctamente", content_type="text/plain")
@@ -255,6 +253,7 @@ urlpatterns = [
     # ADMINISTRACIÓN DE DJANGO
     # ============================================================================
     path('admin/', admin.site.urls),
+    path('panel/', include('apps.custom_admin.urls')),
     
     # ============================================================================
     # APLICACIONES DEL PROYECTO

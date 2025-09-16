@@ -3,17 +3,17 @@ Django==5.2.5
 djangorestframework==3.14.0
 
 # Base de datos
-psycopg2-binary==2.9.7
+psycopg2-binary==2.9.9
 
 # Cache y Redis
-redis==4.6.0
+redis==5.0.0
 django-redis==5.3.0
 
 # Configuración desde .env
 python-decouple==3.8
 
 # Archivos y media
-Pillow==10.0.0
+Pillow  # Sin versión específica para Python 3.13
 
 # CORS y utilidades
 django-cors-headers==4.3.0
@@ -28,9 +28,9 @@ pytz==2023.3
 # Archivos de audio
 mutagen==1.47.0
 
-# Reportes y análisis
-pandas==2.1.0
-openpyxl==3.1.2
+# Reportes y análisis (pueden dar problemas con Python 3.13)
+# pandas==2.1.0
+# openpyxl==3.1.2
 
 # API y autenticación
 djangorestframework-simplejwt==5.3.0
@@ -41,3 +41,6 @@ whitenoise==6.5.0
 
 # Base de datos URL parsing
 dj-database-url==2.1.0
+
+# PWA
+django-pwa==1.1.0

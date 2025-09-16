@@ -1,0 +1,134 @@
+{% extends 'custom_admin/base_admin.html' %}
+
+{% block title %}Usuarios - PublicTrack Admin{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <div class="admin-card-header d-flex justify-content-between align-items-center">
+        <h5 class="admin-card-title">Gestión de Usuarios</h5>
+        <a href="{% url 'custom_admin:usuario_create' %}" class="btn btn-admin-primary">
+            <i class="fas fa-plus me-2"></i>Nuevo Usuario
+        </a>
+    </div>
+    <div class="admin-card-body">
+        <!-- Barra de búsqueda -->
+        <form method="get" class="mb-4">
+            <div class="input-group">
+                <input type="text" name="q" class="form-control" 
+                       placeholder="Buscar usuarios..." value="{{ query }}">
+                <button class="btn btn-outline-secondary" type="submit">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </form>
+        
+        <!-- Tabla de usuarios -->
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Usuario</th>
+                        <th>Nombre Completo</th>
+                        <th>Email</th>
+                        <th>Rol</th>
+                        <th>Estado</th>
+                        <th>Permisos</th>
+                        <th>Fecha Registro</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usuario in usuarios %}
+                    <tr>
+                        <td>{{ usuario.id }}</td>
+                        <td>{{ usuario.username }}</td>
+                        <td>{{ usuario.get_full_name|default:"-" }}</td>
+                        <td>{{ usuario.email|default:"-" }}</td>
+                        <td>
+                            {% if usuario.rol == 'admin' %}
+                                <span class="badge bg-primary">Administrador</span>
+                            {% elif usuario.rol == 'vendedor' %}
+                                <span class="badge bg-info">Vendedor</span>
+                            {% elif usuario.rol == 'cliente' %}
+                                <span class="badge bg-secondary">Cliente</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark">Sin rol</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if usuario.status == 'activo' %}
+                                <span class="badge bg-success">Activo</span>
+                            {% elif usuario.status == 'inactivo' %}
+                                <span class="badge bg-warning">Inactivo</span>
+                            {% elif usuario.status == 'suspendido' %}
+                                <span class="badge bg-danger">Suspendido</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark">{{ usuario.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if usuario.is_superuser %}
+                                <span class="badge bg-danger">Superusuario</span>
+                            {% elif usuario.is_staff %}
+                                <span class="badge bg-warning text-dark">Staff</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark">Usuario</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ usuario.fecha_registro|date:"d/m/Y" }}</td>
+                        <td>
+                            <a href="{% url 'custom_admin:usuario_edit' usuario.id %}" 
+                               class="btn btn-sm btn-warning" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'custom_admin:usuario_delete' usuario.id %}" 
+                               class="btn btn-sm btn-danger" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center">No hay usuarios registrados</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Paginación -->
+        {% if usuarios.has_other_pages %}
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if usuarios.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ usuarios.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">
+                            Anterior
+                        </a>
+                    </li>
+                {% endif %}
+                
+                {% for num in usuarios.paginator.page_range %}
+                    {% if usuarios.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if usuarios.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ usuarios.next_page_number }}{% if query %}&q={{ query }}{% endif %}">
+                            Siguiente
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

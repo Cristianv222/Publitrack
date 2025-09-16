@@ -6,52 +6,57 @@
 
 📊 RESUMEN DEL PROYECTO
 ==================================================
-📂 Total de directorios: 54
-📄 Total de archivos: 142
-📅 Generado: 2025-09-10 15:15:46
+📂 Total de directorios: 52
+📄 Total de archivos: 181
+📅 Generado: 2025-09-16 03:46:10
 
 🏆 TIPOS DE ARCHIVOS MÁS COMUNES:
 ------------------------------
-  .py: 129 archivos
-  .html: 7 archivos
-  (sin extensión): 2 archivos
+  .py: 140 archivos
+  .png: 15 archivos
+  .html: 15 archivos
+  (sin extensión): 3 archivos
+  .js: 2 archivos
   .ps1: 1 archivos
   .yml: 1 archivos
   .sh: 1 archivos
   .txt: 1 archivos
+  .json: 1 archivos
 
 🌲 ESTRUCTURA COMPLETA DEL PROYECTO
 ============================================================
-📁 PUBLICTRACK/
+📁 app/
 ├── 📄 .gitignore (4.7KB)
-├── 📄 create_structure.ps1 (5.8KB)
+├── 📄 create_structure.ps1 (5.9KB)
+├── 📄 docker-compose (0B)
 ├── ⚙️ docker-compose.yml (1.8KB)
 ├── 📄 dockerfile (1.0KB)
 ├── 🐍 documenter.py (10.3KB)
 ├── 📄 entrypoint.sh (2.6KB)
 ├── 🐍 manage.py (689B)
-├── 📄 requirements.txt (717B)
+├── 📄 requirements.txt (825B)
 ├── 📁 apps/
 │   ├── 🐍 __init__.py (0B)
+│   ├── 🐍 context_processors.py (460B)
 │   ├── 📁 authentication/
 │   │   ├── 🐍 __init__.py (0B)
-│   │   ├── 🐍 admin.py (9.7KB)
+│   │   ├── 🐍 admin.py (10.7KB)
 │   │   ├── 🐍 apps.py (171B)
 │   │   ├── 🐍 decorators.py (12.6KB)
 │   │   ├── 🐍 forms.py (16.2KB)
-│   │   ├── 🐍 models.py (22.7KB)
+│   │   ├── 🐍 models.py (23.2KB)
 │   │   ├── 🐍 permissions.py (13.1KB)
 │   │   ├── 🐍 tests.py (63B)
-│   │   ├── 🐍 urls.py (2.0KB)
-│   │   ├── 🐍 views.py (17.5KB)
+│   │   ├── 🐍 urls.py (2.1KB)
+│   │   ├── 🐍 views.py (23.9KB)
 │   │   ├── 📁 management/
 │   │   │   ├── 🐍 __init__.py (0B)
 │   │   │   └── 📁 commands/
 │   │   │       ├── 🐍 __init__.py (0B)
 │   │   │       └── 🐍 init_permissions.py (7.7KB)
 │   │   └── 📁 migrations/
-│   │       ├── 🐍 0001_initial.py (8.8KB)
-│   │       ├── 🐍 0002_role_permission_rolepermission_role_permissions.py (5.2KB)
+│   │       ├── 🐍 0001_initial.py (8.9KB)
+│   │       ├── 🐍 0002_role_permission_rolepermission_role_permissions.py (5.3KB)
 │   │       └── 🐍 __init__.py (0B)
 │   ├── 📁 content_management/
 │   │   ├── 🐍 __init__.py (3.8KB)
@@ -72,11 +77,16 @@
 │   │   │       ├── 🐍 setup_content_data.py (14.8KB)
 │   │   │       └── 🐍 validate_content_integrity.py (18.0KB)
 │   │   ├── 📁 migrations/
-│   │   │   ├── 🐍 0001_initial.py (14.1KB)
+│   │   │   ├── 🐍 0001_initial.py (14.3KB)
 │   │   │   └── 🐍 __init__.py (0B)
 │   │   └── 📁 storage/
 │   │       ├── 🐍 __init__.py (0B)
 │   │       └── 🐍 audio_handlers.py (0B)
+│   ├── 📁 custom_admin/
+│   │   ├── 🐍 __init__.py (0B)
+│   │   ├── 🐍 apps.py (210B)
+│   │   ├── 🐍 urls.py (1016B)
+│   │   └── 🐍 views.py (3.8KB)
 │   ├── 📁 financial_management/
 │   │   ├── 🐍 __init__.py (0B)
 │   │   ├── 🐍 admin.py (66B)
@@ -145,6 +155,7 @@
 │   │   │       └── 🐍 setup_initial_data.py (0B)
 │   │   └── 📁 migrations/
 │   │       └── 🐍 __init__.py (0B)
+│   ├── 📁 templatetag/
 │   ├── 📁 traffic_light_system/
 │   │   ├── 🐍 __init__.py (0B)
 │   │   ├── 🐍 admin.py (22.5KB)
@@ -163,19 +174,25 @@
 │   │   │       ├── 🐍 procesar_alertas.py (9.9KB)
 │   │   │       └── 🐍 recalcular_semaforros.py (8.0KB)
 │   │   ├── 📁 migrations/
-│   │   │   ├── 🐍 0001_initial.py (18.7KB)
+│   │   │   ├── 🐍 0001_initial.py (18.9KB)
 │   │   │   └── 🐍 __init__.py (0B)
 │   │   └── 📁 utils/
 │   │       ├── 🐍 __init__.py (361B)
 │   │       └── 🐍 status_calculator.py (25.2KB)
 │   └── 📁 transmission_control/
 │       ├── 🐍 __init__.py (0B)
-│       ├── 🐍 admin.py (66B)
-│       ├── 🐍 apps.py (182B)
-│       ├── 🐍 models.py (60B)
+│       ├── 🐍 admin.py (24.4KB)
+│       ├── 🐍 apps.py (2.1KB)
+│       ├── 🐍 forms.py (23.6KB)
+│       ├── 🐍 models.py (39.0KB)
+│       ├── 🐍 signals.py (17.1KB)
+│       ├── 🐍 tasks.py (18.7KB)
 │       ├── 🐍 tests.py (63B)
-│       ├── 🐍 views.py (66B)
+│       ├── 🐍 urls.py (3.8KB)
+│       ├── 🐍 utils.py (19.2KB)
+│       ├── 🐍 views.py (28.4KB)
 │       ├── 📁 migrations/
+│       │   ├── 🐍 0001_initial.py (20.0KB)
 │       │   └── 🐍 __init__.py (0B)
 │       └── 📁 scheduler/
 │           ├── 🐍 __init__.py (0B)
@@ -184,20 +201,48 @@
 ├── 📁 publictrack/
 │   ├── 🐍 __init__.py (0B)
 │   ├── 🐍 asgi.py (415B)
-│   ├── 🐍 settings.py (13.9KB)
-│   ├── 🐍 urls.py (4.2KB)
+│   ├── 🐍 settings.py (17.7KB)
+│   ├── 🐍 urls.py (11.6KB)
 │   └── 🐍 wsgi.py (415B)
 ├── 📁 static/
-│   ├── 📁 audio/
-│   ├── 📁 css/
-│   ├── 📁 images/
+│   ├── 📋 manifest.json (3.0KB)
+│   ├── 📜 sw.js (10.6KB)
+│   ├── 📁 icons/
+│   │   ├── 🖼️ favicon-16x16.png (662B)
+│   │   ├── 🖼️ favicon-32x32.png (2.0KB)
+│   │   ├── 🖼️ favicon-48x48.png (3.6KB)
+│   │   ├── 📄 favicon.ico (3.9KB)
+│   │   ├── 🖼️ icon-128x128.png (17.9KB)
+│   │   ├── 🖼️ icon-144x144.png (21.4KB)
+│   │   ├── 🖼️ icon-152x152.png (22.9KB)
+│   │   ├── 🖼️ icon-192x192.png (30.8KB)
+│   │   ├── 🖼️ icon-384x384.png (66.9KB)
+│   │   ├── 🖼️ icon-512x512.png (51.1KB)
+│   │   ├── 🖼️ icon-72x72.png (7.5KB)
+│   │   ├── 🖼️ icon-96x96.png (11.5KB)
+│   │   ├── 🖼️ senal.png (38.5KB)
+│   │   ├── 🖼️ shortcut-new.png (11.5KB)
+│   │   ├── 🖼️ shortcut-reports.png (11.5KB)
+│   │   └── 🖼️ shortcut-transmission.png (11.5KB)
 │   └── 📁 js/
+│       └── 📜 pwa-install.js (7.3KB)
 ├── 📁 templates/
-│   ├── 🌐 base.html (0B)
+│   ├── 🌐 base.html (11.5KB)
+│   ├── 📁 authentication/
+│   │   └── 🌐 login.html (7.0KB)
 │   ├── 📁 content/
 │   │   └── 🌐 library.html (0B)
+│   ├── 📁 custom_admin/
+│   │   ├── 🌐 base_admin.html (10.2KB)
+│   │   ├── 🌐 dashboard.html (3.1KB)
+│   │   ├── 🌐 usuarios_list.html (0B)
+│   │   └── 📁 users/
+│   │       └── 🌐 list.html (0B)
 │   ├── 📁 dashboard/
-│   │   └── 🌐 index.html (0B)
+│   │   ├── 🌐 admin.html (15.4KB)
+│   │   ├── 🌐 cliente.html (2.6KB)
+│   │   ├── 🌐 index.html (0B)
+│   │   └── 🌐 vendedor.html (3.7KB)
 │   ├── 📁 financial/
 │   │   └── 🌐 dashboard.html (0B)
 │   ├── 📁 reports/
@@ -207,113 +252,10 @@
 │   └── 📁 transmissions/
 │       └── 🌐 schedule.html (0B)
 ├── 📁 tests/
-│   ├── 🐍 __init__.py (0B)
-│   ├── 📁 fixtures/
-│   ├── 📁 test_content/
-│   ├── 📁 test_financial/
-│   ├── 📁 test_sales/
-│   └── 📁 test_transmissions/
+│   └── 🐍 __init__.py (0B)
 └── 📁 utils/
     ├── 🐍 __init__.py (0B)
     ├── 🐍 helpers.py (0B)
     ├── 🐍 mixins.py (0B)
     ├── 🐍 permissions.py (0B)
     └── 🐍 validators.py (0B)
-
-
-
-    
-    🎯 Plan de Desarrollo Recomendado:FASE 1: Autenticación y Usuarios ⭐ (EMPEZAMOS AQUÍ)
-
-✅ Sistema de login/logout
-✅ Gestión de usuarios con roles (Admin, Vendedor, Cliente)
-✅ Perfiles de usuario
-FASE 2: Gestión Básica
-
-Registro de cuñas publicitarias
-Sistema de semaforización básico
-FASE 3: Finanzas
-
-Contabilidad (cuentas por cobrar/pagar)
-Asientos contables
-Comisiones de vendedores
-FASE 4: Control de Transmisiones
-
-Programación de transmisiones
-Control de tiempo y duración
-FASE 5: Notificaciones y Reportes
-
-Sistema de notificaciones
-Dashboard y reportes
-
-
-templates/
-├── base.html
-└── authentication/
-    ├── login.html
-    ├── profile.html
-    ├── edit_profile.html
-    ├── user_list.html
-    ├── user_detail.html
-    ├── register.html
-    ├── change_password.html
-    ├── vendedor_dashboard.html
-    ├── mis_clientes.html
-    └── user_reports.html
-
-
-
-
-    URLs disponibles ahora:
-Autenticación:
-
-http://localhost:8000/auth/login/ - Página de login
-http://localhost:8000/auth/logout/ - Cerrar sesión
-http://localhost:8000/ - Redirige según el usuario
-
-Perfiles:
-
-http://localhost:8000/auth/profile/ - Ver perfil
-http://localhost:8000/auth/profile/edit/ - Editar perfil
-http://localhost:8000/auth/profile/change-password/ - Cambiar contraseña
-
-Administración (solo admin):
-
-http://localhost:8000/auth/users/ - Lista de usuarios
-http://localhost:8000/auth/users/register/ - Crear usuario
-http://localhost:8000/auth/users/{id}/ - Detalle de usuario
-http://localhost:8000/auth/reports/ - Reportes
-
-Vendedores:
-
-http://localhost:8000/auth/dashboard/vendedor/ - Dashboard de vendedor
-http://localhost:8000/auth/mis-clientes/ - Clientes del vendedor
-
-Admin Django:
-
-http://localhost:8000/admin/ - Panel de administración
-
-
-
-Orden Recomendado Completo:
-
-✅ authentication
-✅ content_management
-✅ traffic_light_system
-🎯 transmission_control ← AHORA
-sales_management (ventas y comisiones)
-financial_management (contabilidad)
-notifications (alertas avanzadas)
-reports_analytics (dashboards y reportes)
-system_configuration (configuración avanzada)
-
-Modulo principal transmison Control
-
-🎮 URLs Principales
-
-/transmisiones/ - Dashboard principal
-/transmisiones/monitor/ - Monitor en tiempo real
-/transmisiones/programaciones/ - Gestión de programaciones
-/transmisiones/calendario/ - Calendario de transmisiones
-/transmisiones/logs/ - Logs del sistema
-/transmisiones/configuracion/ - Configuración del sistema
