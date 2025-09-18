@@ -16,6 +16,9 @@ urlpatterns = [
     # Cuñas
     path('cunas/', views.cunas_list, name='cunas_list'),
     path('cunas/crear/', views.cuna_create, name='cuna_create'),
+    path('cunas/<int:pk>/editar/', views.cuna_edit, name='cuna_edit'),
+    path('cunas/<int:pk>/eliminar/', views.cuna_delete, name='cuna_delete'),
+    path('cunas/<int:pk>/detalle/', views.cuna_detail, name='cuna_detail'),
     
     # Transmisiones
     path('transmisiones/', views.transmisiones_list, name='transmisiones_list'),

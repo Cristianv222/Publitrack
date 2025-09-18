@@ -1,0 +1,218 @@
+{% extends 'custom_admin/base_admin.html' %}
+
+{% block title %}{{ cuna.titulo }} - PublicTrack Admin{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <div class="admin-card-header d-flex justify-content-between align-items-center">
+        <h5 class="admin-card-title">Detalle de Cuña: {{ cuna.titulo }}</h5>
+        <div>
+            <a href="{% url 'custom_admin:cuna_edit' cuna.id %}" class="btn btn-warning">
+                <i class="fas fa-edit me-2"></i>Editar
+            </a>
+            <a href="{% url 'custom_admin:cunas_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver
+            </a>
+        </div>
+    </div>
+    <div class="admin-card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="text-muted mb-3">Información General</h6>
+                <table class="table table-sm">
+                    <tr>
+                        <th width="40%">Código:</th>
+                        <td>{{ cuna.codigo }}</td>
+                    </tr>
+                    <tr>
+                        <th>Título:</th>
+                        <td>{{ cuna.titulo }}</td>
+                    </tr>
+                    <tr>
+                        <th>Descripción:</th>
+                        <td>{{ cuna.descripcion|default:"Sin descripción" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Categoría:</th>
+                        <td>{{ cuna.categoria.nombre|default:"Sin categoría" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Estado:</th>
+                        <td>
+                            {% if cuna.estado == 'activa' %}
+                                <span class="badge bg-success">Activa</span>
+                            {% elif cuna.estado == 'aprobada' %}
+                                <span class="badge bg-info">Aprobada</span>
+                            {% elif cuna.estado == 'pausada' %}
+                                <span class="badge bg-warning">Pausada</span>
+                            {% elif cuna.estado == 'finalizada' %}
+                                <span class="badge bg-secondary">Finalizada</span>
+                            {% elif cuna.estado == 'cancelada' %}
+                                <span class="badge bg-danger">Cancelada</span>
+                            {% elif cuna.estado == 'borrador' %}
+                                <span class="badge bg-light text-dark">Borrador</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark">{{ cuna.get_estado_display }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Cliente:</th>
+                        <td>
+                            {% if cuna.cliente %}
+                                {{ cuna.cliente.empresa|default:cuna.cliente.get_full_name }}
+                                {% if cuna.cliente.ruc_dni %}
+                                <br><small class="text-muted">RUC/DNI: {{ cuna.cliente.ruc_dni }}</small>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">Sin cliente</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Vendedor:</th>
+                        <td>
+                            {% if cuna.vendedor_asignado %}
+                                {{ cuna.vendedor_asignado.get_full_name }}
+                            {% else %}
+                                <span class="text-muted">Sin vendedor asignado</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="col-md-6">
+                <h6 class="text-muted mb-3">Programación</h6>
+                <table class="table table-sm">
+                    <tr>
+                        <th width="40%">Duración:</th>
+                        <td>{{ cuna.duracion_planeada }} segundos</td>
+                    </tr>
+                    <tr>
+                        <th>Repeticiones por día:</th>
+                        <td>{{ cuna.repeticiones_dia }} emisiones/día</td>
+                    </tr>
+                    <tr>
+                        <th>Fecha Inicio:</th>
+                        <td>{{ cuna.fecha_inicio|date:"d/m/Y" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Fecha Fin:</th>
+                        <td>{{ cuna.fecha_fin|date:"d/m/Y" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Días Totales:</th>
+                        <td>{{ cuna.duracion_total_dias }} días</td>
+                    </tr>
+                    <tr>
+                        <th>Total Emisiones:</th>
+                        <td>{{ cuna.reproducciones_totales }} emisiones</td>
+                    </tr>
+                    <tr>
+                        <th>Días Restantes:</th>
+                        <td>
+                            {% if cuna.dias_restantes %}
+                                {{ cuna.dias_restantes }} días
+                            {% else %}
+                                <span class="text-danger">Vencida</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <h6 class="text-muted mb-3">Información Financiera</h6>
+                <table class="table table-sm">
+                    <tr>
+                        <th width="40%">Tipo de Contrato:</th>
+                        <td>{{ cuna.tipo_contrato.nombre|default:"Sin tipo de contrato" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Precio Total:</th>
+                        <td class="fw-bold">S/. {{ cuna.precio_total|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <th>Precio por Segundo:</th>
+                        <td>S/. {{ cuna.precio_por_segundo|floatformat:4|default:"0.0000" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Costo por Emisión:</th>
+                        <td>S/. {{ cuna.costo_por_reproduccion|floatformat:2 }}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="col-md-6">
+                <h6 class="text-muted mb-3">Auditoría</h6>
+                <table class="table table-sm">
+                    <tr>
+                        <th width="40%">Creado por:</th>
+                        <td>
+                            {% if cuna.created_by %}
+                                {{ cuna.created_by.get_full_name|default:cuna.created_by.username }}
+                            {% else %}
+                                <span class="text-muted">Sistema</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Fecha Creación:</th>
+                        <td>{{ cuna.created_at|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Última Modificación:</th>
+                        <td>{{ cuna.updated_at|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    {% if cuna.aprobada_por %}
+                    <tr>
+                        <th>Aprobada por:</th>
+                        <td>{{ cuna.aprobada_por.get_full_name|default:cuna.aprobada_por.username }}</td>
+                    </tr>
+                    <tr>
+                        <th>Fecha Aprobación:</th>
+                        <td>{{ cuna.fecha_aprobacion|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+        
+        {% if cuna.observaciones %}
+        <div class="row mt-4">
+            <div class="col-12">
+                <h6 class="text-muted mb-3">Observaciones</h6>
+                <div class="p-3 bg-light rounded">
+                    {{ cuna.observaciones|linebreaks }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Semáforo visual del estado -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <h6 class="text-muted mb-3">Estado del Semáforo</h6>
+                <div class="text-center">
+                    {% if cuna.semaforo_estado == 'verde' %}
+                        <i class="fas fa-circle text-success fa-3x"></i>
+                        <p class="mt-2">Estado óptimo</p>
+                    {% elif cuna.semaforo_estado == 'amarillo' %}
+                        <i class="fas fa-circle text-warning fa-3x"></i>
+                        <p class="mt-2">Requiere atención</p>
+                    {% elif cuna.semaforo_estado == 'rojo' %}
+                        <i class="fas fa-circle text-danger fa-3x"></i>
+                        <p class="mt-2">Urgente - Vencida o crítica</p>
+                    {% else %}
+                        <i class="fas fa-circle text-secondary fa-3x"></i>
+                        <p class="mt-2">Sin estado definido</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends 'custom_admin/base_admin.html' %}
+
+{% block title %}Eliminar Cuña - PublicTrack Admin{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="admin-card-title">Confirmar Eliminación</h5>
+    </div>
+    <div class="admin-card-body">
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            ¿Estás seguro de que deseas eliminar la cuña <strong>"{{ cuna.nombre }}"</strong>?
+        </div>
+        
+        <div class="mb-4">
+            <h6 class="text-muted">Información de la cuña:</h6>
+            <table class="table table-sm">
+                <tr>
+                    <th width="30%">Código:</th>
+                    <td>{{ cuna.codigo }}</td>
+                </tr>
+                <tr>
+                    <th>Cliente:</th>
+                    <td>{{ cuna.cliente.empresa|default:cuna.cliente.get_full_name }}</td>
+                </tr>
+                <tr>
+                    <th>Período:</th>
+                    <td>{{ cuna.fecha_inicio|date:"d/m/Y" }} - {{ cuna.fecha_fin|date:"d/m/Y" }}</td>
+                </tr>
+                <tr>
+                    <th>Total:</th>
+                    <td>S/. {{ cuna.get_total|floatformat:2 }}</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="alert alert-warning">
+            <strong>Advertencia:</strong> Esta acción no se puede deshacer y eliminará todos los datos relacionados con esta cuña.
+        </div>
+        
+        <form method="post">
+            {% csrf_token %}
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash me-2"></i>Sí, eliminar
+                </button>
+                <a href="{% url 'custom_admin:cunas_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -7,14 +7,14 @@
 📊 RESUMEN DEL PROYECTO
 ==================================================
 📂 Total de directorios: 52
-📄 Total de archivos: 181
-📅 Generado: 2025-09-16 03:46:10
+📄 Total de archivos: 183
+📅 Generado: 2025-09-18 12:29:55
 
 🏆 TIPOS DE ARCHIVOS MÁS COMUNES:
 ------------------------------
   .py: 140 archivos
+  .html: 17 archivos
   .png: 15 archivos
-  .html: 15 archivos
   (sin extensión): 3 archivos
   .js: 2 archivos
   .ps1: 1 archivos
@@ -86,7 +86,7 @@
 │   │   ├── 🐍 __init__.py (0B)
 │   │   ├── 🐍 apps.py (210B)
 │   │   ├── 🐍 urls.py (1016B)
-│   │   └── 🐍 views.py (3.8KB)
+│   │   └── 🐍 views.py (7.8KB)
 │   ├── 📁 financial_management/
 │   │   ├── 🐍 __init__.py (0B)
 │   │   ├── 🐍 admin.py (66B)
@@ -233,9 +233,11 @@
 │   ├── 📁 content/
 │   │   └── 🌐 library.html (0B)
 │   ├── 📁 custom_admin/
-│   │   ├── 🌐 base_admin.html (10.2KB)
+│   │   ├── 🌐 base_admin.html (10.7KB)
 │   │   ├── 🌐 dashboard.html (3.1KB)
-│   │   ├── 🌐 usuarios_list.html (0B)
+│   │   ├── 🌐 usuario_confirm_delete.html (1.1KB)
+│   │   ├── 🌐 usuario_form.html (7.9KB)
+│   │   ├── 🌐 usuarios_list.html (6.0KB)
 │   │   └── 📁 users/
 │   │       └── 🌐 list.html (0B)
 │   ├── 📁 dashboard/

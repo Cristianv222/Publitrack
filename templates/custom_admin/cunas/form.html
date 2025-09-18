@@ -1,0 +1,220 @@
+{% extends 'custom_admin/base_admin.html' %}
+
+{% block title %}{% if cuna %}Editar Cuña{% else %}Nueva Cuña{% endif %} - PublicTrack Admin{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="admin-card-title">
+            {% if cuna %}Editar Cuña: {{ cuna.titulo }}{% else %}Nueva Cuña Publicitaria{% endif %}
+        </h5>
+    </div>
+    <div class="admin-card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <h6 class="text-muted mb-3">Información Básica</h6>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Título de la Cuña *</label>
+                        <input type="text" class="form-control" name="titulo" 
+                               value="{{ cuna.titulo|default:'' }}" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Categoría</label>
+                        <select name="categoria" class="form-select">
+                            <option value="">Sin categoría</option>
+                            {% for categoria in categorias %}
+                            <option value="{{ categoria.id }}" {% if cuna.categoria.id == categoria.id %}selected{% endif %}>
+                                {{ categoria.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Cliente *</label>
+                        <select name="cliente" class="form-select" required>
+                            <option value="">Seleccionar cliente...</option>
+                            {% for cliente in clientes %}
+                            <option value="{{ cliente.id }}" {% if cuna.cliente.id == cliente.id %}selected{% endif %}>
+                                {{ cliente.empresa|default:cliente.get_full_name }} {% if cliente.ruc_dni %}({{ cliente.ruc_dni }}){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Vendedor</label>
+                        <select name="vendedor" class="form-select">
+                            <option value="">Sin vendedor asignado</option>
+                            {% for vendedor in vendedores %}
+                            <option value="{{ vendedor.id }}" {% if cuna.vendedor_asignado.id == vendedor.id %}selected{% endif %}>
+                                {{ vendedor.get_full_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Descripción</label>
+                <textarea class="form-control" name="descripcion" rows="3">{{ cuna.descripcion|default:'' }}</textarea>
+            </div>
+            
+            <h6 class="text-muted mb-3 mt-4">Programación</h6>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label class="form-label">Duración (segundos) *</label>
+                        <input type="number" class="form-control" name="duracion_planeada" 
+                               value="{{ cuna.duracion_planeada|default:'30' }}" min="5" max="300" required>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label class="form-label">Repeticiones por Día *</label>
+                        <input type="number" class="form-control" name="repeticiones_dia" 
+                               value="{{ cuna.repeticiones_dia|default:'1' }}" min="1" max="50" required>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label class="form-label">Fecha Inicio *</label>
+                        <input type="date" class="form-control" name="fecha_inicio" 
+                               value="{% if cuna.fecha_inicio %}{{ cuna.fecha_inicio|date:'Y-m-d' }}{% endif %}" required>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label class="form-label">Fecha Fin *</label>
+                        <input type="date" class="form-control" name="fecha_fin" 
+                               value="{% if cuna.fecha_fin %}{{ cuna.fecha_fin|date:'Y-m-d' }}{% endif %}" required>
+                    </div>
+                </div>
+            </div>
+            
+            <h6 class="text-muted mb-3 mt-4">Información Financiera</h6>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label">Precio Total (S/.) *</label>
+                        <input type="number" class="form-control" name="precio_total" 
+                               value="{% if cuna.precio_total %}{{ cuna.precio_total|stringformat:'g' }}{% else %}0{% endif %}" 
+                               min="0" step="0.01" required>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Contrato</label>
+                        <select name="tipo_contrato" class="form-select">
+                            <option value="">Sin tipo de contrato</option>
+                            {% for tipo in tipos_contrato %}
+                            <option value="{{ tipo.id }}" {% if cuna.tipo_contrato.id == tipo.id %}selected{% endif %}>
+                                {{ tipo.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label">Total Estimado</label>
+                        <input type="text" class="form-control" id="total_estimado" readonly>
+                        <small class="text-muted">Emisiones totales × Precio unitario</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    {% if cuna %}
+                    <div class="alert alert-info">
+                        <strong>Información calculada:</strong><br>
+                        • Precio por segundo: S/. {{ cuna.precio_por_segundo|floatformat:4|default:"0.0000" }}<br>
+                        • Costo por emisión: S/. {{ cuna.costo_por_reproduccion|floatformat:2 }}<br>
+                        • Total emisiones: {{ cuna.reproducciones_totales }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if cuna %}
+            <h6 class="text-muted mb-3 mt-4">Estado</h6>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Estado de la Cuña</label>
+                        <select name="estado" class="form-select">
+                            {% for estado_value, estado_display in estados %}
+                            <option value="{{ estado_value }}" {% if cuna.estado == estado_value %}selected{% endif %}>
+                                {{ estado_display }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="mb-3">
+                <label class="form-label">Observaciones</label>
+                <textarea class="form-control" name="observaciones" rows="3">{{ cuna.observaciones|default:'' }}</textarea>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-admin-primary">
+                    <i class="fas fa-save me-2"></i>Guardar
+                </button>
+                <a href="{% url 'custom_admin:cunas_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Calcular total estimado
+function calcularTotal() {
+    const precio = parseFloat(document.querySelector('[name="precio_total"]').value) || 0;
+    const repeticiones = parseInt(document.querySelector('[name="repeticiones_dia"]').value) || 0;
+    const fechaInicio = document.querySelector('[name="fecha_inicio"]').value;
+    const fechaFin = document.querySelector('[name="fecha_fin"]').value;
+    
+    if (fechaInicio && fechaFin) {
+        const inicio = new Date(fechaInicio);
+        const fin = new Date(fechaFin);
+        
+        if (fin >= inicio) {
+            const dias = Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24)) + 1;
+            const emisiones_totales = repeticiones * dias;
+            const precio_por_emision = emisiones_totales > 0 ? (precio / emisiones_totales) : 0;
+            
+            document.getElementById('total_estimado').value = 
+                emisiones_totales + ' emisiones × S/. ' + precio_por_emision.toFixed(2) + ' = S/. ' + precio.toFixed(2);
+        }
+    }
+}
+
+// Eventos para recalcular
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelector('[name="precio_total"]').addEventListener('input', calcularTotal);
+    document.querySelector('[name="repeticiones_dia"]').addEventListener('input', calcularTotal);
+    document.querySelector('[name="fecha_inicio"]').addEventListener('change', calcularTotal);
+    document.querySelector('[name="fecha_fin"]').addEventListener('change', calcularTotal);
+    
+    // Calcular al cargar la página
+    calcularTotal();
+});
+</script>
+{% endblock %}

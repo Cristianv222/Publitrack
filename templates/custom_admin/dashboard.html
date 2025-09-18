@@ -1,12 +1,11 @@
 {% extends 'custom_admin/base_admin.html' %}
 
-{% block title %}Dashboard - PublicTrack{% endblock %}
-
-{% block breadcrumb %}
-<li class="breadcrumb-item active">Dashboard</li>
-{% endblock %}
+{% block title %}Dashboard - PublicTrack Admin{% endblock %}
 
 {% block content %}
+<h2 class="mb-4">Dashboard</h2>
+
+<!-- Tarjetas de estadísticas -->
 <div class="row mb-4">
     <div class="col-md-3">
         <div class="stat-card primary">
@@ -15,7 +14,9 @@
                     <h6 class="text-muted mb-2">Total Usuarios</h6>
                     <h3 class="mb-0">{{ total_usuarios }}</h3>
                 </div>
-                <i class="fas fa-users fa-2x text-primary opacity-25"></i>
+                <div class="text-primary opacity-50">
+                    <i class="fas fa-users fa-2x"></i>
+                </div>
             </div>
         </div>
     </div>
@@ -27,7 +28,9 @@
                     <h6 class="text-muted mb-2">Usuarios Activos</h6>
                     <h3 class="mb-0">{{ usuarios_activos }}</h3>
                 </div>
-                <i class="fas fa-user-check fa-2x text-success opacity-25"></i>
+                <div class="text-success opacity-50">
+                    <i class="fas fa-user-check fa-2x"></i>
+                </div>
             </div>
         </div>
     </div>
@@ -36,10 +39,13 @@
         <div class="stat-card warning">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h6 class="text-muted mb-2">Cuñas Publicitarias</h6>
-                    <h3 class="mb-0">{{ total_cunas }}</h3>
+                    <h6 class="text-muted mb-2">Cuñas Activas</h6>
+                    <h3 class="mb-0">{{ cunas_activas }}</h3>
+                    <small class="text-muted">Total: {{ total_cunas }}</small>
                 </div>
-                <i class="fas fa-bullhorn fa-2x text-warning opacity-25"></i>
+                <div class="text-warning opacity-50">
+                    <i class="fas fa-bullhorn fa-2x"></i>
+                </div>
             </div>
         </div>
     </div>
@@ -51,12 +57,15 @@
                     <h6 class="text-muted mb-2">Alertas Pendientes</h6>
                     <h3 class="mb-0">{{ alertas_pendientes }}</h3>
                 </div>
-                <i class="fas fa-exclamation-triangle fa-2x text-danger opacity-25"></i>
+                <div class="text-danger opacity-50">
+                    <i class="fas fa-exclamation-triangle fa-2x"></i>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Actividad Reciente y Accesos Rápidos -->
 <div class="row">
     <div class="col-md-8">
         <div class="admin-card">
@@ -64,7 +73,7 @@
                 <h5 class="admin-card-title">Actividad Reciente</h5>
             </div>
             <div class="admin-card-body">
-                <p>No hay actividad reciente que mostrar.</p>
+                <p class="text-muted">No hay actividad reciente que mostrar.</p>
             </div>
         </div>
     </div>
@@ -76,10 +85,18 @@
             </div>
             <div class="admin-card-body">
                 <div class="d-grid gap-2">
-                    <a href="#" class="btn btn-admin-primary">Nueva Cuña</a>
-                    <a href="#" class="btn btn-admin-primary">Nueva Transmisión</a>
-                    <a href="#" class="btn btn-admin-primary">Nuevo Usuario</a>
-                    <a href="/admin/" class="btn btn-secondary">Django Admin</a>
+                    <a href="{% url 'custom_admin:cuna_create' %}" class="btn btn-admin-primary">
+                        <i class="fas fa-plus me-2"></i>Nueva Cuña
+                    </a>
+                    <a href="#" class="btn btn-admin-primary">
+                        <i class="fas fa-plus me-2"></i>Nueva Transmisión
+                    </a>
+                    <a href="{% url 'custom_admin:usuario_create' %}" class="btn btn-admin-primary">
+                        <i class="fas fa-plus me-2"></i>Nuevo Usuario
+                    </a>
+                    <a href="/admin/" class="btn btn-secondary">
+                        <i class="fas fa-tools me-2"></i>Django Admin
+                    </a>
                 </div>
             </div>
         </div>
