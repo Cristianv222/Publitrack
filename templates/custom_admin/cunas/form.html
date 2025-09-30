@@ -10,7 +10,7 @@
         </h5>
     </div>
     <div class="admin-card-body">
-        <form method="post">
+        <form method="post" id="cunaForm">
             {% csrf_token %}
             
             <h6 class="text-muted mb-3">Información Básica</h6>
@@ -77,6 +77,7 @@
                     <div class="mb-3">
                         <label class="form-label">Duración (segundos) *</label>
                         <input type="number" class="form-control" name="duracion_planeada" 
+                               id="duracion_planeada"
                                value="{{ cuna.duracion_planeada|default:'30' }}" min="5" max="300" required>
                     </div>
                 </div>
@@ -84,6 +85,7 @@
                     <div class="mb-3">
                         <label class="form-label">Repeticiones por Día *</label>
                         <input type="number" class="form-control" name="repeticiones_dia" 
+                               id="repeticiones_dia"
                                value="{{ cuna.repeticiones_dia|default:'1' }}" min="1" max="50" required>
                     </div>
                 </div>
@@ -91,6 +93,7 @@
                     <div class="mb-3">
                         <label class="form-label">Fecha Inicio *</label>
                         <input type="date" class="form-control" name="fecha_inicio" 
+                               id="fecha_inicio"
                                value="{% if cuna.fecha_inicio %}{{ cuna.fecha_inicio|date:'Y-m-d' }}{% endif %}" required>
                     </div>
                 </div>
@@ -98,22 +101,70 @@
                     <div class="mb-3">
                         <label class="form-label">Fecha Fin *</label>
                         <input type="date" class="form-control" name="fecha_fin" 
+                               id="fecha_fin"
                                value="{% if cuna.fecha_fin %}{{ cuna.fecha_fin|date:'Y-m-d' }}{% endif %}" required>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- NUEVA SECCIÓN: Exclusión de días -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Exclusión de días</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="excluir_sabados" 
+                                   id="excluir_sabados" {% if cuna.excluir_sabados %}checked{% endif %}>
+                            <label class="form-check-label" for="excluir_sabados">
+                                Excluir sábados de la programación
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="excluir_domingos" 
+                                   id="excluir_domingos" {% if cuna.excluir_domingos %}checked{% endif %}>
+                            <label class="form-check-label" for="excluir_domingos">
+                                Excluir domingos de la programación
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="alert alert-info">
+                        <strong>Días efectivos: </strong><span id="dias_efectivos">0</span> días<br>
+                        <strong>Emisiones totales: </strong><span id="emisiones_totales">0</span> emisiones
                     </div>
                 </div>
             </div>
             
             <h6 class="text-muted mb-3 mt-4">Información Financiera</h6>
             <div class="row">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="mb-3">
-                        <label class="form-label">Precio Total (S/.) *</label>
-                        <input type="number" class="form-control" name="precio_total" 
-                               value="{% if cuna.precio_total %}{{ cuna.precio_total|stringformat:'g' }}{% else %}0{% endif %}" 
-                               min="0" step="0.01" required>
+                        <label class="form-label">Precio por Segundo (S/.) *</label>
+                        <input type="number" class="form-control" name="precio_por_segundo" 
+                               id="precio_por_segundo"
+                               value="{{ cuna.precio_por_segundo|default:'0.50' }}" 
+                               min="0" step="0.0001" required>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label class="form-label">Precio Total Calculado</label>
+                        <input type="text" class="form-control" id="precio_total_calculado" readonly>
+                        <small class="text-muted">Calculado automáticamente</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label class="form-label">Precio Total Manual (S/.)</label>
+                        <input type="number" class="form-control" name="precio_total" 
+                               id="precio_total_manual"
+                               value="{{ cuna.precio_total|default:'0' }}" 
+                               min="0" step="0.01">
+                        <small class="text-muted">Sobrescribe el cálculo automático</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
                     <div class="mb-3">
                         <label class="form-label">Tipo de Contrato</label>
                         <select name="tipo_contrato" class="form-select">
@@ -126,25 +177,19 @@
                         </select>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="mb-3">
-                        <label class="form-label">Total Estimado</label>
-                        <input type="text" class="form-control" id="total_estimado" readonly>
-                        <small class="text-muted">Emisiones totales × Precio unitario</small>
-                    </div>
-                </div>
             </div>
             
+            <!-- Resumen de cálculos -->
             <div class="row">
-                <div class="col-md-6">
-                    {% if cuna %}
-                    <div class="alert alert-info">
-                        <strong>Información calculada:</strong><br>
-                        • Precio por segundo: S/. {{ cuna.precio_por_segundo|floatformat:4|default:"0.0000" }}<br>
-                        • Costo por emisión: S/. {{ cuna.costo_por_reproduccion|floatformat:2 }}<br>
-                        • Total emisiones: {{ cuna.reproducciones_totales }}
+                <div class="col-12">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6>Resumen de Cálculo:</h6>
+                            <div id="formula_calculo" class="font-monospace small">
+                                <!-- Se llenará con JavaScript -->
+                            </div>
+                        </div>
                     </div>
-                    {% endif %}
                 </div>
             </div>
             
@@ -184,37 +229,113 @@
 </div>
 
 <script>
-// Calcular total estimado
-function calcularTotal() {
-    const precio = parseFloat(document.querySelector('[name="precio_total"]').value) || 0;
-    const repeticiones = parseInt(document.querySelector('[name="repeticiones_dia"]').value) || 0;
-    const fechaInicio = document.querySelector('[name="fecha_inicio"]').value;
-    const fechaFin = document.querySelector('[name="fecha_fin"]').value;
+// Función para calcular días efectivos
+function calcularDiasEfectivos(fechaInicio, fechaFin, excluirSabados, excluirDomingos) {
+    let diasEfectivos = 0;
+    let fecha = new Date(fechaInicio + 'T00:00:00');
+    const fin = new Date(fechaFin + 'T00:00:00');
     
-    if (fechaInicio && fechaFin) {
-        const inicio = new Date(fechaInicio);
-        const fin = new Date(fechaFin);
+    while (fecha <= fin) {
+        const diaSemana = fecha.getDay();
         
-        if (fin >= inicio) {
-            const dias = Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24)) + 1;
-            const emisiones_totales = repeticiones * dias;
-            const precio_por_emision = emisiones_totales > 0 ? (precio / emisiones_totales) : 0;
-            
-            document.getElementById('total_estimado').value = 
-                emisiones_totales + ' emisiones × S/. ' + precio_por_emision.toFixed(2) + ' = S/. ' + precio.toFixed(2);
+        if (excluirSabados && diaSemana === 6) {
+            // Es sábado y está excluido
+        } else if (excluirDomingos && diaSemana === 0) {
+            // Es domingo y está excluido
+        } else {
+            diasEfectivos++;
         }
+        
+        fecha.setDate(fecha.getDate() + 1);
+    }
+    
+    return diasEfectivos;
+}
+
+// Función principal de cálculo
+function calcularTotales() {
+    // Obtener valores
+    const duracion = parseFloat(document.getElementById('duracion_planeada').value) || 0;
+    const repeticiones = parseInt(document.getElementById('repeticiones_dia').value) || 0;
+    const precioPorSegundo = parseFloat(document.getElementById('precio_por_segundo').value) || 0;
+    const fechaInicio = document.getElementById('fecha_inicio').value;
+    const fechaFin = document.getElementById('fecha_fin').value;
+    const excluirSabados = document.getElementById('excluir_sabados').checked;
+    const excluirDomingos = document.getElementById('excluir_domingos').checked;
+    const precioManual = parseFloat(document.getElementById('precio_total_manual').value) || 0;
+    
+    if (fechaInicio && fechaFin && fechaInicio <= fechaFin) {
+        // Calcular días efectivos
+        const diasEfectivos = calcularDiasEfectivos(fechaInicio, fechaFin, excluirSabados, excluirDomingos);
+        
+        // Calcular emisiones totales
+        const emisionesTotales = repeticiones * diasEfectivos;
+        
+        // Calcular precio total
+        // Fórmula correcta: duración × repeticiones × precio_por_segundo × días_efectivos
+        const precioTotalCalculado = duracion * repeticiones * precioPorSegundo * diasEfectivos;
+        
+        // Usar precio manual si está definido y es mayor que 0, sino usar el calculado
+        const precioFinal = precioManual > 0 ? precioManual : precioTotalCalculado;
+        
+        // Calcular costo por emisión
+        const costoPorEmision = emisionesTotales > 0 ? (precioFinal / emisionesTotales) : 0;
+        
+        // Actualizar UI
+        document.getElementById('dias_efectivos').textContent = diasEfectivos;
+        document.getElementById('emisiones_totales').textContent = emisionesTotales;
+        document.getElementById('precio_total_calculado').value = 'S/. ' + precioTotalCalculado.toFixed(2);
+        
+        // Mostrar fórmula detallada
+        let diasExcluidos = [];
+        if (excluirSabados) diasExcluidos.push('sábados');
+        if (excluirDomingos) diasExcluidos.push('domingos');
+        const textoExclusion = diasExcluidos.length > 0 ? ` (excluyendo ${diasExcluidos.join(' y ')})` : '';
+        
+        document.getElementById('formula_calculo').innerHTML = `
+            <strong>Cálculo de precio:</strong><br>
+            ${duracion}s × ${repeticiones} rep/día × S/.${precioPorSegundo.toFixed(4)}/seg × ${diasEfectivos} días${textoExclusion} = <strong>S/. ${precioTotalCalculado.toFixed(2)}</strong><br>
+            <br>
+            <strong>Desglose:</strong><br>
+            • Duración por emisión: ${duracion} segundos<br>
+            • Emisiones por día: ${repeticiones}<br>
+            • Días efectivos: ${diasEfectivos}${textoExclusion}<br>
+            • Total emisiones: ${emisionesTotales}<br>
+            • Costo por emisión: S/. ${costoPorEmision.toFixed(4)}<br>
+            ${precioManual > 0 ? `<br><strong>⚠️ Precio manual aplicado: S/. ${precioManual.toFixed(2)}</strong>` : ''}
+        `;
+    } else {
+        // Limpiar valores si no hay fechas válidas
+        document.getElementById('dias_efectivos').textContent = '0';
+        document.getElementById('emisiones_totales').textContent = '0';
+        document.getElementById('precio_total_calculado').value = 'S/. 0.00';
+        document.getElementById('formula_calculo').innerHTML = '<em>Ingrese fechas válidas para calcular</em>';
     }
 }
 
-// Eventos para recalcular
+// Event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    document.querySelector('[name="precio_total"]').addEventListener('input', calcularTotal);
-    document.querySelector('[name="repeticiones_dia"]').addEventListener('input', calcularTotal);
-    document.querySelector('[name="fecha_inicio"]').addEventListener('change', calcularTotal);
-    document.querySelector('[name="fecha_fin"]').addEventListener('change', calcularTotal);
+    // Agregar listeners a todos los campos relevantes
+    const campos = [
+        'duracion_planeada', 'repeticiones_dia', 'precio_por_segundo',
+        'fecha_inicio', 'fecha_fin', 'excluir_sabados', 'excluir_domingos',
+        'precio_total_manual'
+    ];
     
-    // Calcular al cargar la página
-    calcularTotal();
+    campos.forEach(campo => {
+        const elemento = document.getElementById(campo);
+        if (elemento) {
+            if (elemento.type === 'checkbox') {
+                elemento.addEventListener('change', calcularTotales);
+            } else {
+                elemento.addEventListener('input', calcularTotales);
+                elemento.addEventListener('change', calcularTotales);
+            }
+        }
+    });
+    
+    // Calcular al cargar
+    calcularTotales();
 });
 </script>
 {% endblock %}

@@ -231,7 +231,7 @@ def cunas_list(request):
 def cuna_create(request):
     if request.method == 'POST':
         try:
-            # Desconectar temporalmente las señales para evitar el error del historial
+            # Desconectar temporalmente las señales
             from apps.content_management.models import cuña_pre_save, cuña_post_save
             pre_save.disconnect(cuña_pre_save, sender=CuñaPublicitaria)
             post_save.disconnect(cuña_post_save, sender=CuñaPublicitaria)
@@ -248,9 +248,12 @@ def cuna_create(request):
             fecha_fin = request.POST.get('fecha_fin')
             repeticiones_dia = request.POST.get('repeticiones_dia', '1')
             precio_total_str = request.POST.get('precio_total', '0')
+            precio_por_segundo_str = request.POST.get('precio_por_segundo', '0')
+            excluir_sabados = request.POST.get('excluir_sabados') == 'on'
+            excluir_domingos = request.POST.get('excluir_domingos') == 'on'
             observaciones = request.POST.get('observaciones', '')
             
-            # Convertir y validar valores
+            # Convertir valores
             try:
                 duracion_planeada = int(duracion_planeada)
             except:
@@ -265,6 +268,11 @@ def cuna_create(request):
                 precio_total = Decimal(precio_total_str)
             except:
                 precio_total = Decimal('0')
+                
+            try:
+                precio_por_segundo = Decimal(precio_por_segundo_str)
+            except:
+                precio_por_segundo = Decimal('0.50')
             
             # Crear la cuña
             cuna = CuñaPublicitaria(
@@ -279,6 +287,9 @@ def cuna_create(request):
                 fecha_fin=fecha_fin,
                 repeticiones_dia=repeticiones_dia,
                 precio_total=precio_total,
+                precio_por_segundo=precio_por_segundo,
+                excluir_sabados=excluir_sabados,
+                excluir_domingos=excluir_domingos,
                 observaciones=observaciones,
                 created_by=request.user,
                 estado='borrador'
@@ -293,27 +304,16 @@ def cuna_create(request):
             return redirect('custom_admin:cunas_list')
             
         except Exception as e:
-            # Reconectar las señales en caso de error
+            # Reconectar señales en caso de error
             try:
-                from apps.content_management.models import cuña_pre_save, cuña_post_save
                 pre_save.connect(cuña_pre_save, sender=CuñaPublicitaria)
                 post_save.connect(cuña_post_save, sender=CuñaPublicitaria)
             except:
                 pass
                 
             messages.error(request, f'Error al crear la cuña: {str(e)}')
-            
-            # Pasar los datos de vuelta al formulario para no perderlos
-            context = {
-                'clientes': User.objects.filter(rol='cliente', is_active=True),
-                'vendedores': User.objects.filter(rol='vendedor', is_active=True),
-                'categorias': CategoriaPublicitaria.objects.filter(is_active=True),
-                'tipos_contrato': TipoContrato.objects.filter(is_active=True),
-                'form_data': request.POST
-            }
-            return render(request, 'custom_admin/cunas/form.html', context)
-            
-    # GET - Mostrar formulario vacío
+    
+    # GET - Mostrar formulario
     clientes = User.objects.filter(rol='cliente', is_active=True)
     vendedores = User.objects.filter(rol='vendedor', is_active=True)
     categorias = CategoriaPublicitaria.objects.filter(is_active=True)
@@ -339,7 +339,7 @@ def cuna_edit(request, pk):
             pre_save.disconnect(cuña_pre_save, sender=CuñaPublicitaria)
             post_save.disconnect(cuña_post_save, sender=CuñaPublicitaria)
             
-            # Actualizar datos
+            # Actualizar datos básicos
             cuna.titulo = request.POST.get('titulo', cuna.titulo)
             cuna.descripcion = request.POST.get('descripcion', cuna.descripcion)
             cuna.cliente_id = request.POST.get('cliente', cuna.cliente_id)
@@ -348,11 +348,18 @@ def cuna_edit(request, pk):
             cuna.categoria_id = categoria_id if categoria_id else None
             tipo_contrato_id = request.POST.get('tipo_contrato')
             cuna.tipo_contrato_id = tipo_contrato_id if tipo_contrato_id else None
+            
+            # Actualizar datos de programación
             cuna.duracion_planeada = request.POST.get('duracion_planeada', cuna.duracion_planeada)
             cuna.fecha_inicio = request.POST.get('fecha_inicio', cuna.fecha_inicio)
             cuna.fecha_fin = request.POST.get('fecha_fin', cuna.fecha_fin)
             cuna.repeticiones_dia = request.POST.get('repeticiones_dia', cuna.repeticiones_dia)
             
+            # NUEVOS CAMPOS - Exclusión de días
+            cuna.excluir_sabados = request.POST.get('excluir_sabados') == 'on'
+            cuna.excluir_domingos = request.POST.get('excluir_domingos') == 'on'
+            
+            # Actualizar datos financieros
             precio_total_str = request.POST.get('precio_total')
             if precio_total_str:
                 try:
@@ -360,6 +367,15 @@ def cuna_edit(request, pk):
                 except:
                     pass
             
+            # NUEVO CAMPO - Precio por segundo
+            precio_por_segundo_str = request.POST.get('precio_por_segundo')
+            if precio_por_segundo_str:
+                try:
+                    cuna.precio_por_segundo = Decimal(precio_por_segundo_str)
+                except:
+                    cuna.precio_por_segundo = Decimal('0.50')
+            
+            # Actualizar otros campos
             cuna.observaciones = request.POST.get('observaciones', cuna.observaciones)
             cuna.estado = request.POST.get('estado', cuna.estado)
             
@@ -373,7 +389,7 @@ def cuna_edit(request, pk):
             return redirect('custom_admin:cunas_list')
             
         except Exception as e:
-            # Reconectar las señales
+            # Reconectar las señales en caso de error
             try:
                 from apps.content_management.models import cuña_pre_save, cuña_post_save
                 pre_save.connect(cuña_pre_save, sender=CuñaPublicitaria)
@@ -408,7 +424,6 @@ def cuna_edit(request, pk):
         'estados': estados,
     }
     return render(request, 'custom_admin/cunas/form.html', context)
-
 @login_required
 @user_passes_test(is_admin)
 def cuna_detail(request, pk):

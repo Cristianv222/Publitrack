@@ -106,6 +106,36 @@
                         <td>{{ cuna.duracion_total_dias }} días</td>
                     </tr>
                     <tr>
+                        <th>Días excluidos:</th>
+                        <td>
+                        {% if cuna.excluir_sabados and cuna.excluir_domingos %}
+                        Sábados y Domingos
+                        {% elif cuna.excluir_sabados %}
+                        Sábados
+                        {% elif cuna.excluir_domingos %}
+                        Domingos
+                        {% else %}
+                        Ninguno
+                        {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Días efectivos:</th>
+                        <td>{{ cuna.dias_efectivos }} días</td>
+                        </tr>
+                    <tr>
+                        <th>Emisiones totales reales:</th>
+                        <td>{{ cuna.emisiones_totales_reales }} emisiones</td>
+                        </tr>
+                    <tr>
+                        <th>Precio calculado:</th>
+                        <td>S/. {{ cuna.precio_total_calculado|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <th>Costo real por emisión:</th>
+                        <td>S/. {{ cuna.costo_por_emision_real|floatformat:4 }}</td>
+                    </tr>
+                    <tr>
                         <th>Total Emisiones:</th>
                         <td>{{ cuna.reproducciones_totales }} emisiones</td>
                     </tr>

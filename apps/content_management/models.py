@@ -485,7 +485,69 @@ class CuñaPublicitaria(models.Model):
         blank=True,
         help_text='Precio por segundo de duración'
     )
+    # Agregar después del campo precio_por_segundo (línea ~365)
+    excluir_sabados = models.BooleanField(
+        'Excluir Sábados',
+        default=False,
+        help_text='Excluir sábados de la programación'
+    )
+
+    excluir_domingos = models.BooleanField(
+        'Excluir Domingos', 
+        default=False,
+        help_text='Excluir domingos de la programación'
+    )
+
+    # Agregar estos métodos después del método semaforo_estado (línea ~545)
+    @property
+    def dias_efectivos(self):
+        """Calcula los días efectivos considerando exclusiones"""
+        if not self.fecha_inicio or not self.fecha_fin:
+            return 0
     
+        from datetime import timedelta
+        dias_totales = 0
+        fecha_actual = self.fecha_inicio
+    
+        while fecha_actual <= self.fecha_fin:
+            # weekday(): 0=lunes, 5=sábado, 6=domingo
+            if self.excluir_sabados and fecha_actual.weekday() == 5:
+                pass  # No contar sábado
+            elif self.excluir_domingos and fecha_actual.weekday() == 6:
+                pass  # No contar domingo
+            else:
+                dias_totales += 1
+        
+            fecha_actual += timedelta(days=1)
+    
+        return dias_totales
+
+    @property
+    def emisiones_totales_reales(self):
+        """Calcula el total real de emisiones considerando exclusiones"""
+        return self.dias_efectivos * self.repeticiones_dia
+
+    @property
+    def precio_total_calculado(self):
+        """Calcula el precio total correctamente"""
+        if not self.precio_por_segundo:
+            return Decimal('0.00')
+        # Fórmula correcta: duración × repeticiones × precio_por_segundo × días_efectivos
+        return Decimal(str(
+            self.duracion_planeada * 
+            self.repeticiones_dia * 
+            float(self.precio_por_segundo) * 
+            self.dias_efectivos
+        ))
+
+    @property
+    def costo_por_emision_real(self):
+        """Calcula el costo por emisión individual considerando días efectivos"""
+        emisiones_totales = self.emisiones_totales_reales
+        if emisiones_totales > 0:
+            return self.precio_total / emisiones_totales
+        return Decimal('0.00')
+
     repeticiones_dia = models.PositiveIntegerField(
         'Repeticiones por Día',
         default=1,
