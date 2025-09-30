@@ -7,12 +7,12 @@
 📊 RESUMEN DEL PROYECTO
 ==================================================
 📂 Total de directorios: 53
-📄 Total de archivos: 187
-📅 Generado: 2025-09-28 21:53:49
+📄 Total de archivos: 188
+📅 Generado: 2025-09-30 12:20:40
 
 🏆 TIPOS DE ARCHIVOS MÁS COMUNES:
 ------------------------------
-  .py: 140 archivos
+  .py: 141 archivos
   .html: 21 archivos
   .png: 15 archivos
   (sin extensión): 3 archivos
@@ -64,7 +64,7 @@
 │   │   ├── 🐍 apps.py (2.7KB)
 │   │   ├── 🐍 checks.py (18.8KB)
 │   │   ├── 🐍 forms.py (21.5KB)
-│   │   ├── 🐍 models.py (29.4KB)
+│   │   ├── 🐍 models.py (31.6KB)
 │   │   ├── 🐍 signals.py (19.3KB)
 │   │   ├── 🐍 task.py (17.0KB)
 │   │   ├── 🐍 tests.py (27.6KB)
@@ -78,6 +78,7 @@
 │   │   │       └── 🐍 validate_content_integrity.py (18.0KB)
 │   │   ├── 📁 migrations/
 │   │   │   ├── 🐍 0001_initial.py (14.3KB)
+│   │   │   ├── 🐍 0002_agregar_exclusion_dias.py (771B)
 │   │   │   └── 🐍 __init__.py (0B)
 │   │   └── 📁 storage/
 │   │       ├── 🐍 __init__.py (0B)
@@ -86,7 +87,7 @@
 │   │   ├── 🐍 __init__.py (0B)
 │   │   ├── 🐍 apps.py (210B)
 │   │   ├── 🐍 urls.py (1.2KB)
-│   │   └── 🐍 views.py (17.8KB)
+│   │   └── 🐍 views.py (18.3KB)
 │   ├── 📁 financial_management/
 │   │   ├── 🐍 __init__.py (0B)
 │   │   ├── 🐍 admin.py (66B)
@@ -233,15 +234,15 @@
 │   ├── 📁 content/
 │   │   └── 🌐 library.html (0B)
 │   ├── 📁 custom_admin/
-│   │   ├── 🌐 base_admin.html (31.6KB)
+│   │   ├── 🌐 base_admin.html (32.7KB)
 │   │   ├── 🌐 dashboard.html (3.8KB)
 │   │   ├── 🌐 usuario_confirm_delete.html (1.1KB)
-│   │   ├── 🌐 usuario_form.html (7.9KB)
+│   │   ├── 🌐 usuario_form.html (7.8KB)
 │   │   ├── 🌐 usuarios_list.html (6.0KB)
 │   │   ├── 📁 cunas/
 │   │   │   ├── 🌐 confirm_delete.html (2.0KB)
-│   │   │   ├── 🌐 detail.html (9.4KB)
-│   │   │   ├── 🌐 form.html (10.4KB)
+│   │   │   ├── 🌐 detail.html (10.7KB)
+│   │   │   ├── 🌐 form.html (16.1KB)
 │   │   │   └── 🌐 list.html (8.6KB)
 │   │   └── 📁 users/
 │   │       └── 🌐 list.html (0B)

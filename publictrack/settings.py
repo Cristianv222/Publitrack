@@ -141,8 +141,8 @@ except:
 # =============================================================================
 
 LOGIN_URL = 'authentication:login'
-LOGIN_REDIRECT_URL = 'authentication:profile'  
-LOGOUT_REDIRECT_URL = 'authentication:login'
+LOGIN_REDIRECT_URL = '/panel/'  
+LOGOUT_REDIRECT_URL = '/panel/'
 
 SESSION_COOKIE_AGE = config('SESSION_COOKIE_AGE', default=1209600, cast=int)  # 2 semanas
 SESSION_EXPIRE_AT_BROWSER_CLOSE = config('SESSION_EXPIRE_AT_BROWSER_CLOSE', default=False, cast=bool)

@@ -47,7 +47,7 @@ def login_view(request):
     """Vista para el login de usuarios"""
     if request.user.is_authenticated:
         if request.user.es_admin:  # CORREGIDO: request.user
-            return redirect('authentication:admin_dashboard')
+            return redirect('/panel/')
         elif request.user.es_vendedor:  # CORREGIDO: request.user
             return redirect('authentication:vendedor_dashboard')
         else:
@@ -96,7 +96,7 @@ def login_view(request):
                     
                     # CORREGIDO: cada rol a su dashboard correspondiente
                     if user.es_admin:
-                        return redirect('authentication:admin_dashboard')
+                        return redirect('/panel/')
                     elif user.es_vendedor:
                         return redirect('authentication:vendedor_dashboard')
                     else:

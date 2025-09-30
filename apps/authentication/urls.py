@@ -1,4 +1,5 @@
 from django.urls import path
+from django.shortcuts import redirect
 from . import views
 
 app_name = 'authentication'
@@ -28,7 +29,7 @@ urlpatterns = [
     # ============================================================================
     # DASHBOARD Y VENDEDORES
     # ============================================================================
-    path('dashboard/admin/', views.admin_dashboard, name='admin_dashboard'),
+    path('dashboard/admin/', lambda request: redirect('/panel/'), name='admin_dashboard'),
     path('dashboard/vendedor/', views.vendedor_dashboard, name='vendedor_dashboard'),  # ← AGREGAR ESTA LÍNEA
     path('dashboard/cliente/', views.cliente_dashboard, name='cliente_dashboard'),
     # ============================================================================
