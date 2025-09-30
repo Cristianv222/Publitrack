@@ -372,26 +372,14 @@ class CuñaPublicitariaAdmin(admin.ModelAdmin):
     ]
     
     def cliente_info(self, obj):
-        """Información del cliente con enlace"""
         if obj.cliente:
-            return format_html(
-                '<a href="{}" title="{}">{}</a>',
-                reverse('admin:auth_user_change', args=[obj.cliente.pk]),
-                obj.cliente.email,
-                obj.cliente.get_full_name() or obj.cliente.username
-            )
+            return obj.cliente.empresa if hasattr(obj.cliente, 'empresa') else obj.cliente.get_full_name()
         return '-'
     cliente_info.short_description = 'Cliente'
     
     def vendedor_info(self, obj):
-        """Información del vendedor con enlace"""
         if obj.vendedor_asignado:
-            return format_html(
-                '<a href="{}" title="{}">{}</a>',
-                reverse('admin:auth_user_change', args=[obj.vendedor_asignado.pk]),
-                obj.vendedor_asignado.email,
-                obj.vendedor_asignado.get_full_name() or obj.vendedor_asignado.username
-            )
+            return obj.vendedor_asignado.get_full_name()
         return '-'
     vendedor_info.short_description = 'Vendedor'
     

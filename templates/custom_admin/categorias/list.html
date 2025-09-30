@@ -1,0 +1,385 @@
+{% extends 'custom_admin/base_admin.html' %}
+
+{% block title %}Categorías - PublicTrack Admin{% endblock %}
+
+{% block header_title %}Gestión de Categorías Publicitarias{% endblock %}
+
+{% block extra_css %}
+<style>
+    .categoria-card {
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+    }
+    .categoria-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .color-badge {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: 8px;
+        border: 2px solid #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .tarifa-display {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--accent-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <div class="admin-card">
+            <div class="admin-card-header d-flex justify-content-between align-items-center">
+                <h5 class="admin-card-title">
+                    <i class="fas fa-tags"></i>
+                    Categorías Publicitarias
+                </h5>
+                <button class="btn btn-admin-primary" data-bs-toggle="modal" data-bs-target="#categoriaModal">
+                    <i class="fas fa-plus me-2"></i>Nueva Categoría
+                </button>
+            </div>
+            <div class="admin-card-body">
+                <!-- Filtro rápido -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" id="searchCategoria" 
+                               placeholder="Buscar categorías...">
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <span class="badge bg-info">Total: <span id="totalCategorias">{{ categorias|length }}</span> categorías</span>
+                    </div>
+                </div>
+
+                <!-- Grid de categorías -->
+                <div class="row" id="categoriasGrid">
+                    {% for categoria in categorias %}
+                    <div class="col-md-6 col-lg-4 mb-3 categoria-item" data-nombre="{{ categoria.nombre|lower }}">
+                        <div class="card categoria-card h-100" style="border-left-color: {{ categoria.color_codigo }};">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="card-title mb-0">
+                                        <span class="color-badge" style="background-color: {{ categoria.color_codigo }};"></span>
+                                        {{ categoria.nombre }}
+                                    </h6>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-light" data-bs-toggle="dropdown">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <a class="dropdown-item" href="#" 
+                                                   onclick="editarCategoria({{ categoria.id }}, '{{ categoria.nombre }}', '{{ categoria.descripcion|escapejs }}', '{{ categoria.color_codigo }}', '{{ categoria.tarifa_base }}')">
+                                                    <i class="fas fa-edit me-2"></i>Editar
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item text-danger" href="#" 
+                                                   onclick="eliminarCategoria({{ categoria.id }}, '{{ categoria.nombre }}')">
+                                                    <i class="fas fa-trash me-2"></i>Eliminar
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                
+                                <p class="card-text text-muted small">{{ categoria.descripcion|default:"Sin descripción"|truncatewords:20 }}</p>
+                                
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <div>
+                                        <small class="text-muted">Tarifa base</small>
+                                        <div class="tarifa-display">S/. {{ categoria.tarifa_base|floatformat:2 }}</div>
+                                    </div>
+                                    <div>
+                                        {% if categoria.is_active %}
+                                            <span class="badge bg-success">Activa</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactiva</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="fas fa-microphone me-1"></i>
+                                        {{ categoria.cuñas.count }} cuña{{ categoria.cuñas.count|pluralize }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12">
+                        <div class="alert alert-info text-center">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No hay categorías registradas. 
+                            <a href="#" data-bs-toggle="modal" data-bs-target="#categoriaModal">Crear la primera categoría</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Crear/Editar Categoría -->
+<div class="modal fade" id="categoriaModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="categoriaModalTitle">
+                    <i class="fas fa-tag me-2"></i>Nueva Categoría
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="categoriaForm">
+                    <input type="hidden" id="categoriaId" value="">
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre de la Categoría *</label>
+                                <input type="text" class="form-control" id="categoriaNombre" required>
+                                <div class="invalid-feedback">El nombre es obligatorio</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Color</label>
+                                <div class="input-group">
+                                    <input type="color" class="form-control form-control-color" id="categoriaColor" value="#007bff">
+                                    <input type="text" class="form-control" id="categoriaColorText" value="#007bff" readonly>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" id="categoriaDescripcion" rows="3" 
+                                  placeholder="Descripción de la categoría..."></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Tarifa Base por Segundo (S/.)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">S/.</span>
+                                    <input type="number" class="form-control" id="categoriaTarifa" 
+                                           value="0.50" min="0" step="0.01">
+                                </div>
+                                <small class="text-muted">Precio sugerido por segundo para esta categoría</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Estado</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="categoriaActiva" checked>
+                                    <label class="form-check-label" for="categoriaActiva">
+                                        Categoría activa
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Vista previa -->
+                    <div class="alert alert-light border">
+                        <h6 class="alert-heading">Vista Previa</h6>
+                        <div class="d-flex align-items-center">
+                            <span class="color-badge me-2" id="previewColor" style="background-color: #007bff;"></span>
+                            <strong id="previewNombre">Nueva Categoría</strong>
+                            <span class="ms-auto badge bg-info">S/. <span id="previewTarifa">0.50</span>/seg</span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="guardarCategoria()">
+                    <i class="fas fa-save me-2"></i>Guardar Categoría
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Búsqueda en tiempo real
+document.getElementById('searchCategoria').addEventListener('keyup', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const items = document.querySelectorAll('.categoria-item');
+    let visibleCount = 0;
+    
+    items.forEach(item => {
+        const nombre = item.dataset.nombre;
+        if (nombre.includes(searchTerm)) {
+            item.style.display = '';
+            visibleCount++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    
+    document.getElementById('totalCategorias').textContent = visibleCount;
+});
+
+// Sincronizar color picker con texto
+document.getElementById('categoriaColor').addEventListener('change', function(e) {
+    document.getElementById('categoriaColorText').value = e.target.value;
+    document.getElementById('previewColor').style.backgroundColor = e.target.value;
+});
+
+// Vista previa en tiempo real
+document.getElementById('categoriaNombre').addEventListener('input', function(e) {
+    document.getElementById('previewNombre').textContent = e.target.value || 'Nueva Categoría';
+});
+
+document.getElementById('categoriaTarifa').addEventListener('input', function(e) {
+    document.getElementById('previewTarifa').textContent = parseFloat(e.target.value || 0).toFixed(2);
+});
+
+// Funciones CRUD
+function editarCategoria(id, nombre, descripcion, color, tarifa) {
+    document.getElementById('categoriaModalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Editar Categoría';
+    document.getElementById('categoriaId').value = id;
+    document.getElementById('categoriaNombre').value = nombre;
+    document.getElementById('categoriaDescripcion').value = descripcion;
+    document.getElementById('categoriaColor').value = color;
+    document.getElementById('categoriaColorText').value = color;
+    document.getElementById('categoriaTarifa').value = tarifa;
+    document.getElementById('previewColor').style.backgroundColor = color;
+    document.getElementById('previewNombre').textContent = nombre;
+    document.getElementById('previewTarifa').textContent = parseFloat(tarifa).toFixed(2);
+    
+    new bootstrap.Modal(document.getElementById('categoriaModal')).show();
+}
+
+function guardarCategoria() {
+    const form = document.getElementById('categoriaForm');
+    if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
+    }
+    
+    const id = document.getElementById('categoriaId').value;
+    const data = {
+        nombre: document.getElementById('categoriaNombre').value,
+        descripcion: document.getElementById('categoriaDescripcion').value,
+        color_codigo: document.getElementById('categoriaColor').value,
+        tarifa_base: document.getElementById('categoriaTarifa').value,
+        is_active: document.getElementById('categoriaActiva').checked
+    };
+    
+    const url = id ? 
+        `{% url 'custom_admin:categoria_update_api' 0 %}`.replace('0', id) : 
+        `{% url 'custom_admin:categoria_create_api' %}`;
+    
+    const method = id ? 'PUT' : 'POST';
+    
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: id ? 'Categoría actualizada' : 'Categoría creada',
+                text: 'La operación se realizó exitosamente',
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            throw new Error(data.error || 'Error desconocido');
+        }
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo guardar la categoría: ' + error.message
+        });
+    });
+}
+
+function eliminarCategoria(id, nombre) {
+    Swal.fire({
+        title: '¿Eliminar categoría?',
+        html: `¿Está seguro de eliminar la categoría <strong>${nombre}</strong>?<br>
+               <small class="text-muted">Esta acción no se puede deshacer</small>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`{% url 'custom_admin:categoria_delete_api' 0 %}`.replace('0', id), {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Eliminada',
+                        text: 'La categoría ha sido eliminada',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    throw new Error(data.error || 'Error al eliminar');
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudo eliminar la categoría: ' + error.message
+                });
+            });
+        }
+    });
+}
+
+// Limpiar modal al cerrarlo
+document.getElementById('categoriaModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('categoriaForm').classList.remove('was-validated');
+    document.getElementById('categoriaForm').reset();
+    document.getElementById('categoriaId').value = '';
+    document.getElementById('categoriaModalTitle').innerHTML = '<i class="fas fa-tag me-2"></i>Nueva Categoría';
+    document.getElementById('previewNombre').textContent = 'Nueva Categoría';
+    document.getElementById('previewTarifa').textContent = '0.50';
+    document.getElementById('previewColor').style.backgroundColor = '#007bff';
+});
+</script>
+{% endblock %}

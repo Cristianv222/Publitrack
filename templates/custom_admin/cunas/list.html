@@ -2,171 +2,309 @@
 
 {% block title %}Cuñas Publicitarias - PublicTrack Admin{% endblock %}
 
+{% block header_title %}Gestión de Cuñas Publicitarias{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cuna-card {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+    }
+    .cuna-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    .cuna-card.activa { border-left-color: var(--success-color); }
+    .cuna-card.pausada { border-left-color: var(--warning-color); }
+    .cuna-card.finalizada { border-left-color: var(--secondary-color); }
+    .cuna-card.cancelada { border-left-color: var(--danger-color); }
+    
+    .semaforo-indicator {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .semaforo-verde { background: var(--success-color); }
+    .semaforo-amarillo { background: var(--warning-color); }
+    .semaforo-rojo { background: var(--danger-color); animation: pulse 2s infinite; }
+    
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+    }
+    
+    .precio-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+    
+    .dias-restantes {
+        font-size: 0.85rem;
+        padding: 4px 8px;
+        border-radius: 12px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
+<!-- Estadísticas rápidas -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card primary">
+            <div class="stat-icon">
+                <i class="fas fa-microphone"></i>
+            </div>
+            <div class="stat-label">Total Cuñas</div>
+            <div class="stat-value">{{ cunas.paginator.count }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card success">
+            <div class="stat-icon">
+                <i class="fas fa-play-circle"></i>
+            </div>
+            <div class="stat-label">Activas</div>
+            <div class="stat-value">{{ cunas_activas }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card warning">
+            <div class="stat-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-label">Por Vencer</div>
+            <div class="stat-value">{{ cunas_por_vencer }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card info">
+            <div class="stat-icon">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="stat-label">Valor Total</div>
+            <div class="stat-value">S/. {{ valor_total|floatformat:0 }}</div>
+        </div>
+    </div>
+</div>
+
 <div class="admin-card">
     <div class="admin-card-header d-flex justify-content-between align-items-center">
-        <h5 class="admin-card-title">Gestión de Cuñas Publicitarias</h5>
-        <a href="{% url 'custom_admin:cuna_create' %}" class="btn btn-admin-primary">
-            <i class="fas fa-plus me-2"></i>Nueva Cuña
-        </a>
+        <h5 class="admin-card-title">
+            <i class="fas fa-microphone"></i>
+            Cuñas Publicitarias
+        </h5>
+        <div>
+            <button class="btn btn-light me-2" onclick="location.reload()">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <button class="btn btn-admin-primary" data-bs-toggle="modal" data-bs-target="#cunaModal">
+                <i class="fas fa-plus me-2"></i>Nueva Cuña
+            </button>
+        </div>
     </div>
+    
+    <!-- Barra de filtros -->
+    <div class="admin-card-body border-bottom">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <input type="text" class="form-control" id="searchCuna" 
+                       placeholder="Buscar por título o código..." value="{{ query }}">
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="filterEstado">
+                    <option value="">Todos los estados</option>
+                    <option value="activa">Activa</option>
+                    <option value="pausada">Pausada</option>
+                    <option value="finalizada">Finalizada</option>
+                    <option value="cancelada">Cancelada</option>
+                    <option value="borrador">Borrador</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="filterCliente">
+                    <option value="">Todos los clientes</option>
+                    {% for cliente in clientes %}
+                    <option value="{{ cliente.id }}">{{ cliente.empresa|default:cliente.get_full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 text-end">
+                <span class="badge bg-info">Total: <span id="totalCunas">{{ cunas.paginator.count }}</span></span>
+            </div>
+        </div>
+    </div>
+    
     <div class="admin-card-body">
-        <!-- Filtros -->
-        <form method="get" class="mb-4">
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <input type="text" name="q" class="form-control" 
-                           placeholder="Buscar por título o código..." value="{{ query }}">
-                </div>
-                <div class="col-md-3">
-                    <select name="estado" class="form-select">
-                        <option value="">Todos los estados</option>
-                        {% for estado_value, estado_display in estados %}
-                        <option value="{{ estado_value }}" {% if estado_seleccionado == estado_value %}selected{% endif %}>
-                            {{ estado_display }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <select name="cliente" class="form-select">
-                        <option value="">Todos los clientes</option>
-                        {% for cliente in clientes %}
-                        <option value="{{ cliente.id }}" {% if cliente_seleccionado == cliente.id|stringformat:"s" %}selected{% endif %}>
-                            {{ cliente.empresa|default:cliente.get_full_name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-secondary w-100">
-                        <i class="fas fa-search me-2"></i>Buscar
-                    </button>
+        <div class="row" id="cunasGrid">
+            {% for cuna in cunas %}
+            <div class="col-lg-6 mb-4 cuna-item" 
+                 data-titulo="{{ cuna.titulo|lower }}"
+                 data-estado="{{ cuna.estado }}"
+                 data-cliente="{{ cuna.cliente.id|default:'' }}">
+                <div class="card cuna-card h-100 {{ cuna.estado }}">
+                    <div class="semaforo-indicator semaforo-{{ cuna.semaforo_estado|default:'verde' }}"></div>
+                    
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="flex-grow-1">
+                                <h5 class="card-title mb-1">{{ cuna.titulo }}</h5>
+                                <p class="text-muted mb-1">
+                                    <small><i class="fas fa-tag me-1"></i>{{ cuna.codigo }}</small>
+                                </p>
+                                {% if cuna.cliente %}
+                                <p class="mb-1">
+                                    <i class="fas fa-user-tie me-1"></i>{{ cuna.cliente.empresa|default:cuna.cliente.get_full_name }}
+                                </p>
+                                {% endif %}
+                                {% if cuna.categoria %}
+                                <span class="badge" style="background-color: {{ cuna.categoria.color_codigo }}20; color: {{ cuna.categoria.color_codigo }};">
+                                    {{ cuna.categoria.nombre }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-light" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="verDetalleCuna({{ cuna.id }})">
+                                            <i class="fas fa-eye me-2"></i>Ver Detalle
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="editarCuna({{ cuna.id }})">
+                                            <i class="fas fa-edit me-2"></i>Editar
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="#" 
+                                           onclick="eliminarCuna({{ cuna.id }}, '{{ cuna.titulo|escapejs }}')">
+                                            <i class="fas fa-trash me-2"></i>Eliminar
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="fas fa-calendar-alt text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted d-block">Período</small>
+                                        <strong>{{ cuna.fecha_inicio|date:"d/m" }} - {{ cuna.fecha_fin|date:"d/m/Y" }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="fas fa-clock text-info"></i>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted d-block">Duración</small>
+                                        <strong>{{ cuna.duracion_planeada }}s × {{ cuna.repeticiones_dia|default:"1" }}/día</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                            <div>
+                                {% if cuna.estado == 'activa' %}
+                                    <span class="badge bg-success">Activa</span>
+                                {% elif cuna.estado == 'pausada' %}
+                                    <span class="badge bg-warning">Pausada</span>
+                                {% elif cuna.estado == 'finalizada' %}
+                                    <span class="badge bg-secondary">Finalizada</span>
+                                {% elif cuna.estado == 'cancelada' %}
+                                    <span class="badge bg-danger">Cancelada</span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark">{{ cuna.get_estado_display|default:"Borrador" }}</span>
+                                {% endif %}
+                                
+                                {% if cuna.dias_restantes %}
+                                    {% if cuna.dias_restantes <= 3 %}
+                                        <span class="badge bg-danger ms-1 dias-restantes">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>{{ cuna.dias_restantes }} días
+                                        </span>
+                                    {% elif cuna.dias_restantes <= 7 %}
+                                        <span class="badge bg-warning ms-1 dias-restantes">
+                                            {{ cuna.dias_restantes }} días
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-info ms-1 dias-restantes">
+                                            {{ cuna.dias_restantes }} días
+                                        </span>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                            <div class="precio-badge">
+                                S/. {{ cuna.precio_total|floatformat:2 }}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </form>
-        
-        <!-- Tabla de cuñas -->
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Código</th>
-                        <th>Título</th>
-                        <th>Cliente</th>
-                        <th>Vendedor</th>
-                        <th>Duración</th>
-                        <th>Período</th>
-                        <th>Precio Total</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for cuna in cunas %}
-                    <tr>
-                        <td><small>{{ cuna.codigo }}</small></td>
-                        <td><strong>{{ cuna.titulo }}</strong></td>
-                        <td>
-                            {% if cuna.cliente %}
-                                {{ cuna.cliente.empresa|default:cuna.cliente.get_full_name }}
-                            {% else %}
-                                <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if cuna.vendedor_asignado %}
-                                {{ cuna.vendedor_asignado.get_full_name }}
-                            {% else %}
-                                <span class="text-muted">Sin asignar</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ cuna.duracion_planeada }}s</td>
-                        <td>
-                            <small>
-                                {{ cuna.fecha_inicio|date:"d/m/Y" }} - 
-                                {{ cuna.fecha_fin|date:"d/m/Y" }}
-                            </small>
-                        </td>
-                        <td>S/. {{ cuna.precio_total|floatformat:2 }}</td>
-                        <td>
-                            {% if cuna.estado == 'activa' %}
-                                <span class="badge bg-success">Activa</span>
-                            {% elif cuna.estado == 'aprobada' %}
-                                <span class="badge bg-info">Aprobada</span>
-                            {% elif cuna.estado == 'pausada' %}
-                                <span class="badge bg-warning">Pausada</span>
-                            {% elif cuna.estado == 'finalizada' %}
-                                <span class="badge bg-secondary">Finalizada</span>
-                            {% elif cuna.estado == 'cancelada' %}
-                                <span class="badge bg-danger">Cancelada</span>
-                            {% elif cuna.estado == 'borrador' %}
-                                <span class="badge bg-light text-dark">Borrador</span>
-                            {% elif cuna.estado == 'pendiente_revision' %}
-                                <span class="badge bg-warning">Pendiente Revisión</span>
-                            {% elif cuna.estado == 'en_produccion' %}
-                                <span class="badge bg-primary">En Producción</span>
-                            {% else %}
-                                <span class="badge bg-light text-dark">{{ cuna.get_estado_display }}</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <a href="{% url 'custom_admin:cuna_detail' cuna.id %}" 
-                               class="btn btn-sm btn-info" title="Ver detalle">
-                                <i class="fas fa-eye"></i>
-                            </a>
-                            <a href="{% url 'custom_admin:cuna_edit' cuna.id %}" 
-                               class="btn btn-sm btn-warning" title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <a href="{% url 'custom_admin:cuna_delete' cuna.id %}" 
-                               class="btn btn-sm btn-danger" title="Eliminar">
-                                <i class="fas fa-trash"></i>
-                            </a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="9" class="text-center">No hay cuñas registradas</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No hay cuñas registradas.
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#cunaModal">Crear la primera cuña</a>
+                </div>
+            </div>
+            {% endfor %}
         </div>
-        
-        <!-- Resumen de totales -->
-        {% if cunas %}
-        <div class="mt-3 text-end">
-            <strong>Total de cuñas mostradas:</strong> {{ cunas.paginator.count }}
-        </div>
-        {% endif %}
         
         <!-- Paginación -->
         {% if cunas.has_other_pages %}
-        <nav>
+        <nav aria-label="Paginación de cuñas">
             <ul class="pagination justify-content-center">
                 {% if cunas.has_previous %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ cunas.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if estado_seleccionado %}&estado={{ estado_seleccionado }}{% endif %}{% if cliente_seleccionado %}&cliente={{ cliente_seleccionado }}{% endif %}">
-                            Anterior
+                        <a class="page-link" href="?page=1{% if query %}&q={{ query }}{% endif %}">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ cunas.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">
+                            <i class="fas fa-angle-left"></i>
                         </a>
                     </li>
                 {% endif %}
                 
-                {% for num in cunas.paginator.page_range %}
-                    {% if cunas.number == num %}
-                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                    {% else %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if estado_seleccionado %}&estado={{ estado_seleccionado }}{% endif %}{% if cliente_seleccionado %}&cliente={{ cliente_seleccionado }}{% endif %}">{{ num }}</a>
-                        </li>
-                    {% endif %}
-                {% endfor %}
+                <li class="page-item active">
+                    <span class="page-link">
+                        Página {{ cunas.number }} de {{ cunas.paginator.num_pages }}
+                    </span>
+                </li>
                 
                 {% if cunas.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ cunas.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if estado_seleccionado %}&estado={{ estado_seleccionado }}{% endif %}{% if cliente_seleccionado %}&cliente={{ cliente_seleccionado }}{% endif %}">
-                            Siguiente
+                        <a class="page-link" href="?page={{ cunas.next_page_number }}{% if query %}&q={{ query }}{% endif %}">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ cunas.paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}">
+                            <i class="fas fa-angle-double-right"></i>
                         </a>
                     </li>
                 {% endif %}
@@ -175,4 +313,540 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Modal Crear/Editar Cuña -->
+<div class="modal fade" id="cunaModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="cunaModalTitle">
+                    <i class="fas fa-microphone me-2"></i>Nueva Cuña
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="cunaForm">
+                    <input type="hidden" id="cunaId" value="">
+                    
+                    <h6 class="text-muted mb-3">Información Básica</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Título de la Cuña *</label>
+                                <input type="text" class="form-control" id="titulo" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Categoría</label>
+                                <select class="form-select" id="categoria">
+                                    <option value="">Sin categoría</option>
+                                    {% for categoria in categorias %}
+                                    <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Cliente *</label>
+                                <select class="form-select" id="cliente" required>
+                                    <option value="">Seleccionar cliente...</option>
+                                    {% for cliente in clientes %}
+                                    <option value="{{ cliente.id }}">
+                                        {{ cliente.empresa|default:cliente.get_full_name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Vendedor</label>
+                                <select class="form-select" id="vendedor">
+                                    <option value="">Sin vendedor asignado</option>
+                                    {% for vendedor in vendedores %}
+                                    <option value="{{ vendedor.id }}">{{ vendedor.get_full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" id="descripcion" rows="3"></textarea>
+                    </div>
+                    
+                    <h6 class="text-muted mb-3 mt-4">Programación</h6>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Duración (seg) *</label>
+                                <input type="number" class="form-control" id="duracion_planeada" 
+                                       value="30" min="5" max="300" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Rep. por Día *</label>
+                                <input type="number" class="form-control" id="repeticiones_dia" 
+                                       value="1" min="1" max="50" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Fecha Inicio *</label>
+                                <input type="date" class="form-control" id="fecha_inicio" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Fecha Fin *</label>
+                                <input type="date" class="form-control" id="fecha_fin" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Exclusión de días</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="excluir_sabados">
+                                    <label class="form-check-label" for="excluir_sabados">
+                                        Excluir sábados de la programación
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="excluir_domingos">
+                                    <label class="form-check-label" for="excluir_domingos">
+                                        Excluir domingos de la programación
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="alert alert-info">
+                                <strong>Días efectivos: </strong><span id="dias_efectivos">0</span> días<br>
+                                <strong>Emisiones totales: </strong><span id="emisiones_totales">0</span> emisiones
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h6 class="text-muted mb-3 mt-4">Información Financiera</h6>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Precio/Segundo *</label>
+                                <input type="number" class="form-control" id="precio_por_segundo" 
+                                       value="0.50" min="0" step="0.0001" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Precio Calculado</label>
+                                <input type="text" class="form-control" id="precio_total_calculado" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Precio Manual</label>
+                                <input type="number" class="form-control" id="precio_total" 
+                                       min="0" step="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Tipo Contrato</label>
+                                <select class="form-select" id="tipo_contrato">
+                                    <option value="">Sin tipo</option>
+                                    {% for tipo in tipos_contrato %}
+                                    <option value="{{ tipo.id }}">{{ tipo.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" id="estado">
+                                    <option value="borrador">Borrador</option>
+                                    <option value="activa">Activa</option>
+                                    <option value="pausada">Pausada</option>
+                                    <option value="finalizada">Finalizada</option>
+                                    <option value="cancelada">Cancelada</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Observaciones</label>
+                                <textarea class="form-control" id="observaciones" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Resumen de cálculo -->
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6>Resumen de Cálculo:</h6>
+                            <div id="formula_calculo" class="font-monospace small"></div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="guardarCuna()">
+                    <i class="fas fa-save me-2"></i>Guardar Cuña
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ver Detalle -->
+<div class="modal fade" id="detalleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-eye me-2"></i>Detalle de Cuña
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalleContenido">
+                <!-- Se llena dinámicamente -->
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Búsqueda y filtrado en tiempo real
+document.getElementById('searchCuna').addEventListener('keyup', filterCunas);
+document.getElementById('filterEstado').addEventListener('change', filterCunas);
+document.getElementById('filterCliente').addEventListener('change', filterCunas);
+
+function filterCunas() {
+    const searchTerm = document.getElementById('searchCuna').value.toLowerCase();
+    const estado = document.getElementById('filterEstado').value;
+    const cliente = document.getElementById('filterCliente').value;
+    const items = document.querySelectorAll('.cuna-item');
+    let visibleCount = 0;
+    
+    items.forEach(item => {
+        const titulo = item.dataset.titulo;
+        const itemEstado = item.dataset.estado;
+        const itemCliente = item.dataset.cliente;
+        
+        let show = true;
+        
+        if (searchTerm && !titulo.includes(searchTerm)) {
+            show = false;
+        }
+        if (estado && itemEstado !== estado) {
+            show = false;
+        }
+        if (cliente && itemCliente !== cliente) {
+            show = false;
+        }
+        
+        item.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
+    });
+    
+    document.getElementById('totalCunas').textContent = visibleCount;
+}
+
+// Función para calcular días efectivos
+function calcularDiasEfectivos(fechaInicio, fechaFin, excluirSabados, excluirDomingos) {
+    let diasEfectivos = 0;
+    let fecha = new Date(fechaInicio + 'T00:00:00');
+    const fin = new Date(fechaFin + 'T00:00:00');
+    
+    while (fecha <= fin) {
+        const diaSemana = fecha.getDay();
+        
+        if ((!excluirSabados || diaSemana !== 6) && (!excluirDomingos || diaSemana !== 0)) {
+            diasEfectivos++;
+        }
+        
+        fecha.setDate(fecha.getDate() + 1);
+    }
+    
+    return diasEfectivos;
+}
+
+// Función principal de cálculo
+function calcularTotales() {
+    const duracion = parseFloat(document.getElementById('duracion_planeada').value) || 0;
+    const repeticiones = parseInt(document.getElementById('repeticiones_dia').value) || 0;
+    const precioPorSegundo = parseFloat(document.getElementById('precio_por_segundo').value) || 0;
+    const fechaInicio = document.getElementById('fecha_inicio').value;
+    const fechaFin = document.getElementById('fecha_fin').value;
+    const excluirSabados = document.getElementById('excluir_sabados').checked;
+    const excluirDomingos = document.getElementById('excluir_domingos').checked;
+    const precioManual = parseFloat(document.getElementById('precio_total').value) || 0;
+    
+    if (fechaInicio && fechaFin && fechaInicio <= fechaFin) {
+        const diasEfectivos = calcularDiasEfectivos(fechaInicio, fechaFin, excluirSabados, excluirDomingos);
+        const emisionesTotales = repeticiones * diasEfectivos;
+        const precioTotalCalculado = duracion * repeticiones * precioPorSegundo * diasEfectivos;
+        const precioFinal = precioManual > 0 ? precioManual : precioTotalCalculado;
+        const costoPorEmision = emisionesTotales > 0 ? (precioFinal / emisionesTotales) : 0;
+        
+        document.getElementById('dias_efectivos').textContent = diasEfectivos;
+        document.getElementById('emisiones_totales').textContent = emisionesTotales;
+        document.getElementById('precio_total_calculado').value = 'S/. ' + precioTotalCalculado.toFixed(2);
+        
+        let diasExcluidos = [];
+        if (excluirSabados) diasExcluidos.push('sábados');
+        if (excluirDomingos) diasExcluidos.push('domingos');
+        const textoExclusion = diasExcluidos.length > 0 ? ` (excluyendo ${diasExcluidos.join(' y ')})` : '';
+        
+        document.getElementById('formula_calculo').innerHTML = `
+            <strong>Cálculo de precio:</strong><br>
+            ${duracion}s × ${repeticiones} rep/día × S/.${precioPorSegundo.toFixed(4)}/seg × ${diasEfectivos} días${textoExclusion} = <strong>S/. ${precioTotalCalculado.toFixed(2)}</strong><br>
+            <br>
+            <strong>Desglose:</strong><br>
+            • Total emisiones: ${emisionesTotales}<br>
+            • Costo por emisión: S/. ${costoPorEmision.toFixed(4)}<br>
+            ${precioManual > 0 ? `<br><strong>⚠️ Precio manual aplicado: S/. ${precioManual.toFixed(2)}</strong>` : ''}
+        `;
+    } else {
+        document.getElementById('dias_efectivos').textContent = '0';
+        document.getElementById('emisiones_totales').textContent = '0';
+        document.getElementById('precio_total_calculado').value = 'S/. 0.00';
+        document.getElementById('formula_calculo').innerHTML = '<em>Ingrese fechas válidas para calcular</em>';
+    }
+}
+
+// Event listeners para cálculo
+const camposCalculo = [
+    'duracion_planeada', 'repeticiones_dia', 'precio_por_segundo',
+    'fecha_inicio', 'fecha_fin', 'excluir_sabados', 'excluir_domingos', 'precio_total'
+];
+
+camposCalculo.forEach(campo => {
+    const elemento = document.getElementById(campo);
+    if (elemento) {
+        if (elemento.type === 'checkbox') {
+            elemento.addEventListener('change', calcularTotales);
+        } else {
+            elemento.addEventListener('input', calcularTotales);
+            elemento.addEventListener('change', calcularTotales);
+        }
+    }
+});
+
+function verDetalleCuna(id) {
+    fetch(`/panel/cunas/api/${id}/`)
+    .then(response => response.json())
+    .then(data => {
+        const contenido = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-3">Información General</h6>
+                    <table class="table table-sm">
+                        <tr><td><strong>Código:</strong></td><td>${data.codigo}</td></tr>
+                        <tr><td><strong>Título:</strong></td><td>${data.titulo}</td></tr>
+                        <tr><td><strong>Cliente:</strong></td><td>${data.cliente_nombre || 'Sin cliente'}</td></tr>
+                        <tr><td><strong>Estado:</strong></td><td><span class="badge bg-${data.estado === 'activa' ? 'success' : 'secondary'}">${data.estado}</span></td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-3">Programación</h6>
+                    <table class="table table-sm">
+                        <tr><td><strong>Duración:</strong></td><td>${data.duracion_planeada} segundos</td></tr>
+                        <tr><td><strong>Repeticiones:</strong></td><td>${data.repeticiones_dia}/día</td></tr>
+                        <tr><td><strong>Período:</strong></td><td>${data.fecha_inicio} al ${data.fecha_fin}</td></tr>
+                        <tr><td><strong>Precio Total:</strong></td><td>S/. ${parseFloat(data.precio_total).toFixed(2)}</td></tr>
+                    </table>
+                </div>
+            </div>
+            ${data.descripcion ? `<div class="mt-3"><h6>Descripción:</h6><p>${data.descripcion}</p></div>` : ''}
+            ${data.observaciones ? `<div class="mt-3"><h6>Observaciones:</h6><p>${data.observaciones}</p></div>` : ''}
+        `;
+        
+        document.getElementById('detalleContenido').innerHTML = contenido;
+        new bootstrap.Modal(document.getElementById('detalleModal')).show();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+function editarCuna(id) {
+    fetch(`/panel/cunas/api/${id}/`)
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('cunaModalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Editar Cuña';
+        document.getElementById('cunaId').value = id;
+        document.getElementById('titulo').value = data.titulo;
+        document.getElementById('descripcion').value = data.descripcion;
+        document.getElementById('cliente').value = data.cliente_id || '';
+        document.getElementById('vendedor').value = data.vendedor_id || '';
+        document.getElementById('categoria').value = data.categoria_id || '';
+        document.getElementById('duracion_planeada').value = data.duracion_planeada;
+        document.getElementById('repeticiones_dia').value = data.repeticiones_dia;
+        document.getElementById('fecha_inicio').value = data.fecha_inicio;
+        document.getElementById('fecha_fin').value = data.fecha_fin;
+        document.getElementById('precio_por_segundo').value = data.precio_por_segundo;
+        document.getElementById('precio_total').value = data.precio_total;
+        document.getElementById('excluir_sabados').checked = data.excluir_sabados;
+        document.getElementById('excluir_domingos').checked = data.excluir_domingos;
+        document.getElementById('tipo_contrato').value = data.tipo_contrato_id || '';
+        document.getElementById('estado').value = data.estado;
+        document.getElementById('observaciones').value = data.observaciones;
+        
+        calcularTotales();
+        
+        new bootstrap.Modal(document.getElementById('cunaModal')).show();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+function guardarCuna() {
+    const form = document.getElementById('cunaForm');
+    if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
+    }
+    
+    const id = document.getElementById('cunaId').value;
+    const precioTotal = document.getElementById('precio_total').value || 
+                        document.getElementById('precio_total_calculado').value.replace('S/. ', '');
+    
+    const data = {
+        titulo: document.getElementById('titulo').value,
+        descripcion: document.getElementById('descripcion').value,
+        cliente_id: document.getElementById('cliente').value,
+        vendedor_id: document.getElementById('vendedor').value || null,
+        categoria_id: document.getElementById('categoria').value || null,
+        duracion_planeada: document.getElementById('duracion_planeada').value,
+        repeticiones_dia: document.getElementById('repeticiones_dia').value,
+        fecha_inicio: document.getElementById('fecha_inicio').value,
+        fecha_fin: document.getElementById('fecha_fin').value,
+        precio_por_segundo: document.getElementById('precio_por_segundo').value,
+        precio_total: precioTotal,
+        excluir_sabados: document.getElementById('excluir_sabados').checked,
+        excluir_domingos: document.getElementById('excluir_domingos').checked,
+        tipo_contrato_id: document.getElementById('tipo_contrato').value || null,
+        estado: document.getElementById('estado').value,
+        observaciones: document.getElementById('observaciones').value
+    };
+    
+    const url = id ? `/panel/cunas/api/${id}/actualizar/` : `/panel/cunas/api/crear/`;
+    const method = id ? 'PUT' : 'POST';
+    
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Éxito',
+                text: id ? 'Cuña actualizada correctamente' : 'Cuña creada correctamente',
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            throw new Error(data.error || 'Error desconocido');
+        }
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo guardar la cuña: ' + error.message
+        });
+    });
+}
+
+function eliminarCuna(id, titulo) {
+    Swal.fire({
+        title: '¿Eliminar cuña?',
+        html: `¿Está seguro de eliminar la cuña <strong>${titulo}</strong>?<br>
+               <small class="text-muted">Esta acción no se puede deshacer</small>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/panel/cunas/api/${id}/eliminar/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Eliminado',
+                        text: 'La cuña ha sido eliminada',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    throw new Error(data.error || 'Error al eliminar');
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudo eliminar la cuña: ' + error.message
+                });
+            });
+        }
+    });
+}
+
+// Limpiar modal al cerrarlo
+document.getElementById('cunaModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('cunaForm').classList.remove('was-validated');
+    document.getElementById('cunaForm').reset();
+    document.getElementById('cunaId').value = '';
+    document.getElementById('cunaModalTitle').innerHTML = '<i class="fas fa-microphone me-2"></i>Nueva Cuña';
+    document.getElementById('formula_calculo').innerHTML = '<em>Ingrese datos para calcular</em>';
+    document.getElementById('dias_efectivos').textContent = '0';
+    document.getElementById('emisiones_totales').textContent = '0';
+});
+
+// Calcular al cargar
+document.addEventListener('DOMContentLoaded', function() {
+    calcularTotales();
+});
+</script>
 {% endblock %}

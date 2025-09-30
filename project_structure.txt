@@ -6,22 +6,22 @@
 
 📊 RESUMEN DEL PROYECTO
 ==================================================
-📂 Total de directorios: 53
-📄 Total de archivos: 188
-📅 Generado: 2025-09-30 12:20:40
+📂 Total de directorios: 55
+📄 Total de archivos: 193
+📅 Generado: 2025-09-30 13:15:33
 
 🏆 TIPOS DE ARCHIVOS MÁS COMUNES:
 ------------------------------
   .py: 141 archivos
-  .html: 21 archivos
+  .html: 23 archivos
   .png: 15 archivos
   (sin extensión): 3 archivos
+  .backup: 3 archivos
   .js: 2 archivos
   .ps1: 1 archivos
   .yml: 1 archivos
   .sh: 1 archivos
   .txt: 1 archivos
-  .json: 1 archivos
 
 🌲 ESTRUCTURA COMPLETA DEL PROYECTO
 ============================================================
@@ -47,8 +47,10 @@
 │   │   ├── 🐍 models.py (23.2KB)
 │   │   ├── 🐍 permissions.py (13.1KB)
 │   │   ├── 🐍 tests.py (63B)
-│   │   ├── 🐍 urls.py (2.1KB)
-│   │   ├── 🐍 views.py (23.9KB)
+│   │   ├── 🐍 urls.py (2.2KB)
+│   │   ├── 📄 urls.py.backup (2.2KB)
+│   │   ├── 🐍 views.py (23.8KB)
+│   │   ├── 📄 views.py.backup (23.2KB)
 │   │   ├── 📁 management/
 │   │   │   ├── 🐍 __init__.py (0B)
 │   │   │   └── 📁 commands/
@@ -86,8 +88,8 @@
 │   ├── 📁 custom_admin/
 │   │   ├── 🐍 __init__.py (0B)
 │   │   ├── 🐍 apps.py (210B)
-│   │   ├── 🐍 urls.py (1.2KB)
-│   │   └── 🐍 views.py (18.3KB)
+│   │   ├── 🐍 urls.py (2.3KB)
+│   │   └── 🐍 views.py (18.8KB)
 │   ├── 📁 financial_management/
 │   │   ├── 🐍 __init__.py (0B)
 │   │   ├── 🐍 admin.py (66B)
@@ -202,7 +204,8 @@
 ├── 📁 publictrack/
 │   ├── 🐍 __init__.py (0B)
 │   ├── 🐍 asgi.py (415B)
-│   ├── 🐍 settings.py (17.7KB)
+│   ├── 🐍 settings.py (17.2KB)
+│   ├── 📄 settings.py.backup (17.2KB)
 │   ├── 🐍 urls.py (11.6KB)
 │   └── 🐍 wsgi.py (415B)
 ├── 📁 static/
@@ -239,6 +242,10 @@
 │   │   ├── 🌐 usuario_confirm_delete.html (1.1KB)
 │   │   ├── 🌐 usuario_form.html (7.8KB)
 │   │   ├── 🌐 usuarios_list.html (6.0KB)
+│   │   ├── 📁 categorias/
+│   │   │   └── 🌐 list.html (17.6KB)
+│   │   ├── 📁 contratos/
+│   │   │   └── 🌐 list.html (21.8KB)
 │   │   ├── 📁 cunas/
 │   │   │   ├── 🌐 confirm_delete.html (2.0KB)
 │   │   │   ├── 🌐 detail.html (10.7KB)

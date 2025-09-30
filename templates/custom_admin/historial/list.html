@@ -1,0 +1,246 @@
+{% extends 'custom_admin/base_admin.html' %}
+
+{% block title %}Historial de Actividades - PublicTrack Admin{% endblock %}
+
+{% block header_title %}Historial del Sistema{% endblock %}
+
+{% block extra_css %}
+<style>
+    .timeline-item {
+        position: relative;
+        padding-left: 40px;
+        margin-bottom: 20px;
+    }
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 0;
+        bottom: -20px;
+        width: 2px;
+        background: var(--accent-color);
+        opacity: 0.3;
+    }
+    .timeline-item:last-child::before {
+        display: none;
+    }
+    .timeline-dot {
+        position: absolute;
+        left: 10px;
+        top: 5px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: white;
+        border: 2px solid var(--accent-color);
+    }
+    .timeline-dot.addition { border-color: var(--success-color); }
+    .timeline-dot.change { border-color: var(--info-color); }
+    .timeline-dot.deletion { border-color: var(--danger-color); }
+    
+    .activity-card {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    .activity-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transform: translateX(5px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <!-- Estadísticas -->
+    <div class="col-md-3">
+        <div class="stat-card info">
+            <div class="stat-icon">
+                <i class="fas fa-history"></i>
+            </div>
+            <div class="stat-label">Total Actividades</div>
+            <div class="stat-value">{{ total_actividades|floatformat:0 }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card success">
+            <div class="stat-icon">
+                <i class="fas fa-calendar-day"></i>
+            </div>
+            <div class="stat-label">Actividades Hoy</div>
+            <div class="stat-value">{{ actividades_hoy }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card warning">
+            <div class="stat-icon">
+                <i class="fas fa-user-clock"></i>
+            </div>
+            <div class="stat-label">Usuario Más Activo</div>
+            <div class="stat-value">
+                {% if usuarios_activos %}
+                    {{ usuarios_activos.0.user__username }}
+                {% else %}
+                    -
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card primary">
+            <div class="stat-icon">
+                <i class="fas fa-cube"></i>
+            </div>
+            <div class="stat-label">Modelo Más Modificado</div>
+            <div class="stat-value">
+                {% if modelos_frecuentes %}
+                    {{ modelos_frecuentes.0.content_type__model }}
+                {% else %}
+                    -
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="filter-card admin-card mb-4">
+    <div class="admin-card-body">
+        <h5 class="mb-3"><i class="fas fa-filter me-2"></i>Filtros</h5>
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Usuario</label>
+                <select name="usuario" class="form-select">
+                    <option value="">Todos los usuarios</option>
+                    {% for user in usuarios %}
+                    <option value="{{ user.id }}" {% if filtros.usuario == user.id|stringformat:"s" %}selected{% endif %}>
+                        {{ user.get_full_name|default:user.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Acción</label>
+                <select name="accion" class="form-select">
+                    <option value="">Todas las acciones</option>
+                    {% for value, label in acciones %}
+                    <option value="{{ value }}" {% if filtros.accion == value|stringformat:"s" %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Desde</label>
+                <input type="date" name="desde" class="form-control" value="{{ filtros.desde }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Hasta</label>
+                <input type="date" name="hasta" class="form-control" value="{{ filtros.hasta }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-search"></i> Filtrar
+                </button>
+                <a href="{% url 'custom_admin:historial_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Timeline de Actividades -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="admin-card-title">
+            <i class="fas fa-stream"></i>
+            Línea de Tiempo de Actividades
+        </h5>
+    </div>
+    <div class="admin-card-body">
+        <div class="timeline">
+            {% for actividad in actividades %}
+            <div class="timeline-item">
+                <div class="timeline-dot 
+                    {% if actividad.action_flag == 1 %}addition{% elif actividad.action_flag == 2 %}change{% else %}deletion{% endif %}">
+                </div>
+                <div class="activity-card">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">
+                                <i class="fas fa-user me-1"></i>
+                                {{ actividad.user.get_full_name|default:actividad.user.username }}
+                                
+                                {% if actividad.action_flag == 1 %}
+                                    <span class="badge bg-success">Creó</span>
+                                {% elif actividad.action_flag == 2 %}
+                                    <span class="badge bg-info">Modificó</span>
+                                {% elif actividad.action_flag == 3 %}
+                                    <span class="badge bg-danger">Eliminó</span>
+                                {% endif %}
+                                
+                                <strong>{{ actividad.content_type.model|title }}</strong>:
+                                {{ actividad.object_repr }}
+                            </h6>
+                            
+                            {% if actividad.change_message %}
+                            <small class="text-muted d-block mt-1">
+                                {{ actividad.change_message }}
+                            </small>
+                            {% endif %}
+                            
+                            {% if actividad.object_id %}
+                            <small class="text-muted">
+                                ID: {{ actividad.object_id }}
+                            </small>
+                            {% endif %}
+                        </div>
+                        <small class="text-muted">
+                            <i class="fas fa-clock me-1"></i>
+                            {{ actividad.action_time|date:"d/m/Y H:i" }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                No hay actividades registradas con los filtros seleccionados.
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Paginación -->
+        {% if actividades.has_other_pages %}
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if actividades.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ actividades.previous_page_number }}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">
+                        Página {{ actividades.number }} de {{ actividades.paginator.num_pages }}
+                    </span>
+                </li>
+                
+                {% if actividades.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ actividades.next_page_number }}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

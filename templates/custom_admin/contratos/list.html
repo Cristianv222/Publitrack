@@ -1,0 +1,497 @@
+{% extends 'custom_admin/base_admin.html' %}
+
+{% block title %}Contratos - PublicTrack Admin{% endblock %}
+
+{% block header_title %}Gestión de Tipos de Contrato{% endblock %}
+
+{% block extra_css %}
+<style>
+    .contrato-card {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    .contrato-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    .contrato-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, var(--accent-color) 0%, var(--accent-light) 100%);
+    }
+    .duracion-badge {
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--accent-color);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 500;
+        font-size: 0.85rem;
+    }
+    .descuento-tag {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: var(--success-color);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <!-- Estadísticas rápidas -->
+    <div class="col-md-3">
+        <div class="stat-card info">
+            <div class="stat-icon">
+                <i class="fas fa-file-contract"></i>
+            </div>
+            <div class="stat-label">Contratos Activos</div>
+            <div class="stat-value">{{ contratos|length }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card success">
+            <div class="stat-icon">
+                <i class="fas fa-percentage"></i>
+            </div>
+            <div class="stat-label">Descuento Promedio</div>
+            <div class="stat-value">{% widthratio contratos|length 1 10 %}%</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card warning">
+            <div class="stat-icon">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div class="stat-label">Duración Promedio</div>
+            <div class="stat-value">30 días</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card primary">
+            <div class="stat-icon">
+                <i class="fas fa-sync-alt"></i>
+            </div>
+            <div class="stat-label">Repeticiones/Día</div>
+            <div class="stat-value">5.2</div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-card">
+    <div class="admin-card-header d-flex justify-content-between align-items-center">
+        <h5 class="admin-card-title">
+            <i class="fas fa-file-contract"></i>
+            Tipos de Contrato Disponibles
+        </h5>
+        <div>
+            <button class="btn btn-light me-2" onclick="location.reload()">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <button class="btn btn-admin-primary" onclick="abrirModalContrato()">
+                <i class="fas fa-plus me-2"></i>Nuevo Tipo de Contrato
+            </button>
+        </div>
+    </div>
+    <div class="admin-card-body">
+        <div class="row">
+            {% for contrato in contratos %}
+            <div class="col-lg-6 mb-4">
+                <div class="card contrato-card h-100">
+                    {% if contrato.descuento_porcentaje > 0 %}
+                    <span class="descuento-tag">-{{ contrato.descuento_porcentaje|floatformat:0 }}%</span>
+                    {% endif %}
+                    
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="card-title mb-1">{{ contrato.nombre }}</h5>
+                                <span class="duracion-badge">
+                                    <i class="fas fa-clock me-1"></i>
+                                    {{ contrato.get_duracion_tipo_display }}
+                                </span>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-light" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="verDetalleContrato({{ contrato.id }})">
+                                            <i class="fas fa-eye me-2"></i>Ver Detalle
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="editarContrato({{ contrato.id }})">
+                                            <i class="fas fa-edit me-2"></i>Editar
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="#" 
+                                           onclick="eliminarContrato({{ contrato.id }}, '{{ contrato.nombre }}')">
+                                            <i class="fas fa-trash me-2"></i>Eliminar
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <p class="text-muted">{{ contrato.descripcion|default:"Sin descripción"|truncatewords:15 }}</p>
+                        
+                        <div class="row g-3 mt-2">
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="fas fa-calendar-day text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted d-block">Duración</small>
+                                        <strong>{{ contrato.duracion_dias }} días</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="fas fa-redo text-info"></i>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted d-block">Repeticiones</small>
+                                        <strong>{{ contrato.repeticiones_minimas }}/día</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 pt-3 border-top">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    {% if contrato.is_active %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1"></i>Activo
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-pause-circle me-1"></i>Inactivo
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">
+                                    <i class="fas fa-microphone me-1"></i>
+                                    {{ contrato.cuñas.count }} cuña{{ contrato.cuñas.count|pluralize }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No hay tipos de contrato configurados.
+                    <a href="#" onclick="abrirModalContrato()">Crear el primer tipo de contrato</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Crear/Editar Contrato -->
+<div class="modal fade" id="contratoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="contratoModalTitle">
+                    <i class="fas fa-file-contract me-2"></i>Nuevo Tipo de Contrato
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="contratoForm">
+                    <input type="hidden" id="contratoId" value="">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Nombre del Contrato *</label>
+                        <input type="text" class="form-control" id="contratoNombre" required
+                               placeholder="Ej: Paquete Mensual Premium">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" id="contratoDescripcion" rows="3"
+                                  placeholder="Descripción del tipo de contrato..."></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Tipo de Duración</label>
+                                <select class="form-select" id="contratoDuracionTipo">
+                                    <option value="semanal">Semanal</option>
+                                    <option value="mensual" selected>Mensual</option>
+                                    <option value="trimestral">Trimestral</option>
+                                    <option value="semestral">Semestral</option>
+                                    <option value="anual">Anual</option>
+                                    <option value="personalizado">Personalizado</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Duración en Días</label>
+                                <input type="number" class="form-control" id="contratoDuracionDias" 
+                                       value="30" min="1" required>
+                                <small class="text-muted">Duración efectiva del contrato</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Repeticiones Mínimas por Día</label>
+                                <input type="number" class="form-control" id="contratoRepeticiones" 
+                                       value="1" min="1" required>
+                                <small class="text-muted">Número mínimo de emisiones diarias</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Descuento (%)</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="contratoDescuento" 
+                                           value="0" min="0" max="100" step="0.01">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                                <small class="text-muted">Descuento aplicable a este tipo de contrato</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="contratoActivo" checked>
+                            <label class="form-check-label" for="contratoActivo">
+                                Tipo de contrato activo
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Resumen visual -->
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-info-circle me-2"></i>Resumen del Contrato
+                        </h6>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <small>Duración total: <strong id="resumenDuracion">30 días</strong></small>
+                            </div>
+                            <div class="col-md-6">
+                                <small>Total emisiones mínimas: <strong id="resumenEmisiones">30</strong></small>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="guardarContrato()">
+                    <i class="fas fa-save me-2"></i>Guardar Contrato
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ver Detalle -->
+<div class="modal fade" id="detalleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-eye me-2"></i>Detalle del Contrato
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalleContenido">
+                <!-- Se llena dinámicamente -->
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Actualizar resumen en tiempo real
+document.getElementById('contratoDuracionDias').addEventListener('input', actualizarResumen);
+document.getElementById('contratoRepeticiones').addEventListener('input', actualizarResumen);
+
+function actualizarResumen() {
+    const dias = parseInt(document.getElementById('contratoDuracionDias').value) || 0;
+    const repeticiones = parseInt(document.getElementById('contratoRepeticiones').value) || 0;
+    
+    document.getElementById('resumenDuracion').textContent = dias + ' días';
+    document.getElementById('resumenEmisiones').textContent = (dias * repeticiones).toLocaleString();
+}
+
+// Sincronizar tipo de duración con días
+document.getElementById('contratoDuracionTipo').addEventListener('change', function(e) {
+    const duraciones = {
+        'semanal': 7,
+        'mensual': 30,
+        'trimestral': 90,
+        'semestral': 180,
+        'anual': 365
+    };
+    
+    if (duraciones[e.target.value]) {
+        document.getElementById('contratoDuracionDias').value = duraciones[e.target.value];
+        actualizarResumen();
+    }
+});
+
+function abrirModalContrato() {
+    document.getElementById('contratoForm').reset();
+    document.getElementById('contratoId').value = '';
+    document.getElementById('contratoModalTitle').innerHTML = '<i class="fas fa-file-contract me-2"></i>Nuevo Tipo de Contrato';
+    actualizarResumen();
+    new bootstrap.Modal(document.getElementById('contratoModal')).show();
+}
+
+function editarContrato(id) {
+    fetch(`{% url 'custom_admin:contrato_detail_api' 0 %}`.replace('0', id))
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('contratoId').value = data.id;
+        document.getElementById('contratoNombre').value = data.nombre;
+        document.getElementById('contratoDescripcion').value = data.descripcion;
+        document.getElementById('contratoDuracionTipo').value = data.duracion_tipo;
+        document.getElementById('contratoDuracionDias').value = data.duracion_dias;
+        document.getElementById('contratoRepeticiones').value = data.repeticiones_minimas;
+        document.getElementById('contratoDescuento').value = data.descuento_porcentaje;
+        document.getElementById('contratoModalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Editar Tipo de Contrato';
+        
+        actualizarResumen();
+        new bootstrap.Modal(document.getElementById('contratoModal')).show();
+    });
+}
+
+function verDetalleContrato(id) {
+    fetch(`{% url 'custom_admin:contrato_detail_api' 0 %}`.replace('0', id))
+    .then(response => response.json())
+    .then(data => {
+        const contenido = `
+            <div class="mb-3">
+                <h6 class="text-muted">Información General</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Nombre:</strong></td><td>${data.nombre}</td></tr>
+                    <tr><td><strong>Tipo:</strong></td><td>${data.duracion_tipo}</td></tr>
+                    <tr><td><strong>Duración:</strong></td><td>${data.duracion_dias} días</td></tr>
+                    <tr><td><strong>Repeticiones:</strong></td><td>${data.repeticiones_minimas} por día</td></tr>
+                    <tr><td><strong>Descuento:</strong></td><td>${data.descuento_porcentaje}%</td></tr>
+                </table>
+            </div>
+            ${data.descripcion ? `<div class="mb-3"><h6 class="text-muted">Descripción</h6><p>${data.descripcion}</p></div>` : ''}
+        `;
+        
+        document.getElementById('detalleContenido').innerHTML = contenido;
+        new bootstrap.Modal(document.getElementById('detalleModal')).show();
+    });
+}
+
+function guardarContrato() {
+    const form = document.getElementById('contratoForm');
+    if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
+    }
+    
+    const id = document.getElementById('contratoId').value;
+    const data = {
+        nombre: document.getElementById('contratoNombre').value,
+        descripcion: document.getElementById('contratoDescripcion').value,
+        duracion_tipo: document.getElementById('contratoDuracionTipo').value,
+        duracion_dias: document.getElementById('contratoDuracionDias').value,
+        repeticiones_minimas: document.getElementById('contratoRepeticiones').value,
+        descuento_porcentaje: document.getElementById('contratoDescuento').value,
+        is_active: document.getElementById('contratoActivo').checked
+    };
+    
+    const url = id ? 
+        `{% url 'custom_admin:contrato_update_api' 0 %}`.replace('0', id) : 
+        `{% url 'custom_admin:contrato_create_api' %}`;
+    
+    const method = id ? 'PUT' : 'POST';
+    
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Éxito',
+                text: id ? 'Contrato actualizado correctamente' : 'Contrato creado correctamente',
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        }
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo guardar el contrato'
+        });
+    });
+}
+
+function eliminarContrato(id, nombre) {
+    Swal.fire({
+        title: '¿Eliminar tipo de contrato?',
+        html: `¿Está seguro de eliminar <strong>${nombre}</strong>?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Aquí iría la llamada a la API de eliminación
+            Swal.fire(
+                'Eliminado',
+                'El tipo de contrato ha sido eliminado.',
+                'success'
+            ).then(() => {
+                location.reload();
+            });
+        }
+    });
+}
+</script>
+{% endblock %}

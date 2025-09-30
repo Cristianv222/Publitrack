@@ -1,0 +1,990 @@
+{% extends 'custom_admin/base_admin.html' %}
+
+{% block title %}Usuarios - PublicTrack Admin{% endblock %}
+
+{% block header_title %}Gestión de Usuarios{% endblock %}
+
+{% block extra_css %}
+<style>
+    .usuario-card {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+    }
+    .usuario-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    .usuario-card.admin {
+        border-left-color: var(--warning-color);
+        background: linear-gradient(to right, rgba(245, 158, 11, 0.05) 0%, transparent 100%);
+    }
+    .usuario-card.vendedor {
+        border-left-color: var(--info-color);
+        background: linear-gradient(to right, rgba(6, 182, 212, 0.05) 0%, transparent 100%);
+    }
+    .usuario-card.cliente {
+        border-left-color: var(--success-color);
+        background: linear-gradient(to right, rgba(16, 185, 129, 0.05) 0%, transparent 100%);
+    }
+    .usuario-card.usuario {
+        border-left-color: var(--accent-color);
+    }
+    .rol-badge {
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Badge para Super Admin */
+    .card-body .rol-badge:has(.fa-crown) {
+        background: linear-gradient(135deg, #f59e0b, #ef4444);
+        color: white;
+    }
+
+    /* Badge para Administrador */
+    .card-body .rol-badge:has(.fa-user-shield) {
+        background: linear-gradient(135deg, #f59e0b, #f97316);
+        color: white;
+    }
+
+    /* Badge para Vendedor */
+    .card-body .rol-badge:has(.fa-user-tie) {
+        background: linear-gradient(135deg, #06b6d4, #0891b2);
+        color: white;
+    }
+
+    /* Badge para Cliente */
+    .card-body .rol-badge:has(.fa-user:not(.fa-user-slash)) {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+    }
+
+    /* Badge para Sin Rol */
+    .card-body .rol-badge:has(.fa-user-slash) {
+        background: #94a3b8;
+        color: white;
+    }
+    .avatar-circle {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-light) 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 1.8rem;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    }
+    .status-indicator {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .status-indicator.active {
+        background: var(--success-color);
+        animation: pulse 2s infinite;
+    }
+    .status-indicator.inactive {
+        background: var(--danger-color);
+    }
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+        }
+    }
+    .password-strength {
+        height: 4px;
+        border-radius: 2px;
+        margin-top: 5px;
+        transition: all 0.3s ease;
+    }
+    .strength-weak { background: var(--danger-color); width: 33%; }
+    .strength-medium { background: var(--warning-color); width: 66%; }
+    .strength-strong { background: var(--success-color); width: 100%; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <!-- Estadísticas rápidas -->
+    <div class="col-md-3">
+        <div class="stat-card info">
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-label">Total Usuarios</div>
+            <div class="stat-value">{{ total_usuarios }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card success">
+            <div class="stat-icon">
+                <i class="fas fa-user-check"></i>
+            </div>
+            <div class="stat-label">Activos</div>
+            <div class="stat-value">{{ usuarios_activos }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card warning">
+            <div class="stat-icon">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <div class="stat-label">Administradores</div>
+            <div class="stat-value">{{ administradores }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card primary">
+            <div class="stat-icon">
+                <i class="fas fa-user-tie"></i>
+            </div>
+            <div class="stat-label">Vendedores</div>
+            <div class="stat-value">{{ vendedores }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-card">
+    <div class="admin-card-header d-flex justify-content-between align-items-center">
+        <h5 class="admin-card-title">
+            <i class="fas fa-users"></i>
+            Usuarios del Sistema
+        </h5>
+        <div>
+            <button class="btn btn-light me-2" onclick="location.reload()">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <button class="btn btn-admin-primary" data-bs-toggle="modal" data-bs-target="#usuarioModal">
+                <i class="fas fa-plus me-2"></i>Nuevo Usuario
+            </button>
+        </div>
+    </div>
+    
+    <!-- Barra de búsqueda -->
+    <div class="admin-card-body border-bottom">
+        <div class="row">
+            <div class="col-md-6">
+                <input type="text" class="form-control" id="searchUsuario" 
+                       placeholder="Buscar por nombre, usuario o email..." 
+                       value="{{ query }}">
+            </div>
+            <div class="col-md-6 text-end">
+                <span class="badge bg-info">Total: <span id="totalUsuarios">{{ usuarios.paginator.count }}</span> usuarios</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="admin-card-body">
+        <div class="row" id="usuariosGrid">
+            {% for usuario in usuarios %}
+            <div class="col-lg-6 mb-4 usuario-item" 
+                 data-nombre="{{ usuario.get_full_name|lower }} {{ usuario.username|lower }} {{ usuario.email|lower }}">
+                <div class="card usuario-card h-100 {{ usuario.color_clase }}">
+                    <div class="status-indicator {% if usuario.is_active %}active{% else %}inactive{% endif %}"></div>
+                    
+                    <div class="card-body">
+                        <div class="d-flex align-items-start mb-3">
+                            <div class="avatar-circle me-3">
+                                {{ usuario.get_full_name|first|default:usuario.username|first|upper }}
+                            </div>
+                            <div class="flex-grow-1">
+                                <h5 class="card-title mb-1">
+                                    {{ usuario.get_full_name|default:usuario.username }}
+                                </h5>
+                                <p class="text-muted mb-1">
+                                    <i class="fas fa-envelope me-1"></i>{{ usuario.email|default:"Sin email" }}
+                                </p>
+<span class="rol-badge">
+    {% if usuario.tipo_usuario == 'superadmin' %}
+        <i class="fas fa-crown me-1"></i>Super Admin
+    {% elif usuario.tipo_usuario == 'admin' %}
+        <i class="fas fa-user-shield me-1"></i>Administrador
+    {% elif usuario.tipo_usuario == 'vendedor' %}
+        <i class="fas fa-user-tie me-1"></i>Vendedor
+    {% elif usuario.tipo_usuario == 'cliente' %}
+        <i class="fas fa-user me-1"></i>Cliente
+    {% else %}
+        <i class="fas fa-user-slash me-1"></i>Sin Rol
+    {% endif %}
+</span>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-light" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="#" 
+                                           onclick="verDetalleUsuario({{ usuario.id }})">
+                                            <i class="fas fa-eye me-2"></i>Ver Detalle
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" 
+                                           onclick="editarUsuario({{ usuario.id }}, '{{ usuario.username|escapejs }}', '{{ usuario.email|escapejs }}', '{{ usuario.first_name|escapejs }}', '{{ usuario.last_name|escapejs }}', {{ usuario.is_active|lower }}, {{ usuario.is_staff|lower }}, {{ usuario.is_superuser|lower }}, {% if usuario.groups.exists %}{{ usuario.groups.first.id }}{% else %}null{% endif %})">
+                                            <i class="fas fa-edit me-2"></i>Editar
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" 
+                                           onclick="cambiarPassword({{ usuario.id }}, '{{ usuario.username|escapejs }}')">
+                                            <i class="fas fa-key me-2"></i>Cambiar Contraseña
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="#" 
+                                           onclick="eliminarUsuario({{ usuario.id }}, '{{ usuario.get_full_name|default:usuario.username|escapejs }}')">
+                                            <i class="fas fa-trash me-2"></i>Eliminar
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="row g-3 mt-2">
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="fas fa-calendar-alt text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted d-block">Creado</small>
+                                        <strong>{{ usuario.date_joined|date:"d/m/Y" }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="fas fa-clock text-info"></i>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted d-block">Último acceso</small>
+                                        <strong>
+                                            {% if usuario.last_login %}
+                                                {{ usuario.last_login|timesince }} atrás
+                                            {% else %}
+                                                Nunca
+                                            {% endif %}
+                                        </strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 pt-3 border-top">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    {% if usuario.is_active %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1"></i>Activo
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times-circle me-1"></i>Inactivo
+                                        </span>
+                                    {% endif %}
+                                    {% if usuario.is_staff %}
+                                        <span class="badge bg-info ms-1">
+                                            <i class="fas fa-shield-alt me-1"></i>Staff
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No hay usuarios registrados.
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#usuarioModal">Crear el primer usuario</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Paginación -->
+        {% if usuarios.has_other_pages %}
+        <nav aria-label="Paginación de usuarios">
+            <ul class="pagination justify-content-center">
+                {% if usuarios.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if query %}&q={{ query }}{% endif %}">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ usuarios.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">
+                        Página {{ usuarios.number }} de {{ usuarios.paginator.num_pages }}
+                    </span>
+                </li>
+                
+                {% if usuarios.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ usuarios.next_page_number }}{% if query %}&q={{ query }}{% endif %}">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ usuarios.paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal para Crear/Editar Usuario -->
+<div class="modal fade" id="usuarioModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="usuarioModalTitle">
+                    <i class="fas fa-user-plus me-2"></i>Nuevo Usuario
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="usuarioForm">
+                    <input type="hidden" id="usuarioId" value="">
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre de Usuario *</label>
+                                <input type="text" class="form-control" id="username" required>
+                                <div class="invalid-feedback">El nombre de usuario es obligatorio</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Email *</label>
+                                <input type="email" class="form-control" id="email" required>
+                                <div class="invalid-feedback">El email es obligatorio y debe ser válido</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre</label>
+                                <input type="text" class="form-control" id="first_name">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Apellido</label>
+                                <input type="text" class="form-control" id="last_name">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row" id="passwordFields">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Contraseña *</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="password" 
+                                           oninput="checkPasswordStrength()" required>
+                                    <button class="btn btn-outline-secondary" type="button" 
+                                            onclick="togglePassword('password')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="password-strength" id="passwordStrength"></div>
+                                <small class="text-muted">Mínimo 8 caracteres</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Confirmar Contraseña *</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="password_confirm" required>
+                                    <button class="btn btn-outline-secondary" type="button" 
+                                            onclick="togglePassword('password_confirm')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="invalid-feedback">Las contraseñas deben coincidir</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Rol</label>
+                                <select class="form-select" id="rol">
+                                    <option value="">Sin rol específico</option>
+                                    {% for grupo in grupos %}
+                                    <option value="{{ grupo.id }}">{{ grupo.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Permisos</label>
+                                <div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="is_active" checked>
+                                        <label class="form-check-label" for="is_active">
+                                            Usuario Activo
+                                        </label>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="is_staff">
+                                        <label class="form-check-label" for="is_staff">
+                                            Acceso al Panel Admin
+                                        </label>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="is_superuser">
+                                        <label class="form-check-label" for="is_superuser">
+                                            Super Usuario
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Vista previa -->
+                    <div class="alert alert-light border">
+                        <h6 class="alert-heading">Vista Previa</h6>
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-circle me-3" style="width: 40px; height: 40px; font-size: 1.2rem;">
+                                <span id="previewAvatar">N</span>
+                            </div>
+                            <div>
+                                <strong id="previewNombre">Nuevo Usuario</strong>
+                                <span class="badge bg-info ms-2" id="previewRol">Usuario</span>
+                                <br>
+                                <small class="text-muted" id="previewEmail">email@ejemplo.com</small>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="guardarUsuario()">
+                    <i class="fas fa-save me-2"></i>Guardar Usuario
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ver Detalle -->
+<div class="modal fade" id="detalleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-eye me-2"></i>Detalle del Usuario
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalleContenido">
+                <!-- Se llena dinámicamente -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Cambiar Contraseña -->
+<div class="modal fade" id="passwordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-key me-2"></i>Cambiar Contraseña
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="passwordForm">
+                    <input type="hidden" id="passwordUserId">
+                    <div class="mb-3">
+                        <label class="form-label">Nueva Contraseña</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="newPassword" required>
+                            <button class="btn btn-outline-secondary" type="button" 
+                                    onclick="togglePassword('newPassword')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">Mínimo 8 caracteres</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirmar Contraseña</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="confirmNewPassword" required>
+                            <button class="btn btn-outline-secondary" type="button" 
+                                    onclick="togglePassword('confirmNewPassword')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-warning" onclick="actualizarPassword()">
+                    <i class="fas fa-save me-2"></i>Actualizar Contraseña
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Búsqueda en tiempo real
+document.getElementById('searchUsuario').addEventListener('keyup', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const items = document.querySelectorAll('.usuario-item');
+    let visibleCount = 0;
+    
+    items.forEach(item => {
+        const nombre = item.dataset.nombre;
+        if (nombre.includes(searchTerm)) {
+            item.style.display = '';
+            visibleCount++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    
+    document.getElementById('totalUsuarios').textContent = visibleCount;
+});
+
+// Vista previa en tiempo real
+document.getElementById('username').addEventListener('input', function(e) {
+    const fullName = document.getElementById('first_name').value + ' ' + document.getElementById('last_name').value;
+    const displayName = fullName.trim() || e.target.value || 'Nuevo Usuario';
+    document.getElementById('previewNombre').textContent = displayName;
+    document.getElementById('previewAvatar').textContent = displayName.charAt(0).toUpperCase();
+});
+
+document.getElementById('first_name').addEventListener('input', function(e) {
+    const fullName = e.target.value + ' ' + document.getElementById('last_name').value;
+    const displayName = fullName.trim() || document.getElementById('username').value || 'Nuevo Usuario';
+    document.getElementById('previewNombre').textContent = displayName;
+    document.getElementById('previewAvatar').textContent = displayName.charAt(0).toUpperCase();
+});
+
+document.getElementById('last_name').addEventListener('input', function(e) {
+    const fullName = document.getElementById('first_name').value + ' ' + e.target.value;
+    const displayName = fullName.trim() || document.getElementById('username').value || 'Nuevo Usuario';
+    document.getElementById('previewNombre').textContent = displayName;
+    document.getElementById('previewAvatar').textContent = displayName.charAt(0).toUpperCase();
+});
+
+document.getElementById('email').addEventListener('input', function(e) {
+    document.getElementById('previewEmail').textContent = e.target.value || 'email@ejemplo.com';
+});
+
+document.getElementById('is_superuser').addEventListener('change', function(e) {
+    if (e.target.checked) {
+        document.getElementById('previewRol').textContent = 'Super Admin';
+        document.getElementById('previewRol').className = 'badge bg-danger ms-2';
+    } else if (document.getElementById('is_staff').checked) {
+        document.getElementById('previewRol').textContent = 'Administrador';
+        document.getElementById('previewRol').className = 'badge bg-warning ms-2';
+    } else {
+        document.getElementById('previewRol').textContent = 'Usuario';
+        document.getElementById('previewRol').className = 'badge bg-info ms-2';
+    }
+});
+
+document.getElementById('is_staff').addEventListener('change', function(e) {
+    if (!document.getElementById('is_superuser').checked) {
+        if (e.target.checked) {
+            document.getElementById('previewRol').textContent = 'Administrador';
+            document.getElementById('previewRol').className = 'badge bg-warning ms-2';
+        } else {
+            document.getElementById('previewRol').textContent = 'Usuario';
+            document.getElementById('previewRol').className = 'badge bg-info ms-2';
+        }
+    }
+});
+
+function checkPasswordStrength() {
+    const password = document.getElementById('password').value;
+    const strength = document.getElementById('passwordStrength');
+    
+    if (password.length < 6) {
+        strength.className = 'password-strength strength-weak';
+    } else if (password.length < 10) {
+        strength.className = 'password-strength strength-medium';
+    } else {
+        strength.className = 'password-strength strength-strong';
+    }
+}
+
+function togglePassword(fieldId) {
+    const field = document.getElementById(fieldId);
+    const type = field.type === 'password' ? 'text' : 'password';
+    field.type = type;
+    
+    const icon = event.currentTarget.querySelector('i');
+    icon.className = type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+}
+
+function verDetalleUsuario(id) {
+    fetch(`/panel/usuarios/api/${id}/`)
+    .then(response => response.json())
+    .then(data => {
+        const inicial = data.first_name ? data.first_name.charAt(0).toUpperCase() : data.username.charAt(0).toUpperCase();
+        const rol = data.is_superuser ? 'Super Administrador' : (data.is_staff ? 'Administrador' : 'Usuario');
+        const estado = data.is_active ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-danger">Inactivo</span>';
+        
+        const contenido = `
+            <div class="text-center mb-3">
+                <div class="avatar-circle mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2.5rem;">
+                    ${inicial}
+                </div>
+            </div>
+            <div class="mb-3">
+                <h6 class="text-muted">Información Personal</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Usuario:</strong></td><td>${data.username}</td></tr>
+                    <tr><td><strong>Email:</strong></td><td>${data.email || 'Sin email'}</td></tr>
+                    <tr><td><strong>Nombre completo:</strong></td><td>${data.first_name} ${data.last_name}</td></tr>
+                </table>
+            </div>
+            <div class="mb-3">
+                <h6 class="text-muted">Información del Sistema</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Estado:</strong></td><td>${estado}</td></tr>
+                    <tr><td><strong>Rol:</strong></td><td>${rol}</td></tr>
+                    <tr><td><strong>Fecha de registro:</strong></td><td>${data.date_joined}</td></tr>
+                    <tr><td><strong>Último acceso:</strong></td><td>${data.last_login || 'Nunca'}</td></tr>
+                </table>
+            </div>
+        `;
+        
+        document.getElementById('detalleContenido').innerHTML = contenido;
+        new bootstrap.Modal(document.getElementById('detalleModal')).show();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+function editarUsuario(id, username, email, firstName, lastName, isActive, isStaff, isSuperuser, groupId) {
+    document.getElementById('usuarioModalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Editar Usuario';
+    document.getElementById('usuarioId').value = id;
+    document.getElementById('username').value = username;
+    document.getElementById('email').value = email || '';
+    document.getElementById('first_name').value = firstName || '';
+    document.getElementById('last_name').value = lastName || '';
+    document.getElementById('is_active').checked = isActive;
+    document.getElementById('is_staff').checked = isStaff;
+    document.getElementById('is_superuser').checked = isSuperuser;
+    
+    if (groupId) {
+        document.getElementById('rol').value = groupId;
+    } else {
+        document.getElementById('rol').value = '';
+    }
+    
+    // Ocultar campos de contraseña al editar
+    document.getElementById('passwordFields').style.display = 'none';
+    document.getElementById('password').removeAttribute('required');
+    document.getElementById('password_confirm').removeAttribute('required');
+    
+    // Actualizar vista previa
+    const fullName = (firstName || '') + ' ' + (lastName || '');
+    const displayName = fullName.trim() || username;
+    document.getElementById('previewNombre').textContent = displayName;
+    document.getElementById('previewAvatar').textContent = displayName.charAt(0).toUpperCase();
+    document.getElementById('previewEmail').textContent = email || 'Sin email';
+    
+    // Actualizar rol en vista previa
+    if (isSuperuser) {
+        document.getElementById('previewRol').textContent = 'Super Admin';
+        document.getElementById('previewRol').className = 'badge bg-danger ms-2';
+    } else if (isStaff) {
+        document.getElementById('previewRol').textContent = 'Administrador';
+        document.getElementById('previewRol').className = 'badge bg-warning ms-2';
+    } else {
+        document.getElementById('previewRol').textContent = 'Usuario';
+        document.getElementById('previewRol').className = 'badge bg-info ms-2';
+    }
+    
+    new bootstrap.Modal(document.getElementById('usuarioModal')).show();
+}
+
+function cambiarPassword(id, username) {
+    document.getElementById('passwordUserId').value = id;
+    document.getElementById('newPassword').value = '';
+    document.getElementById('confirmNewPassword').value = '';
+    
+    const modalTitle = document.querySelector('#passwordModal .modal-title');
+    modalTitle.innerHTML = `<i class="fas fa-key me-2"></i>Cambiar Contraseña - ${username}`;
+    
+    new bootstrap.Modal(document.getElementById('passwordModal')).show();
+}
+
+function actualizarPassword() {
+    const newPass = document.getElementById('newPassword').value;
+    const confirmPass = document.getElementById('confirmNewPassword').value;
+    const userId = document.getElementById('passwordUserId').value;
+    
+    if (!newPass || !confirmPass) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Por favor complete ambos campos'
+        });
+        return;
+    }
+    
+    if (newPass !== confirmPass) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Las contraseñas no coinciden'
+        });
+        return;
+    }
+    
+    if (newPass.length < 8) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'La contraseña debe tener al menos 8 caracteres'
+        });
+        return;
+    }
+    
+    fetch(`/panel/usuarios/api/${userId}/cambiar-password/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            password: newPass
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Éxito',
+                text: 'Contraseña actualizada correctamente',
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                bootstrap.Modal.getInstance(document.getElementById('passwordModal')).hide();
+                document.getElementById('passwordForm').reset();
+            });
+        } else {
+            throw new Error(data.error || 'Error desconocido');
+        }
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo actualizar la contraseña: ' + error.message
+        });
+    });
+}
+
+function guardarUsuario() {
+    const form = document.getElementById('usuarioForm');
+    if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
+    }
+    
+    const id = document.getElementById('usuarioId').value;
+    
+    // Solo verificar contraseñas si es nuevo usuario
+    if (!id) {
+        const password = document.getElementById('password').value;
+        const passwordConfirm = document.getElementById('password_confirm').value;
+        
+        if (password !== passwordConfirm) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Las contraseñas no coinciden'
+            });
+            return;
+        }
+        
+        if (password.length < 8) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'La contraseña debe tener al menos 8 caracteres'
+            });
+            return;
+        }
+    }
+    
+    const data = {
+        username: document.getElementById('username').value,
+        email: document.getElementById('email').value,
+        first_name: document.getElementById('first_name').value,
+        last_name: document.getElementById('last_name').value,
+        is_active: document.getElementById('is_active').checked,
+        is_staff: document.getElementById('is_staff').checked,
+        is_superuser: document.getElementById('is_superuser').checked,
+        group_id: document.getElementById('rol').value || null
+    };
+    
+    if (!id) {
+        data.password = document.getElementById('password').value;
+    }
+    
+    const url = id ? 
+        `/panel/usuarios/api/${id}/actualizar/` : 
+        `/panel/usuarios/api/crear/`;
+    
+    const method = id ? 'PUT' : 'POST';
+    
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Éxito',
+                text: id ? 'Usuario actualizado correctamente' : 'Usuario creado correctamente',
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            throw new Error(data.error || 'Error desconocido');
+        }
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo guardar el usuario: ' + error.message
+        });
+    });
+}
+
+function eliminarUsuario(id, nombre) {
+    Swal.fire({
+        title: '¿Eliminar usuario?',
+        html: `¿Está seguro de eliminar a <strong>${nombre}</strong>?<br>
+               <small class="text-muted">Esta acción no se puede deshacer</small>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/panel/usuarios/api/${id}/eliminar/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Eliminado',
+                        text: 'El usuario ha sido eliminado',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    throw new Error(data.error || 'Error al eliminar');
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudo eliminar el usuario: ' + error.message
+                });
+            });
+        }
+    });
+}
+
+// Limpiar modal al cerrarlo
+document.getElementById('usuarioModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('usuarioForm').classList.remove('was-validated');
+    document.getElementById('usuarioForm').reset();
+    document.getElementById('usuarioId').value = '';
+    document.getElementById('usuarioModalTitle').innerHTML = '<i class="fas fa-user-plus me-2"></i>Nuevo Usuario';
+    document.getElementById('passwordFields').style.display = 'flex';
+    document.getElementById('password').setAttribute('required', 'required');
+    document.getElementById('password_confirm').setAttribute('required', 'required');
+    document.getElementById('previewNombre').textContent = 'Nuevo Usuario';
+    document.getElementById('previewAvatar').textContent = 'N';
+    document.getElementById('previewEmail').textContent = 'email@ejemplo.com';
+    document.getElementById('previewRol').textContent = 'Usuario';
+    document.getElementById('previewRol').className = 'badge bg-info ms-2';
+    document.getElementById('passwordStrength').className = 'password-strength';
+});
+</script>
+{% endblock %}
