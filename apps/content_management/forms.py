@@ -1,6 +1,6 @@
 """
 Formularios para el módulo de Gestión de Contenido Publicitario
-Sistema PubliTrack - Formularios para cuñas publicitarias y archivos de audio
+Sistema PubliTrack - Formularios para cuñas publicitarias, archivos de audio y CONTRATOS
 """
 
 from django import forms
@@ -8,17 +8,19 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from decimal import Decimal
 from datetime import date, timedelta
-from django import forms
-from django.core.exceptions import ValidationError
 from apps.authentication.models import CustomUser
 from .models import (
     CategoriaPublicitaria, 
     TipoContrato, 
     ArchivoAudio, 
-    CuñaPublicitaria
+    CuñaPublicitaria,
+    PlantillaContrato,
+    ContratoGenerado
 )
 
 User = get_user_model()
+
+# ==================== FORMULARIOS DE CATEGORÍAS ====================
 
 class CategoriaPublicitariaForm(forms.ModelForm):
     """Formulario para categorías publicitarias"""
@@ -71,6 +73,9 @@ class CategoriaPublicitariaForm(forms.ModelForm):
         if len(color) != 7:
             raise ValidationError('El código de color debe tener formato hexadecimal (#RRGGBB).')
         return color
+
+
+# ==================== FORMULARIOS DE TIPOS DE CONTRATO ====================
 
 class TipoContratoForm(forms.ModelForm):
     """Formulario para tipos de contrato"""
@@ -127,6 +132,9 @@ class TipoContratoForm(forms.ModelForm):
             raise ValidationError('El descuento debe estar entre 0% y 100%.')
         return descuento
 
+
+# ==================== FORMULARIOS DE ARCHIVOS DE AUDIO ====================
+
 class ArchivoAudioForm(forms.ModelForm):
     """Formulario para subir archivos de audio"""
     
@@ -160,6 +168,9 @@ class ArchivoAudioForm(forms.ModelForm):
         
         return archivo
 
+
+# ==================== FORMULARIOS DE CUÑAS PUBLICITARIAS ====================
+
 class CuñaPublicitariaForm(forms.ModelForm):
     """Formulario para cuñas publicitarias"""
     
@@ -167,25 +178,25 @@ class CuñaPublicitariaForm(forms.ModelForm):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
-        # Configurar queryset de clientes
+        # Configurar queryset de clientes según rol
         if self.user:
-            if self.user.groups.filter(name='Vendedores').exists():
-                # Vendedores solo ven clientes asignados a ellos
-                self.fields['cliente'].queryset = User.objects.filter(
-                    groups__name='Clientes',
-                    perfil_vendedor__vendedor=self.user
-                )
-            elif self.user.groups.filter(name='Clientes').exists():
+            if self.user.rol == 'vendedor':
+                # Vendedores ven todos los clientes
+                self.fields['cliente'].queryset = CustomUser.objects.filter(rol='cliente', status='activo')
+            elif self.user.rol == 'cliente':
                 # Clientes solo se ven a sí mismos
-                self.fields['cliente'].queryset = User.objects.filter(id=self.user.id)
+                self.fields['cliente'].queryset = CustomUser.objects.filter(id=self.user.id)
                 self.fields['cliente'].initial = self.user
                 self.fields['cliente'].widget = forms.HiddenInput()
             else:
-                # Admins y supervisores ven todos los clientes
-                self.fields['cliente'].queryset = User.objects.filter(groups__name='Clientes')
+                # Admins ven todos los clientes
+                self.fields['cliente'].queryset = CustomUser.objects.filter(rol='cliente')
         
         # Configurar queryset de vendedores
-        self.fields['vendedor_asignado'].queryset = User.objects.filter(groups__name='Vendedores')
+        self.fields['vendedor_asignado'].queryset = CustomUser.objects.filter(
+            rol='vendedor',
+            status='activo'
+        )
         
         # Configurar queryset de categorías activas
         self.fields['categoria'].queryset = CategoriaPublicitaria.objects.filter(is_active=True)
@@ -194,7 +205,7 @@ class CuñaPublicitariaForm(forms.ModelForm):
         self.fields['tipo_contrato'].queryset = TipoContrato.objects.filter(is_active=True)
         
         # Configurar queryset de archivos de audio
-        if self.user and self.user.groups.filter(name='Clientes').exists():
+        if self.user and self.user.rol == 'cliente':
             # Clientes solo ven archivos de sus cuñas
             self.fields['archivo_audio'].queryset = ArchivoAudio.objects.filter(
                 cuñas__cliente=self.user
@@ -215,6 +226,8 @@ class CuñaPublicitariaForm(forms.ModelForm):
             'duracion_planeada',
             'precio_total',
             'repeticiones_dia',
+            'excluir_sabados',
+            'excluir_domingos',
             'fecha_inicio',
             'fecha_fin',
             'prioridad',
@@ -264,6 +277,12 @@ class CuñaPublicitariaForm(forms.ModelForm):
                 'class': 'form-control',
                 'min': '1',
                 'value': '1'
+            }),
+            'excluir_sabados': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'excluir_domingos': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
             }),
             'fecha_inicio': forms.DateInput(attrs={
                 'class': 'form-control',
@@ -345,6 +364,7 @@ class CuñaPublicitariaForm(forms.ModelForm):
             return ', '.join(tags_list)
         return tags
 
+
 class CuñaAprobacionForm(forms.Form):
     """Formulario para aprobar cuñas publicitarias"""
     
@@ -365,6 +385,7 @@ class CuñaAprobacionForm(forms.Form):
         }),
         label='Confirmar aprobación'
     )
+
 
 class CuñaFiltroForm(forms.Form):
     """Formulario para filtrar cuñas publicitarias"""
@@ -387,7 +408,7 @@ class CuñaFiltroForm(forms.Form):
     )
     
     vendedor = forms.ModelChoiceField(
-        queryset=User.objects.filter(groups__name='Vendedores'),
+        queryset=CustomUser.objects.filter(rol='vendedor', status='activo'),
         required=False,
         empty_label='Todos los vendedores',
         widget=forms.Select(attrs={
@@ -436,6 +457,262 @@ class CuñaFiltroForm(forms.Form):
         }),
         label='Próximas a vencer (30 días)'
     )
+
+
+# ==================== FORMULARIOS DE PLANTILLAS DE CONTRATO ====================
+
+class PlantillaContratoForm(forms.ModelForm):
+    """Formulario para plantillas de contrato"""
+    
+    class Meta:
+        model = PlantillaContrato
+        fields = [
+            'nombre', 
+            'tipo_contrato', 
+            'descripcion', 
+            'archivo_plantilla',
+            'incluye_iva', 
+            'porcentaje_iva', 
+            'instrucciones',
+            'version', 
+            'is_active', 
+            'is_default'
+        ]
+        widgets = {
+            'nombre': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: Contrato Publicidad TV 2025'
+            }),
+            'tipo_contrato': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'descripcion': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Descripción de cuándo usar esta plantilla'
+            }),
+            'archivo_plantilla': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': '.docx'
+            }),
+            'incluye_iva': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'porcentaje_iva': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'max': '100',
+                'placeholder': '15.00'
+            }),
+            'instrucciones': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Instrucciones sobre cómo usar esta plantilla'
+            }),
+            'version': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '1.0'
+            }),
+            'is_active': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'is_default': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+        }
+        help_texts = {
+            'archivo_plantilla': '''
+                Archivo Word (.docx) con variables en formato {{VARIABLE}}.<br>
+                <strong>Variables disponibles:</strong><br>
+                • {{NOMBRE_CLIENTE}} - Nombre o Razón Social<br>
+                • {{RUC_DNI}} - RUC o Cédula<br>
+                • {{CIUDAD}} - Ciudad del cliente<br>
+                • {{PROVINCIA}} - Provincia del cliente<br>
+                • {{DIRECCION_EXACTA}} - Dirección completa<br>
+                • {{VALOR_LETRAS}} - Valor en letras<br>
+                • {{VALOR_NUMEROS}} - Valor en números<br>
+                • {{TOTAL_LETRAS}} - Total con IVA en letras<br>
+                • {{TOTAL_NUMEROS}} - Total con IVA en números<br>
+                • {{FECHA_INICIO}} - Fecha de inicio<br>
+                • {{FECHA_FIN}} - Fecha de fin<br>
+                • {{DURACION_DIAS}} - Duración en días<br>
+                • {{DURACION_MESES}} - Duración en meses<br>
+                • {{SPOTS_DIA}} - Spots por día<br>
+                • {{NUMERO_CONTRATO}} - Número del contrato
+            ''',
+            'is_default': 'Si se marca, esta será la plantilla predeterminada para este tipo de contrato',
+            'incluye_iva': 'Si se marca, calculará automáticamente el IVA sobre el valor base',
+        }
+        labels = {
+            'nombre': 'Nombre de la Plantilla',
+            'tipo_contrato': 'Tipo de Contrato',
+            'descripcion': 'Descripción',
+            'archivo_plantilla': 'Archivo Word de Plantilla',
+            'incluye_iva': 'Incluir IVA en el cálculo',
+            'porcentaje_iva': 'Porcentaje de IVA (%)',
+            'instrucciones': 'Instrucciones de Uso',
+            'version': 'Versión',
+            'is_active': 'Plantilla Activa',
+            'is_default': 'Plantilla Predeterminada',
+        }
+    
+    def clean_archivo_plantilla(self):
+        archivo = self.cleaned_data.get('archivo_plantilla')
+        if archivo:
+            # Validar que sea .docx
+            if not archivo.name.endswith('.docx'):
+                raise ValidationError('Solo se permiten archivos .docx (Word 2007 o superior)')
+            
+            # Validar tamaño (máximo 10MB)
+            if archivo.size > 10 * 1024 * 1024:
+                raise ValidationError('El archivo no debe superar los 10MB')
+        
+        return archivo
+    
+    def clean_porcentaje_iva(self):
+        porcentaje = self.cleaned_data.get('porcentaje_iva')
+        if porcentaje and (porcentaje < 0 or porcentaje > 100):
+            raise ValidationError('El porcentaje de IVA debe estar entre 0% y 100%')
+        return porcentaje
+
+
+class PlantillaContratoFiltroForm(forms.Form):
+    """Formulario para filtrar plantillas de contrato"""
+    
+    tipo = forms.ChoiceField(
+        choices=[('', 'Todos los tipos')] + PlantillaContrato.TIPO_CONTRATO_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        })
+    )
+    
+    activa = forms.ChoiceField(
+        choices=[('', 'Todas'), ('true', 'Activas'), ('false', 'Inactivas')],
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        })
+    )
+    
+    solo_default = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input'
+        }),
+        label='Solo plantillas predeterminadas'
+    )
+
+
+# ==================== FORMULARIOS DE CONTRATOS GENERADOS ====================
+
+class ContratoGeneradoForm(forms.ModelForm):
+    """Formulario para contratos generados (solo para edición manual)"""
+    
+    class Meta:
+        model = ContratoGenerado
+        fields = [
+            'estado', 
+            'observaciones'
+        ]
+        widgets = {
+            'estado': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'observaciones': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Observaciones sobre el contrato'
+            }),
+        }
+
+
+class ContratoGeneradoFiltroForm(forms.Form):
+    """Formulario para filtrar contratos generados"""
+    
+    estado = forms.ChoiceField(
+        choices=[('', 'Todos los estados')] + ContratoGenerado.ESTADO_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        })
+    )
+    
+    fecha_desde = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        }),
+        label='Generado desde'
+    )
+    
+    fecha_hasta = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        }),
+        label='Generado hasta'
+    )
+    
+    plantilla = forms.ModelChoiceField(
+        queryset=PlantillaContrato.objects.filter(is_active=True),
+        required=False,
+        empty_label='Todas las plantillas',
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        })
+    )
+    
+    cliente_search = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Buscar por cliente o RUC'
+        }),
+        label='Buscar cliente'
+    )
+
+
+class GenerarContratoForm(forms.Form):
+    """Formulario para seleccionar plantilla al generar contrato"""
+    
+    plantilla = forms.ModelChoiceField(
+        queryset=PlantillaContrato.objects.filter(is_active=True),
+        required=True,
+        empty_label='Seleccione una plantilla',
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        label='Plantilla de Contrato'
+    )
+    
+    observaciones_iniciales = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Observaciones iniciales (opcional)'
+        }),
+        label='Observaciones'
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Si hay una plantilla predeterminada, seleccionarla
+        plantilla_default = PlantillaContrato.objects.filter(
+            is_default=True,
+            is_active=True
+        ).first()
+        
+        if plantilla_default:
+            self.fields['plantilla'].initial = plantilla_default
+
+
+# ==================== FORMULARIOS AUXILIARES ====================
 
 class BusquedaAvanzadaForm(forms.Form):
     """Formulario para búsqueda avanzada de cuñas"""
@@ -530,6 +807,7 @@ class BusquedaAvanzadaForm(forms.Form):
         
         return cleaned_data
 
+
 class RangoFechasForm(forms.Form):
     """Formulario para seleccionar rango de fechas en reportes"""
     
@@ -576,6 +854,7 @@ class RangoFechasForm(forms.Form):
         
         return cleaned_data
 
+
 class EstadoCuñaForm(forms.Form):
     """Formulario para cambiar estado de cuña masivamente"""
     
@@ -615,18 +894,18 @@ class EstadoCuñaForm(forms.Form):
             # Filtrar cuñas según el rol del usuario
             queryset = CuñaPublicitaria.objects.all()
             
-            if user.groups.filter(name='Clientes').exists():
+            if user.rol == 'cliente':
                 queryset = queryset.filter(cliente=user)
-            elif user.groups.filter(name='Vendedores').exists():
+            elif user.rol == 'vendedor':
                 queryset = queryset.filter(vendedor_asignado=user)
             
             self.fields['cuñas'].queryset = queryset.filter(
                 estado__in=['aprobada', 'activa', 'pausada']
             )
-"""
-Formularios para el módulo de Gestión de Contenido
-Sistema PubliTrack
-"""
+
+
+# ==================== FORMULARIOS DE CLIENTES ====================
+
 class ClienteForm(forms.ModelForm):
     """
     Formulario para crear/editar clientes SIN contraseña

@@ -1,6 +1,6 @@
 """
 Vistas para el módulo de Gestión de Contenido Publicitario
-Sistema PubliTrack - Gestión de cuñas publicitarias y archivos de audio
+Sistema PubliTrack - Gestión de cuñas publicitarias, archivos de audio y CONTRATOS
 """
 
 import json
@@ -14,7 +14,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
 from django.db.models import Q, Count, Sum, Avg
-from django.http import JsonResponse, HttpResponseForbidden, Http404
+from django.http import JsonResponse, HttpResponseForbidden, Http404, FileResponse, HttpResponse
 from django.urls import reverse_lazy, reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -28,7 +28,9 @@ from .models import (
     TipoContrato, 
     ArchivoAudio, 
     CuñaPublicitaria, 
-    HistorialCuña
+    HistorialCuña,
+    PlantillaContrato,
+    ContratoGenerado
 )
 from .forms import (
     CategoriaPublicitariaForm,
@@ -36,23 +38,26 @@ from .forms import (
     ArchivoAudioForm,
     CuñaPublicitariaForm,
     CuñaAprobacionForm,
-    CuñaFiltroForm
+    CuñaFiltroForm,
+    PlantillaContratoForm,
+    ContratoGeneradoForm
 )
 
 User = get_user_model()
 
-# Funciones auxiliares para tests de usuario
+# ==================== FUNCIONES AUXILIARES ====================
+
 def es_vendedor(user):
     """Verifica si el usuario es vendedor"""
-    return user.groups.filter(name='Vendedores').exists()
+    return user.rol == 'vendedor' if hasattr(user, 'rol') else user.groups.filter(name='Vendedores').exists()
 
 def es_cliente(user):
     """Verifica si el usuario es cliente"""
-    return user.groups.filter(name='Clientes').exists()
+    return user.rol == 'cliente' if hasattr(user, 'rol') else user.groups.filter(name='Clientes').exists()
 
 def es_administrador(user):
     """Verifica si el usuario es administrador"""
-    return user.groups.filter(name='Administradores').exists()
+    return user.rol == 'admin' if hasattr(user, 'rol') else user.groups.filter(name='Administradores').exists()
 
 def es_supervisor(user):
     """Verifica si el usuario es supervisor"""
@@ -60,11 +65,21 @@ def es_supervisor(user):
 
 def puede_gestionar_cuñas(user):
     """Verifica si el usuario puede gestionar cuñas"""
+    if hasattr(user, 'rol'):
+        return user.rol in ['admin', 'vendedor']
     return user.groups.filter(name__in=['Administradores', 'Supervisores', 'Vendedores']).exists()
 
 def puede_aprobar_cuñas(user):
     """Verifica si el usuario puede aprobar cuñas"""
+    if hasattr(user, 'rol'):
+        return user.rol == 'admin'
     return user.groups.filter(name__in=['Administradores', 'Supervisores']).exists()
+
+def puede_gestionar_contratos(user):
+    """Verifica si el usuario puede gestionar contratos"""
+    if hasattr(user, 'rol'):
+        return user.rol in ['admin', 'vendedor']
+    return user.groups.filter(name__in=['Administradores', 'Vendedores']).exists()
 
 # ==================== DASHBOARD ====================
 
@@ -79,6 +94,8 @@ def dashboard_content(request):
             fecha_fin__lte=timezone.now().date() + timedelta(days=7),
             estado='activa'
         ).count(),
+        'total_contratos': ContratoGenerado.objects.count(),
+        'contratos_activos': ContratoGenerado.objects.filter(estado='activo').count(),
     }
     
     # Filtrar por rol de usuario
@@ -88,6 +105,7 @@ def dashboard_content(request):
             'mis_cuñas_activas': CuñaPublicitaria.objects.filter(
                 cliente=request.user, estado='activa'
             ).count(),
+            'mis_contratos': ContratoGenerado.objects.filter(cliente=request.user).count(),
         })
     elif es_vendedor(request.user):
         context.update({
@@ -95,6 +113,10 @@ def dashboard_content(request):
             'ventas_mes': CuñaPublicitaria.objects.filter(
                 vendedor_asignado=request.user,
                 created_at__month=timezone.now().month
+            ).count(),
+            'contratos_generados_mes': ContratoGenerado.objects.filter(
+                generado_por=request.user,
+                fecha_generacion__month=timezone.now().month
             ).count(),
         })
     
@@ -113,7 +135,6 @@ class CategoriaListView(ListView):
     def get_queryset(self):
         queryset = CategoriaPublicitaria.objects.all()
         
-        # Filtro por búsqueda
         search = self.request.GET.get('search')
         if search:
             queryset = queryset.filter(
@@ -121,7 +142,6 @@ class CategoriaListView(ListView):
                 Q(descripcion__icontains=search)
             )
         
-        # Filtro por estado
         activa = self.request.GET.get('activa')
         if activa:
             queryset = queryset.filter(is_active=activa == 'true')
@@ -172,7 +192,6 @@ def categoria_delete(request, pk):
     """Eliminar categoría publicitaria"""
     categoria = get_object_or_404(CategoriaPublicitaria, pk=pk)
     
-    # Verificar que no tenga cuñas asociadas
     if categoria.cuñas.exists():
         messages.error(request, 'No se puede eliminar la categoría porque tiene cuñas asociadas.')
         return redirect('content:categoria_detail', pk=pk)
@@ -220,9 +239,7 @@ class ArchivoAudioListView(ListView):
     def get_queryset(self):
         queryset = ArchivoAudio.objects.select_related('subido_por')
         
-        # Filtrar por usuario si es cliente
         if es_cliente(self.request.user):
-            # Solo ver archivos de cuñas propias
             queryset = queryset.filter(cuñas__cliente=self.request.user).distinct()
         
         return queryset.order_by('-fecha_subida')
@@ -237,7 +254,6 @@ class ArchivoAudioDetailView(DetailView):
     def get_object(self):
         obj = super().get_object()
         
-        # Verificar permisos para clientes
         if es_cliente(self.request.user):
             if not obj.cuñas.filter(cliente=self.request.user).exists():
                 raise Http404("Audio no encontrado")
@@ -264,11 +280,9 @@ def audio_delete(request, pk):
     """Eliminar archivo de audio"""
     audio = get_object_or_404(ArchivoAudio, pk=pk)
     
-    # Verificar permisos
     if es_cliente(request.user) and not audio.cuñas.filter(cliente=request.user).exists():
         return HttpResponseForbidden("No tiene permisos para eliminar este archivo")
     
-    # Verificar que no esté siendo usado
     if audio.cuñas.exists():
         messages.error(request, 'No se puede eliminar el archivo porque está siendo usado en cuñas.')
         return redirect('content:audio_detail', pk=pk)
@@ -292,13 +306,11 @@ class CuñaListView(ListView):
             'cliente', 'vendedor_asignado', 'categoria', 'tipo_contrato'
         )
         
-        # Filtrar por rol de usuario
         if es_cliente(self.request.user):
             queryset = queryset.filter(cliente=self.request.user)
         elif es_vendedor(self.request.user):
             queryset = queryset.filter(vendedor_asignado=self.request.user)
         
-        # Aplicar filtros del formulario
         form = CuñaFiltroForm(self.request.GET)
         if form.is_valid():
             if form.cleaned_data.get('estado'):
@@ -316,7 +328,6 @@ class CuñaListView(ListView):
             if form.cleaned_data.get('fecha_fin'):
                 queryset = queryset.filter(fecha_fin__lte=form.cleaned_data['fecha_fin'])
         
-        # Búsqueda por texto
         search = self.request.GET.get('search')
         if search:
             queryset = queryset.filter(
@@ -344,11 +355,9 @@ class CuñaDetailView(DetailView):
     def get_object(self):
         obj = super().get_object()
         
-        # Verificar permisos para clientes
         if es_cliente(self.request.user) and obj.cliente != self.request.user:
             raise Http404("Cuña no encontrada")
         
-        # Verificar permisos para vendedores
         if es_vendedor(self.request.user) and obj.vendedor_asignado != self.request.user:
             raise Http404("Cuña no encontrada")
         
@@ -357,7 +366,9 @@ class CuñaDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['historial'] = self.object.historial.all()[:10]
+        context['contratos'] = self.object.contratos.all()
         context['puede_aprobar'] = puede_aprobar_cuñas(self.request.user)
+        context['puede_generar_contrato'] = puede_gestionar_contratos(self.request.user)
         context['puede_editar'] = (
             self.object.permite_edicion and 
             (es_administrador(self.request.user) or 
@@ -383,7 +394,6 @@ class CuñaCreateView(UserPassesTestMixin, CreateView):
     def form_valid(self, form):
         form.instance.created_by = self.request.user
         
-        # Si es vendedor, asignarse automáticamente
         if es_vendedor(self.request.user):
             form.instance.vendedor_asignado = self.request.user
         
@@ -417,7 +427,6 @@ class CuñaUpdateView(UserPassesTestMixin, UpdateView):
         return kwargs
     
     def form_valid(self, form):
-        # Marcar usuario que modifica para el historial
         form.instance._user_modificador = self.request.user
         messages.success(self.request, f'Cuña "{form.instance.titulo}" actualizada exitosamente.')
         return super().form_valid(form)
@@ -448,7 +457,6 @@ def cuña_activar(request, pk):
     """Activar cuña publicitaria"""
     cuña = get_object_or_404(CuñaPublicitaria, pk=pk)
     
-    # Verificar permisos específicos
     if es_vendedor(request.user) and cuña.vendedor_asignado != request.user:
         return HttpResponseForbidden("No tiene permisos para activar esta cuña")
     
@@ -468,7 +476,6 @@ def cuña_pausar(request, pk):
     """Pausar cuña publicitaria"""
     cuña = get_object_or_404(CuñaPublicitaria, pk=pk)
     
-    # Verificar permisos específicos
     if es_vendedor(request.user) and cuña.vendedor_asignado != request.user:
         return HttpResponseForbidden("No tiene permisos para pausar esta cuña")
     
@@ -488,7 +495,6 @@ def cuña_finalizar(request, pk):
     """Finalizar cuña publicitaria"""
     cuña = get_object_or_404(CuñaPublicitaria, pk=pk)
     
-    # Verificar permisos específicos
     if es_vendedor(request.user) and cuña.vendedor_asignado != request.user:
         return HttpResponseForbidden("No tiene permisos para finalizar esta cuña")
     
@@ -501,6 +507,286 @@ def cuña_finalizar(request, pk):
     
     return redirect('content:cuña_detail', pk=pk)
 
+# ==================== PLANTILLAS DE CONTRATO ====================
+
+@method_decorator([login_required, user_passes_test(es_administrador)], name='dispatch')
+class PlantillaContratoListView(ListView):
+    """Lista de plantillas de contrato"""
+    model = PlantillaContrato
+    template_name = 'content/plantilla_contrato_list.html'
+    context_object_name = 'plantillas'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = PlantillaContrato.objects.all()
+        
+        tipo = self.request.GET.get('tipo')
+        if tipo:
+            queryset = queryset.filter(tipo_contrato=tipo)
+        
+        activa = self.request.GET.get('activa')
+        if activa:
+            queryset = queryset.filter(is_active=activa == 'true')
+        
+        return queryset.order_by('-is_default', '-created_at')
+
+@method_decorator([login_required, user_passes_test(es_administrador)], name='dispatch')
+class PlantillaContratoDetailView(DetailView):
+    """Detalle de plantilla de contrato"""
+    model = PlantillaContrato
+    template_name = 'content/plantilla_contrato_detail.html'
+    context_object_name = 'plantilla'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['contratos_generados'] = self.object.contratos_generados.all()[:10]
+        context['total_contratos'] = self.object.contratos_generados.count()
+        return context
+
+@method_decorator([login_required, user_passes_test(es_administrador)], name='dispatch')
+class PlantillaContratoCreateView(CreateView):
+    """Crear plantilla de contrato"""
+    model = PlantillaContrato
+    form_class = PlantillaContratoForm
+    template_name = 'content/plantilla_contrato_form.html'
+    success_url = reverse_lazy('content:plantilla_contrato_list')
+    
+    def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        messages.success(self.request, 'Plantilla de contrato creada exitosamente.')
+        return super().form_valid(form)
+
+@method_decorator([login_required, user_passes_test(es_administrador)], name='dispatch')
+class PlantillaContratoUpdateView(UpdateView):
+    """Actualizar plantilla de contrato"""
+    model = PlantillaContrato
+    form_class = PlantillaContratoForm
+    template_name = 'content/plantilla_contrato_form.html'
+    success_url = reverse_lazy('content:plantilla_contrato_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Plantilla actualizada exitosamente.')
+        return super().form_valid(form)
+
+@login_required
+@user_passes_test(es_administrador)
+@require_POST
+def plantilla_contrato_delete(request, pk):
+    """Eliminar plantilla de contrato"""
+    plantilla = get_object_or_404(PlantillaContrato, pk=pk)
+    
+    if plantilla.contratos_generados.exists():
+        messages.error(request, 'No se puede eliminar la plantilla porque tiene contratos generados.')
+        return redirect('content:plantilla_contrato_detail', pk=pk)
+    
+    plantilla.delete()
+    messages.success(request, 'Plantilla eliminada exitosamente.')
+    return redirect('content:plantilla_contrato_list')
+
+# ==================== CONTRATOS GENERADOS ====================
+
+@method_decorator([login_required], name='dispatch')
+class ContratoGeneradoListView(ListView):
+    """Lista de contratos generados"""
+    model = ContratoGenerado
+    template_name = 'content/contrato_list.html'
+    context_object_name = 'contratos'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = ContratoGenerado.objects.select_related(
+            'cuña', 'cliente', 'plantilla_usada', 'generado_por'
+        )
+        
+        # Filtrar por rol
+        if es_cliente(self.request.user):
+            queryset = queryset.filter(cliente=self.request.user)
+        elif es_vendedor(self.request.user):
+            queryset = queryset.filter(cuña__vendedor_asignado=self.request.user)
+        
+        # Filtros
+        estado = self.request.GET.get('estado')
+        if estado:
+            queryset = queryset.filter(estado=estado)
+        
+        search = self.request.GET.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(numero_contrato__icontains=search) |
+                Q(nombre_cliente__icontains=search) |
+                Q(ruc_dni_cliente__icontains=search)
+            )
+        
+        return queryset.order_by('-fecha_generacion')
+
+@method_decorator([login_required], name='dispatch')
+class ContratoGeneradoDetailView(DetailView):
+    """Detalle de contrato generado"""
+    model = ContratoGenerado
+    template_name = 'content/contrato_detail.html'
+    context_object_name = 'contrato'
+    
+    def get_object(self):
+        obj = super().get_object()
+        
+        # Verificar permisos
+        if es_cliente(self.request.user) and obj.cliente != self.request.user:
+            raise Http404("Contrato no encontrado")
+        
+        if es_vendedor(self.request.user) and obj.cuña.vendedor_asignado != self.request.user:
+            raise Http404("Contrato no encontrado")
+        
+        return obj
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['puede_regenerar'] = self.object.puede_regenerar and puede_gestionar_contratos(self.request.user)
+        context['puede_modificar_estado'] = puede_gestionar_contratos(self.request.user)
+        return context
+
+@login_required
+@user_passes_test(puede_gestionar_contratos)
+def generar_contrato(request, cuña_id):
+    """Generar contrato desde una cuña"""
+    cuña = get_object_or_404(CuñaPublicitaria, pk=cuña_id)
+    
+    # Verificar permisos
+    if es_vendedor(request.user) and cuña.vendedor_asignado != request.user:
+        return HttpResponseForbidden("No tiene permisos para generar contrato para esta cuña")
+    
+    # Verificar si ya tiene contrato
+    if cuña.contratos.filter(estado__in=['generado', 'enviado', 'firmado', 'activo']).exists():
+        messages.warning(request, 'Esta cuña ya tiene un contrato activo.')
+        return redirect('content:cuña_detail', pk=cuña_id)
+    
+    # Obtener plantilla predeterminada
+    plantilla = PlantillaContrato.objects.filter(
+        is_default=True,
+        is_active=True
+    ).first()
+    
+    if not plantilla:
+        plantilla = PlantillaContrato.objects.filter(is_active=True).first()
+    
+    if not plantilla:
+        messages.error(request, 'No hay plantillas de contrato disponibles. Contacte al administrador.')
+        return redirect('content:cuña_detail', pk=cuña_id)
+    
+    # Crear contrato
+    contrato = ContratoGenerado.objects.create(
+        cuña=cuña,
+        plantilla_usada=plantilla,
+        cliente=cuña.cliente,
+        nombre_cliente=cuña.cliente.empresa or cuña.cliente.razon_social or cuña.cliente.get_full_name(),
+        ruc_dni_cliente=cuña.cliente.ruc_dni or 'N/A',
+        valor_sin_iva=cuña.precio_total,
+        generado_por=request.user
+    )
+    
+    # Generar el archivo
+    if contrato.generar_contrato():
+        messages.success(
+            request,
+            f'Contrato {contrato.numero_contrato} generado exitosamente. Ya puede descargarlo.'
+        )
+        return redirect('content:contrato_detail', pk=contrato.pk)
+    else:
+        messages.error(request, 'Error al generar el contrato. Intente nuevamente.')
+        contrato.delete()
+        return redirect('content:cuña_detail', pk=cuña_id)
+
+@login_required
+@user_passes_test(puede_gestionar_contratos)
+def regenerar_contrato(request, pk):
+    """Regenerar contrato"""
+    contrato = get_object_or_404(ContratoGenerado, pk=pk)
+    
+    # Verificar permisos
+    if es_vendedor(request.user) and contrato.cuña.vendedor_asignado != request.user:
+        return HttpResponseForbidden("No tiene permisos para regenerar este contrato")
+    
+    if not contrato.puede_regenerar:
+        messages.error(request, 'No se puede regenerar este contrato en su estado actual.')
+        return redirect('content:contrato_detail', pk=pk)
+    
+    # Regenerar
+    if contrato.generar_contrato():
+        messages.success(request, f'Contrato {contrato.numero_contrato} regenerado exitosamente.')
+    else:
+        messages.error(request, 'Error al regenerar el contrato.')
+    
+    return redirect('content:contrato_detail', pk=pk)
+
+@login_required
+def descargar_contrato(request, pk):
+    """Descargar archivo de contrato"""
+    contrato = get_object_or_404(ContratoGenerado, pk=pk)
+    
+    # Verificar permisos
+    if es_cliente(request.user) and contrato.cliente != request.user:
+        return HttpResponseForbidden("No tiene permisos para descargar este contrato")
+    
+    if es_vendedor(request.user) and contrato.cuña.vendedor_asignado != request.user:
+        return HttpResponseForbidden("No tiene permisos para descargar este contrato")
+    
+    if not contrato.archivo_contrato:
+        messages.error(request, 'El contrato no ha sido generado aún.')
+        return redirect('content:contrato_detail', pk=pk)
+    
+    # Servir archivo
+    response = FileResponse(
+        contrato.archivo_contrato.open('rb'),
+        content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    )
+    response['Content-Disposition'] = f'attachment; filename="Contrato_{contrato.numero_contrato}.docx"'
+    
+    return response
+
+@login_required
+@user_passes_test(puede_gestionar_contratos)
+@require_POST
+def contrato_marcar_enviado(request, pk):
+    """Marcar contrato como enviado"""
+    contrato = get_object_or_404(ContratoGenerado, pk=pk)
+    
+    if es_vendedor(request.user) and contrato.cuña.vendedor_asignado != request.user:
+        return HttpResponseForbidden("No tiene permisos")
+    
+    contrato.marcar_como_enviado()
+    messages.success(request, f'Contrato {contrato.numero_contrato} marcado como enviado.')
+    
+    return redirect('content:contrato_detail', pk=pk)
+
+@login_required
+@user_passes_test(puede_gestionar_contratos)
+@require_POST
+def contrato_marcar_firmado(request, pk):
+    """Marcar contrato como firmado"""
+    contrato = get_object_or_404(ContratoGenerado, pk=pk)
+    
+    if es_vendedor(request.user) and contrato.cuña.vendedor_asignado != request.user:
+        return HttpResponseForbidden("No tiene permisos")
+    
+    contrato.marcar_como_firmado()
+    messages.success(request, f'Contrato {contrato.numero_contrato} marcado como firmado.')
+    
+    return redirect('content:contrato_detail', pk=pk)
+
+@login_required
+@user_passes_test(puede_gestionar_contratos)
+@require_POST
+def contrato_activar(request, pk):
+    """Activar contrato"""
+    contrato = get_object_or_404(ContratoGenerado, pk=pk)
+    
+    if es_vendedor(request.user) and contrato.cuña.vendedor_asignado != request.user:
+        return HttpResponseForbidden("No tiene permisos")
+    
+    contrato.activar_contrato()
+    messages.success(request, f'Contrato {contrato.numero_contrato} activado.')
+    
+    return redirect('content:contrato_detail', pk=pk)
+
 # ==================== VISTAS AJAX ====================
 
 @login_required
@@ -510,7 +796,6 @@ def cuña_estado_ajax(request, pk):
     try:
         cuña = CuñaPublicitaria.objects.get(pk=pk)
         
-        # Verificar permisos
         if es_cliente(request.user) and cuña.cliente != request.user:
             return JsonResponse({'error': 'Sin permisos'}, status=403)
         
@@ -538,7 +823,6 @@ def audio_metadatos_ajax(request, pk):
     try:
         audio = ArchivoAudio.objects.get(pk=pk)
         
-        # Verificar permisos básicos
         if es_cliente(request.user):
             if not audio.cuñas.filter(cliente=request.user).exists():
                 return JsonResponse({'error': 'Sin permisos'}, status=403)
@@ -564,7 +848,6 @@ def audio_metadatos_ajax(request, pk):
 def estadisticas_dashboard_ajax(request):
     """Obtener estadísticas para dashboard vía AJAX"""
     
-    # Estadísticas generales
     stats = {
         'total_cuñas': CuñaPublicitaria.objects.count(),
         'cuñas_activas': CuñaPublicitaria.objects.filter(estado='activa').count(),
@@ -573,15 +856,17 @@ def estadisticas_dashboard_ajax(request):
             fecha_fin__lte=timezone.now().date() + timedelta(days=7),
             estado='activa'
         ).count(),
+        'total_contratos': ContratoGenerado.objects.count(),
+        'contratos_activos': ContratoGenerado.objects.filter(estado='activo').count(),
     }
     
-    # Estadísticas por rol
     if es_cliente(request.user):
         stats.update({
             'mis_cuñas': CuñaPublicitaria.objects.filter(cliente=request.user).count(),
             'mis_cuñas_activas': CuñaPublicitaria.objects.filter(
                 cliente=request.user, estado='activa'
             ).count(),
+            'mis_contratos': ContratoGenerado.objects.filter(cliente=request.user).count(),
         })
     elif es_vendedor(request.user):
         stats.update({
@@ -590,6 +875,10 @@ def estadisticas_dashboard_ajax(request):
                 vendedor_asignado=request.user,
                 created_at__month=timezone.now().month
             ).count(),
+            'contratos_mes': ContratoGenerado.objects.filter(
+                generado_por=request.user,
+                fecha_generacion__month=timezone.now().month
+            ).count(),
         })
     
     return JsonResponse(stats)
@@ -597,16 +886,14 @@ def estadisticas_dashboard_ajax(request):
 # ==================== REPORTES ====================
 
 @login_required
-@user_passes_test(lambda u: u.groups.filter(name__in=['Administradores', 'Supervisores']).exists())
+@user_passes_test(lambda u: es_administrador(u) or es_supervisor(u))
 def reporte_cuñas(request):
     """Reporte de cuñas publicitarias"""
     
-    # Estadísticas por estado
     stats_estado = CuñaPublicitaria.objects.values('estado').annotate(
         count=Count('id')
     ).order_by('estado')
     
-    # Estadísticas por categoría
     stats_categoria = CuñaPublicitaria.objects.values(
         'categoria__nombre'
     ).annotate(
@@ -614,7 +901,6 @@ def reporte_cuñas(request):
         total_ingresos=Sum('precio_total')
     ).order_by('-count')
     
-    # Estadísticas por vendedor
     stats_vendedor = CuñaPublicitaria.objects.values(
         'vendedor_asignado__first_name',
         'vendedor_asignado__last_name'
@@ -623,7 +909,6 @@ def reporte_cuñas(request):
         total_ingresos=Sum('precio_total')
     ).order_by('-count')
     
-    # Cuñas próximas a vencer
     cuñas_vencimiento = CuñaPublicitaria.objects.filter(
         fecha_fin__lte=timezone.now().date() + timedelta(days=30),
         estado__in=['activa', 'aprobada']
@@ -638,6 +923,37 @@ def reporte_cuñas(request):
     
     return render(request, 'content/reporte_cuñas.html', context)
 
+@login_required
+@user_passes_test(lambda u: es_administrador(u) or es_supervisor(u))
+def reporte_contratos(request):
+    """Reporte de contratos generados"""
+    
+    stats_estado = ContratoGenerado.objects.values('estado').annotate(
+        count=Count('id'),
+        total=Sum('valor_total')
+    ).order_by('estado')
+    
+    stats_mes = ContratoGenerado.objects.filter(
+        fecha_generacion__year=timezone.now().year
+    ).values(
+        'fecha_generacion__month'
+    ).annotate(
+        count=Count('id'),
+        total=Sum('valor_total')
+    ).order_by('fecha_generacion__month')
+    
+    contratos_recientes = ContratoGenerado.objects.select_related(
+        'cuña', 'cliente'
+    ).order_by('-fecha_generacion')[:20]
+    
+    context = {
+        'stats_estado': stats_estado,
+        'stats_mes': stats_mes,
+        'contratos_recientes': contratos_recientes,
+    }
+    
+    return render(request, 'content/reporte_contratos.html', context)
+
 # ==================== HISTORIAL ====================
 
 @method_decorator([login_required, permission_required('content_management.view_historialcuña')], name='dispatch')
@@ -651,12 +967,10 @@ class HistorialCuñaListView(ListView):
     def get_queryset(self):
         queryset = HistorialCuña.objects.select_related('cuña', 'usuario')
         
-        # Filtrar por cuña específica si se proporciona
         cuña_id = self.request.GET.get('cuña')
         if cuña_id:
             queryset = queryset.filter(cuña_id=cuña_id)
         
-        # Filtrar por rol de usuario
         if es_cliente(self.request.user):
             queryset = queryset.filter(cuña__cliente=self.request.user)
         elif es_vendedor(self.request.user):

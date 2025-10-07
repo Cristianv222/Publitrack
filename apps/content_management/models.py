@@ -1,6 +1,7 @@
 """
 Modelos para el módulo de Gestión de Contenido Publicitario
 Sistema PubliTrack - Gestión de cuñas publicitarias y archivos de audio
+INCLUYE: Sistema de Contratos con Plantillas Automáticas
 """
 
 import os
@@ -18,20 +19,130 @@ from mutagen.mp3 import MP3
 from mutagen.wave import WAVE
 from mutagen.mp4 import MP4
 
+# ==================== FUNCIONES AUXILIARES ====================
+
 def audio_upload_path(instance, filename):
     """
     Genera la ruta de subida para archivos de audio
     """
-    # Crear directorio por año/mes
     now = timezone.now()
     year = now.year
     month = now.strftime('%m')
-    
-    # Generar nombre único preservando la extensión
     ext = filename.split('.')[-1].lower()
     unique_filename = f"{uuid.uuid4().hex}.{ext}"
-    
     return f"audio_spots/{year}/{month}/{unique_filename}"
+
+
+def contract_template_path(instance, filename):
+    """Genera la ruta de subida para plantillas de contrato"""
+    ext = filename.split('.')[-1].lower()
+    unique_filename = f"template_{uuid.uuid4().hex}.{ext}"
+    return f"contract_templates/{unique_filename}"
+
+
+def contract_output_path(instance, filename):
+    """Genera la ruta de subida para contratos generados"""
+    year = timezone.now().year
+    month = timezone.now().strftime('%m')
+    ext = filename.split('.')[-1].lower()
+    unique_filename = f"contrato_{instance.numero_contrato}_{uuid.uuid4().hex[:8]}.{ext}"
+    return f"contracts/{year}/{month}/{unique_filename}"
+
+
+def numero_a_letras(numero):
+    """
+    Convierte un número decimal a su representación en letras (español)
+    Ejemplo: 180.50 -> "CIENTO OCHENTA CON 50/100 DÓLARES AMERICANOS"
+    """
+    UNIDADES = ['', 'UNO', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE']
+    DECENAS = ['', 'DIEZ', 'VEINTE', 'TREINTA', 'CUARENTA', 'CINCUENTA', 
+               'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA']
+    ESPECIALES = ['DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE',
+                  'DIECISÉIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE']
+    CENTENAS = ['', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS',
+                'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS']
+    
+    def convertir_grupo(n):
+        """Convierte un grupo de hasta 3 dígitos"""
+        if n == 0:
+            return ''
+        elif n == 100:
+            return 'CIEN'
+        
+        centena = n // 100
+        decena = (n % 100) // 10
+        unidad = n % 10
+        
+        resultado = []
+        
+        if centena > 0:
+            resultado.append(CENTENAS[centena])
+        
+        resto = n % 100
+        if 10 <= resto <= 19:
+            resultado.append(ESPECIALES[resto - 10])
+        else:
+            if decena > 0:
+                if decena == 2 and unidad > 0:
+                    resultado.append('VEINTI' + UNIDADES[unidad])
+                    return ' '.join(resultado)
+                else:
+                    resultado.append(DECENAS[decena])
+            if unidad > 0:
+                if decena > 0 and decena != 2:
+                    resultado.append('Y')
+                resultado.append(UNIDADES[unidad])
+        
+        return ' '.join(resultado)
+    
+    # Separar parte entera y decimal
+    if isinstance(numero, (int, float)):
+        numero = Decimal(str(numero))
+    
+    partes = str(numero).split('.')
+    parte_entera = int(partes[0])
+    parte_decimal = partes[1][:2].ljust(2, '0') if len(partes) > 1 else '00'
+    
+    if parte_entera == 0:
+        resultado = 'CERO'
+    elif parte_entera < 1000:
+        resultado = convertir_grupo(parte_entera)
+    elif parte_entera < 1000000:
+        miles = parte_entera // 1000
+        resto = parte_entera % 1000
+        
+        if miles == 1:
+            resultado = 'MIL'
+        else:
+            resultado = convertir_grupo(miles) + ' MIL'
+        
+        if resto > 0:
+            resultado += ' ' + convertir_grupo(resto)
+    else:
+        millones = parte_entera // 1000000
+        resto = parte_entera % 1000000
+        
+        if millones == 1:
+            resultado = 'UN MILLÓN'
+        else:
+            resultado = convertir_grupo(millones) + ' MILLONES'
+        
+        if resto > 0:
+            if resto >= 1000:
+                miles = resto // 1000
+                resto_final = resto % 1000
+                if miles > 0:
+                    resultado += ' ' + convertir_grupo(miles) + ' MIL'
+                if resto_final > 0:
+                    resultado += ' ' + convertir_grupo(resto_final)
+            else:
+                resultado += ' ' + convertir_grupo(resto)
+    
+    # Formato final
+    return f"{resultado} CON {parte_decimal}/100 DÓLARES AMERICANOS"
+
+
+# ==================== MODELOS EXISTENTES ====================
 
 class CategoriaPublicitaria(models.Model):
     """
@@ -85,6 +196,7 @@ class CategoriaPublicitaria(models.Model):
     
     def get_absolute_url(self):
         return reverse('content:categoria_detail', kwargs={'pk': self.pk})
+
 
 class TipoContrato(models.Model):
     """
@@ -150,6 +262,7 @@ class TipoContrato(models.Model):
     
     def __str__(self):
         return f"{self.nombre} ({self.get_duracion_tipo_display()})"
+
 
 class ArchivoAudio(models.Model):
     """
@@ -281,27 +394,21 @@ class ArchivoAudio(models.Model):
         """
         try:
             if self.archivo and os.path.exists(self.archivo.path):
-                # Obtener información básica del archivo
                 self.tamaño_bytes = os.path.getsize(self.archivo.path)
                 self.nombre_original = os.path.basename(self.archivo.name)
                 
-                # Detectar formato por extensión
                 ext = os.path.splitext(self.archivo.name)[1].lower().lstrip('.')
                 self.formato = ext if ext in dict(self.FORMATO_CHOICES) else 'mp3'
                 
-                # Extraer metadatos con mutagen
                 audio_file = MutagenFile(self.archivo.path)
                 
                 if audio_file is not None:
-                    # Duración
                     if hasattr(audio_file, 'info') and hasattr(audio_file.info, 'length'):
                         self.duracion_segundos = int(audio_file.info.length)
                     
-                    # Bitrate
                     if hasattr(audio_file, 'info') and hasattr(audio_file.info, 'bitrate'):
                         self.bitrate = audio_file.info.bitrate
                         
-                        # Determinar calidad basada en bitrate
                         if self.bitrate:
                             if self.bitrate < 160:
                                 self.calidad = 'baja'
@@ -312,15 +419,12 @@ class ArchivoAudio(models.Model):
                             else:
                                 self.calidad = 'sin_perdida'
                     
-                    # Sample rate
                     if hasattr(audio_file, 'info') and hasattr(audio_file.info, 'sample_rate'):
                         self.sample_rate = audio_file.info.sample_rate
                     
-                    # Canales
                     if hasattr(audio_file, 'info') and hasattr(audio_file.info, 'channels'):
                         self.canales = audio_file.info.channels
                     
-                    # Metadatos adicionales
                     if audio_file.tags:
                         self.metadatos_extra = {
                             'title': str(audio_file.tags.get('TIT2', [''])[0]) if audio_file.tags.get('TIT2') else '',
@@ -329,7 +433,6 @@ class ArchivoAudio(models.Model):
                         }
                 
         except Exception as e:
-            # Si falla la extracción, continuar sin metadatos
             print(f"Error extrayendo metadatos: {e}")
     
     @property
@@ -357,6 +460,7 @@ class ArchivoAudio(models.Model):
     
     def get_absolute_url(self):
         return reverse('content:audio_detail', kwargs={'pk': self.pk})
+
 
 class CuñaPublicitaria(models.Model):
     """
@@ -401,11 +505,11 @@ class CuñaPublicitaria(models.Model):
         help_text='Descripción detallada del contenido publicitario'
     )
     
-    # Relaciones - CAMBIO PRINCIPAL: Usar settings.AUTH_USER_MODEL en lugar de User
+    # Relaciones
     cliente = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        limit_choices_to={'groups__name': 'Clientes'},
+        limit_choices_to={'rol': 'cliente'},
         related_name='cuñas_publicitarias',
         verbose_name='Cliente'
     )
@@ -414,7 +518,7 @@ class CuñaPublicitaria(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
-        limit_choices_to={'groups__name': 'Vendedores'},
+        limit_choices_to={'rol': 'vendedor'},
         related_name='cuñas_vendidas',
         verbose_name='Vendedor Asignado'
     )
@@ -485,7 +589,7 @@ class CuñaPublicitaria(models.Model):
         blank=True,
         help_text='Precio por segundo de duración'
     )
-    # Agregar después del campo precio_por_segundo (línea ~365)
+    
     excluir_sabados = models.BooleanField(
         'Excluir Sábados',
         default=False,
@@ -497,56 +601,6 @@ class CuñaPublicitaria(models.Model):
         default=False,
         help_text='Excluir domingos de la programación'
     )
-
-    # Agregar estos métodos después del método semaforo_estado (línea ~545)
-    @property
-    def dias_efectivos(self):
-        """Calcula los días efectivos considerando exclusiones"""
-        if not self.fecha_inicio or not self.fecha_fin:
-            return 0
-    
-        from datetime import timedelta
-        dias_totales = 0
-        fecha_actual = self.fecha_inicio
-    
-        while fecha_actual <= self.fecha_fin:
-            # weekday(): 0=lunes, 5=sábado, 6=domingo
-            if self.excluir_sabados and fecha_actual.weekday() == 5:
-                pass  # No contar sábado
-            elif self.excluir_domingos and fecha_actual.weekday() == 6:
-                pass  # No contar domingo
-            else:
-                dias_totales += 1
-        
-            fecha_actual += timedelta(days=1)
-    
-        return dias_totales
-
-    @property
-    def emisiones_totales_reales(self):
-        """Calcula el total real de emisiones considerando exclusiones"""
-        return self.dias_efectivos * self.repeticiones_dia
-
-    @property
-    def precio_total_calculado(self):
-        """Calcula el precio total correctamente"""
-        if not self.precio_por_segundo:
-            return Decimal('0.00')
-        # Fórmula correcta: duración × repeticiones × precio_por_segundo × días_efectivos
-        return Decimal(str(
-            self.duracion_planeada * 
-            self.repeticiones_dia * 
-            float(self.precio_por_segundo) * 
-            self.dias_efectivos
-        ))
-
-    @property
-    def costo_por_emision_real(self):
-        """Calcula el costo por emisión individual considerando días efectivos"""
-        emisiones_totales = self.emisiones_totales_reales
-        if emisiones_totales > 0:
-            return self.precio_total / emisiones_totales
-        return Decimal('0.00')
 
     repeticiones_dia = models.PositiveIntegerField(
         'Repeticiones por Día',
@@ -651,7 +705,6 @@ class CuñaPublicitaria(models.Model):
         if not self.codigo:
             self.codigo = self.generar_codigo()
         
-        # Calcular precio por segundo si no está definido
         if not self.precio_por_segundo and self.duracion_planeada:
             self.precio_por_segundo = self.precio_total / self.duracion_planeada
         
@@ -662,7 +715,6 @@ class CuñaPublicitaria(models.Model):
         año = timezone.now().year
         mes = timezone.now().month
         
-        # Contar cuñas del mes actual
         count = CuñaPublicitaria.objects.filter(
             created_at__year=año,
             created_at__month=mes
@@ -672,19 +724,64 @@ class CuñaPublicitaria(models.Model):
     
     def clean(self):
         """Validaciones personalizadas"""
-        # Validar fechas
         if self.fecha_inicio and self.fecha_fin:
             if self.fecha_fin <= self.fecha_inicio:
                 raise ValidationError('La fecha de fin debe ser posterior a la fecha de inicio.')
         
-        # Validar duración vs archivo de audio
         if self.archivo_audio and self.archivo_audio.duracion_segundos:
             diferencia = abs(self.duracion_planeada - self.archivo_audio.duracion_segundos)
-            if diferencia > 5:  # Tolerancia de 5 segundos
+            if diferencia > 5:
                 raise ValidationError(
                     f'La duración planeada ({self.duracion_planeada}s) difiere mucho '
                     f'del archivo de audio ({self.archivo_audio.duracion_segundos}s).'
                 )
+    
+    @property
+    def dias_efectivos(self):
+        """Calcula los días efectivos considerando exclusiones"""
+        if not self.fecha_inicio or not self.fecha_fin:
+            return 0
+    
+        from datetime import timedelta
+        dias_totales = 0
+        fecha_actual = self.fecha_inicio
+    
+        while fecha_actual <= self.fecha_fin:
+            if self.excluir_sabados and fecha_actual.weekday() == 5:
+                pass
+            elif self.excluir_domingos and fecha_actual.weekday() == 6:
+                pass
+            else:
+                dias_totales += 1
+        
+            fecha_actual += timedelta(days=1)
+    
+        return dias_totales
+
+    @property
+    def emisiones_totales_reales(self):
+        """Calcula el total real de emisiones considerando exclusiones"""
+        return self.dias_efectivos * self.repeticiones_dia
+
+    @property
+    def precio_total_calculado(self):
+        """Calcula el precio total correctamente"""
+        if not self.precio_por_segundo:
+            return Decimal('0.00')
+        return Decimal(str(
+            self.duracion_planeada * 
+            self.repeticiones_dia * 
+            float(self.precio_por_segundo) * 
+            self.dias_efectivos
+        ))
+
+    @property
+    def costo_por_emision_real(self):
+        """Calcula el costo por emisión individual considerando días efectivos"""
+        emisiones_totales = self.emisiones_totales_reales
+        if emisiones_totales > 0:
+            return self.precio_total / emisiones_totales
+        return Decimal('0.00')
     
     @property
     def dias_restantes(self):
@@ -785,6 +882,7 @@ class CuñaPublicitaria(models.Model):
     def get_absolute_url(self):
         return reverse('content:cuña_detail', kwargs={'pk': self.pk})
 
+
 class HistorialCuña(models.Model):
     """
     Historial de cambios de las cuñas publicitarias
@@ -851,7 +949,519 @@ class HistorialCuña(models.Model):
     def __str__(self):
         return f"{self.cuña.codigo} - {self.get_accion_display()} - {self.fecha.strftime('%d/%m/%Y %H:%M')}"
 
-# Señales para crear automáticamente el historial
+
+# ==================== MODELOS DE CONTRATOS ====================
+
+class PlantillaContrato(models.Model):
+    """
+    Plantillas de contrato reutilizables en formato Word
+    Permite subir diferentes modelos de contrato que se rellenarán automáticamente
+    """
+    
+    TIPO_CONTRATO_CHOICES = [
+        ('publicidad_tv', 'Publicidad Televisión'),
+        ('publicidad_radio', 'Publicidad Radio'),
+        ('paquete_mensual', 'Paquete Mensual'),
+        ('paquete_trimestral', 'Paquete Trimestral'),
+        ('paquete_semestral', 'Paquete Semestral'),
+        ('contrato_especial', 'Contrato Especial'),
+        ('otro', 'Otro'),
+    ]
+    
+    nombre = models.CharField(
+        'Nombre de la Plantilla',
+        max_length=200,
+        help_text='Nombre descriptivo (ej: Contrato Publicidad TV 2025)'
+    )
+    
+    tipo_contrato = models.CharField(
+        'Tipo de Contrato',
+        max_length=50,
+        choices=TIPO_CONTRATO_CHOICES,
+        default='publicidad_tv',
+        help_text='Tipo de contrato que representa esta plantilla'
+    )
+    
+    descripcion = models.TextField(
+        'Descripción',
+        blank=True,
+        help_text='Descripción de cuándo usar esta plantilla'
+    )
+    
+    archivo_plantilla = models.FileField(
+        'Archivo de Plantilla (.docx)',
+        upload_to=contract_template_path,
+        validators=[FileExtensionValidator(allowed_extensions=['docx'])],
+        help_text='Archivo Word con marcadores: {{NOMBRE_CLIENTE}}, {{RUC_DNI}}, etc.'
+    )
+    
+    # Configuración de la plantilla
+    incluye_iva = models.BooleanField(
+        'Incluye IVA',
+        default=True,
+        help_text='Si el contrato incluye cálculo de IVA'
+    )
+    
+    porcentaje_iva = models.DecimalField(
+        'Porcentaje IVA',
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('15.00'),
+        help_text='Porcentaje de IVA a aplicar'
+    )
+    
+    variables_disponibles = models.JSONField(
+        'Variables Disponibles',
+        default=dict,
+        blank=True,
+        help_text='Variables que se reemplazan en la plantilla'
+    )
+    
+    # Instrucciones de uso
+    instrucciones = models.TextField(
+        'Instrucciones de Uso',
+        blank=True,
+        help_text='Instrucciones sobre cómo usar esta plantilla'
+    )
+    
+    # Control de versiones
+    version = models.CharField(
+        'Versión',
+        max_length=20,
+        default='1.0',
+        help_text='Versión de la plantilla'
+    )
+    
+    is_active = models.BooleanField(
+        'Activa',
+        default=True,
+        help_text='Si la plantilla está activa'
+    )
+    
+    is_default = models.BooleanField(
+        'Plantilla por Defecto',
+        default=False,
+        help_text='Si es la plantilla predeterminada'
+    )
+    
+    # Metadatos
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='plantillas_contrato_creadas',
+        verbose_name='Creada por'
+    )
+    
+    created_at = models.DateTimeField('Creada', auto_now_add=True)
+    updated_at = models.DateTimeField('Actualizada', auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Plantilla de Contrato'
+        verbose_name_plural = 'Plantillas de Contrato'
+        ordering = ['-is_default', '-created_at']
+        indexes = [
+            models.Index(fields=['tipo_contrato', 'is_active']),
+            models.Index(fields=['is_default']),
+        ]
+    
+    def __str__(self):
+        return f"{self.nombre} (v{self.version})"
+    
+    def save(self, *args, **kwargs):
+        """Override save para generar variables disponibles"""
+        if not self.variables_disponibles:
+            self.variables_disponibles = {
+                'NOMBRE_CLIENTE': 'Nombre o Razón Social del Cliente',
+                'RUC_DNI': 'RUC o Cédula del Cliente',
+                'CIUDAD': 'Ciudad del Cliente',
+                'PROVINCIA': 'Provincia del Cliente',
+                'DIRECCION_EXACTA': 'Dirección completa del Cliente',
+                'DIRECCION': 'Dirección (alias de DIRECCION_EXACTA)',
+                'VALOR_NUMEROS': 'Valor del contrato en números (ej: 180.00)',
+                'VALOR_LETRAS': 'Valor del contrato en letras',
+                'IVA_NUMEROS': 'Valor del IVA en números',
+                'IVA_LETRAS': 'Valor del IVA en letras',
+                'TOTAL_NUMEROS': 'Total con IVA en números',
+                'TOTAL_LETRAS': 'Total con IVA en letras',
+                'FECHA_INICIO': 'Fecha de inicio del contrato',
+                'FECHA_FIN': 'Fecha de fin del contrato',
+                'DURACION_DIAS': 'Duración en días',
+                'DURACION_MESES': 'Duración en meses',
+                'SPOTS_DIA': 'Spots por día',
+                'DURACION_SPOT': 'Duración del spot en segundos',
+                'FECHA_ACTUAL': 'Fecha actual de generación',
+                'NUMERO_CONTRATO': 'Número único del contrato',
+            }
+        
+        # Si se marca como default, desmarcar las demás
+        if self.is_default:
+            PlantillaContrato.objects.filter(
+                tipo_contrato=self.tipo_contrato,
+                is_default=True
+            ).exclude(pk=self.pk).update(is_default=False)
+        
+        super().save(*args, **kwargs)
+    
+    def get_absolute_url(self):
+        return reverse('content:plantilla_contrato_detail', kwargs={'pk': self.pk})
+
+
+class ContratoGenerado(models.Model):
+    """
+    Contratos generados a partir de plantillas
+    Guarda el archivo rellenado y los datos utilizados
+    """
+    
+    ESTADO_CHOICES = [
+        ('borrador', 'Borrador'),
+        ('generado', 'Generado'),
+        ('enviado', 'Enviado al Cliente'),
+        ('firmado', 'Firmado'),
+        ('activo', 'Activo'),
+        ('vencido', 'Vencido'),
+        ('cancelado', 'Cancelado'),
+    ]
+    
+    # Información básica
+    numero_contrato = models.CharField(
+        'Número de Contrato',
+        max_length=50,
+        unique=True,
+        help_text='Número único del contrato (generado automáticamente)'
+    )
+    
+    cuña = models.ForeignKey(
+        CuñaPublicitaria,
+        on_delete=models.CASCADE,
+        related_name='contratos',
+        verbose_name='Cuña Publicitaria',
+        help_text='Cuña asociada a este contrato'
+    )
+    
+    plantilla_usada = models.ForeignKey(
+        PlantillaContrato,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='contratos_generados',
+        verbose_name='Plantilla Utilizada'
+    )
+    
+    # Cliente (denormalizado para histórico)
+    cliente = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='contratos_generados',
+        verbose_name='Cliente'
+    )
+    
+    nombre_cliente = models.CharField(
+        'Nombre del Cliente',
+        max_length=255,
+        help_text='Nombre almacenado al momento de generación'
+    )
+    
+    ruc_dni_cliente = models.CharField(
+        'RUC/DNI del Cliente',
+        max_length=20,
+        help_text='RUC/DNI almacenado al momento de generación'
+    )
+    
+    # Archivo del contrato generado
+    archivo_contrato = models.FileField(
+        'Archivo del Contrato',
+        upload_to=contract_output_path,
+        blank=True,
+        null=True,
+        help_text='Archivo Word generado con datos del contrato'
+    )
+    
+    archivo_contrato_pdf = models.FileField(
+        'Contrato en PDF',
+        upload_to=contract_output_path,
+        blank=True,
+        null=True,
+        help_text='Versión PDF del contrato (opcional)'
+    )
+    
+    # Valores del contrato (denormalizados)
+    valor_sin_iva = models.DecimalField(
+        'Valor sin IVA',
+        max_digits=10,
+        decimal_places=2,
+        help_text='Valor del contrato sin IVA'
+    )
+    
+    valor_iva = models.DecimalField(
+        'Valor IVA',
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text='Valor del IVA'
+    )
+    
+    valor_total = models.DecimalField(
+        'Valor Total',
+        max_digits=10,
+        decimal_places=2,
+        help_text='Valor total con IVA incluido'
+    )
+    
+    # Datos utilizados en la generación
+    datos_generacion = models.JSONField(
+        'Datos de Generación',
+        default=dict,
+        help_text='Todos los datos usados para rellenar la plantilla'
+    )
+    
+    # Estado y fechas
+    estado = models.CharField(
+        'Estado',
+        max_length=20,
+        choices=ESTADO_CHOICES,
+        default='borrador',
+        help_text='Estado actual del contrato'
+    )
+    
+    fecha_generacion = models.DateTimeField(
+        'Fecha de Generación',
+        auto_now_add=True
+    )
+    
+    fecha_envio = models.DateTimeField(
+        'Fecha de Envío',
+        null=True,
+        blank=True,
+        help_text='Fecha en que se envió al cliente'
+    )
+    
+    fecha_firma = models.DateTimeField(
+        'Fecha de Firma',
+        null=True,
+        blank=True,
+        help_text='Fecha en que se firmó el contrato'
+    )
+    
+    # Observaciones
+    observaciones = models.TextField(
+        'Observaciones',
+        blank=True,
+        help_text='Observaciones sobre el contrato'
+    )
+    
+    # Metadatos
+    generado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='contratos_generados_por',
+        verbose_name='Generado por'
+    )
+    
+    created_at = models.DateTimeField('Creado', auto_now_add=True)
+    updated_at = models.DateTimeField('Actualizado', auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Contrato Generado'
+        verbose_name_plural = 'Contratos Generados'
+        ordering = ['-fecha_generacion']
+        indexes = [
+            models.Index(fields=['numero_contrato']),
+            models.Index(fields=['cliente', 'estado']),
+            models.Index(fields=['cuña']),
+            models.Index(fields=['fecha_generacion']),
+        ]
+    
+    def __str__(self):
+        return f"Contrato {self.numero_contrato} - {self.nombre_cliente}"
+    
+    def save(self, *args, **kwargs):
+        """Override save para generar número de contrato"""
+        if not self.numero_contrato:
+            self.numero_contrato = self.generar_numero_contrato()
+        
+        # Calcular totales si no están definidos
+        if self.valor_sin_iva and not self.valor_total:
+            if self.plantilla_usada and self.plantilla_usada.incluye_iva:
+                porcentaje_iva = self.plantilla_usada.porcentaje_iva / 100
+                self.valor_iva = self.valor_sin_iva * Decimal(str(porcentaje_iva))
+                self.valor_total = self.valor_sin_iva + self.valor_iva
+            else:
+                self.valor_iva = Decimal('0.00')
+                self.valor_total = self.valor_sin_iva
+        
+        super().save(*args, **kwargs)
+    
+    def generar_numero_contrato(self):
+        """Genera un número único para el contrato"""
+        año = timezone.now().year
+        mes = timezone.now().month
+        
+        count = ContratoGenerado.objects.filter(
+            fecha_generacion__year=año,
+            fecha_generacion__month=mes
+        ).count() + 1
+        
+        return f"CTR{año}{mes:02d}{count:04d}"
+    
+    def generar_contrato(self):
+        """
+        Genera el archivo de contrato rellenando la plantilla con datos del cliente y cuña
+        Requiere: pip install python-docx
+        """
+        try:
+            from docx import Document
+            from io import BytesIO
+            import locale
+            
+            # Configurar locale para fechas en español
+            try:
+                locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
+            except:
+                try:
+                    locale.setlocale(locale.LC_TIME, 'es_ES')
+                except:
+                    pass
+            
+            if not self.plantilla_usada or not self.plantilla_usada.archivo_plantilla:
+                raise ValueError("No hay plantilla asignada")
+            
+            # Abrir la plantilla
+            doc = Document(self.plantilla_usada.archivo_plantilla.path)
+            
+            # Preparar datos para reemplazo
+            cliente = self.cuña.cliente
+            cuña = self.cuña
+            
+            # Calcular valores
+            valor_sin_iva = self.valor_sin_iva or cuña.precio_total
+            if self.plantilla_usada.incluye_iva:
+                porcentaje_iva = self.plantilla_usada.porcentaje_iva / 100
+                valor_iva = valor_sin_iva * Decimal(str(porcentaje_iva))
+                valor_total = valor_sin_iva + valor_iva
+            else:
+                valor_iva = Decimal('0.00')
+                valor_total = valor_sin_iva
+            
+            # Calcular duración en meses (aproximado)
+            duracion_dias = cuña.duracion_total_dias
+            duracion_meses = round(duracion_dias / 30, 1)
+            
+            # Diccionario de reemplazo
+            datos_reemplazo = {
+                '{{NOMBRE_CLIENTE}}': cliente.empresa or cliente.razon_social or cliente.get_full_name(),
+                '{{RUC_DNI}}': cliente.ruc_dni or 'N/A',
+                '{{CIUDAD}}': cliente.ciudad or 'N/A',
+                '{{PROVINCIA}}': cliente.provincia or 'N/A',
+                '{{DIRECCION_EXACTA}}': cliente.direccion_exacta or cliente.direccion or 'N/A',
+                '{{DIRECCION}}': cliente.direccion_exacta or cliente.direccion or 'N/A',
+                
+                # Valores monetarios en números
+                '{{VALOR_NUMEROS}}': f"{valor_sin_iva:.2f}",
+                '{{IVA_NUMEROS}}': f"{valor_iva:.2f}",
+                '{{TOTAL_NUMEROS}}': f"{valor_total:.2f}",
+                
+                # Valores monetarios en letras
+                '{{VALOR_LETRAS}}': numero_a_letras(valor_sin_iva),
+                '{{IVA_LETRAS}}': numero_a_letras(valor_iva),
+                '{{TOTAL_LETRAS}}': numero_a_letras(valor_total),
+                
+                # Fechas
+                '{{FECHA_INICIO}}': cuña.fecha_inicio.strftime('%d de %B del %Y') if cuña.fecha_inicio else 'N/A',
+                '{{FECHA_FIN}}': cuña.fecha_fin.strftime('%d de %B del %Y') if cuña.fecha_fin else 'N/A',
+                '{{FECHA_ACTUAL}}': timezone.now().strftime('%d de %B del %Y'),
+                
+                # Información del contrato
+                '{{DURACION_DIAS}}': str(duracion_dias),
+                '{{DURACION_MESES}}': str(duracion_meses),
+                '{{SPOTS_DIA}}': str(cuña.repeticiones_dia),
+                '{{DURACION_SPOT}}': str(cuña.duracion_planeada),
+                '{{NUMERO_CONTRATO}}': self.numero_contrato,
+                
+                # Información adicional
+                '{{CODIGO_CUÑA}}': cuña.codigo,
+                '{{TITULO_CUÑA}}': cuña.titulo,
+            }
+            
+            # Guardar datos de generación
+            self.datos_generacion = datos_reemplazo
+            
+            # Reemplazar en párrafos
+            for paragraph in doc.paragraphs:
+                for key, value in datos_reemplazo.items():
+                    if key in paragraph.text:
+                        for run in paragraph.runs:
+                            if key in run.text:
+                                run.text = run.text.replace(key, value)
+            
+            # Reemplazar en tablas
+            for table in doc.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        for paragraph in cell.paragraphs:
+                            for key, value in datos_reemplazo.items():
+                                if key in paragraph.text:
+                                    for run in paragraph.runs:
+                                        if key in run.text:
+                                            run.text = run.text.replace(key, value)
+            
+            # Guardar el documento modificado
+            buffer = BytesIO()
+            doc.save(buffer)
+            buffer.seek(0)
+            
+            # Guardar en el modelo
+            from django.core.files.base import ContentFile
+            nombre_archivo = f"contrato_{self.numero_contrato}.docx"
+            self.archivo_contrato.save(
+                nombre_archivo,
+                ContentFile(buffer.read()),
+                save=False
+            )
+            
+            self.estado = 'generado'
+            self.save()
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error generando contrato: {e}")
+            return False
+    
+    def marcar_como_enviado(self):
+        """Marca el contrato como enviado"""
+        self.estado = 'enviado'
+        self.fecha_envio = timezone.now()
+        self.save()
+    
+    def marcar_como_firmado(self):
+        """Marca el contrato como firmado"""
+        self.estado = 'firmado'
+        self.fecha_firma = timezone.now()
+        self.save()
+    
+    def activar_contrato(self):
+        """Activa el contrato"""
+        if self.estado == 'firmado':
+            self.estado = 'activo'
+            self.save()
+    
+    def get_absolute_url(self):
+        return reverse('content:contrato_detail', kwargs={'pk': self.pk})
+    
+    @property
+    def puede_regenerar(self):
+        """Verifica si el contrato puede regenerarse"""
+        return self.estado in ['borrador', 'generado']
+    
+    @property
+    def esta_activo(self):
+        """Verifica si el contrato está activo"""
+        return self.estado == 'activo' and self.cuña.esta_activa
+
+
+# ==================== SEÑALES ====================
+
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
@@ -866,11 +1476,11 @@ def cuña_pre_save(sender, instance, **kwargs):
     else:
         instance._estado_anterior = None
 
+
 @receiver(post_save, sender=CuñaPublicitaria)
 def cuña_post_save(sender, instance, created, **kwargs):
     """Crea entrada en el historial después de guardar"""
     if created:
-        # Cuña creada
         HistorialCuña.objects.create(
             cuña=instance,
             accion='creada',
@@ -885,16 +1495,9 @@ def cuña_post_save(sender, instance, created, **kwargs):
             }
         )
     else:
-        # Cuña editada - verificar cambios
         estado_anterior = getattr(instance, '_estado_anterior', None)
         if estado_anterior:
-            cambios = []
-            
-            # Verificar cambio de estado
             if estado_anterior.estado != instance.estado:
-                cambios.append(f"Estado: {estado_anterior.get_estado_display()} → {instance.get_estado_display()}")
-                
-                # Crear entrada específica para cambios de estado importantes
                 if instance.estado == 'aprobada':
                     HistorialCuña.objects.create(
                         cuña=instance,
@@ -905,7 +1508,6 @@ def cuña_post_save(sender, instance, created, **kwargs):
                         datos_nuevos={'estado': instance.estado, 'aprobada_por': instance.aprobada_por.username if instance.aprobada_por else None}
                     )
             
-            # Verificar otros cambios importantes
             if estado_anterior.archivo_audio != instance.archivo_audio:
                 accion = 'audio_subido' if not estado_anterior.archivo_audio else 'audio_cambiado'
                 HistorialCuña.objects.create(
@@ -917,7 +1519,6 @@ def cuña_post_save(sender, instance, created, **kwargs):
                     datos_nuevos={'archivo_audio': str(instance.archivo_audio) if instance.archivo_audio else None}
                 )
             
-            # Si hay otros cambios, crear entrada genérica
             if (estado_anterior.titulo != instance.titulo or 
                 estado_anterior.precio_total != instance.precio_total or
                 estado_anterior.fecha_inicio != instance.fecha_inicio or

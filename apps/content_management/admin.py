@@ -1,6 +1,7 @@
 """
 Administración Django para el módulo de Gestión de Contenido Publicitario
 Sistema PubliTrack - Interfaz administrativa para cuñas publicitarias y archivos de audio
+INCLUYE: Administración de Plantillas y Contratos Generados
 """
 
 from django.contrib import admin
@@ -16,7 +17,9 @@ from .models import (
     TipoContrato,
     ArchivoAudio,
     CuñaPublicitaria,
-    HistorialCuña
+    HistorialCuña,
+    PlantillaContrato,
+    ContratoGenerado
 )
 
 # ==================== CONFIGURACIÓN GENERAL ====================
@@ -36,6 +39,26 @@ class HistorialCuñaInline(admin.TabularInline):
     
     def has_add_permission(self, request, obj):
         return False
+
+
+class ContratoGeneradoInline(admin.TabularInline):
+    """Inline para mostrar contratos generados en cuñas"""
+    model = ContratoGenerado
+    extra = 0
+    readonly_fields = ('numero_contrato', 'estado', 'valor_total', 'fecha_generacion', 'ver_contrato')
+    fields = ('numero_contrato', 'estado', 'valor_total', 'fecha_generacion', 'ver_contrato')
+    can_delete = False
+    
+    def ver_contrato(self, obj):
+        if obj.pk:
+            url = reverse('admin:content_management_contratogenerado_change', args=[obj.pk])
+            return format_html('<a href="{}" target="_blank">Ver Detalle</a>', url)
+        return '-'
+    ver_contrato.short_description = 'Acciones'
+    
+    def has_add_permission(self, request, obj):
+        return False
+
 
 # ==================== CATEGORIAS PUBLICITARIAS ====================
 
@@ -101,6 +124,7 @@ class CategoriaPublicitariaAdmin(admin.ModelAdmin):
         return f'${total:,.2f}'
     ingresos_totales.short_description = 'Ingresos Totales'
 
+
 # ==================== TIPOS DE CONTRATO ====================
 
 @admin.register(TipoContrato)
@@ -148,6 +172,7 @@ class TipoContratoAdmin(admin.ModelAdmin):
             )
         return '0 activas'
     total_cuñas_activas.short_description = 'Cuñas Activas'
+
 
 # ==================== ARCHIVOS DE AUDIO ====================
 
@@ -235,6 +260,7 @@ class ArchivoAudioAdmin(admin.ModelAdmin):
             return False
         return super().has_delete_permission(request, obj)
 
+
 # ==================== CUÑAS PUBLICITARIAS ====================
 
 @admin.register(CuñaPublicitaria)
@@ -252,7 +278,8 @@ class CuñaPublicitariaAdmin(admin.ModelAdmin):
         'precio_total',
         'fecha_inicio',
         'fecha_fin',
-        'dias_restantes_display'
+        'dias_restantes_display',
+        'total_contratos'
     ]
     
     list_filter = [
@@ -262,6 +289,8 @@ class CuñaPublicitariaAdmin(admin.ModelAdmin):
         'tipo_contrato',
         'vendedor_asignado',
         'requiere_aprobacion',
+        'excluir_sabados',
+        'excluir_domingos',
         'created_at',
         'fecha_inicio',
         'fecha_fin'
@@ -273,6 +302,8 @@ class CuñaPublicitariaAdmin(admin.ModelAdmin):
         'cliente__username',
         'cliente__first_name',
         'cliente__last_name',
+        'cliente__empresa',
+        'cliente__ruc_dni',
         'vendedor_asignado__username',
         'vendedor_asignado__first_name',
         'vendedor_asignado__last_name'
@@ -285,8 +316,11 @@ class CuñaPublicitariaAdmin(admin.ModelAdmin):
         'updated_at',
         'fecha_aprobacion',
         'duracion_total_dias',
+        'dias_efectivos',
+        'emisiones_totales_reales',
         'reproducciones_totales',
         'costo_por_reproduccion',
+        'costo_por_emision_real',
         'semaforo_estado'
     ]
     
@@ -330,9 +364,14 @@ class CuñaPublicitariaAdmin(admin.ModelAdmin):
             'fields': (
                 'fecha_inicio',
                 'fecha_fin',
+                'excluir_sabados',
+                'excluir_domingos',
                 'duracion_total_dias',
+                'dias_efectivos',
                 'reproducciones_totales',
-                'costo_por_reproduccion'
+                'emisiones_totales_reales',
+                'costo_por_reproduccion',
+                'costo_por_emision_real'
             )
         }),
         ('Aprobación', {
@@ -362,7 +401,7 @@ class CuñaPublicitariaAdmin(admin.ModelAdmin):
         }),
     )
     
-    inlines = [HistorialCuñaInline]
+    inlines = [ContratoGeneradoInline, HistorialCuñaInline]
     
     actions = [
         'aprobar_cuñas_seleccionadas',
@@ -373,13 +412,16 @@ class CuñaPublicitariaAdmin(admin.ModelAdmin):
     
     def cliente_info(self, obj):
         if obj.cliente:
-            return obj.cliente.empresa if hasattr(obj.cliente, 'empresa') else obj.cliente.get_full_name()
+            info = obj.cliente.empresa if hasattr(obj.cliente, 'empresa') and obj.cliente.empresa else obj.cliente.get_full_name()
+            url = reverse('admin:authentication_customuser_change', args=[obj.cliente.pk])
+            return format_html('<a href="{}">{}</a>', url, info)
         return '-'
     cliente_info.short_description = 'Cliente'
     
     def vendedor_info(self, obj):
         if obj.vendedor_asignado:
-            return obj.vendedor_asignado.get_full_name()
+            url = reverse('admin:authentication_customuser_change', args=[obj.vendedor_asignado.pk])
+            return format_html('<a href="{}">{}</a>', url, obj.vendedor_asignado.get_full_name())
         return '-'
     vendedor_info.short_description = 'Vendedor'
     
@@ -434,6 +476,18 @@ class CuñaPublicitariaAdmin(admin.ModelAdmin):
         else:
             return format_html('<span style="color: #28a745;">{} días</span>', dias)
     dias_restantes_display.short_description = 'Días Restantes'
+    
+    def total_contratos(self, obj):
+        """Muestra el total de contratos generados"""
+        count = obj.contratos.count()
+        if count > 0:
+            url = reverse('admin:content_management_contratogenerado_changelist')
+            return format_html(
+                '<a href="{}?cuña__id__exact={}">{}</a>',
+                url, obj.pk, count
+            )
+        return '0'
+    total_contratos.short_description = 'Contratos'
     
     # ==================== ACCIONES MASIVAS ====================
     
@@ -500,6 +554,439 @@ class CuñaPublicitariaAdmin(admin.ModelAdmin):
             'created_by',
             'aprobada_por'
         )
+
+
+# ==================== PLANTILLAS DE CONTRATO ====================
+
+@admin.register(PlantillaContrato)
+class PlantillaContratoAdmin(admin.ModelAdmin):
+    """Administración de plantillas de contrato"""
+    
+    list_display = [
+        'nombre',
+        'tipo_contrato',
+        'version',
+        'incluye_iva_badge',
+        'porcentaje_iva',
+        'is_default_badge',
+        'is_active',
+        'total_contratos_generados',
+        'created_at'
+    ]
+    
+    list_filter = [
+        'tipo_contrato',
+        'incluye_iva',
+        'is_active',
+        'is_default',
+        'created_at'
+    ]
+    
+    search_fields = [
+        'nombre',
+        'descripcion',
+        'version',
+        'instrucciones'
+    ]
+    
+    readonly_fields = [
+        'variables_disponibles',
+        'created_at',
+        'updated_at'
+    ]
+    
+    ordering = ['-is_default', '-is_active', '-created_at']
+    date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('Información Básica', {
+            'fields': (
+                'nombre',
+                'tipo_contrato',
+                'version',
+                'descripcion',
+                'is_active',
+                'is_default'
+            )
+        }),
+        ('Archivo de Plantilla', {
+            'fields': (
+                'archivo_plantilla',
+                'instrucciones'
+            ),
+            'description': 'Suba un archivo Word (.docx) con variables en formato {{VARIABLE}}'
+        }),
+        ('Configuración de IVA', {
+            'fields': (
+                'incluye_iva',
+                'porcentaje_iva'
+            )
+        }),
+        ('Variables Disponibles', {
+            'fields': ('variables_disponibles',),
+            'classes': ('collapse',),
+            'description': 'Variables que se pueden usar en la plantilla'
+        }),
+        ('Metadatos', {
+            'fields': (
+                'created_by',
+                'created_at',
+                'updated_at'
+            ),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = [
+        'marcar_como_predeterminada',
+        'activar_plantillas',
+        'desactivar_plantillas'
+    ]
+    
+    def incluye_iva_badge(self, obj):
+        """Badge para indicar si incluye IVA"""
+        if obj.incluye_iva:
+            return format_html(
+                '<span class="badge bg-success">✓ Sí</span>'
+            )
+        return format_html(
+            '<span class="badge bg-secondary">✗ No</span>'
+        )
+    incluye_iva_badge.short_description = 'IVA'
+    
+    def is_default_badge(self, obj):
+        """Badge para plantilla predeterminada"""
+        if obj.is_default:
+            return format_html(
+                '<span class="badge bg-primary">★ Predeterminada</span>'
+            )
+        return '-'
+    is_default_badge.short_description = 'Estado'
+    
+    def total_contratos_generados(self, obj):
+        """Muestra el total de contratos generados con esta plantilla"""
+        count = obj.contratos_generados.count()
+        if count > 0:
+            url = reverse('admin:content_management_contratogenerado_changelist')
+            return format_html(
+                '<a href="{}?plantilla_usada__id__exact={}">{} contratos</a>',
+                url, obj.pk, count
+            )
+        return '0 contratos'
+    total_contratos_generados.short_description = 'Contratos Generados'
+    
+    # ==================== ACCIONES MASIVAS ====================
+    
+    def marcar_como_predeterminada(self, request, queryset):
+        """Marcar una plantilla como predeterminada"""
+        if queryset.count() > 1:
+            self.message_user(
+                request,
+                'Solo puede marcar una plantilla como predeterminada a la vez.',
+                level='error'
+            )
+            return
+        
+        plantilla = queryset.first()
+        
+        # Desmarcar otras plantillas del mismo tipo
+        PlantillaContrato.objects.filter(
+            tipo_contrato=plantilla.tipo_contrato,
+            is_default=True
+        ).update(is_default=False)
+        
+        plantilla.is_default = True
+        plantilla.save()
+        
+        self.message_user(
+            request,
+            f'Plantilla "{plantilla.nombre}" marcada como predeterminada.'
+        )
+    marcar_como_predeterminada.short_description = "Marcar como predeterminada"
+    
+    def activar_plantillas(self, request, queryset):
+        """Activar plantillas seleccionadas"""
+        count = queryset.update(is_active=True)
+        self.message_user(
+            request,
+            f'{count} plantillas activadas exitosamente.'
+        )
+    activar_plantillas.short_description = "Activar plantillas seleccionadas"
+    
+    def desactivar_plantillas(self, request, queryset):
+        """Desactivar plantillas seleccionadas"""
+        count = queryset.update(is_active=False)
+        self.message_user(
+            request,
+            f'{count} plantillas desactivadas exitosamente.'
+        )
+    desactivar_plantillas.short_description = "Desactivar plantillas seleccionadas"
+    
+    def has_delete_permission(self, request, obj=None):
+        """Prevenir eliminación si la plantilla tiene contratos generados"""
+        if obj and obj.contratos_generados.exists():
+            return False
+        return super().has_delete_permission(request, obj)
+
+
+# ==================== CONTRATOS GENERADOS ====================
+
+@admin.register(ContratoGenerado)
+class ContratoGeneradoAdmin(admin.ModelAdmin):
+    """Administración de contratos generados"""
+    
+    list_display = [
+        'numero_contrato',
+        'nombre_cliente',
+        'ruc_dni_cliente',
+        'cuña_link',
+        'estado_badge',
+        'valor_sin_iva',
+        'valor_iva',
+        'valor_total',
+        'fecha_generacion',
+        'fecha_firma',
+        'acciones_rapidas'
+    ]
+    
+    list_filter = [
+        'estado',
+        'fecha_generacion',
+        'fecha_envio',
+        'fecha_firma',
+        'plantilla_usada',
+        'generado_por'
+    ]
+    
+    search_fields = [
+        'numero_contrato',
+        'nombre_cliente',
+        'ruc_dni_cliente',
+        'cuña__codigo',
+        'cuña__titulo',
+        'cliente__username',
+        'cliente__empresa',
+        'cliente__ruc_dni'
+    ]
+    
+    readonly_fields = [
+        'numero_contrato',
+        'cuña',
+        'plantilla_usada',
+        'cliente',
+        'nombre_cliente',
+        'ruc_dni_cliente',
+        'valor_sin_iva',
+        'valor_iva',
+        'valor_total',
+        'datos_generacion',
+        'fecha_generacion',
+        'generado_por',
+        'created_at',
+        'updated_at',
+        'descargar_archivo',
+        'puede_regenerar'
+    ]
+    
+    ordering = ['-fecha_generacion']
+    date_hierarchy = 'fecha_generacion'
+    
+    fieldsets = (
+        ('Información del Contrato', {
+            'fields': (
+                'numero_contrato',
+                'estado',
+                'cuña',
+                'plantilla_usada'
+            )
+        }),
+        ('Información del Cliente', {
+            'fields': (
+                'cliente',
+                'nombre_cliente',
+                'ruc_dni_cliente'
+            )
+        }),
+        ('Valores del Contrato', {
+            'fields': (
+                'valor_sin_iva',
+                'valor_iva',
+                'valor_total'
+            )
+        }),
+        ('Archivos Generados', {
+            'fields': (
+                'archivo_contrato',
+                'archivo_contrato_pdf',
+                'descargar_archivo'
+            )
+        }),
+        ('Fechas y Estados', {
+            'fields': (
+                'fecha_generacion',
+                'fecha_envio',
+                'fecha_firma'
+            )
+        }),
+        ('Datos de Generación', {
+            'fields': ('datos_generacion',),
+            'classes': ('collapse',),
+            'description': 'Datos utilizados para generar el contrato'
+        }),
+        ('Observaciones', {
+            'fields': ('observaciones',)
+        }),
+        ('Metadatos', {
+            'fields': (
+                'generado_por',
+                'created_at',
+                'updated_at',
+                'puede_regenerar'
+            ),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = [
+        'marcar_como_enviado',
+        'marcar_como_firmado',
+        'activar_contratos',
+        'regenerar_contratos'
+    ]
+    
+    def cuña_link(self, obj):
+        """Enlace a la cuña asociada"""
+        if obj.cuña:
+            url = reverse('admin:content_management_cuñapublicitaria_change', args=[obj.cuña.pk])
+            return format_html(
+                '<a href="{}" target="_blank">{}</a>',
+                url,
+                obj.cuña.codigo
+            )
+        return '-'
+    cuña_link.short_description = 'Cuña'
+    
+    def estado_badge(self, obj):
+        """Badge visual para el estado"""
+        colors = {
+            'borrador': 'secondary',
+            'generado': 'info',
+            'enviado': 'warning',
+            'firmado': 'primary',
+            'activo': 'success',
+            'vencido': 'danger',
+            'cancelado': 'dark'
+        }
+        color = colors.get(obj.estado, 'secondary')
+        return format_html(
+            '<span class="badge bg-{}">{}</span>',
+            color,
+            obj.get_estado_display()
+        )
+    estado_badge.short_description = 'Estado'
+    
+    def descargar_archivo(self, obj):
+        """Enlace para descargar el contrato"""
+        if obj.archivo_contrato:
+            return format_html(
+                '<a href="{}" class="button" target="_blank">📄 Descargar DOCX</a>',
+                obj.archivo_contrato.url
+            )
+        return 'No generado'
+    descargar_archivo.short_description = 'Descargar'
+    
+    def acciones_rapidas(self, obj):
+        """Botones de acciones rápidas"""
+        acciones = []
+        
+        if obj.estado == 'generado':
+            acciones.append('<span style="color: #28a745;">✓ Listo</span>')
+        elif obj.estado == 'enviado':
+            acciones.append('<span style="color: #ffc107;">📧 Enviado</span>')
+        elif obj.estado == 'firmado':
+            acciones.append('<span style="color: #0d6efd;">✍ Firmado</span>')
+        elif obj.estado == 'activo':
+            acciones.append('<span style="color: #28a745;">🟢 Activo</span>')
+        
+        return format_html(' '.join(acciones)) if acciones else '-'
+    acciones_rapidas.short_description = 'Estado'
+    
+    # ==================== ACCIONES MASIVAS ====================
+    
+    def marcar_como_enviado(self, request, queryset):
+        """Marcar contratos como enviados"""
+        count = 0
+        for contrato in queryset.filter(estado='generado'):
+            contrato.marcar_como_enviado()
+            count += 1
+        
+        self.message_user(
+            request,
+            f'{count} contratos marcados como enviados.'
+        )
+    marcar_como_enviado.short_description = "Marcar como enviado"
+    
+    def marcar_como_firmado(self, request, queryset):
+        """Marcar contratos como firmados"""
+        count = 0
+        for contrato in queryset.filter(estado='enviado'):
+            contrato.marcar_como_firmado()
+            count += 1
+        
+        self.message_user(
+            request,
+            f'{count} contratos marcados como firmados.'
+        )
+    marcar_como_firmado.short_description = "Marcar como firmado"
+    
+    def activar_contratos(self, request, queryset):
+        """Activar contratos"""
+        count = 0
+        for contrato in queryset.filter(estado='firmado'):
+            contrato.activar_contrato()
+            count += 1
+        
+        self.message_user(
+            request,
+            f'{count} contratos activados.'
+        )
+    activar_contratos.short_description = "Activar contratos"
+    
+    def regenerar_contratos(self, request, queryset):
+        """Regenerar archivos de contratos"""
+        count = 0
+        errores = 0
+        
+        for contrato in queryset:
+            if contrato.puede_regenerar:
+                if contrato.generar_contrato():
+                    count += 1
+                else:
+                    errores += 1
+        
+        if count > 0:
+            self.message_user(
+                request,
+                f'{count} contratos regenerados exitosamente.'
+            )
+        
+        if errores > 0:
+            self.message_user(
+                request,
+                f'{errores} contratos no pudieron ser regenerados.',
+                level='warning'
+            )
+    regenerar_contratos.short_description = "Regenerar archivos de contrato"
+    
+    def get_queryset(self, request):
+        """Optimizar queryset con select_related"""
+        return super().get_queryset(request).select_related(
+            'cuña',
+            'cliente',
+            'plantilla_usada',
+            'generado_por'
+        )
+
 
 # ==================== HISTORIAL DE CUÑAS ====================
 
@@ -588,7 +1075,7 @@ class HistorialCuñaAdmin(admin.ModelAdmin):
         if obj.usuario:
             return format_html(
                 '<a href="{}">{}</a>',
-                reverse('admin:auth_user_change', args=[obj.usuario.pk]),
+                reverse('admin:authentication_customuser_change', args=[obj.usuario.pk]),
                 obj.usuario.get_full_name() or obj.usuario.username
             )
         return 'Sistema'
@@ -600,6 +1087,7 @@ class HistorialCuñaAdmin(admin.ModelAdmin):
             return f"{obj.descripcion[:50]}..."
         return obj.descripcion
     descripcion_truncada.short_description = 'Descripción'
+
 
 # ==================== CONFIGURACIÓN ADICIONAL ====================
 
@@ -630,6 +1118,9 @@ class PubliTrackAdminSite(admin.AdminSite):
                 created_at__date__gte=hace_mes,
                 estado__in=['aprobada', 'activa', 'finalizada']
             ).aggregate(total=Sum('precio_total'))['total'] or 0,
+            'contratos_activos': ContratoGenerado.objects.filter(estado='activo').count(),
+            'contratos_pendientes': ContratoGenerado.objects.filter(estado='generado').count(),
+            'plantillas_activas': PlantillaContrato.objects.filter(is_active=True).count(),
         })
         
         return super().index(request, extra_context)
