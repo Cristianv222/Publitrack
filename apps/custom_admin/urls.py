@@ -48,10 +48,10 @@ urlpatterns = [
     
     # Categorías
     path('categorias/', views.categorias_list, name='categorias_list'),
+    path('categorias/api/<int:categoria_id>/', views.categoria_detail_api, name='categoria_detail_api'),  # ✅ AGREGAR ESTA LÍNEA
     path('categorias/api/create/', views.categoria_create_api, name='categoria_create_api'),
     path('categorias/api/<int:pk>/update/', views.categoria_update_api, name='categoria_update_api'),
     path('categorias/api/<int:pk>/delete/', views.categoria_delete_api, name='categoria_delete_api'),
-    
     # Contratos
     path('contratos/', views.contratos_list, name='contratos_list'),
     path('contratos/api/create/', views.contrato_create_api, name='contrato_create_api'),

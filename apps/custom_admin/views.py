@@ -1138,8 +1138,10 @@ def cuna_detail(request, pk):
 @user_passes_test(is_admin)
 def cuna_delete(request, pk):
     return redirect('custom_admin:cunas_list')
+# ==============================================================================
+# VISTAS DE CATEGORÍAS
+# ==============================================================================
 
-# ============= VISTAS DE CATEGORÍAS =============
 @login_required
 @user_passes_test(is_admin)
 def categorias_list(request):
@@ -1154,6 +1156,29 @@ def categorias_list(request):
         'categorias': categorias,
     }
     return render(request, 'custom_admin/categorias/list.html', context)
+
+@login_required
+def categoria_detail_api(request, categoria_id):
+    """API para obtener detalles de una categoría"""
+    from apps.content_management.models import CategoriaPublicitaria
+    
+    try:
+        categoria = CategoriaPublicitaria.objects.get(pk=categoria_id)
+        
+        data = {
+            'id': categoria.id,
+            'nombre': categoria.nombre,
+            'descripcion': categoria.descripcion,
+            'color_codigo': categoria.color_codigo,
+            'tarifa_base': float(categoria.tarifa_base),  # Tarifa por segundo
+        }
+        
+        return JsonResponse(data)
+    
+    except CategoriaPublicitaria.DoesNotExist:
+        return JsonResponse({'error': 'Categoría no encontrada'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 @login_required
 @user_passes_test(is_admin)

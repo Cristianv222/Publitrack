@@ -75,7 +75,7 @@
                                         <ul class="dropdown-menu dropdown-menu-end">
                                             <li>
                                                 <a class="dropdown-item" href="#" 
-                                                   onclick="editarCategoria({{ categoria.id }}, '{{ categoria.nombre }}', '{{ categoria.descripcion|escapejs }}', '{{ categoria.color_codigo }}', '{{ categoria.tarifa_base }}')">
+                                                   onclick="editarCategoria({{ categoria.id }}, '{{ categoria.nombre }}', '{{ categoria.descripcion|escapejs }}', '{{ categoria.color_codigo }}', {{ categoria.tarifa_base|stringformat:'f' }})"
                                                     <i class="fas fa-edit me-2"></i>Editar
                                                 </a>
                                             </li>
@@ -256,17 +256,25 @@ document.getElementById('categoriaTarifa').addEventListener('input', function(e)
 
 // Funciones CRUD
 function editarCategoria(id, nombre, descripcion, color, tarifa) {
+    console.log('Editando categoría:', {id, nombre, descripcion, color, tarifa}); // Debug
+    
     document.getElementById('categoriaModalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Editar Categoría';
     document.getElementById('categoriaId').value = id;
     document.getElementById('categoriaNombre').value = nombre;
-    document.getElementById('categoriaDescripcion').value = descripcion;
+    document.getElementById('categoriaDescripcion').value = descripcion || '';
     document.getElementById('categoriaColor').value = color;
     document.getElementById('categoriaColorText').value = color;
-    document.getElementById('categoriaTarifa').value = tarifa;
+    
+    // ✅ CRÍTICO: Convertir tarifa a número y establecer valor
+    const tarifaNum = parseFloat(tarifa) || 0;
+    document.getElementById('categoriaTarifa').value = tarifaNum.toFixed(2);
+    
+    // Actualizar vista previa
     document.getElementById('previewColor').style.backgroundColor = color;
     document.getElementById('previewNombre').textContent = nombre;
-    document.getElementById('previewTarifa').textContent = parseFloat(tarifa).toFixed(2);
+    document.getElementById('previewTarifa').textContent = tarifaNum.toFixed(2);
     
+    // Mostrar modal
     new bootstrap.Modal(document.getElementById('categoriaModal')).show();
 }
 
