@@ -184,7 +184,29 @@ class CustomUser(AbstractUser):
         verbose_name='Vendedor Asignado',
         help_text='Vendedor responsable del cliente'
     )
+    ciudad = models.CharField(
+        'Ciudad',
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text='Ciudad del cliente'
+    )
     
+    provincia = models.CharField(
+        'Provincia/Estado',
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text='Provincia o estado del cliente'
+    )
+    
+    direccion_exacta = models.TextField(
+        'Dirección Exacta',
+        blank=True,
+        null=True,
+        help_text='Dirección completa y detallada del cliente'
+    )
+
     # CONFIGURACIONES DE NOTIFICACIONES
     notificaciones_email = models.BooleanField(
         'Notificaciones por Email',

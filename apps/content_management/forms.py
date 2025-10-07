@@ -8,7 +8,9 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from decimal import Decimal
 from datetime import date, timedelta
-
+from django import forms
+from django.core.exceptions import ValidationError
+from apps.authentication.models import CustomUser
 from .models import (
     CategoriaPublicitaria, 
     TipoContrato, 
@@ -621,3 +623,205 @@ class EstadoCuñaForm(forms.Form):
             self.fields['cuñas'].queryset = queryset.filter(
                 estado__in=['aprobada', 'activa', 'pausada']
             )
+"""
+Formularios para el módulo de Gestión de Contenido
+Sistema PubliTrack
+"""
+class ClienteForm(forms.ModelForm):
+    """
+    Formulario para crear/editar clientes SIN contraseña
+    Los clientes son entidades comerciales que no requieren acceso al sistema
+    """
+    
+    class Meta:
+        model = CustomUser
+        fields = [
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+            'telefono',
+            'empresa',
+            'ruc_dni',
+            'razon_social',
+            'giro_comercial',
+            'ciudad',
+            'provincia',
+            'direccion_exacta',
+            'vendedor_asignado',
+            'limite_credito',
+            'dias_credito',
+            'status',
+        ]
+        
+        widgets = {
+            'username': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Usuario único para el cliente'
+            }),
+            'first_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre del contacto'
+            }),
+            'last_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Apellido del contacto'
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'correo@ejemplo.com'
+            }),
+            'telefono': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Teléfono de contacto'
+            }),
+            'empresa': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre comercial de la empresa'
+            }),
+            'ruc_dni': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'RUC o Cédula'
+            }),
+            'razon_social': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Razón social completa'
+            }),
+            'giro_comercial': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Actividad comercial'
+            }),
+            'ciudad': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ciudad'
+            }),
+            'provincia': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Provincia o Estado'
+            }),
+            'direccion_exacta': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Dirección completa y detallada'
+            }),
+            'vendedor_asignado': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'limite_credito': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0.00',
+                'step': '0.01'
+            }),
+            'dias_credito': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '30'
+            }),
+            'status': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+        }
+        
+        labels = {
+            'username': 'Usuario',
+            'first_name': 'Nombre',
+            'last_name': 'Apellido',
+            'email': 'Correo Electrónico',
+            'telefono': 'Teléfono',
+            'empresa': 'Nombre de la Empresa',
+            'ruc_dni': 'RUC/Cédula',
+            'razon_social': 'Razón Social',
+            'giro_comercial': 'Giro Comercial',
+            'ciudad': 'Ciudad',
+            'provincia': 'Provincia/Estado',
+            'direccion_exacta': 'Dirección Exacta',
+            'vendedor_asignado': 'Vendedor Asignado',
+            'limite_credito': 'Límite de Crédito',
+            'dias_credito': 'Días de Crédito',
+            'status': 'Estado',
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Filtrar solo vendedores activos para el campo vendedor_asignado
+        self.fields['vendedor_asignado'].queryset = CustomUser.objects.filter(
+            rol='vendedor',
+            status='activo',
+            is_active=True
+        )
+        self.fields['vendedor_asignado'].required = False
+        
+        # Campos requeridos para clientes
+        self.fields['empresa'].required = True
+        self.fields['ruc_dni'].required = True
+        self.fields['email'].required = True
+        self.fields['telefono'].required = True
+        self.fields['ciudad'].required = True
+        self.fields['provincia'].required = True
+    
+    def clean_username(self):
+        """Validar username único"""
+        username = self.cleaned_data.get('username')
+        if not username:
+            raise ValidationError('El nombre de usuario es obligatorio.')
+        
+        # Verificar si ya existe (excepto en edición)
+        qs = CustomUser.objects.filter(username=username)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        
+        if qs.exists():
+            raise ValidationError('Este nombre de usuario ya está en uso.')
+        
+        return username
+    
+    def clean_email(self):
+        """Validar email único"""
+        email = self.cleaned_data.get('email')
+        if not email:
+            raise ValidationError('El correo electrónico es obligatorio.')
+        
+        # Verificar si ya existe (excepto en edición)
+        qs = CustomUser.objects.filter(email=email)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        
+        if qs.exists():
+            raise ValidationError('Este correo electrónico ya está registrado.')
+        
+        return email
+    
+    def clean_ruc_dni(self):
+        """Validar RUC/DNI único"""
+        ruc_dni = self.cleaned_data.get('ruc_dni')
+        if not ruc_dni:
+            raise ValidationError('El RUC/Cédula es obligatorio.')
+        
+        # Verificar si ya existe (excepto en edición)
+        qs = CustomUser.objects.filter(ruc_dni=ruc_dni)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        
+        if qs.exists():
+            raise ValidationError('Este RUC/Cédula ya está registrado.')
+        
+        return ruc_dni
+    
+    def save(self, commit=True):
+        """Guardar cliente SIN contraseña"""
+        cliente = super().save(commit=False)
+        
+        # Establecer rol como cliente
+        cliente.rol = 'cliente'
+        
+        # Si es nuevo cliente, configurar sin contraseña
+        if not self.instance.pk:
+            cliente.set_unusable_password()  # ✅ SIN contraseña
+            cliente.is_active = True
+            cliente.is_staff = False
+            cliente.is_superuser = False
+        
+        if commit:
+            cliente.save()
+        
+        return cliente

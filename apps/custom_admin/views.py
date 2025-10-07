@@ -15,7 +15,7 @@ from django.views.decorators.http import require_POST
 from django.db.models import Count
 from django.contrib.admin.models import LogEntry, ADDITION, CHANGE, DELETION
 from django.contrib.contenttypes.models import ContentType
-
+from apps.authentication.models import CustomUser
 # Obtener el modelo de usuario correcto
 User = get_user_model()
 
@@ -215,17 +215,35 @@ def usuario_create_api(request):
         usuario.is_active = data.get('is_active', True)
         usuario.is_staff = data.get('is_staff', False)
         usuario.is_superuser = data.get('is_superuser', False)
-        usuario.save()
         
-        # Asignar grupo
+        # ✅ DETERMINAR Y ESTABLECER EL ROL
         group_id = data.get('group_id')
         grupo = None
-        if group_id:
+        
+        # Si es superusuario, es admin
+        if usuario.is_superuser:
+            usuario.rol = 'admin'
+        # Si tiene grupo asignado
+        elif group_id:
             try:
                 grupo = Group.objects.get(pk=group_id)
                 usuario.groups.add(grupo)
+                
+                # Mapear grupo a rol
+                grupo_nombre = grupo.name.lower()
+                if 'vendedor' in grupo_nombre:
+                    usuario.rol = 'vendedor'
+                elif 'admin' in grupo_nombre or 'administrador' in grupo_nombre:
+                    usuario.rol = 'admin'
+                else:
+                    usuario.rol = 'cliente'
             except Group.DoesNotExist:
-                pass
+                usuario.rol = 'cliente'
+        # Si no tiene grupo ni es superuser
+        else:
+            usuario.rol = 'cliente'
+        
+        usuario.save()
         
         # REGISTRAR EN LOGENTRY
         LogEntry.objects.log_action(
@@ -234,8 +252,10 @@ def usuario_create_api(request):
             object_id=usuario.pk,
             object_repr=str(usuario),
             action_flag=ADDITION,
-            change_message=f'Creado con rol: {grupo.name if grupo else "Sin rol"}'
+            change_message=f'Creado con rol: {usuario.get_rol_display()} ({grupo.name if grupo else "Sin grupo"})'
         )
+        
+        messages.success(request, f'Usuario {usuario.username} creado exitosamente con rol {usuario.get_rol_display()}')
         
         return JsonResponse({
             'success': True,
@@ -277,7 +297,7 @@ def usuario_update_api(request, pk):
             if User.objects.filter(email=data['email']).exists():
                 return JsonResponse({'success': False, 'error': 'El email ya está registrado'})
         
-        # Actualizar usuario
+        # Actualizar campos básicos
         usuario.username = data['username']
         usuario.email = data.get('email', '')
         usuario.first_name = data.get('first_name', '')
@@ -286,13 +306,42 @@ def usuario_update_api(request, pk):
         usuario.is_staff = data.get('is_staff', False)
         usuario.is_superuser = data.get('is_superuser', False)
         
-        # Actualizar grupo
+        # ✅ DETERMINAR Y ACTUALIZAR EL ROL
+        rol_anterior = usuario.get_rol_display()
+        
+        # Limpiar grupos
         usuario.groups.clear()
-        grupo = None
-        if data.get('group_id'):
-            grupo = Group.objects.get(pk=data['group_id'])
-            usuario.groups.add(grupo)
-            cambios.append(f"Rol: {grupo.name}")
+        
+        # Si es superusuario, es admin
+        if usuario.is_superuser:
+            usuario.rol = 'admin'
+            cambios.append(f"Rol: {rol_anterior} → Administrador (Superusuario)")
+        # Si tiene grupo asignado
+        elif data.get('group_id'):
+            try:
+                grupo = Group.objects.get(pk=data['group_id'])
+                usuario.groups.add(grupo)
+                
+                # Mapear grupo a rol
+                grupo_nombre = grupo.name.lower()
+                if 'vendedor' in grupo_nombre:
+                    nuevo_rol = 'vendedor'
+                elif 'admin' in grupo_nombre or 'administrador' in grupo_nombre:
+                    nuevo_rol = 'admin'
+                else:
+                    nuevo_rol = 'cliente'
+                
+                if usuario.rol != nuevo_rol:
+                    cambios.append(f"Rol: {rol_anterior} → {dict(usuario.ROLE_CHOICES).get(nuevo_rol)}")
+                    usuario.rol = nuevo_rol
+                    
+            except Group.DoesNotExist:
+                usuario.rol = 'cliente'
+        # Sin grupo ni superuser
+        else:
+            if usuario.rol != 'cliente':
+                cambios.append(f"Rol: {rol_anterior} → Cliente")
+                usuario.rol = 'cliente'
         
         usuario.save()
         
@@ -657,7 +706,8 @@ def cunas_list(request):
     estado = request.GET.get('estado')
     cliente_id = request.GET.get('cliente')
     
-    cunas = CuñaPublicitaria.objects.all().order_by('-created_at')
+    # ✅ CORREGIDO: vendedor_asignado en lugar de vendedor
+    cunas = CuñaPublicitaria.objects.all().select_related('cliente', 'vendedor_asignado', 'categoria', 'tipo_contrato').order_by('-created_at')
     
     if query:
         cunas = cunas.filter(
@@ -683,19 +733,34 @@ def cunas_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    # Obtener listas para los selectores
-    clientes = User.objects.filter(
-        Q(groups__name='Clientes') | 
-        Q(is_active=True)
-    ).exclude(is_staff=True).exclude(is_superuser=True)
+    # Obtener clientes usando CustomUser con rol='cliente'
+    clientes = CustomUser.objects.filter(
+        rol='cliente',
+        is_active=True
+    ).order_by('empresa', 'username')
     
-    vendedores = User.objects.filter(groups__name='Vendedores', is_active=True)
+    # Obtener vendedores usando CustomUser con rol='vendedor'
+    vendedores = CustomUser.objects.filter(
+        rol='vendedor',
+        is_active=True
+    ).order_by('first_name', 'last_name')
     
-    # Obtener categorías
-    categorias = CategoriaPublicitaria.objects.filter(is_active=True) if CategoriaPublicitaria else []
+    # ✅ CORREGIDO: Usar CategoriaPublicitaria (nombre correcto del modelo)
+    categorias = []
+    if CONTENT_MODELS_AVAILABLE:
+        try:
+            from apps.content_management.models import CategoriaPublicitaria
+            categorias = CategoriaPublicitaria.objects.filter(is_active=True)
+        except:
+            categorias = []
     
     # Obtener tipos de contrato
-    tipos_contrato = TipoContrato.objects.all() if TipoContrato else []
+    tipos_contrato = []
+    if CONTENT_MODELS_AVAILABLE:
+        try:
+            tipos_contrato = TipoContrato.objects.all()
+        except:
+            tipos_contrato = []
     
     context = {
         'cunas': page_obj,
@@ -721,180 +786,337 @@ def cunas_list(request):
 # ============= APIs DE CUÑAS =============
 @login_required
 @user_passes_test(is_admin)
-def cuna_detail_api(request, pk):
-    """API para obtener detalle de cuña"""
-    if not CONTENT_MODELS_AVAILABLE:
-        return JsonResponse({'error': 'Módulo no disponible'}, status=400)
+def cunas_detail_api(request, cuna_id):
+    """API para obtener detalles de una cuña"""
+    from apps.content_management.models import CuñaPublicitaria
     
     try:
-        cuna = CuñaPublicitaria.objects.get(pk=pk)
+        # ✅ CORREGIDO: vendedor_asignado en lugar de vendedor
+        cuna = CuñaPublicitaria.objects.select_related(
+            'cliente', 'vendedor_asignado', 'categoria', 'tipo_contrato'
+        ).get(pk=cuna_id)
+        
         data = {
             'id': cuna.id,
             'codigo': cuna.codigo,
             'titulo': cuna.titulo,
             'descripcion': cuna.descripcion or '',
             'cliente_id': cuna.cliente.id if cuna.cliente else None,
-            'cliente_nombre': cuna.cliente.empresa if cuna.cliente and hasattr(cuna.cliente, 'empresa') else (cuna.cliente.get_full_name() if cuna.cliente else ''),
-            'vendedor_id': cuna.vendedor_asignado.id if hasattr(cuna, 'vendedor_asignado') and cuna.vendedor_asignado else None,
-            'categoria_id': cuna.categoria.id if hasattr(cuna, 'categoria') and cuna.categoria else None,
+            'cliente_nombre': cuna.cliente.empresa or cuna.cliente.get_full_name() if cuna.cliente else None,
+            # ✅ CORREGIDO: vendedor_asignado en lugar de vendedor
+            'vendedor_id': cuna.vendedor_asignado.id if cuna.vendedor_asignado else None,
+            'vendedor_nombre': cuna.vendedor_asignado.get_full_name() if cuna.vendedor_asignado else None,
+            'categoria_id': cuna.categoria.id if cuna.categoria else None,
             'duracion_planeada': cuna.duracion_planeada,
-            'repeticiones_dia': cuna.repeticiones_dia if hasattr(cuna, 'repeticiones_dia') else 1,
-            'fecha_inicio': cuna.fecha_inicio.strftime('%Y-%m-%d') if cuna.fecha_inicio else '',
-            'fecha_fin': cuna.fecha_fin.strftime('%Y-%m-%d') if cuna.fecha_fin else '',
-            'precio_total': str(cuna.precio_total),
-            'precio_por_segundo': str(cuna.precio_por_segundo) if hasattr(cuna, 'precio_por_segundo') else '0',
+            'repeticiones_dia': cuna.repeticiones_dia,
+            'fecha_inicio': cuna.fecha_inicio.strftime('%Y-%m-%d') if cuna.fecha_inicio else None,
+            'fecha_fin': cuna.fecha_fin.strftime('%Y-%m-%d') if cuna.fecha_fin else None,
+            'precio_por_segundo': float(cuna.precio_por_segundo),
+            'precio_total': float(cuna.precio_total),
+            'excluir_sabados': cuna.excluir_sabados,
+            'excluir_domingos': cuna.excluir_domingos,
+            'tipo_contrato_id': cuna.tipo_contrato.id if cuna.tipo_contrato else None,
             'estado': cuna.estado,
-            'excluir_sabados': cuna.excluir_sabados if hasattr(cuna, 'excluir_sabados') else False,
-            'excluir_domingos': cuna.excluir_domingos if hasattr(cuna, 'excluir_domingos') else False,
-            'tipo_contrato_id': cuna.tipo_contrato.id if hasattr(cuna, 'tipo_contrato') and cuna.tipo_contrato else None,
-            'observaciones': cuna.observaciones if hasattr(cuna, 'observaciones') else '',
+            'observaciones': cuna.observaciones or ''
         }
+        
         return JsonResponse(data)
+    
     except CuñaPublicitaria.DoesNotExist:
         return JsonResponse({'error': 'Cuña no encontrada'}, status=404)
-
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return JsonResponse({'error': str(e)}, status=500)
+    
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["POST"])
-def cuna_create_api(request):
-    """API para crear cuña"""
-    if not CONTENT_MODELS_AVAILABLE:
-        return JsonResponse({'success': False, 'error': 'Módulo no disponible'})
+def cunas_create_api(request):
+    """API para crear una nueva cuña publicitaria"""
+    from apps.content_management.models import CuñaPublicitaria
+    from decimal import Decimal
+    from datetime import datetime
     
     try:
         data = json.loads(request.body)
         
-        # Crear cuña
-        cuna_data = {
-            'titulo': data['titulo'],
-            'descripcion': data.get('descripcion', ''),
-            'duracion_planeada': data.get('duracion_planeada', 30),
-            'fecha_inicio': data.get('fecha_inicio'),
-            'fecha_fin': data.get('fecha_fin'),
-            'precio_total': Decimal(str(data.get('precio_total', 0))),
-            'estado': data.get('estado', 'borrador'),
-        }
+        # Validar cliente
+        if not data.get('cliente_id'):
+            return JsonResponse({'success': False, 'error': 'Cliente es obligatorio'}, status=400)
         
-        # Campos opcionales
-        if data.get('cliente_id'):
-            cuna_data['cliente_id'] = data['cliente_id']
-            
-        if hasattr(CuñaPublicitaria, 'vendedor_asignado') and data.get('vendedor_id'):
-            cuna_data['vendedor_asignado_id'] = data['vendedor_id']
-            
-        if hasattr(CuñaPublicitaria, 'categoria') and data.get('categoria_id'):
-            cuna_data['categoria_id'] = data['categoria_id']
-            
-        if hasattr(CuñaPublicitaria, 'created_by'):
-            cuna_data['created_by'] = request.user
+        try:
+            cliente = CustomUser.objects.get(pk=data['cliente_id'], rol='cliente')
+        except CustomUser.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Cliente no encontrado'}, status=404)
         
-        cuna = CuñaPublicitaria.objects.create(**cuna_data)
+        # Convertir valores a tipos correctos
+        try:
+            duracion_planeada = int(data.get('duracion_planeada', 30))
+            repeticiones_dia = int(data.get('repeticiones_dia', 1))
+            precio_por_segundo = float(data.get('precio_por_segundo', 0))
+            precio_total = float(data.get('precio_total', 0))
+        except (ValueError, TypeError) as e:
+            return JsonResponse({
+                'success': False, 
+                'error': f'Error en los valores numéricos: {str(e)}'
+            }, status=400)
         
-        # REGISTRAR EN LOGENTRY
+        # ✅ CRÍTICO: Convertir fechas de string a objetos date
+        fecha_inicio = None
+        fecha_fin = None
+        
+        if data.get('fecha_inicio'):
+            try:
+                fecha_inicio = datetime.strptime(data['fecha_inicio'], '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                return JsonResponse({'success': False, 'error': 'Formato de fecha de inicio inválido'}, status=400)
+        
+        if data.get('fecha_fin'):
+            try:
+                fecha_fin = datetime.strptime(data['fecha_fin'], '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                return JsonResponse({'success': False, 'error': 'Formato de fecha de fin inválido'}, status=400)
+        
+        # Crear la cuña
+        cuna = CuñaPublicitaria.objects.create(
+            titulo=data.get('titulo'),
+            descripcion=data.get('descripcion', ''),
+            cliente=cliente,
+            duracion_planeada=duracion_planeada,
+            repeticiones_dia=repeticiones_dia,
+            fecha_inicio=fecha_inicio,
+            fecha_fin=fecha_fin,
+            precio_por_segundo=Decimal(str(precio_por_segundo)),
+            precio_total=Decimal(str(precio_total)),
+            excluir_sabados=data.get('excluir_sabados', False),
+            excluir_domingos=data.get('excluir_domingos', False),
+            estado=data.get('estado', 'borrador'),
+            observaciones=data.get('observaciones', '')
+        )
+        
+        # Asignar vendedor si se proporciona
+        if data.get('vendedor_id'):
+            try:
+                vendedor = CustomUser.objects.get(pk=data['vendedor_id'], rol='vendedor')
+                cuna.vendedor_asignado = vendedor
+            except CustomUser.DoesNotExist:
+                pass
+        
+        # Asignar categoría si se proporciona
+        if data.get('categoria_id'):
+            from apps.content_management.models import CategoriaPublicitaria
+            try:
+                categoria = CategoriaPublicitaria.objects.get(pk=data['categoria_id'])
+                cuna.categoria = categoria
+            except CategoriaPublicitaria.DoesNotExist:
+                pass
+        
+        # Asignar tipo de contrato si se proporciona
+        if data.get('tipo_contrato_id'):
+            from apps.content_management.models import TipoContrato
+            try:
+                tipo_contrato = TipoContrato.objects.get(pk=data['tipo_contrato_id'])
+                cuna.tipo_contrato = tipo_contrato
+            except TipoContrato.DoesNotExist:
+                pass
+        
+        cuna.save()
+        
+        # Registrar en historial
+        from django.contrib.admin.models import LogEntry, ADDITION
+        from django.contrib.contenttypes.models import ContentType
+        
         LogEntry.objects.log_action(
             user_id=request.user.pk,
             content_type_id=ContentType.objects.get_for_model(cuna).pk,
             object_id=cuna.pk,
-            object_repr=str(cuna),
+            object_repr=str(cuna.titulo),
             action_flag=ADDITION,
-            change_message=f'Cuña creada: {cuna.titulo} - Estado: {cuna.estado}'
+            change_message=f'Cuña creada: {cuna.titulo} - Cliente: {cliente.empresa or cliente.username}'
         )
         
-        messages.success(request, f'Cuña "{cuna.titulo}" creada exitosamente')
-        return JsonResponse({'success': True, 'cuna_id': cuna.id})
-        
+        return JsonResponse({
+            'success': True,
+            'message': 'Cuña creada exitosamente',
+            'cuna_id': cuna.id
+        })
+    
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+        import traceback
+        print(traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
 
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["PUT"])
-def cuna_update_api(request, pk):
-    """API para actualizar cuña"""
-    if not CONTENT_MODELS_AVAILABLE:
-        return JsonResponse({'success': False, 'error': 'Módulo no disponible'})
+def cunas_update_api(request, cuna_id):
+    """API para actualizar una cuña publicitaria"""
+    from apps.content_management.models import CuñaPublicitaria
+    from decimal import Decimal
+    from datetime import datetime
     
     try:
-        cuna = CuñaPublicitaria.objects.get(pk=pk)
+        cuna = CuñaPublicitaria.objects.get(pk=cuna_id)
         data = json.loads(request.body)
         
-        cambios = []
-        if data['titulo'] != cuna.titulo:
-            cambios.append(f"Título: {cuna.titulo} → {data['titulo']}")
-        if data.get('estado') != cuna.estado:
-            cambios.append(f"Estado: {cuna.estado} → {data.get('estado')}")
+        # Actualizar campos básicos
+        cuna.titulo = data.get('titulo', cuna.titulo)
+        cuna.descripcion = data.get('descripcion', cuna.descripcion)
+        cuna.estado = data.get('estado', cuna.estado)
+        cuna.observaciones = data.get('observaciones', cuna.observaciones)
+        cuna.excluir_sabados = data.get('excluir_sabados', cuna.excluir_sabados)
+        cuna.excluir_domingos = data.get('excluir_domingos', cuna.excluir_domingos)
         
-        # Actualizar campos
-        cuna.titulo = data['titulo']
-        cuna.descripcion = data.get('descripcion', '')
-        cuna.duracion_planeada = data.get('duracion_planeada', 30)
-        cuna.fecha_inicio = data.get('fecha_inicio')
-        cuna.fecha_fin = data.get('fecha_fin')
-        cuna.precio_total = Decimal(str(data.get('precio_total', 0)))
-        cuna.estado = data.get('estado', 'borrador')
+        # ✅ CRÍTICO: Convertir fechas de string a objetos date
+        if 'fecha_inicio' in data and data['fecha_inicio']:
+            try:
+                cuna.fecha_inicio = datetime.strptime(data['fecha_inicio'], '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                return JsonResponse({'success': False, 'error': 'Formato de fecha de inicio inválido'}, status=400)
         
-        # Campos opcionales
+        if 'fecha_fin' in data and data['fecha_fin']:
+            try:
+                cuna.fecha_fin = datetime.strptime(data['fecha_fin'], '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                return JsonResponse({'success': False, 'error': 'Formato de fecha de fin inválido'}, status=400)
+        
+        # Actualizar campos numéricos con conversión correcta
+        try:
+            if 'duracion_planeada' in data:
+                cuna.duracion_planeada = int(data['duracion_planeada'])
+            if 'repeticiones_dia' in data:
+                cuna.repeticiones_dia = int(data['repeticiones_dia'])
+            if 'precio_por_segundo' in data:
+                cuna.precio_por_segundo = Decimal(str(float(data['precio_por_segundo'])))
+            if 'precio_total' in data:
+                cuna.precio_total = Decimal(str(float(data['precio_total'])))
+        except (ValueError, TypeError) as e:
+            return JsonResponse({
+                'success': False,
+                'error': f'Error en los valores numéricos: {str(e)}'
+            }, status=400)
+        
+        # Actualizar cliente
         if data.get('cliente_id'):
-            cuna.cliente_id = data['cliente_id']
+            try:
+                cliente = CustomUser.objects.get(pk=data['cliente_id'], rol='cliente')
+                cuna.cliente = cliente
+            except CustomUser.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'Cliente no encontrado'}, status=404)
         
-        if hasattr(cuna, 'vendedor_asignado'):
-            cuna.vendedor_asignado_id = data.get('vendedor_id')
-            
-        if hasattr(cuna, 'categoria'):
-            cuna.categoria_id = data.get('categoria_id')
+        # Actualizar vendedor
+        if 'vendedor_id' in data:
+            if data['vendedor_id']:
+                try:
+                    vendedor = CustomUser.objects.get(pk=data['vendedor_id'], rol='vendedor')
+                    cuna.vendedor_asignado = vendedor
+                except CustomUser.DoesNotExist:
+                    cuna.vendedor_asignado = None
+            else:
+                cuna.vendedor_asignado = None
+        
+        # Actualizar categoría
+        if 'categoria_id' in data:
+            if data['categoria_id']:
+                from apps.content_management.models import CategoriaPublicitaria
+                try:
+                    categoria = CategoriaPublicitaria.objects.get(pk=data['categoria_id'])
+                    cuna.categoria = categoria
+                except CategoriaPublicitaria.DoesNotExist:
+                    cuna.categoria = None
+            else:
+                cuna.categoria = None
+        
+        # Actualizar tipo de contrato
+        if 'tipo_contrato_id' in data:
+            if data['tipo_contrato_id']:
+                from apps.content_management.models import TipoContrato
+                try:
+                    tipo_contrato = TipoContrato.objects.get(pk=data['tipo_contrato_id'])
+                    cuna.tipo_contrato = tipo_contrato
+                except TipoContrato.DoesNotExist:
+                    cuna.tipo_contrato = None
+            else:
+                cuna.tipo_contrato = None
         
         cuna.save()
         
-        # REGISTRAR MODIFICACIÓN EN LOGENTRY
+        # Registrar en historial
+        from django.contrib.admin.models import LogEntry, CHANGE
+        from django.contrib.contenttypes.models import ContentType
+        
         LogEntry.objects.log_action(
             user_id=request.user.pk,
             content_type_id=ContentType.objects.get_for_model(cuna).pk,
             object_id=cuna.pk,
-            object_repr=str(cuna),
+            object_repr=str(cuna.titulo),
             action_flag=CHANGE,
-            change_message=f'Modificado: {", ".join(cambios) if cambios else "Actualizado"}'
+            change_message=f'Cuña actualizada: {cuna.titulo}'
         )
         
-        messages.success(request, f'Cuña "{cuna.titulo}" actualizada exitosamente')
-        return JsonResponse({'success': True})
-        
+        return JsonResponse({
+            'success': True,
+            'message': 'Cuña actualizada exitosamente'
+        })
+    
     except CuñaPublicitaria.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Cuña no encontrada'})
+        return JsonResponse({'success': False, 'error': 'Cuña no encontrada'}, status=404)
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+        import traceback
+        print(traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
 
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["DELETE"])
-def cuna_delete_api(request, pk):
-    """API para eliminar cuña"""
-    if not CONTENT_MODELS_AVAILABLE:
-        return JsonResponse({'success': False, 'error': 'Módulo no disponible'})
+@login_required
+def cunas_delete_api(request, cuna_id):
+    """API para eliminar una cuña publicitaria"""
+    from apps.content_management.models import CuñaPublicitaria
+    
+    if request.method != 'DELETE':
+        return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
     
     try:
-        cuna = CuñaPublicitaria.objects.get(pk=pk)
+        cuna = CuñaPublicitaria.objects.get(pk=cuna_id)
         titulo = cuna.titulo
-        cuna_id = cuna.pk
         
-        # REGISTRAR EN LOGENTRY ANTES DE ELIMINAR
+        # Registrar en historial antes de eliminar
+        from django.contrib.admin.models import LogEntry, DELETION
+        from django.contrib.contenttypes.models import ContentType
+        
         LogEntry.objects.log_action(
             user_id=request.user.pk,
             content_type_id=ContentType.objects.get_for_model(cuna).pk,
-            object_id=cuna_id,
-            object_repr=titulo,
+            object_id=cuna.pk,
+            object_repr=str(titulo),
             action_flag=DELETION,
             change_message=f'Cuña eliminada: {titulo}'
         )
         
         cuna.delete()
         
-        messages.success(request, f'Cuña "{titulo}" eliminada exitosamente')
-        return JsonResponse({'success': True})
-        
+        return JsonResponse({
+            'success': True,
+            'message': 'Cuña eliminada exitosamente'
+        })
+    
     except CuñaPublicitaria.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Cuña no encontrada'})
+        return JsonResponse({'success': False, 'error': 'Cuña no encontrada'}, status=404)
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+        import traceback
+        print(traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
 
 # Vistas de compatibilidad
 @login_required
@@ -1184,6 +1406,375 @@ def reportes_dashboard(request):
     """Dashboard de reportes"""
     context = {'mensaje': 'Módulo de Reportes - En desarrollo'}
     return render(request, 'custom_admin/en_desarrollo.html', context)
+
+# ==============================================================================
+# GESTIÓN DE CLIENTES
+# ==============================================================================
+
+from apps.content_management.forms import ClienteForm
+
+@login_required
+def clientes_list(request):
+    """Vista principal para gestión de clientes"""
+    
+    # Verificar permisos
+    if not request.user.es_admin and not request.user.es_vendedor:
+        messages.error(request, 'No tienes permisos para acceder a esta sección.')
+        return redirect('custom_admin:dashboard')
+    
+    # Si es vendedor, solo ver sus clientes
+    if request.user.es_vendedor:
+        clientes = CustomUser.objects.filter(
+            rol='cliente',
+            vendedor_asignado=request.user
+        ).select_related('vendedor_asignado')
+    else:
+        clientes = CustomUser.objects.filter(
+            rol='cliente'
+        ).select_related('vendedor_asignado')
+    
+    # Filtros
+    search = request.GET.get('search', '')
+    status_filter = request.GET.get('status', '')
+    vendedor_filter = request.GET.get('vendedor', '')
+    
+    if search:
+        clientes = clientes.filter(
+            Q(username__icontains=search) |
+            Q(first_name__icontains=search) |
+            Q(last_name__icontains=search) |
+            Q(empresa__icontains=search) |
+            Q(ruc_dni__icontains=search) |
+            Q(email__icontains=search)
+        )
+    
+    if status_filter:
+        clientes = clientes.filter(status=status_filter)
+    
+    if vendedor_filter and request.user.es_admin:
+        clientes = clientes.filter(vendedor_asignado_id=vendedor_filter)
+    
+    # Ordenar
+    clientes = clientes.order_by('-created_at')
+    
+    # Estadísticas
+    total_clientes = clientes.count()
+    clientes_activos = clientes.filter(status='activo').count()
+    clientes_inactivos = clientes.filter(status='inactivo').count()
+    
+    # Vendedores para filtro (solo admins)
+    vendedores = CustomUser.objects.filter(
+        rol='vendedor',
+        status='activo'
+    ).order_by('first_name', 'last_name') if request.user.es_admin else []
+    
+    context = {
+        'clientes': clientes,
+        'total_clientes': total_clientes,
+        'clientes_activos': clientes_activos,
+        'clientes_inactivos': clientes_inactivos,
+        'vendedores': vendedores,
+        'search': search,
+        'status_filter': status_filter,
+        'vendedor_filter': vendedor_filter,
+    }
+    
+    return render(request, 'custom_admin/clientes/list.html', context)
+
+
+@login_required
+def cliente_detail_api(request, cliente_id):
+    """API para obtener detalles de un cliente"""
+    
+    if not request.user.es_admin and not request.user.es_vendedor:
+        return JsonResponse({'error': 'Sin permisos'}, status=403)
+    
+    try:
+        cliente = CustomUser.objects.select_related('vendedor_asignado').get(
+            pk=cliente_id,
+            rol='cliente'
+        )
+        
+        # Verificar permisos de vendedor
+        if request.user.es_vendedor and cliente.vendedor_asignado != request.user:
+            return JsonResponse({'error': 'Sin permisos'}, status=403)
+        
+        data = {
+            'id': cliente.id,
+            'username': cliente.username,
+            'first_name': cliente.first_name,
+            'last_name': cliente.last_name,
+            'email': cliente.email,
+            'telefono': cliente.telefono or '',
+            'empresa': cliente.empresa or '',
+            'ruc_dni': cliente.ruc_dni or '',
+            'razon_social': cliente.razon_social or '',
+            'giro_comercial': cliente.giro_comercial or '',
+            'ciudad': cliente.ciudad or '',
+            'provincia': cliente.provincia or '',
+            'direccion_exacta': cliente.direccion_exacta or '',
+            'vendedor_asignado_id': cliente.vendedor_asignado.id if cliente.vendedor_asignado else None,
+            'vendedor_asignado_nombre': cliente.vendedor_asignado.get_full_name() if cliente.vendedor_asignado else '',
+            'limite_credito': str(cliente.limite_credito) if cliente.limite_credito else '0.00',
+            'dias_credito': cliente.dias_credito or 0,
+            'status': cliente.status,
+            'fecha_registro': cliente.fecha_registro.strftime('%d/%m/%Y %H:%M') if cliente.fecha_registro else '',
+        }
+        
+        return JsonResponse(data)
+    
+    except CustomUser.DoesNotExist:
+        return JsonResponse({'error': 'Cliente no encontrado'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def cliente_create_api(request):
+    """API para crear un nuevo cliente"""
+    
+    if not request.user.es_admin and not request.user.es_vendedor:
+        messages.error(request, 'No tienes permisos para crear clientes')
+        return redirect('custom_admin:clientes_list')
+    
+    if request.method != 'POST':
+        messages.error(request, 'Método no permitido')
+        return redirect('custom_admin:clientes_list')
+    
+    try:
+        # Validar que no exista el username
+        username = request.POST.get('username')
+        if CustomUser.objects.filter(username=username).exists():
+            messages.error(request, f'El usuario "{username}" ya existe')
+            return redirect('custom_admin:clientes_list')
+        
+        # Validar que no exista el email
+        email = request.POST.get('email')
+        if CustomUser.objects.filter(email=email).exists():
+            messages.error(request, f'El email "{email}" ya está registrado')
+            return redirect('custom_admin:clientes_list')
+        
+        # Crear el cliente sin contraseña
+        cliente = CustomUser(
+            username=username,
+            email=email,
+            first_name=request.POST.get('first_name', ''),
+            last_name=request.POST.get('last_name', ''),
+        )
+        
+        # Establecer contraseña como no utilizable (sin contraseña)
+        cliente.set_unusable_password()
+        
+        # Establecer rol como cliente
+        cliente.rol = 'cliente'
+        cliente.is_active = True
+        
+        # Campos adicionales del cliente
+        cliente.telefono = request.POST.get('telefono', '')
+        cliente.empresa = request.POST.get('empresa', '')
+        cliente.ruc_dni = request.POST.get('ruc_dni', '')
+        cliente.razon_social = request.POST.get('razon_social', '')
+        cliente.giro_comercial = request.POST.get('giro_comercial', '')
+        cliente.ciudad = request.POST.get('ciudad', '')
+        cliente.provincia = request.POST.get('provincia', '')
+        cliente.direccion_exacta = request.POST.get('direccion_exacta', '')
+        
+        # Manejar valores numéricos
+        try:
+            cliente.limite_credito = float(request.POST.get('limite_credito', 0))
+        except (ValueError, TypeError):
+            cliente.limite_credito = 0
+            
+        try:
+            cliente.dias_credito = int(request.POST.get('dias_credito', 0))
+        except (ValueError, TypeError):
+            cliente.dias_credito = 0
+        
+        cliente.status = request.POST.get('status', 'activo')
+        
+        # Asignar vendedor
+        if request.user.es_vendedor:
+            # Si es vendedor, asignarse a sí mismo
+            cliente.vendedor_asignado = request.user
+        elif request.POST.get('vendedor_asignado'):
+            # Si es admin, asignar el vendedor seleccionado
+            vendedor_id = request.POST.get('vendedor_asignado')
+            if vendedor_id:
+                try:
+                    vendedor = CustomUser.objects.get(pk=vendedor_id, rol='vendedor')
+                    cliente.vendedor_asignado = vendedor
+                except CustomUser.DoesNotExist:
+                    pass
+        
+        # Guardar el cliente
+        cliente.save()
+        
+        # Registrar en historial con LogEntry
+        from django.contrib.admin.models import LogEntry, ADDITION
+        from django.contrib.contenttypes.models import ContentType
+        
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(cliente).pk,
+            object_id=cliente.pk,
+            object_repr=str(cliente.empresa or cliente.username),
+            action_flag=ADDITION,
+            change_message=f'Cliente creado: {cliente.empresa} ({cliente.ruc_dni}) - Sin contraseña'
+        )
+        
+        messages.success(request, f'✓ Cliente "{cliente.empresa}" creado exitosamente')
+        return redirect('custom_admin:clientes_list')
+    
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())  # Para debug en consola
+        messages.error(request, f'Error al crear el cliente: {str(e)}')
+        return redirect('custom_admin:clientes_list')
+    
+@login_required
+def cliente_update_api(request, cliente_id):
+    """API para actualizar un cliente existente"""
+    
+    if not request.user.es_admin and not request.user.es_vendedor:
+        messages.error(request, 'No tienes permisos para editar clientes')
+        return redirect('custom_admin:clientes_list')
+    
+    if request.method != 'POST':
+        messages.error(request, 'Método no permitido')
+        return redirect('custom_admin:clientes_list')
+    
+    try:
+        cliente = CustomUser.objects.get(pk=cliente_id, rol='cliente')
+        
+        # Verificar permisos de vendedor
+        if request.user.es_vendedor and cliente.vendedor_asignado != request.user:
+            messages.error(request, 'No tienes permisos para editar este cliente')
+            return redirect('custom_admin:clientes_list')
+        
+        # Guardar cambios para el log
+        cambios = []
+        
+        # Actualizar campos
+        if request.POST.get('username') and request.POST.get('username') != cliente.username:
+            cambios.append(f"Username: {cliente.username} → {request.POST.get('username')}")
+            cliente.username = request.POST.get('username')
+        
+        if request.POST.get('email') and request.POST.get('email') != cliente.email:
+            cambios.append(f"Email: {cliente.email} → {request.POST.get('email')}")
+            cliente.email = request.POST.get('email')
+        
+        cliente.first_name = request.POST.get('first_name', '')
+        cliente.last_name = request.POST.get('last_name', '')
+        cliente.telefono = request.POST.get('telefono', '')
+        cliente.empresa = request.POST.get('empresa', '')
+        cliente.ruc_dni = request.POST.get('ruc_dni', '')
+        cliente.razon_social = request.POST.get('razon_social', '')
+        cliente.giro_comercial = request.POST.get('giro_comercial', '')
+        cliente.ciudad = request.POST.get('ciudad', '')
+        cliente.provincia = request.POST.get('provincia', '')
+        cliente.direccion_exacta = request.POST.get('direccion_exacta', '')
+        cliente.limite_credito = request.POST.get('limite_credito', 0)
+        cliente.dias_credito = request.POST.get('dias_credito', 0)
+        cliente.status = request.POST.get('status', 'activo')
+        
+        # Actualizar vendedor asignado (solo admin)
+        if request.user.es_admin and request.POST.get('vendedor_asignado'):
+            vendedor_id = request.POST.get('vendedor_asignado')
+            if vendedor_id:
+                try:
+                    vendedor = CustomUser.objects.get(pk=vendedor_id, rol='vendedor')
+                    if cliente.vendedor_asignado != vendedor:
+                        cambios.append(f"Vendedor: {cliente.vendedor_asignado} → {vendedor}")
+                        cliente.vendedor_asignado = vendedor
+                except CustomUser.DoesNotExist:
+                    pass
+        
+        cliente.save()
+        
+        # Registrar en historial con LogEntry
+        from django.contrib.admin.models import LogEntry, CHANGE
+        from django.contrib.contenttypes.models import ContentType
+        
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(cliente).pk,
+            object_id=cliente.pk,
+            object_repr=str(cliente.empresa or cliente.username),
+            action_flag=CHANGE,
+            change_message=f'Modificado: {", ".join(cambios) if cambios else "Datos actualizados"}'
+        )
+        
+        messages.success(request, f'Cliente "{cliente.empresa}" actualizado exitosamente')
+        return redirect('custom_admin:clientes_list')
+    
+    except CustomUser.DoesNotExist:
+        messages.error(request, 'Cliente no encontrado')
+        return redirect('custom_admin:clientes_list')
+    except Exception as e:
+        messages.error(request, f'Error al actualizar el cliente: {str(e)}')
+        return redirect('custom_admin:clientes_list')
+
+@login_required
+def cliente_delete_api(request, cliente_id):
+    """API para eliminar/inactivar un cliente"""
+    
+    if not request.user.es_admin:
+        messages.error(request, 'Solo administradores pueden eliminar clientes')
+        return redirect('custom_admin:clientes_list')
+    
+    if request.method != 'POST':
+        messages.error(request, 'Método no permitido')
+        return redirect('custom_admin:clientes_list')
+    
+    try:
+        cliente = CustomUser.objects.get(pk=cliente_id, rol='cliente')
+        empresa = cliente.empresa or cliente.username
+        
+        # Verificar si tiene cuñas asociadas
+        if CONTENT_MODELS_AVAILABLE:
+            from apps.content_management.models import CuñaPublicitaria
+            tiene_cuñas = CuñaPublicitaria.objects.filter(cliente=cliente).exists()
+            
+            if tiene_cuñas:
+                # No eliminar, solo inactivar
+                cliente.status = 'inactivo'
+                cliente.is_active = False
+                cliente.save()
+                
+                mensaje = f'Cliente "{empresa}" inactivado (tiene cuñas asociadas)'
+                messages.warning(request, mensaje)
+            else:
+                # Eliminar completamente
+                cliente.delete()
+                mensaje = f'Cliente "{empresa}" eliminado exitosamente'
+                messages.success(request, mensaje)
+        else:
+            # Si no hay módulo de cuñas, eliminar directamente
+            cliente.delete()
+            mensaje = f'Cliente "{empresa}" eliminado exitosamente'
+            messages.success(request, mensaje)
+        
+        # Registrar en historial con LogEntry
+        from django.contrib.admin.models import LogEntry, DELETION
+        from django.contrib.contenttypes.models import ContentType
+        
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(cliente).pk,
+            object_id=cliente_id,
+            object_repr=empresa,
+            action_flag=DELETION,
+            change_message=mensaje
+        )
+        
+        return redirect('custom_admin:clientes_list')
+    
+    except CustomUser.DoesNotExist:
+        messages.error(request, 'Cliente no encontrado')
+        return redirect('custom_admin:clientes_list')
+    except Exception as e:
+        messages.error(request, f'Error al eliminar el cliente: {str(e)}')
+        return redirect('custom_admin:clientes_list')
 
 # ============= VISTAS DE CONFIGURACIÓN =============
 @login_required

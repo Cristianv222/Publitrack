@@ -19,27 +19,33 @@ urlpatterns = [
     path('usuarios/api/<int:pk>/actualizar/', views.usuario_update_api, name='usuario_update_api'),
     path('usuarios/api/<int:pk>/eliminar/', views.usuario_delete_api, name='usuario_delete_api'),
     path('usuarios/api/<int:pk>/cambiar-password/', views.usuario_change_password_api, name='usuario_change_password_api'),
-
+    
+    # Gestión de Clientes
+    path('clientes/', views.clientes_list, name='clientes_list'),
+    path('clientes/<int:cliente_id>/detalle/', views.cliente_detail_api, name='cliente_detail_api'),
+    path('clientes/crear/', views.cliente_create_api, name='cliente_create_api'),
+    path('clientes/<int:cliente_id>/editar/', views.cliente_update_api, name='cliente_update_api'),
+    path('clientes/<int:cliente_id>/eliminar/', views.cliente_delete_api, name='cliente_delete_api'),
+    
     # Grupos
     path('grupos/', views.grupos_list, name='grupos_list'),
     path('grupos/api/crear/', views.grupo_create_api, name='grupo_create_api'),
     path('grupos/api/<int:pk>/', views.grupo_update_api, name='grupo_update_api'),
     path('grupos/api/<int:pk>/eliminar/', views.grupo_delete_api, name='grupo_delete_api'),
     path('grupos/api/<int:pk>/usuarios/', views.grupo_usuarios_api, name='grupo_usuarios_api'),
+    
     # HISTORIAL
     path('historial/', views.historial_list, name='historial_list'),
-    # URLs de Cuñas
+    
+    # ============================
+    # URLs DE CUÑAS PUBLICITARIAS
+    # ============================
     path('cunas/', views.cunas_list, name='cunas_list'),
-    path('cunas/crear/', views.cuna_create, name='cuna_create'),  # Mantener por compatibilidad
-    path('cunas/<int:pk>/editar/', views.cuna_edit, name='cuna_edit'),  # Mantener por compatibilidad
-    path('cunas/<int:pk>/detalle/', views.cuna_detail, name='cuna_detail'),  # Mantener por compatibilidad
-    path('cunas/<int:pk>/eliminar/', views.cuna_delete, name='cuna_delete'),  # Mantener por compatibilidad
-
-    # APIs de Cuñas
-    path('cunas/api/<int:pk>/', views.cuna_detail_api, name='cuna_detail_api'),
-    path('cunas/api/crear/', views.cuna_create_api, name='cuna_create_api'),
-    path('cunas/api/<int:pk>/actualizar/', views.cuna_update_api, name='cuna_update_api'),
-    path('cunas/api/<int:pk>/eliminar/', views.cuna_delete_api, name='cuna_delete_api'),
+    path('cunas/api/<int:cuna_id>/', views.cunas_detail_api, name='cunas_detail_api'),
+    path('cunas/api/crear/', views.cunas_create_api, name='cunas_create_api'),
+    path('cunas/api/<int:cuna_id>/actualizar/', views.cunas_update_api, name='cunas_update_api'),
+    path('cunas/api/<int:cuna_id>/eliminar/', views.cunas_delete_api, name='cunas_delete_api'),
+    
     # Categorías
     path('categorias/', views.categorias_list, name='categorias_list'),
     path('categorias/api/create/', views.categoria_create_api, name='categoria_create_api'),

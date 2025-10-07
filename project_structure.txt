@@ -1,39 +1,34 @@
 🚀 DOCUMENTACIÓN DE ESTRUCTURA DEL PROYECTO
-============================================================
-📁 Proyecto: app
-📍 Ruta: /app
-🏷️  Tipo de proyecto: Django Project, Python Project, Dockerized Project, Docker Compose Project
+======================================================================
+📁 Proyecto: Publitrack
+📍 Ruta: C:\Users\godoy\Desktop\Publitrack
+
+🏷️  TECNOLOGÍAS DETECTADAS:
+   • 🐍 Python
+   • 🐳 Docker
+   • 🐍 Django
+   • 🐳 Docker Compose
+
 
 📊 RESUMEN DEL PROYECTO
-==================================================
-📂 Total de directorios: 55
-📄 Total de archivos: 193
-📅 Generado: 2025-09-30 13:15:33
-
-🏆 TIPOS DE ARCHIVOS MÁS COMUNES:
-------------------------------
-  .py: 141 archivos
-  .html: 23 archivos
-  .png: 15 archivos
-  (sin extensión): 3 archivos
-  .backup: 3 archivos
-  .js: 2 archivos
-  .ps1: 1 archivos
-  .yml: 1 archivos
-  .sh: 1 archivos
-  .txt: 1 archivos
+============================================================
+📂 Total de directorios: 0
+📄 Total de archivos: 0
+💾 Tamaño total: (0B)
+📅 Generado: 2025-10-06 19:49:38
 
 🌲 ESTRUCTURA COMPLETA DEL PROYECTO
-============================================================
-📁 app/
+======================================================================
+📁 Publitrack/
 ├── 📄 .gitignore (4.7KB)
-├── 📄 create_structure.ps1 (5.9KB)
+├── 💻 create_structure.ps1 (5.9KB)
 ├── 📄 docker-compose (0B)
 ├── ⚙️ docker-compose.yml (1.8KB)
 ├── 📄 dockerfile (1.0KB)
-├── 🐍 documenter.py (10.3KB)
-├── 📄 entrypoint.sh (2.6KB)
+├── 🐍 documenter.py (24.1KB)
+├── 🐚 entrypoint.sh (2.6KB)
 ├── 🐍 manage.py (689B)
+├── 📄 PROJECT_STRUCTURE.txt (11.7KB)
 ├── 📄 requirements.txt (825B)
 ├── 📁 apps/
 │   ├── 🐍 __init__.py (0B)
@@ -62,7 +57,7 @@
 │   │       └── 🐍 __init__.py (0B)
 │   ├── 📁 content_management/
 │   │   ├── 🐍 __init__.py (3.8KB)
-│   │   ├── 🐍 admin.py (20.4KB)
+│   │   ├── 🐍 admin.py (19.9KB)
 │   │   ├── 🐍 apps.py (2.7KB)
 │   │   ├── 🐍 checks.py (18.8KB)
 │   │   ├── 🐍 forms.py (21.5KB)
@@ -88,8 +83,12 @@
 │   ├── 📁 custom_admin/
 │   │   ├── 🐍 __init__.py (0B)
 │   │   ├── 🐍 apps.py (210B)
-│   │   ├── 🐍 urls.py (2.3KB)
-│   │   └── 🐍 views.py (18.8KB)
+│   │   ├── 🐍 urls.py (3.8KB)
+│   │   ├── 🐍 views.py (42.6KB)
+│   │   └── 📁 migrations/
+│   │       ├── 🐍 0001_initial.py (2.1KB)
+│   │       ├── 🐍 0002_delete_historialactividad.py (301B)
+│   │       └── 🐍 __init__.py (0B)
 │   ├── 📁 financial_management/
 │   │   ├── 🐍 __init__.py (0B)
 │   │   ├── 🐍 admin.py (66B)
@@ -215,7 +214,7 @@
 │   │   ├── 🖼️ favicon-16x16.png (662B)
 │   │   ├── 🖼️ favicon-32x32.png (2.0KB)
 │   │   ├── 🖼️ favicon-48x48.png (3.6KB)
-│   │   ├── 📄 favicon.ico (3.9KB)
+│   │   ├── 🖼️ favicon.ico (3.9KB)
 │   │   ├── 🖼️ icon-128x128.png (17.9KB)
 │   │   ├── 🖼️ icon-144x144.png (21.4KB)
 │   │   ├── 🖼️ icon-152x152.png (22.9KB)
@@ -237,11 +236,8 @@
 │   ├── 📁 content/
 │   │   └── 🌐 library.html (0B)
 │   ├── 📁 custom_admin/
-│   │   ├── 🌐 base_admin.html (32.7KB)
-│   │   ├── 🌐 dashboard.html (3.8KB)
-│   │   ├── 🌐 usuario_confirm_delete.html (1.1KB)
-│   │   ├── 🌐 usuario_form.html (7.8KB)
-│   │   ├── 🌐 usuarios_list.html (6.0KB)
+│   │   ├── 🌐 base_admin.html (32.6KB)
+│   │   ├── 🌐 dashboard.html (3.7KB)
 │   │   ├── 📁 categorias/
 │   │   │   └── 🌐 list.html (17.6KB)
 │   │   ├── 📁 contratos/
@@ -250,9 +246,13 @@
 │   │   │   ├── 🌐 confirm_delete.html (2.0KB)
 │   │   │   ├── 🌐 detail.html (10.7KB)
 │   │   │   ├── 🌐 form.html (16.1KB)
-│   │   │   └── 🌐 list.html (8.6KB)
-│   │   └── 📁 users/
-│   │       └── 🌐 list.html (0B)
+│   │   │   └── 🌐 list.html (39.1KB)
+│   │   ├── 📁 grupos/
+│   │   │   └── 🌐 list.html (20.2KB)
+│   │   ├── 📁 historial/
+│   │   │   └── 🌐 list.html (9.4KB)
+│   │   └── 📁 usuarios/
+│   │       └── 🌐 list.html (43.0KB)
 │   ├── 📁 dashboard/
 │   │   ├── 🌐 admin.html (15.4KB)
 │   │   ├── 🌐 cliente.html (2.6KB)
@@ -274,3 +274,7 @@
     ├── 🐍 mixins.py (0B)
     ├── 🐍 permissions.py (0B)
     └── 🐍 validators.py (0B)
+
+======================================================================
+✨ Generado por Universal Project Documenter
+======================================================================

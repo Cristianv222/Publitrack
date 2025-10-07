@@ -738,6 +738,9 @@
                     <a href="{% url 'custom_admin:contratos_list' %}" class="submenu-link {% if 'contrato' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fas fa-file-contract"></i>Ver Contratos
                     </a>
+                    <a href="{% url 'custom_admin:clientes_list' %}" class="submenu-link {% if 'clientes' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fas fa-file-contract"></i>Clientes
+                    </a>
                 </div>
             </div>
         </div>
