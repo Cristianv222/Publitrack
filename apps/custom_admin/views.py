@@ -1416,7 +1416,7 @@ def programacion_create_api(request):
 def semaforos_list(request):
     """Lista de semáforos"""
     context = {'mensaje': 'Sistema de Semáforos - En desarrollo'}
-    return render(request, 'custom_admin/en_desarrollo.html', context)
+    return render(request, 'custom_admin/semaforos/list.html', context)
 
 @login_required
 @user_passes_test(is_admin)
