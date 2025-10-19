@@ -5,9 +5,9 @@
 
 🏷️  TECNOLOGÍAS DETECTADAS:
    • 🐍 Python
-   • 🐳 Docker
    • 🐍 Django
    • 🐳 Docker Compose
+   • 🐳 Docker
 
 
 📊 RESUMEN DEL PROYECTO
@@ -15,7 +15,7 @@
 📂 Total de directorios: 0
 📄 Total de archivos: 0
 💾 Tamaño total: (0B)
-📅 Generado: 2025-10-06 19:49:38
+📅 Generado: 2025-10-07 17:42:29
 
 🌲 ESTRUCTURA COMPLETA DEL PROYECTO
 ======================================================================
@@ -28,8 +28,7 @@
 ├── 🐍 documenter.py (24.1KB)
 ├── 🐚 entrypoint.sh (2.6KB)
 ├── 🐍 manage.py (689B)
-├── 📄 PROJECT_STRUCTURE.txt (11.7KB)
-├── 📄 requirements.txt (825B)
+├── 📄 requirements.txt (847B)
 ├── 📁 apps/
 │   ├── 🐍 __init__.py (0B)
 │   ├── 🐍 context_processors.py (460B)
@@ -39,7 +38,7 @@
 │   │   ├── 🐍 apps.py (171B)
 │   │   ├── 🐍 decorators.py (12.6KB)
 │   │   ├── 🐍 forms.py (16.2KB)
-│   │   ├── 🐍 models.py (23.2KB)
+│   │   ├── 🐍 models.py (23.7KB)
 │   │   ├── 🐍 permissions.py (13.1KB)
 │   │   ├── 🐍 tests.py (63B)
 │   │   ├── 🐍 urls.py (2.2KB)
@@ -54,19 +53,20 @@
 │   │   └── 📁 migrations/
 │   │       ├── 🐍 0001_initial.py (8.9KB)
 │   │       ├── 🐍 0002_role_permission_rolepermission_role_permissions.py (5.3KB)
+│   │       ├── 🐍 0003_customuser_ciudad_customuser_direccion_exacta_and_more.py (1.0KB)
 │   │       └── 🐍 __init__.py (0B)
 │   ├── 📁 content_management/
 │   │   ├── 🐍 __init__.py (3.8KB)
-│   │   ├── 🐍 admin.py (19.9KB)
+│   │   ├── 🐍 admin.py (35.3KB)
 │   │   ├── 🐍 apps.py (2.7KB)
 │   │   ├── 🐍 checks.py (18.8KB)
-│   │   ├── 🐍 forms.py (21.5KB)
-│   │   ├── 🐍 models.py (31.6KB)
+│   │   ├── 🐍 forms.py (37.9KB)
+│   │   ├── 🐍 models.py (51.7KB)
 │   │   ├── 🐍 signals.py (19.3KB)
 │   │   ├── 🐍 task.py (17.0KB)
 │   │   ├── 🐍 tests.py (27.6KB)
-│   │   ├── 🐍 urls.py (3.2KB)
-│   │   ├── 🐍 views.py (25.6KB)
+│   │   ├── 🐍 urls.py (4.9KB)
+│   │   ├── 🐍 views.py (38.1KB)
 │   │   ├── 📁 management/
 │   │   │   ├── 🐍 __init__.py (0B)
 │   │   │   └── 📁 commands/
@@ -76,6 +76,7 @@
 │   │   ├── 📁 migrations/
 │   │   │   ├── 🐍 0001_initial.py (14.3KB)
 │   │   │   ├── 🐍 0002_agregar_exclusion_dias.py (771B)
+│   │   │   ├── 🐍 0003_alter_cuñapublicitaria_cliente_and_more.py (9.2KB)
 │   │   │   └── 🐍 __init__.py (0B)
 │   │   └── 📁 storage/
 │   │       ├── 🐍 __init__.py (0B)
@@ -83,8 +84,8 @@
 │   ├── 📁 custom_admin/
 │   │   ├── 🐍 __init__.py (0B)
 │   │   ├── 🐍 apps.py (210B)
-│   │   ├── 🐍 urls.py (3.8KB)
-│   │   ├── 🐍 views.py (42.6KB)
+│   │   ├── 🐍 urls.py (5.1KB)
+│   │   ├── 🐍 views.py (68.1KB)
 │   │   └── 📁 migrations/
 │   │       ├── 🐍 0001_initial.py (2.1KB)
 │   │       ├── 🐍 0002_delete_historialactividad.py (301B)
@@ -236,21 +237,22 @@
 │   ├── 📁 content/
 │   │   └── 🌐 library.html (0B)
 │   ├── 📁 custom_admin/
-│   │   ├── 🌐 base_admin.html (32.6KB)
+│   │   ├── 🌐 base_admin.html (32.7KB)
 │   │   ├── 🌐 dashboard.html (3.7KB)
 │   │   ├── 📁 categorias/
-│   │   │   └── 🌐 list.html (17.6KB)
+│   │   │   └── 🌐 list.html (17.9KB)
+│   │   ├── 📁 clientes/
+│   │   │   └── 🌐 list.html (28.1KB)
 │   │   ├── 📁 contratos/
 │   │   │   └── 🌐 list.html (21.8KB)
 │   │   ├── 📁 cunas/
-│   │   │   ├── 🌐 confirm_delete.html (2.0KB)
-│   │   │   ├── 🌐 detail.html (10.7KB)
-│   │   │   ├── 🌐 form.html (16.1KB)
-│   │   │   └── 🌐 list.html (39.1KB)
+│   │   │   └── 🌐 list.html (46.7KB)
 │   │   ├── 📁 grupos/
 │   │   │   └── 🌐 list.html (20.2KB)
 │   │   ├── 📁 historial/
 │   │   │   └── 🌐 list.html (9.4KB)
+│   │   ├── 📁 plantillas_contrato/
+│   │   │   └── 🌐 list.html (52.4KB)
 │   │   └── 📁 usuarios/
 │   │       └── 🌐 list.html (43.0KB)
 │   ├── 📁 dashboard/

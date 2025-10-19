@@ -16,6 +16,8 @@ from django.db.models import Count
 from django.contrib.admin.models import LogEntry, ADDITION, CHANGE, DELETION
 from django.contrib.contenttypes.models import ContentType
 from apps.authentication.models import CustomUser
+from apps.content_management.models import PlantillaContrato
+
 # Obtener el modelo de usuario correcto
 User = get_user_model()
 
@@ -64,6 +66,412 @@ def is_admin(user):
     """Verifica si el usuario es administrador"""
     return user.is_superuser or user.is_staff or getattr(user, 'rol', None) == 'admin'
 
+# ═══════════════════════════════════════════════════════════════════
+# VISTAS COMPLETAS PARA PLANTILLAS DE CONTRATO
+# Agregar estas funciones en apps/custom_admin/views.py
+# Después de la línea donde está plantilla_contrato_crear_api
+# ═══════════════════════════════════════════════════════════════════
+
+@login_required
+@user_passes_test(is_admin)
+def plantillas_contrato_list(request):
+    """Vista para listar plantillas de contrato"""
+    try:
+        plantillas = PlantillaContrato.objects.all().order_by('-created_at')
+    except:
+        plantillas = []
+    
+    context = {
+        'title': 'Plantillas de Contrato',
+        'plantillas': plantillas,
+    }
+    return render(request, 'custom_admin/plantillas_contrato/list.html', context)
+
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def plantilla_contrato_crear_api(request):
+    """API para crear una plantilla de contrato"""
+    try:
+        # ⚠️ IMPORTANTE: No usar json.loads() porque viene FormData con archivo
+        # Obtener datos del POST (FormData)
+        nombre = request.POST.get('nombre')
+        tipo_contrato = request.POST.get('tipo_contrato')
+        version = request.POST.get('version', '1.0')
+        descripcion = request.POST.get('descripcion', '')
+        incluye_iva = request.POST.get('incluye_iva') == 'true'
+        porcentaje_iva = request.POST.get('porcentaje_iva', '15.00')
+        is_active = request.POST.get('is_active') == 'true'
+        is_default = request.POST.get('is_default') == 'true'
+        instrucciones = request.POST.get('instrucciones', '')
+        archivo_plantilla = request.FILES.get('archivo_plantilla')
+        
+        # Validar campos requeridos
+        if not nombre:
+            return JsonResponse({
+                'success': False,
+                'error': 'El nombre es obligatorio'
+            }, status=400)
+        
+        if not tipo_contrato:
+            return JsonResponse({
+                'success': False,
+                'error': 'El tipo de contrato es obligatorio'
+            }, status=400)
+        
+        # Si se marca como default, desmarcar las demás
+        if is_default:
+            PlantillaContrato.objects.all().update(is_default=False)
+        
+        # Crear la plantilla
+        plantilla = PlantillaContrato.objects.create(
+            nombre=nombre,
+            tipo_contrato=tipo_contrato,
+            version=version,
+            descripcion=descripcion,
+            incluye_iva=incluye_iva,
+            porcentaje_iva=porcentaje_iva,
+            is_active=is_active,
+            is_default=is_default,
+            instrucciones=instrucciones,
+            created_by=request.user
+        )
+        
+        # Asignar archivo si existe
+        if archivo_plantilla:
+            plantilla.archivo_plantilla = archivo_plantilla
+            plantilla.save()
+        
+        # Registrar en historial
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(plantilla).pk,
+            object_id=plantilla.pk,
+            object_repr=str(plantilla.nombre),
+            action_flag=ADDITION,
+            change_message=f'Plantilla creada: {plantilla.nombre} - Tipo: {plantilla.get_tipo_contrato_display()}'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Plantilla creada exitosamente',
+            'id': plantilla.id
+        })
+        
+    except Exception as e:
+        import traceback
+        print("="*50)
+        print("ERROR AL CREAR PLANTILLA:")
+        print(traceback.format_exc())
+        print("="*50)
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al crear la plantilla: {str(e)}'
+        }, status=500)
+
+
+@login_required
+@user_passes_test(is_admin)
+def plantilla_contrato_detalle_api(request, id):
+    """API para obtener detalles de una plantilla de contrato"""
+    try:
+        plantilla = PlantillaContrato.objects.get(pk=id)
+        
+        data = {
+            'id': plantilla.id,
+            'nombre': plantilla.nombre,
+            'tipo_contrato': plantilla.tipo_contrato,
+            'tipo_contrato_display': plantilla.get_tipo_contrato_display() if hasattr(plantilla, 'get_tipo_contrato_display') else plantilla.tipo_contrato,
+            'version': plantilla.version,
+            'descripcion': plantilla.descripcion or '',
+            'incluye_iva': plantilla.incluye_iva,
+            'porcentaje_iva': str(plantilla.porcentaje_iva),
+            'is_active': plantilla.is_active,
+            'is_default': plantilla.is_default,
+            'instrucciones': plantilla.instrucciones or '',
+            'archivo_plantilla': plantilla.archivo_plantilla.url if plantilla.archivo_plantilla else None,
+            'created_by': plantilla.created_by.username if plantilla.created_by else None,
+            'created_at': plantilla.created_at.strftime('%d/%m/%Y %H:%M') if hasattr(plantilla, 'created_at') else None,
+            'updated_at': plantilla.updated_at.strftime('%d/%m/%Y %H:%M') if hasattr(plantilla, 'updated_at') else None,
+            'contratos_count': plantilla.contratos_generados.count() if hasattr(plantilla, 'contratos_generados') else 0,
+            'variables_disponibles': plantilla.variables_disponibles if hasattr(plantilla, 'variables_disponibles') else {}
+        }
+        
+        return JsonResponse(data)
+    except PlantillaContrato.DoesNotExist:
+        return JsonResponse({'error': 'Plantilla no encontrada'}, status=404)
+    except Exception as e:
+        import traceback
+        print("="*50)
+        print("ERROR AL OBTENER DETALLE:")
+        print(traceback.format_exc())
+        print("="*50)
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["PUT", "POST"])  # Permitir POST también para FormData
+def plantilla_contrato_actualizar_api(request, id):
+    """API para actualizar una plantilla de contrato"""
+    try:
+        plantilla = PlantillaContrato.objects.get(pk=id)
+        
+        # Si viene como PUT con JSON
+        if request.method == 'PUT':
+            data = json.loads(request.body)
+            nombre = data.get('nombre', plantilla.nombre)
+            tipo_contrato = data.get('tipo_contrato', plantilla.tipo_contrato)
+            version = data.get('version', plantilla.version)
+            descripcion = data.get('descripcion', plantilla.descripcion)
+            incluye_iva = data.get('incluye_iva', plantilla.incluye_iva)
+            porcentaje_iva = data.get('porcentaje_iva', plantilla.porcentaje_iva)
+            is_active = data.get('is_active', plantilla.is_active)
+            is_default = data.get('is_default', plantilla.is_default)
+            instrucciones = data.get('instrucciones', plantilla.instrucciones)
+            archivo_plantilla = None
+        # Si viene como POST con FormData
+        else:
+            nombre = request.POST.get('nombre', plantilla.nombre)
+            tipo_contrato = request.POST.get('tipo_contrato', plantilla.tipo_contrato)
+            version = request.POST.get('version', plantilla.version)
+            descripcion = request.POST.get('descripcion', plantilla.descripcion)
+            incluye_iva = request.POST.get('incluye_iva') == 'true'
+            porcentaje_iva = request.POST.get('porcentaje_iva', plantilla.porcentaje_iva)
+            is_active = request.POST.get('is_active') == 'true'
+            is_default = request.POST.get('is_default') == 'true'
+            instrucciones = request.POST.get('instrucciones', plantilla.instrucciones)
+            archivo_plantilla = request.FILES.get('archivo_plantilla')
+        
+        nombre_anterior = plantilla.nombre
+        
+        # Si se marca como default, desmarcar las demás
+        if is_default and not plantilla.is_default:
+            PlantillaContrato.objects.exclude(pk=id).update(is_default=False)
+        
+        # Actualizar campos
+        plantilla.nombre = nombre
+        plantilla.tipo_contrato = tipo_contrato
+        plantilla.version = version
+        plantilla.descripcion = descripcion
+        plantilla.incluye_iva = incluye_iva
+        plantilla.porcentaje_iva = porcentaje_iva
+        plantilla.is_active = is_active
+        plantilla.is_default = is_default
+        plantilla.instrucciones = instrucciones
+        
+        # Actualizar archivo si viene uno nuevo
+        if archivo_plantilla:
+            plantilla.archivo_plantilla = archivo_plantilla
+        
+        plantilla.save()
+        
+        # Registrar en historial
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(plantilla).pk,
+            object_id=plantilla.pk,
+            object_repr=str(plantilla.nombre),
+            action_flag=CHANGE,
+            change_message=f'Plantilla modificada: {nombre_anterior} → {plantilla.nombre}'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Plantilla actualizada exitosamente'
+        })
+        
+    except PlantillaContrato.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Plantilla no encontrada'}, status=404)
+    except Exception as e:
+        import traceback
+        print("="*50)
+        print("ERROR AL ACTUALIZAR PLANTILLA:")
+        print(traceback.format_exc())
+        print("="*50)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["DELETE"])
+def plantilla_contrato_eliminar_api(request, id):
+    """API para eliminar una plantilla de contrato"""
+    try:
+        plantilla = PlantillaContrato.objects.get(pk=id)
+        nombre = plantilla.nombre
+        
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(plantilla).pk,
+            object_id=id,
+            object_repr=nombre,
+            action_flag=DELETION,
+            change_message=f'Plantilla eliminada: {nombre}'
+        )
+        
+        plantilla.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Plantilla eliminada exitosamente'
+        })
+    except PlantillaContrato.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Plantilla no encontrada'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@user_passes_test(is_admin)
+def cuna_create(request):
+    """Vista para crear una cuña publicitaria"""
+    messages.info(request, 'Use el botón "Nueva Cuña" en la lista para crear una cuña')
+    return redirect('custom_admin:cunas_list')
+@require_http_methods(["POST"])
+@login_required
+def plantilla_contrato_marcar_default_api(request, id):
+    """
+    Marca una plantilla de contrato como default
+    """
+    try:
+        plantilla = PlantillaContrato.objects.get(id=id)
+        
+        # Desmarcar todas las otras plantillas como default
+        PlantillaContrato.objects.exclude(id=id).update(es_default=False)
+        
+        # Marcar esta como default
+        plantilla.es_default = True
+        plantilla.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Plantilla marcada como default exitosamente'
+        })
+    except PlantillaContrato.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Plantilla no encontrada'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+# ==================== PLANTILLA DE CONTRATO - MARCAR DEFAULT ====================
+@require_http_methods(["POST"])
+@login_required
+def plantilla_contrato_marcar_default_api(request, id):
+    """
+    Marca una plantilla de contrato como predeterminada
+    y desmarca todas las demás
+    """
+    try:
+        from apps.content_management.models import PlantillaContrato
+        
+        # Obtener la plantilla
+        plantilla = PlantillaContrato.objects.get(id=id)
+        
+        # Verificar permisos (opcional, ajusta según tu sistema)
+        if not request.user.has_perm('content_management.change_plantillacontrato'):
+            return JsonResponse({
+                'success': False,
+                'error': 'No tienes permisos para modificar plantillas'
+            }, status=403)
+        
+        # Desmarcar todas las demás plantillas como default
+        PlantillaContrato.objects.exclude(id=id).update(es_default=False)
+        
+        # Marcar esta plantilla como default
+        plantilla.es_default = True
+        plantilla.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'La plantilla "{plantilla.nombre}" ha sido marcada como predeterminada',
+            'plantilla_id': plantilla.id,
+            'plantilla_nombre': plantilla.nombre
+        })
+        
+    except PlantillaContrato.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'La plantilla no existe'
+        }, status=404)
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al marcar plantilla como predeterminada: {str(e)}'
+        }, status=500)
+
+
+# ==================== PLANTILLA DE CONTRATO - DESCARGAR ====================
+@require_http_methods(["GET"])
+@login_required
+def plantilla_contrato_descargar_api(request, id):
+    """
+    Descarga el archivo de una plantilla de contrato
+    """
+    try:
+        from apps.content_management.models import PlantillaContrato
+        from django.http import FileResponse
+        import os
+        
+        # Obtener la plantilla
+        plantilla = PlantillaContrato.objects.get(id=id)
+        
+        # Verificar permisos (opcional)
+        if not request.user.has_perm('content_management.view_plantillacontrato'):
+            return JsonResponse({
+                'success': False,
+                'error': 'No tienes permisos para descargar plantillas'
+            }, status=403)
+        
+        # Verificar que tenga archivo
+        if not plantilla.archivo:
+            return JsonResponse({
+                'success': False,
+                'error': 'Esta plantilla no tiene un archivo adjunto'
+            }, status=404)
+        
+        # Obtener la extensión del archivo
+        file_name = os.path.basename(plantilla.archivo.name)
+        file_extension = os.path.splitext(file_name)[1]
+        
+        # Definir el nombre de descarga
+        download_name = f"{plantilla.nombre}{file_extension}"
+        
+        # Determinar el content_type según la extensión
+        content_types = {
+            '.pdf': 'application/pdf',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.doc': 'application/msword',
+            '.txt': 'text/plain',
+        }
+        content_type = content_types.get(file_extension.lower(), 'application/octet-stream')
+        
+        # Crear la respuesta de descarga
+        response = FileResponse(
+            plantilla.archivo.open('rb'),
+            content_type=content_type
+        )
+        response['Content-Disposition'] = f'attachment; filename="{download_name}"'
+        
+        return response
+        
+    except PlantillaContrato.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'La plantilla no existe'
+        }, status=404)
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al descargar la plantilla: {str(e)}'
+        }, status=500)
 # ============= DASHBOARD =============
 @login_required
 @user_passes_test(is_admin)
@@ -1988,3 +2396,232 @@ def configuracion(request):
     """Configuración del sistema"""
     context = {'mensaje': 'Configuración del Sistema - En desarrollo'}
     return render(request, 'custom_admin/en_desarrollo.html', context)
+# ==================== GESTIÓN DE CONTRATOS GENERADOS ====================
+
+@login_required
+@user_passes_test(is_admin)
+def contratos_generados_list(request):
+    """Vista principal para gestión de contratos generados"""
+    
+    # Obtener plantillas activas
+    plantillas = PlantillaContrato.objects.filter(is_active=True).order_by('-is_default', 'nombre')
+    
+    # Obtener clientes activos
+    clientes = CustomUser.objects.filter(
+        rol='cliente',
+        is_active=True
+    ).order_by('empresa', 'username')
+    
+    # Obtener contratos recientes (verificar si el modelo existe)
+    contratos_recientes = []
+    total_contratos = 0
+    contratos_hoy = 0
+    contratos_mes = 0
+    
+    try:
+        from apps.content_management.models import ContratoGenerado
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        contratos_recientes = ContratoGenerado.objects.select_related(
+            'cliente', 'plantilla', 'created_by'
+        ).order_by('-created_at')[:10]
+        
+        total_contratos = ContratoGenerado.objects.count()
+        contratos_hoy = ContratoGenerado.objects.filter(
+            created_at__date=timezone.now().date()
+        ).count()
+        contratos_mes = ContratoGenerado.objects.filter(
+            created_at__gte=timezone.now() - timedelta(days=30)
+        ).count()
+    except:
+        # Si el modelo no existe, usar valores por defecto
+        pass
+    
+    plantillas_activas = plantillas.count()
+    
+    context = {
+        'plantillas': plantillas,
+        'clientes': clientes,
+        'contratos_recientes': contratos_recientes,
+        'total_contratos': total_contratos,
+        'contratos_hoy': contratos_hoy,
+        'contratos_mes': contratos_mes,
+        'plantillas_activas': plantillas_activas,
+    }
+    
+    return render(request, 'custom_admin/contratos/list.html', context)
+
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def contrato_generar_api(request):
+    """API para generar un contrato desde una plantilla"""
+    try:
+        from apps.content_management.models import ContratoGenerado
+        from docx import Document
+        from datetime import datetime
+        import os
+        from django.core.files.base import ContentFile
+        import io
+        
+        data = json.loads(request.body)
+        
+        # Obtener plantilla y cliente
+        plantilla = PlantillaContrato.objects.get(id=data['plantilla_id'])
+        cliente = CustomUser.objects.get(id=data['cliente_id'], rol='cliente')
+        
+        # Validar que la plantilla tenga archivo
+        if not plantilla.archivo_plantilla:
+            return JsonResponse({
+                'success': False,
+                'error': 'La plantilla no tiene un archivo asociado'
+            }, status=400)
+        
+        # Generar número de contrato
+        ultimo_contrato = ContratoGenerado.objects.order_by('-id').first()
+        numero_contrato = f"CONT-{(ultimo_contrato.id + 1) if ultimo_contrato else 1:05d}"
+        
+        # Procesar fechas y valores
+        fecha_inicio = datetime.strptime(data['fecha_inicio'], '%Y-%m-%d').date()
+        fecha_fin = datetime.strptime(data['fecha_fin'], '%Y-%m-%d').date()
+        valor_contrato = float(data['valor_contrato'])
+        
+        # Calcular IVA si aplica
+        if plantilla.incluye_iva:
+            iva_monto = valor_contrato * (float(plantilla.porcentaje_iva) / 100)
+            total = valor_contrato + iva_monto
+        else:
+            iva_monto = 0
+            total = valor_contrato
+        
+        # Preparar variables para reemplazar en la plantilla
+        from num2words import num2words
+        
+        variables = {
+            'NUMERO_CONTRATO': numero_contrato,
+            'NOMBRE_CLIENTE': cliente.empresa or cliente.get_full_name(),
+            'RUC_DNI': cliente.ruc_dni or 'Sin RUC/DNI',
+            'CIUDAD': cliente.ciudad or '',
+            'PROVINCIA': cliente.provincia or '',
+            'DIRECCION_EXACTA': cliente.direccion_exacta or '',
+            'FECHA_INICIO': fecha_inicio.strftime('%d/%m/%Y'),
+            'FECHA_FIN': fecha_fin.strftime('%d/%m/%Y'),
+            'FECHA_ACTUAL': datetime.now().strftime('%d/%m/%Y'),
+            'DURACION_DIAS': str((fecha_fin - fecha_inicio).days),
+            'VALOR_NUMEROS': f"{valor_contrato:.2f}",
+            'VALOR_LETRAS': num2words(valor_contrato, lang='es'),
+            'IVA_NUMEROS': f"{iva_monto:.2f}",
+            'IVA_LETRAS': num2words(iva_monto, lang='es'),
+            'TOTAL_NUMEROS': f"{total:.2f}",
+            'TOTAL_LETRAS': num2words(total, lang='es'),
+            'SPOTS_DIA': str(data.get('spots_dia', 1)),
+            'DURACION_SPOT': str(data.get('duracion_spot', 30)),
+        }
+        
+        # Abrir y procesar el documento Word
+        doc = Document(plantilla.archivo_plantilla.path)
+        
+        # Reemplazar variables en párrafos
+        for paragraph in doc.paragraphs:
+            for key, value in variables.items():
+                if f'{{{{{key}}}}}' in paragraph.text:
+                    paragraph.text = paragraph.text.replace(f'{{{{{key}}}}}', str(value))
+        
+        # Reemplazar variables en tablas
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for key, value in variables.items():
+                        if f'{{{{{key}}}}}' in cell.text:
+                            cell.text = cell.text.replace(f'{{{{{key}}}}}', str(value))
+        
+        # Guardar el documento generado
+        buffer = io.BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+        
+        # Crear el contrato en la base de datos
+        contrato = ContratoGenerado.objects.create(
+            numero_contrato=numero_contrato,
+            plantilla=plantilla,
+            cliente=cliente,
+            fecha_inicio=fecha_inicio,
+            fecha_fin=fecha_fin,
+            valor_subtotal=valor_contrato,
+            valor_iva=iva_monto,
+            valor_total=total,
+            spots_dia=data.get('spots_dia', 1),
+            duracion_spot=data.get('duracion_spot', 30),
+            observaciones=data.get('observaciones', ''),
+            created_by=request.user
+        )
+        
+        # Guardar el archivo generado
+        filename = f'contrato_{numero_contrato}_{cliente.username}.docx'
+        contrato.archivo_generado.save(filename, ContentFile(buffer.getvalue()))
+        
+        # Registrar en historial
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(contrato).pk,
+            object_id=contrato.pk,
+            object_repr=str(numero_contrato),
+            action_flag=ADDITION,
+            change_message=f'Contrato generado: {numero_contrato} - Cliente: {cliente.empresa or cliente.username}'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Contrato generado exitosamente',
+            'contrato_id': contrato.id,
+            'numero_contrato': numero_contrato,
+            'archivo_url': contrato.archivo_generado.url
+        })
+        
+    except PlantillaContrato.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Plantilla no encontrada'}, status=404)
+    except CustomUser.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Cliente no encontrado'}, status=404)
+    except Exception as e:
+        import traceback
+        print("="*50)
+        print("ERROR AL GENERAR CONTRATO:")
+        print(traceback.format_exc())
+        print("="*50)
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al generar el contrato: {str(e)}'
+        }, status=500)
+
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["DELETE"])
+def contrato_eliminar_api(request, id):
+    """API para eliminar un contrato generado"""
+    try:
+        from apps.content_management.models import ContratoGenerado
+        
+        contrato = ContratoGenerado.objects.get(pk=id)
+        numero = contrato.numero_contrato
+        
+        # Registrar eliminación
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(contrato).pk,
+            object_id=id,
+            object_repr=numero,
+            action_flag=DELETION,
+            change_message=f'Contrato eliminado: {numero}'
+        )
+        
+        contrato.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Contrato eliminado exitosamente'
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

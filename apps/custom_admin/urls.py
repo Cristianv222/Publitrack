@@ -62,7 +62,15 @@ urlpatterns = [
     path('transmisiones/', views.transmisiones_list, name='transmisiones_list'),
     path('transmisiones/api/programacion/', views.programacion_list_api, name='programacion_list_api'),
     path('transmisiones/api/programacion/create/', views.programacion_create_api, name='programacion_create_api'),
-    
+    # ==================== PLANTILLAS DE CONTRATO ====================
+    path('plantillas-contrato/', views.plantillas_contrato_list, name='plantillas_contrato_list'),
+    path('plantillas-contrato/api/crear/', views.plantilla_contrato_crear_api, name='plantilla_contrato_crear_api'),
+    path('plantillas-contrato/api/<int:id>/', views.plantilla_contrato_detalle_api, name='plantilla_contrato_detalle_api'),
+    path('plantillas-contrato/api/<int:id>/actualizar/', views.plantilla_contrato_actualizar_api, name='plantilla_contrato_actualizar_api'),
+    path('plantillas-contrato/api/<int:id>/eliminar/', views.plantilla_contrato_eliminar_api, name='plantilla_contrato_eliminar_api'),
+    path('plantillas-contrato/api/<int:id>/marcar-default/', views.plantilla_contrato_marcar_default_api, name='plantilla_contrato_marcar_default_api'),
+    path('plantillas-contrato/api/<int:id>/descargar/', views.plantilla_contrato_descargar_api, name='plantilla_contrato_descargar_api'),
+ 
     # Semáforos
     path('semaforos/', views.semaforos_list, name='semaforos_list'),
     path('semaforos/api/estados/', views.semaforos_estados_api, name='semaforos_estados_api'),
@@ -75,4 +83,8 @@ path('semaforos/configuracion/', views.configuracion_semaforos, name='configurac
     
     # Configuración
     path('configuracion/', views.configuracion, name='configuracion'),
+    # Contratos Generados
+    path('contratos/', views.contratos_generados_list, name='contratos_list'),
+    path('contratos/api/generar/', views.contrato_generar_api, name='contrato_generar_api'),
+    path('contratos/api/<int:id>/eliminar/', views.contrato_eliminar_api, name='contrato_eliminar_api'),
 ]
