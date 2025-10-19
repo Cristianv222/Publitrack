@@ -694,58 +694,60 @@
                     </div>
                 </div>
             </div>
-        <!-- CONTENIDO PUBLICITARIO -->
-<div class="menu-section">
-    <div class="menu-section-title">CONTENIDO PUBLICITARIO</div>
-    <div class="accordion menu-accordion" id="contentAccordion">
-        <div class="accordion-item">
-            <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#contentCollapse">
-                    <i class="fas fa-bullhorn menu-icon"></i>
-                    <span>Gestión Publicitaria</span>
-                </button>
-            </h2>
-            <div id="contentCollapse" class="accordion-collapse collapse" data-bs-parent="#contentAccordion">
-                <div class="accordion-body">
-                    <a href="#" class="submenu-link">
-                        <i class="fas fa-file-audio"></i>Archivos de Audio(no hacer de momento)
-                    </a>
-                    <a href="{% url 'custom_admin:categorias_list' %}" class="submenu-link {% if 'categoria' in request.resolver_match.url_name %}active{% endif %}">
-                        <i class="fas fa-tags"></i>Categorías
-                    </a>
-                    <a href="{% url 'custom_admin:cunas_list' %}" class="submenu-link {% if 'cuna' in request.resolver_match.url_name %}active{% endif %}">
-                        <i class="fas fa-microphone"></i>Cuñas Publicitarias
-                    </a>
+            
+            <!-- CONTENIDO PUBLICITARIO -->
+            <div class="menu-section">
+                <div class="menu-section-title">CONTENIDO PUBLICITARIO</div>
+                <div class="accordion menu-accordion" id="contentAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#contentCollapse">
+                                <i class="fas fa-bullhorn menu-icon"></i>
+                                <span>Gestión Publicitaria</span>
+                            </button>
+                        </h2>
+                        <div id="contentCollapse" class="accordion-collapse collapse" data-bs-parent="#contentAccordion">
+                            <div class="accordion-body">
+                                <a href="#" class="submenu-link">
+                                    <i class="fas fa-file-audio"></i>Archivos de Audio(no hacer de momento)
+                                </a>
+                                <a href="{% url 'custom_admin:categorias_list' %}" class="submenu-link {% if 'categoria' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="fas fa-tags"></i>Categorías
+                                </a>
+                                <a href="{% url 'custom_admin:cunas_list' %}" class="submenu-link {% if 'cuna' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="fas fa-microphone"></i>Cuñas Publicitarias
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
 
-<!-- contratos (sección separada) -->
-<div class="menu-section">
-    <div class="menu-section-title">CONTRATOS</div>
-    <div class="accordion menu-accordion" id="contractAccordion">
-        <div class="accordion-item">
-            <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#contractCollapse">
-                    <i class="fas fa-file-contract menu-icon"></i>
-                    <span>Gestión de Contratos</span>
-                </button>
-            </h2>
-            <div id="contractCollapse" class="accordion-collapse collapse" data-bs-parent="#contractAccordion">
-                <div class="accordion-body">
-                    <a href="{% url 'custom_admin:contratos_list' %}" class="submenu-link {% if 'contrato' in request.resolver_match.url_name %}active{% endif %}">
-                        <i class="fas fa-file-contract"></i>Ver Contratos
-                    </a>
-                    <a href="{% url 'custom_admin:clientes_list' %}" class="submenu-link {% if 'clientes' in request.resolver_match.url_name %}active{% endif %}">
-                        <i class="fas fa-file-contract"></i>Clientes
-                    </a>
+            <!-- CONTRATOS -->
+            <div class="menu-section">
+                <div class="menu-section-title">CONTRATOS</div>
+                <div class="accordion menu-accordion" id="contractAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#contractCollapse">
+                                <i class="fas fa-file-contract menu-icon"></i>
+                                <span>Gestión de Contratos</span>
+                            </button>
+                        </h2>
+                        <div id="contractCollapse" class="accordion-collapse collapse" data-bs-parent="#contractAccordion">
+                            <div class="accordion-body">
+                                <a href="{% url 'custom_admin:contratos_list' %}" class="submenu-link {% if 'contrato' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="fas fa-file-contract"></i>Ver Contratos
+                                </a>
+                                <a href="{% url 'custom_admin:clientes_list' %}" class="submenu-link {% if 'clientes' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="fas fa-file-contract"></i>Clientes
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
+            
             <!-- TRANSMISIONES -->
             <div class="menu-section">
                 <div class="menu-section-title">TRANSMISIONES</div>
@@ -875,22 +877,23 @@
             const toggle = document.getElementById('sidebarToggle');
             const overlay = document.getElementById('sidebarOverlay');
             
-            // Desktop toggle
+            // CORRECCIÓN: Desktop toggle solo en pantallas >= 992px
             if (window.innerWidth >= 992) {
                 toggle?.addEventListener('click', () => {
                     sidebar.classList.toggle('collapsed');
                     main.classList.toggle('sidebar-collapsed');
+                    // Guardar estado SOLO en escritorio
                     localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
                 });
                 
-                // Restore state
+                // Restaurar estado SOLO en pantallas grandes
                 if (localStorage.getItem('sidebarCollapsed') === 'true') {
                     sidebar.classList.add('collapsed');
                     main.classList.add('sidebar-collapsed');
                 }
             }
             
-            // Mobile toggle
+            // Mobile toggle - solo en pantallas pequeñas
             if (window.innerWidth < 992) {
                 toggle?.addEventListener('click', () => {
                     sidebar.classList.toggle('mobile-active');
@@ -903,7 +906,7 @@
                 });
             }
             
-            // Keep current accordion open
+            // Mantener accordion abierto si está activo
             const currentPath = window.location.pathname;
             document.querySelectorAll('.submenu-link').forEach(link => {
                 if (link.classList.contains('active')) {
@@ -918,7 +921,7 @@
                 }
             });
             
-            // DataTables default config
+            // Configuración por defecto de DataTables
             $.extend(true, $.fn.dataTable.defaults, {
                 language: {
                     url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'

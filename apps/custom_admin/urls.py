@@ -66,7 +66,10 @@ urlpatterns = [
     # Semáforos
     path('semaforos/', views.semaforos_list, name='semaforos_list'),
     path('semaforos/api/estados/', views.semaforos_estados_api, name='semaforos_estados_api'),
-    
+    path('semaforos/', views.semaforos_list, name='semaforos_list'),
+path('semaforos/api/<int:estado_id>/', views.semaforo_detail_api, name='semaforo_detail_api'),
+path('semaforos/api/<int:estado_id>/recalcular/', views.semaforo_recalcular_api, name='semaforo_recalcular_api'),
+path('semaforos/configuracion/', views.configuracion_semaforos, name='configuracion_semaforos'),
     # Reportes
     path('reportes/', views.reportes_dashboard, name='reportes_dashboard'),
     

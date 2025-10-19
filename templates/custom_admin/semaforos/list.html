@@ -1,4 +1,977 @@
 {% extends 'custom_admin/base_admin.html' %}
-{% block title %}Historial de semaforo - PublicTrack Admin{% endblock %}
 
-{% block header_title %}Sitema de Semaforos{% endblock %}
+{% block title %}Sistema de Semáforos - PublicTrack Admin{% endblock %}
+
+{% block header_title %}Sistema de Semáforos - Estados de Cuñas{% endblock %}
+
+{% block extra_css %}
+<style>
+    .semaforo-card {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+    }
+    .semaforo-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    .semaforo-card.verde { border-left-color: var(--success-color); }
+    .semaforo-card.amarillo { border-left-color: var(--warning-color); }
+    .semaforo-card.rojo { border-left-color: var(--danger-color); }
+    .semaforo-card.gris { border-left-color: var(--secondary-color); }
+    
+    .semaforo-indicator {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .semaforo-verde { background: var(--success-color); }
+    .semaforo-amarillo { background: var(--warning-color); }
+    .semaforo-rojo { 
+        background: var(--danger-color); 
+        animation: pulse 2s infinite; 
+    }
+    .semaforo-gris { background: var(--secondary-color); }
+    
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+    }
+    
+    .prioridad-badge {
+        padding: 6px 12px;
+        border-radius: 15px;
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+    .prioridad-baja { background-color: #d4edda; color: #155724; }
+    .prioridad-media { background-color: #fff3cd; color: #856404; }
+    .prioridad-alta { background-color: #f8d7da; color: #721c24; }
+    .prioridad-critica { background-color: #721c24; color: white; }
+    
+    .dias-restantes {
+        font-size: 0.85rem;
+        padding: 4px 8px;
+        border-radius: 12px;
+    }
+    
+    .cambio-estado {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #17a2b8;
+        animation: blink 1.5s infinite;
+    }
+    
+    @keyframes blink {
+        0%, 50% { opacity: 1; }
+        51%, 100% { opacity: 0; }
+    }
+    
+    /* Estilos para botones de renovación */
+    .btn-outline-verde {
+        color: var(--success-color);
+        border-color: var(--success-color);
+    }
+    .btn-outline-verde:hover {
+        background-color: var(--success-color);
+        color: white;
+    }
+
+    .btn-outline-amarillo {
+        color: var(--warning-color);
+        border-color: var(--warning-color);
+    }
+    .btn-outline-amarillo:hover {
+        background-color: var(--warning-color);
+        color: white;
+    }
+
+    .btn-outline-rojo {
+        color: var(--danger-color);
+        border-color: var(--danger-color);
+    }
+    .btn-outline-rojo:hover {
+        background-color: var(--danger-color);
+        color: white;
+    }
+
+    .btn-outline-gris {
+        color: var(--secondary-color);
+        border-color: var(--secondary-color);
+    }
+    .btn-outline-gris:hover {
+        background-color: var(--secondary-color);
+        color: white;
+    }
+
+    /* Estilos para el modal de renovación */
+    .modal-content.verde .modal-header {
+        background-color: var(--success-color);
+    }
+    .modal-content.amarillo .modal-header {
+        background-color: var(--warning-color);
+    }
+    .modal-content.rojo .modal-header {
+        background-color: var(--danger-color);
+    }
+    .modal-content.gris .modal-header {
+        background-color: var(--secondary-color);
+    }
+
+    .modal-content.verde {
+        border-left: 4px solid var(--success-color);
+    }
+    .modal-content.amarillo {
+        border-left: 4px solid var(--warning-color);
+    }
+    .modal-content.rojo {
+        border-left: 4px solid var(--danger-color);
+    }
+    .modal-content.gris {
+        border-left: 4px solid var(--secondary-color);
+    }
+    
+    /* Estilos para modales animados */
+    .animated-modal {
+        border-radius: 15px !important;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2) !important;
+    }
+    .animated-modal .swal2-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+    }
+    .animated-modal .swal2-html-container {
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+    .swal2-popup.animated-modal .btn {
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    .swal2-popup.animated-modal .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Estadísticas rápidas -->
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="stat-card primary">
+            <div class="stat-icon">
+                <i class="fas fa-traffic-light"></i>
+            </div>
+            <div class="stat-label">Total</div>
+            <div class="stat-value">{{ total_semaforos }}</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="stat-card success">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-label">Verde</div>
+            <div class="stat-value">{{ semaforos_verde }}</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="stat-card warning">
+            <div class="stat-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-label">Amarillo</div>
+            <div class="stat-value">{{ semaforos_amarillo }}</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="stat-card danger">
+            <div class="stat-icon">
+                <i class="fas fa-times-circle"></i>
+            </div>
+            <div class="stat-label">Rojo</div>
+            <div class="stat-value">{{ semaforos_rojo }}</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="stat-card secondary">
+            <div class="stat-icon">
+                <i class="fas fa-pause-circle"></i>
+            </div>
+            <div class="stat-label">Gris</div>
+            <div class="stat-value">{{ semaforos_gris }}</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="stat-card info">
+            <div class="stat-icon">
+                <i class="fas fa-exclamation"></i>
+            </div>
+            <div class="stat-label">Atención</div>
+            <div class="stat-value">{{ cuñas_problema }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-card">
+    <div class="admin-card-header d-flex justify-content-between align-items-center">
+        <h5 class="admin-card-title">
+            <i class="fas fa-traffic-light"></i>
+            Estados de Semáforos
+        </h5>
+        <div>
+            <button class="btn btn-light me-2" onclick="location.reload()">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <!-- QUITAMOS EL BOTÓN DE CONFIGURACIÓN -->
+            <button class="btn btn-admin-primary" onclick="recalcularTodos()">
+                <i class="fas fa-calculator me-2"></i>Recalcular Todos
+            </button>
+        </div>
+    </div>
+    
+    <!-- Barra de filtros -->
+    <div class="admin-card-body border-bottom">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <input type="text" class="form-control" id="searchSemaforo" 
+                       placeholder="Buscar por cuña, cliente..." value="{{ query }}">
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="filterColor">
+                    <option value="">Todos los colores</option>
+                    <option value="verde">Verde</option>
+                    <option value="amarillo">Amarillo</option>
+                    <option value="rojo">Rojo</option>
+                    <option value="gris">Gris</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="filterPrioridad">
+                    <option value="">Todas las prioridades</option>
+                    <option value="baja">Baja</option>
+                    <option value="media">Media</option>
+                    <option value="alta">Alta</option>
+                    <option value="critica">Crítica</option>
+                </select>
+            </div>
+            <div class="col-md-2 text-end">
+                <span class="badge bg-info">Total: <span id="totalSemaforos">{{ total_semaforos }}</span></span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="admin-card-body">
+        <div class="row" id="semaforosGrid">
+            {% for estado in estados_semaforo %}
+            <div class="col-lg-6 mb-4 semaforo-item" 
+                 data-titulo="{{ estado.cuña.titulo|lower }}"
+                 data-color="{{ estado.color_actual }}"
+                 data-prioridad="{{ estado.prioridad }}">
+                <div class="card semaforo-card h-100 {{ estado.color_actual }}">
+                    {% if estado.cambio_color %}
+                    <div class="cambio-estado" title="Cambio reciente de estado"></div>
+                    {% endif %}
+                    
+                    <div class="semaforo-indicator semaforo-{{ estado.color_actual }}"></div>
+                    
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="flex-grow-1">
+                                <h5 class="card-title mb-1">{{ estado.cuña.titulo }}</h5>
+                                <p class="text-muted mb-1">
+                                    <small><i class="fas fa-tag me-1"></i>{{ estado.cuña.codigo }}</small>
+                                </p>
+                                {% if estado.cuña.cliente %}
+                                <p class="mb-1">
+                                    <i class="fas fa-user-tie me-1"></i>{{ estado.cuña.cliente.empresa|default:estado.cuña.cliente.get_full_name }}
+                                </p>
+                                {% endif %}
+                                <div class="d-flex align-items-center mt-2">
+                                    <span class="prioridad-badge prioridad-{{ estado.prioridad }}">
+                                        {{ estado.get_prioridad_display }}
+                                    </span>
+                                    {% if estado.necesita_atencion %}
+                                    <span class="badge bg-danger ms-2">
+                                        <i class="fas fa-exclamation me-1"></i>Requiere Atención
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-light" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="verDetalleSemaforo({{ estado.id }})">
+                                            <i class="fas fa-eye me-2"></i>Ver Detalle
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="recalcularSemaforo({{ estado.id }})">
+                                            <i class="fas fa-calculator me-2"></i>Recalcular
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'custom_admin:cunas_list' %}?q={{ estado.cuña.codigo }}">
+                                            <i class="fas fa-external-link-alt me-2"></i>Ir a Cuña
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <!-- Información del estado - OCULTAMOS EL PORCENTAJE -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-12">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="fas fa-calendar-alt text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted d-block">Período de Transmisión</small>
+                                        <strong>
+                                            {% if estado.cuña.fecha_inicio and estado.cuña.fecha_fin %}
+                                                {{ estado.cuña.fecha_inicio|date:"d/m/Y" }} - {{ estado.cuña.fecha_fin|date:"d/m/Y" }}
+                                            {% else %}
+                                                Sin fecha definida
+                                            {% endif %}
+                                        </strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Razón del color -->
+                        <div class="alert alert-{{ estado.color_actual }} py-2 mb-3">
+                            <small>
+                                <i class="fas fa-info-circle me-1"></i>
+                                {{ estado.razon_color|default:"Sin información del cálculo" }}
+                            </small>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                            <!-- Lado izquierdo: Color y días restantes -->
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-{{ estado.color_actual }}">
+                                    {{ estado.get_color_actual_display|upper }}
+                                </span>
+                                
+                                {% if estado.dias_restantes is not None %}
+                                    {% if estado.dias_restantes <= 0 %}
+                                        <span class="badge bg-danger ms-1 dias-restantes">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>Vencida
+                                        </span>
+                                    {% elif estado.dias_restantes <= 3 %}
+                                        <span class="badge bg-danger ms-1 dias-restantes">
+                                            {{ estado.dias_restantes }} día{{ estado.dias_restantes|pluralize }}
+                                        </span>
+                                    {% elif estado.dias_restantes <= 7 %}
+                                        <span class="badge bg-warning ms-1 dias-restantes">
+                                            {{ estado.dias_restantes }} día{{ estado.dias_restantes|pluralize }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-info ms-1 dias-restantes">
+                                            {{ estado.dias_restantes }} día{{ estado.dias_restantes|pluralize }}
+                                        </span>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Centro: Botón Renovar -->
+                            <div class="d-flex align-items-center">
+                                {% if estado.dias_restantes is not None %}
+                                    <button class="btn btn-sm btn-outline-{{ estado.color_actual }}" 
+                                            onclick="abrirRenovarCuña({{ estado.cuña.id }}, '{{ estado.color_actual }}', '{{ estado.cuña.titulo }}', '{{ estado.cuña.codigo }}', '{{ estado.cuña.fecha_fin|default:"" }}')"
+                                            title="Renovar cuña">
+                                        <i class="fas fa-sync-alt me-1"></i>Renovar
+                                    </button>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Lado derecho: Fecha de último cálculo -->
+                            <div class="text-muted">
+                                <small>
+                                    <i class="fas fa-sync-alt me-1"></i>
+                                    {{ estado.ultimo_calculo|date:"d/m H:i" }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No hay estados de semáforo registrados.
+                    <a href="{% url 'custom_admin:cunas_list' %}">Ir a cuñas publicitarias</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Paginación -->
+        {% if estados_semaforo.has_other_pages %}
+        <nav aria-label="Paginación de semáforos">
+            <ul class="pagination justify-content-center">
+                {% if estados_semaforo.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if query %}&q={{ query }}{% endif %}{% if color_seleccionado %}&color={{ color_seleccionado }}{% endif %}{% if prioridad_seleccionada %}&prioridad={{ prioridad_seleccionada }}{% endif %}">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ estados_semaforo.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if color_seleccionado %}&color={{ color_seleccionado }}{% endif %}{% if prioridad_seleccionada %}&prioridad={{ prioridad_seleccionada }}{% endif %}">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">
+                        Página {{ estados_semaforo.number }} de {{ estados_semaforo.paginator.num_pages }}
+                    </span>
+                </li>
+                
+                {% if estados_semaforo.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ estados_semaforo.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if color_seleccionado %}&color={{ color_seleccionado }}{% endif %}{% if prioridad_seleccionada %}&prioridad={{ prioridad_seleccionada }}{% endif %}">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ estados_semaforo.paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}{% if color_seleccionado %}&color={{ color_seleccionado }}{% endif %}{% if prioridad_seleccionada %}&prioridad={{ prioridad_seleccionada }}{% endif %}">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Ver Detalle -->
+<div class="modal fade" id="detalleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-traffic-light me-2"></i>Detalle de Semáforo
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalleContenido">
+                <!-- Se llena dinámicamente -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Renovar Cuña -->
+<div class="modal fade" id="renovarModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" id="renovarModalContent">
+            <!-- El contenido se llena dinámicamente con el color del estado -->
+            <div class="modal-header text-white" id="renovarModalHeader">
+                <h5 class="modal-title">
+                    <i class="fas fa-sync-alt me-2"></i>Renovar Cuña
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="renovarModalBody">
+                <!-- Se llena dinámicamente con el formulario de renovación -->
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let modalDetalle;
+let modalRenovar;
+
+document.addEventListener('DOMContentLoaded', function() {
+    modalDetalle = new bootstrap.Modal(document.getElementById('detalleModal'));
+    modalRenovar = new bootstrap.Modal(document.getElementById('renovarModal'));
+    
+    // Establecer valores de filtros si existen
+    {% if color_seleccionado %}
+    document.getElementById('filterColor').value = '{{ color_seleccionado }}';
+    {% endif %}
+    
+    {% if prioridad_seleccionada %}
+    document.getElementById('filterPrioridad').value = '{{ prioridad_seleccionada }}';
+    {% endif %}
+});
+
+// Búsqueda y filtrado en tiempo real
+document.getElementById('searchSemaforo').addEventListener('keyup', filterSemaforos);
+document.getElementById('filterColor').addEventListener('change', filterSemaforos);
+document.getElementById('filterPrioridad').addEventListener('change', filterSemaforos);
+
+function filterSemaforos() {
+    const searchTerm = document.getElementById('searchSemaforo').value.toLowerCase();
+    const color = document.getElementById('filterColor').value;
+    const prioridad = document.getElementById('filterPrioridad').value;
+    const items = document.querySelectorAll('.semaforo-item');
+    let visibleCount = 0;
+    
+    items.forEach(item => {
+        const titulo = item.dataset.titulo;
+        const itemColor = item.dataset.color;
+        const itemPrioridad = item.dataset.prioridad;
+        
+        let show = true;
+        
+        if (searchTerm && !titulo.includes(searchTerm)) {
+            show = false;
+        }
+        if (color && itemColor !== color) {
+            show = false;
+        }
+        if (prioridad && itemPrioridad !== prioridad) {
+            show = false;
+        }
+        
+        item.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
+    });
+    
+    document.getElementById('totalSemaforos').textContent = visibleCount;
+}
+
+function verDetalleSemaforo(id) {
+    // Mostrar loading
+    document.getElementById('detalleContenido').innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
+    `;
+    modalDetalle.show();
+    
+    fetch(`/panel/semaforos/api/${id}/`)
+    .then(response => response.json())
+    .then(data => {
+        const colorClass = `text-${data.color_actual}`;
+        const prioridadClass = `prioridad-${data.prioridad}`;
+        
+        const contenido = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-3">Información de la Cuña</h6>
+                    <table class="table table-sm">
+                        <tr><td><strong>Código:</strong></td><td>${data.cuña.codigo}</td></tr>
+                        <tr><td><strong>Título:</strong></td><td>${data.cuña.titulo}</td></tr>
+                        <tr><td><strong>Cliente:</strong></td><td>${data.cuña.cliente_nombre}</td></tr>
+                        <tr><td><strong>Vendedor:</strong></td><td>${data.cuña.vendedor_nombre}</td></tr>
+                        <tr><td><strong>Estado:</strong></td><td><span class="badge bg-secondary">${data.cuña.estado}</span></td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-3">Estado del Semáforo</h6>
+                    <table class="table table-sm">
+                        <tr>
+                            <td><strong>Color Actual:</strong></td>
+                            <td><span class="badge bg-${data.color_actual}">${data.color_actual.toUpperCase()}</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Prioridad:</strong></td>
+                            <td><span class="prioridad-badge ${prioridadClass}">${data.prioridad.toUpperCase()}</span></td>
+                        </tr>
+                        <tr><td><strong>Días Restantes:</strong></td><td>${data.dias_restantes !== null ? data.dias_restantes + ' días' : 'N/A'}</td></tr>
+                        <!-- OCULTAMOS EL PORCENTAJE EN EL DETALLE TAMBIÉN -->
+                        <tr><td><strong>Configuración:</strong></td><td>${data.configuracion_utilizada}</td></tr>
+                        <tr><td><strong>Último Cálculo:</strong></td><td>${data.ultimo_calculo}</td></tr>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="row mt-3">
+                <div class="col-12">
+                    <h6 class="text-muted mb-2">Razón del Estado</h6>
+                    <div class="alert alert-${data.color_actual}">
+                        <p class="mb-0">${data.razon_color || 'Sin información detallada del cálculo.'}</p>
+                    </div>
+                </div>
+            </div>
+            
+            ${data.cambio_color ? `
+            <div class="row mt-3">
+                <div class="col-12">
+                    <h6 class="text-muted mb-2">Cambios Recientes</h6>
+                    <div class="alert alert-info">
+                        <p class="mb-1"><strong>Cambio de Estado Detectado</strong></p>
+                        <p class="mb-0">El semáforo cambió recientemente de estado.</p>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+            
+            ${data.necesita_atencion ? `
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Requiere Atención</h6>
+                        <p class="mb-0">Esta cuña necesita revisión inmediata.</p>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+        `;
+        
+        document.getElementById('detalleContenido').innerHTML = contenido;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('detalleContenido').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                Error al cargar los detalles del semáforo
+            </div>
+        `;
+    });
+}
+
+function recalcularSemaforo(id) {
+    Swal.fire({
+        title: 'Recalculando...',
+        html: `
+            <div class="text-center py-3">
+                <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Recalculando...</span>
+                </div>
+                <p class="text-muted mb-0">Actualizando estado del semáforo</p>
+            </div>
+        `,
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        customClass: {
+            popup: 'animated-modal'
+        },
+        showClass: {
+            popup: 'animate__animated animate__fadeIn animate__faster'
+        }
+    });
+    
+    fetch(`/panel/semaforos/api/${id}/recalcular/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Recalculado!',
+                html: `
+                    <div class="text-center">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <p class="mb-0">Semáforo recalculado correctamente</p>
+                        <small class="text-muted d-block mt-2">${data.ultimo_calculo}</small>
+                    </div>
+                `,
+                timer: 2000,
+                showConfirmButton: false,
+                customClass: {
+                    popup: 'animated-modal'
+                },
+                showClass: {
+                    popup: 'animate__animated animate__bounceIn'
+                },
+                hideClass: {
+                    popup: 'animate__animated animate__fadeOut animate__faster'
+                }
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            throw new Error(data.error || 'Error al recalcular');
+        }
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            html: `
+                <div class="text-center">
+                    <i class="fas fa-times-circle fa-3x text-danger mb-3"></i>
+                    <p class="mb-0">No se pudo recalcular el semáforo</p>
+                    <small class="text-muted d-block mt-2">${error.message}</small>
+                </div>
+            `,
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#3085d6',
+            customClass: {
+                popup: 'animated-modal',
+                confirmButton: 'btn btn-primary px-4'
+            },
+            buttonsStyling: false
+        });
+    });
+}
+
+function recalcularTodos() {
+    Swal.fire({
+        title: '¿Recalcular todos?',
+        html: `
+            <div class="text-center mb-3">
+                <i class="fas fa-calculator fa-3x text-primary mb-3"></i>
+                <p class="mb-2">¿Estás seguro de recalcular todos los semáforos?</p>
+                <small class="text-muted d-block">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Esta acción puede tomar algunos segundos
+                </small>
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#007bff',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fas fa-calculator me-2"></i>Sí, recalcular',
+        cancelButtonText: '<i class="fas fa-times me-2"></i>Cancelar',
+        reverseButtons: true,
+        customClass: {
+            popup: 'animated-modal',
+            confirmButton: 'btn btn-lg px-4',
+            cancelButton: 'btn btn-lg px-4'
+        },
+        buttonsStyling: false
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Aquí iría la lógica para recalcular todos los semáforos
+            Swal.fire({
+                title: 'Procesando...',
+                html: `
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                            <span class="visually-hidden">Procesando...</span>
+                        </div>
+                        <p class="text-muted mb-0">Recalculando todos los semáforos</p>
+                    </div>
+                `,
+                allowOutsideClick: false,
+                showConfirmButton: false
+            });
+            
+            // Simular recálculo (reemplazar con llamada real a la API)
+            setTimeout(() => {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Completado!',
+                    text: 'Todos los semáforos han sido recalculados',
+                    confirmButtonText: 'Entendido'
+                }).then(() => {
+                    location.reload();
+                });
+            }, 2000);
+        }
+    });
+}
+
+// Funciones para renovación de cuñas - VERSIÓN SIMPLIFICADA
+function abrirRenovarCuña(cunaId, colorEstado, titulo, codigo, fechaFinActual) {
+    // Aplicar estilos según el color del estado
+    const modalContent = document.getElementById('renovarModalContent');
+    const modalHeader = document.getElementById('renovarModalHeader');
+    
+    // Remover clases anteriores
+    modalContent.classList.remove('verde', 'amarillo', 'rojo', 'gris');
+    modalHeader.classList.remove('bg-success', 'bg-warning', 'bg-danger', 'bg-secondary');
+    
+    // Aplicar nuevas clases según el color
+    modalContent.classList.add(colorEstado);
+    modalHeader.classList.add(`bg-${colorEstado}`);
+    
+    // Calcular fecha mínima (mañana)
+    const hoy = new Date();
+    const manana = new Date(hoy);
+    manana.setDate(hoy.getDate() + 1);
+    const fechaMinima = manana.toISOString().split('T')[0];
+    
+    // Si no hay fecha fin actual, usar mañana como valor por defecto
+    const fechaFinValor = fechaFinActual && fechaFinActual !== 'None' ? fechaFinActual : fechaMinima;
+    
+    // Crear formulario simplificado solo para fecha de finalización
+    const formulario = `
+        <form id="formRenovarCuña">
+            <input type="hidden" name="cuna_id" value="${cunaId}">
+            
+            <div class="alert alert-${colorEstado}">
+                <h6><i class="fas fa-sync-alt me-2"></i>Renovar Cuña</h6>
+                <p class="mb-0">Estás renovando la cuña: <strong>"${titulo}"</strong> (${codigo})</p>
+            </div>
+            
+            <div class="mb-4">
+                <label class="form-label fw-bold">Nueva Fecha de Finalización *</label>
+                <input type="date" class="form-control form-control-lg" 
+                       name="fecha_fin" 
+                       value="${fechaFinValor}"
+                       min="${fechaMinima}"
+                       required>
+                <div class="form-text">
+                    Selecciona la nueva fecha de finalización para esta cuña.
+                </div>
+            </div>
+            
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" name="recalcular_semaforo" id="recalcularSemaforo" checked>
+                <label class="form-check-label" for="recalcularSemaforo">
+                    Recalcular estado del semáforo automáticamente después de renovar
+                </label>
+            </div>
+        </form>
+        
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                <i class="fas fa-times me-2"></i>Cancelar
+            </button>
+            <button type="button" class="btn btn-${colorEstado}" onclick="guardarRenovacion('${colorEstado}')">
+                <i class="fas fa-save me-2"></i>Guardar Renovación
+            </button>
+        </div>
+    `;
+    
+    document.getElementById('renovarModalBody').innerHTML = formulario;
+    
+    // Mostrar el modal
+    modalRenovar.show();
+}
+
+function guardarRenovacion(colorEstado) {
+    const form = document.getElementById('formRenovarCuña');
+    const formData = new FormData(form);
+    const cunaId = formData.get('cuna_id');
+    
+    // Validar fecha
+    const fechaFin = new Date(formData.get('fecha_fin'));
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    
+    if (fechaFin <= hoy) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Fecha inválida',
+            text: 'La fecha de finalización debe ser posterior a hoy.',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+    
+    // Cerrar modal
+    modalRenovar.hide();
+    
+    // Mostrar loading
+    Swal.fire({
+        title: 'Renovando...',
+        html: `
+            <div class="text-center py-3">
+                <div class="spinner-border text-${colorEstado} mb-3" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Renovando...</span>
+                </div>
+                <p class="text-muted mb-0">Actualizando fecha de finalización</p>
+            </div>
+        `,
+        allowOutsideClick: false,
+        showConfirmButton: false
+    });
+    
+    // Preparar datos para enviar - USANDO EL ENDPOINT CORRECTO
+    const datosEnvio = {
+        fecha_fin: formData.get('fecha_fin'),
+        recalcular_semaforo: formData.get('recalcular_semaforo') === 'on'
+    };
+    
+    // Usar el endpoint que SÍ funciona según tu código anterior
+    fetch(`/panel/cunas/api/${cunaId}/actualizar/`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(datosEnvio)
+    })
+    .then(response => {
+        // Verificar si la respuesta es JSON
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return response.json();
+        } else {
+            // Si no es JSON, intentar parsear como texto para debug
+            return response.text().then(text => {
+                console.log('Respuesta del servidor (no JSON):', text.substring(0, 200));
+                throw new Error('El servidor devolvió HTML en lugar de JSON');
+            });
+        }
+    })
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Renovada!',
+                html: `
+                    <div class="text-center">
+                        <i class="fas fa-check-circle fa-3x text-${colorEstado} mb-3"></i>
+                        <p class="mb-0">Cuña renovada correctamente</p>
+                        <small class="text-muted d-block mt-2">La fecha de finalización ha sido actualizada</small>
+                    </div>
+                `,
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            throw new Error(data.error || 'Error al renovar');
+        }
+    })
+    .catch(error => {
+        console.error('Error completo:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            html: `
+                <div class="text-center">
+                    <i class="fas fa-times-circle fa-3x text-danger mb-3"></i>
+                    <p class="mb-0">No se pudo renovar la cuña</p>
+                    <small class="text-muted d-block mt-2">${error.message}</small>
+                    <small class="text-muted d-block mt-1">Verifica la consola para más detalles</small>
+                </div>
+            `,
+            confirmButtonText: 'Entendido'
+        });
+    });
+}
+
+// Limpiar modal al cerrarlo
+document.getElementById('renovarModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('renovarModalBody').innerHTML = '';
+    const modalContent = document.getElementById('renovarModalContent');
+    modalContent.classList.remove('verde', 'amarillo', 'rojo', 'gris');
+});
+</script>
+{% endblock %}

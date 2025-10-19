@@ -42,13 +42,24 @@ except ImportError:
     ProgramacionTransmision = None
     TRANSMISSION_MODELS_AVAILABLE = False
 
+# Agrega estos imports después de los otros imports existentes
+
 try:
-    from apps.traffic_light_system.models import EstadoSemaforo
+    from apps.traffic_light_system.models import (
+        EstadoSemaforo, 
+        ConfiguracionSemaforo,
+        HistorialEstadoSemaforo,
+        AlertaSemaforo,
+        ResumenEstadosSemaforo
+    )
     TRAFFIC_MODELS_AVAILABLE = True
 except ImportError:
-    EstadoSemaforo = None
     TRAFFIC_MODELS_AVAILABLE = False
-
+    EstadoSemaforo = None
+    ConfiguracionSemaforo = None
+    HistorialEstadoSemaforo = None
+    AlertaSemaforo = None
+    ResumenEstadosSemaforo = None
 def is_admin(user):
     """Verifica si el usuario es administrador"""
     return user.is_superuser or user.is_staff or getattr(user, 'rol', None) == 'admin'
@@ -1411,18 +1422,187 @@ def programacion_create_api(request):
     return JsonResponse({'success': False, 'error': 'No implementado'}, status=501)
 
 # ============= VISTAS DE SEMÁFOROS =============
+# ============= VISTAS DE SEMÁFOROS =============
 @login_required
 @user_passes_test(is_admin)
 def semaforos_list(request):
-    """Lista de semáforos"""
-    context = {'mensaje': 'Sistema de Semáforos - En desarrollo'}
+    """Lista de estados de semáforos para cuñas"""
+    if not TRAFFIC_MODELS_AVAILABLE or not CONTENT_MODELS_AVAILABLE:
+        context = {'mensaje': 'Módulo de Semáforos no disponible'}
+        return render(request, 'custom_admin/en_desarrollo.html', context)
+    
+    query = request.GET.get('q')
+    color = request.GET.get('color')
+    prioridad = request.GET.get('prioridad')
+    
+    # Obtener estados de semáforo con información de cuñas
+    estados_semaforo = EstadoSemaforo.objects.select_related(
+        'cuña', 'cuña__cliente', 'cuña__vendedor_asignado', 'configuracion_utilizada'
+    ).all().order_by('-ultimo_calculo')
+    
+    if query:
+        estados_semaforo = estados_semaforo.filter(
+            Q(cuña__titulo__icontains=query) |
+            Q(cuña__codigo__icontains=query) |
+            Q(cuña__cliente__empresa__icontains=query) |
+            Q(cuña__cliente__first_name__icontains=query) |
+            Q(cuña__cliente__last_name__icontains=query)
+        )
+    
+    if color:
+        estados_semaforo = estados_semaforo.filter(color_actual=color)
+        
+    if prioridad:
+        estados_semaforo = estados_semaforo.filter(prioridad=prioridad)
+    
+    # Estadísticas
+    total_semaforos = estados_semaforo.count()
+    semaforos_verde = estados_semaforo.filter(color_actual='verde').count()
+    semaforos_amarillo = estados_semaforo.filter(color_actual='amarillo').count()
+    semaforos_rojo = estados_semaforo.filter(color_actual='rojo').count()
+    semaforos_gris = estados_semaforo.filter(color_actual='gris').count()
+    
+    # Cuñas que requieren atención (amarillo y rojo)
+    cuñas_problema = estados_semaforo.filter(
+        color_actual__in=['amarillo', 'rojo']
+    ).count()
+    
+    paginator = Paginator(estados_semaforo, 12)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'estados_semaforo': page_obj,
+        'query': query,
+        'color_seleccionado': color,
+        'prioridad_seleccionada': prioridad,
+        'total_semaforos': total_semaforos,
+        'semaforos_verde': semaforos_verde,
+        'semaforos_amarillo': semaforos_amarillo,
+        'semaforos_rojo': semaforos_rojo,
+        'semaforos_gris': semaforos_gris,
+        'cuñas_problema': cuñas_problema,
+        'colores': EstadoSemaforo.COLOR_CHOICES,
+        'prioridades': EstadoSemaforo.PRIORIDAD_CHOICES,
+    }
     return render(request, 'custom_admin/semaforos/list.html', context)
+@login_required
+@user_passes_test(is_admin)
+def semaforo_detail_api(request, estado_id):
+    """API para obtener detalles de un estado de semáforo"""
+    try:
+        estado = EstadoSemaforo.objects.select_related(
+            'cuña', 'cuña__cliente', 'cuña__vendedor_asignado', 
+            'cuña__categoria', 'configuracion_utilizada'
+        ).get(pk=estado_id)
+        
+        data = {
+            'id': estado.id,
+            'cuña': {
+                'id': estado.cuña.id,
+                'titulo': estado.cuña.titulo,
+                'codigo': estado.cuña.codigo,
+                'cliente_nombre': estado.cuña.cliente.empresa if estado.cuña.cliente else 'Sin cliente',
+                'vendedor_nombre': estado.cuña.vendedor_asignado.get_full_name() if estado.cuña.vendedor_asignado else 'Sin vendedor',
+                'fecha_inicio': estado.cuña.fecha_inicio.strftime('%Y-%m-%d') if estado.cuña.fecha_inicio else None,
+                'fecha_fin': estado.cuña.fecha_fin.strftime('%Y-%m-%d') if estado.cuña.fecha_fin else None,
+                'estado': estado.cuña.estado,
+            },
+            'color_actual': estado.color_actual,
+            'color_anterior': estado.color_anterior,
+            'prioridad': estado.prioridad,
+            'dias_restantes': estado.dias_restantes,
+            'porcentaje_tiempo_transcurrido': float(estado.porcentaje_tiempo_transcurrido) if estado.porcentaje_tiempo_transcurrido else None,
+            'razon_color': estado.razon_color,
+            'necesita_atencion': estado.necesita_atencion,
+            'cambio_color': estado.cambio_color,
+            'empeoro_estado': estado.empeoro_estado,
+            'configuracion_utilizada': estado.configuracion_utilizada.nombre if estado.configuracion_utilizada else 'Por defecto',
+            'ultimo_calculo': estado.ultimo_calculo.strftime('%d/%m/%Y %H:%M'),
+        }
+        
+        return JsonResponse(data)
+    
+    except EstadoSemaforo.DoesNotExist:
+        return JsonResponse({'error': 'Estado de semáforo no encontrado'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 @login_required
 @user_passes_test(is_admin)
+def semaforo_recalcular_api(request, estado_id):
+    """API para recalcular un estado de semáforo"""
+    try:
+        estado = EstadoSemaforo.objects.get(pk=estado_id)
+        
+        # Aquí iría la lógica para recalcular el estado
+        # Por ahora simulamos una actualización
+        estado.ultimo_calculo = timezone.now()
+        estado.save()
+        
+        # Registrar en historial
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(estado).pk,
+            object_id=estado.pk,
+            object_repr=f"Semáforo recalculado - {estado.cuña.codigo}",
+            action_flag=CHANGE,
+            change_message=f'Semáforo recalculado manualmente para {estado.cuña.titulo}'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Semáforo recalculado exitosamente',
+            'ultimo_calculo': estado.ultimo_calculo.strftime('%d/%m/%Y %H:%M')
+        })
+    
+    except EstadoSemaforo.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Estado de semáforo no encontrado'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+def configuracion_semaforos(request):
+    """Configuración del sistema de semáforos"""
+    if not TRAFFIC_MODELS_AVAILABLE:
+        context = {'mensaje': 'Módulo de Semáforos no disponible'}
+        return render(request, 'custom_admin/en_desarrollo.html', context)
+    
+    configuraciones = ConfiguracionSemaforo.objects.all()
+    configuracion_activa = ConfiguracionSemaforo.get_active()
+    
+    context = {
+        'configuraciones': configuraciones,
+        'configuracion_activa': configuracion_activa,
+    }
+    return render(request, 'custom_admin/semaforos/configuracion.html', context)
+@login_required
+@user_passes_test(is_admin)
 def semaforos_estados_api(request):
-    """API para estados de semáforos"""
-    return JsonResponse({'estados': []})
+    """API para estados de semáforos (para dashboard)"""
+    if not TRAFFIC_MODELS_AVAILABLE:
+        return JsonResponse({'estados': []})
+    
+    try:
+        estados = EstadoSemaforo.objects.values('color_actual').annotate(
+            total=Count('id')
+        )
+        
+        data = {
+            'verde': 0,
+            'amarillo': 0,
+            'rojo': 0,
+            'gris': 0
+        }
+        
+        for estado in estados:
+            data[estado['color_actual']] = estado['total']
+        
+        return JsonResponse(data)
+    
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 # ============= VISTAS DE REPORTES =============
 @login_required
