@@ -374,17 +374,19 @@
                     {% for contrato in contratos_recientes %}
                     <tr>
                         <td><strong>#{{ contrato.numero_contrato }}</strong></td>
-                        <td>{{ contrato.cliente.empresa|default:contrato.cliente.get_full_name }}</td>
-                        <td>{{ contrato.plantilla.nombre }}</td>
-                        <td>{{ contrato.created_at|date:"d/m/Y H:i" }}</td>
+                        <td>{{ contrato.nombre_cliente }}</td>
+                        <td>{{ contrato.plantilla_usada.nombre }}</td>
+                        <td>{{ contrato.fecha_generacion|date:"d/m/Y H:i" }}</td>
                         <td>S/ {{ contrato.valor_total }}</td>
                         <td>
                             <span class="badge bg-success">Generado</span>
                         </td>
                         <td>
-                            <a href="{{ contrato.archivo_generado.url }}" class="btn btn-sm btn-primary" target="_blank">
+                            {% if contrato.archivo_contrato %}
+                            <a href="{{ contrato.archivo_contrato.url }}" class="btn btn-sm btn-primary" target="_blank">
                                 <i class="fas fa-download"></i>
                             </a>
+                            {% endif %}
                             <button class="btn btn-sm btn-danger" onclick="eliminarContrato({{ contrato.id }})">
                                 <i class="fas fa-trash"></i>
                             </button>
@@ -412,6 +414,76 @@
 let plantillaSeleccionada = null;
 let clienteSeleccionado = null;
 
+// Cargar plantillas al iniciar
+document.addEventListener('DOMContentLoaded', function() {
+    cargarPlantillas();
+    cargarClientes();
+});
+
+function cargarPlantillas() {
+    fetch('/panel/api/plantillas-contrato/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const select = document.getElementById('plantillaSelect');
+                select.innerHTML = '<option value="">-- Seleccione una plantilla --</option>';
+                
+                data.plantillas.forEach(plantilla => {
+                    const option = document.createElement('option');
+                    option.value = plantilla.id;
+                    option.textContent = plantilla.nombre + 
+                        (plantilla.is_default ? ' ★' : '') + 
+                        ' - ' + plantilla.tipo_contrato_display;
+                    option.dataset.nombre = plantilla.nombre;
+                    option.dataset.tipo = plantilla.tipo_contrato_display;
+                    option.dataset.version = plantilla.version;
+                    option.dataset.iva = plantilla.incluye_iva;
+                    option.dataset.porcentajeIva = plantilla.porcentaje_iva;
+                    select.appendChild(option);
+                });
+            } else {
+                console.error('Error cargando plantillas:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error', 'No se pudieron cargar las plantillas', 'error');
+        });
+}
+
+function cargarClientes() {
+    fetch('/panel/api/clientes-activos/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const select = document.getElementById('clienteSelect');
+                select.innerHTML = '<option value="">-- Seleccione un cliente --</option>';
+                
+                data.clientes.forEach(cliente => {
+                    const option = document.createElement('option');
+                    option.value = cliente.id;
+                    const displayText = cliente.empresa ? 
+                        `${cliente.empresa} (${cliente.ruc_dni})` : 
+                        `${cliente.nombre_completo} (${cliente.ruc_dni})`;
+                    option.textContent = displayText;
+                    option.dataset.nombre = cliente.empresa || cliente.nombre_completo;
+                    option.dataset.ruc = cliente.ruc_dni;
+                    option.dataset.email = cliente.email;
+                    option.dataset.telefono = cliente.telefono;
+                    option.dataset.ciudad = cliente.ciudad;
+                    option.dataset.direccion = cliente.direccion;
+                    select.appendChild(option);
+                });
+            } else {
+                console.error('Error cargando clientes:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error', 'No se pudieron cargar los clientes', 'error');
+        });
+}
+
 // Event listeners
 document.getElementById('plantillaSelect').addEventListener('change', function() {
     const plantillaId = this.value;
@@ -419,24 +491,30 @@ document.getElementById('plantillaSelect').addEventListener('change', function()
     if (plantillaId) {
         plantillaSeleccionada = plantillaId;
         
-        // Mostrar preview de plantilla
-        const option = this.options[this.selectedIndex];
-        document.getElementById('previewNombre').textContent = option.dataset.nombre;
-        document.getElementById('previewTipo').textContent = option.dataset.tipo;
-        document.getElementById('previewVersion').textContent = 'v' + option.dataset.version;
-        document.getElementById('previewIVA').textContent = option.dataset.iva === 'true' ? 
-            option.dataset.porcentajeIva + '%' : 'Sin IVA';
-        
-        document.getElementById('plantillaPreview').classList.remove('d-none');
-        
-        // Habilitar selector de cliente
-        document.getElementById('clienteSelect').disabled = false;
-        document.getElementById('clienteSelect').innerHTML = '<option value="">-- Seleccione un cliente --</option>' +
-            document.getElementById('clienteSelect').innerHTML.replace('<option value="">-- Primero seleccione una plantilla --</option>', '');
-        
-        // Marcar paso 1 como completado
-        document.getElementById('step1').classList.add('completed');
-        document.getElementById('step2').classList.add('active');
+        // Cargar detalles de la plantilla
+        fetch(`/panel/api/plantilla/${plantillaId}/detalle/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const plantilla = data.plantilla;
+                    
+                    // Mostrar preview de plantilla
+                    document.getElementById('previewNombre').textContent = plantilla.nombre;
+                    document.getElementById('previewTipo').textContent = plantilla.tipo_contrato_display;
+                    document.getElementById('previewVersion').textContent = 'v' + plantilla.version;
+                    document.getElementById('previewIVA').textContent = plantilla.incluye_iva ? 
+                        plantilla.porcentaje_iva + '%' : 'Sin IVA';
+                    
+                    document.getElementById('plantillaPreview').classList.remove('d-none');
+                    
+                    // Habilitar selector de cliente
+                    document.getElementById('clienteSelect').disabled = false;
+                    
+                    // Marcar paso 1 como completado
+                    document.getElementById('step1').classList.add('completed');
+                    document.getElementById('step2').classList.add('active');
+                }
+            });
     } else {
         resetearFormulario();
     }
@@ -448,27 +526,36 @@ document.getElementById('clienteSelect').addEventListener('change', function() {
     if (clienteId) {
         clienteSeleccionado = clienteId;
         
-        // Mostrar preview de cliente
-        const option = this.options[this.selectedIndex];
-        document.getElementById('previewClienteNombre').textContent = option.dataset.nombre;
-        document.getElementById('previewClienteRUC').textContent = option.dataset.ruc || 'No registrado';
-        document.getElementById('previewClienteEmail').textContent = option.dataset.email || 'No registrado';
-        document.getElementById('previewClienteCiudad').textContent = option.dataset.ciudad || 'No registrada';
-        
-        document.getElementById('clientePreview').classList.remove('d-none');
-        
-        // Mostrar sección de datos adicionales
-        document.getElementById('datosAdicionalesSection').classList.remove('d-none');
-        
-        // Marcar pasos como completados
-        document.getElementById('step2').classList.add('completed');
-        document.getElementById('step3').classList.add('active');
-        
-        // Habilitar botón de generar
-        document.getElementById('btnGenerar').disabled = false;
-        
-        // Establecer fecha de inicio como hoy
-        document.getElementById('fechaInicio').valueAsDate = new Date();
+        // Cargar detalles del cliente
+        fetch(`/panel/api/cliente/${clienteId}/detalle/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const cliente = data.cliente;
+                    
+                    // Mostrar preview de cliente
+                    document.getElementById('previewClienteNombre').textContent = cliente.empresa || cliente.nombre_completo;
+                    document.getElementById('previewClienteRUC').textContent = cliente.ruc_dni || 'No registrado';
+                    document.getElementById('previewClienteEmail').textContent = cliente.email || 'No registrado';
+                    document.getElementById('previewClienteCiudad').textContent = cliente.ciudad || 'No registrada';
+                    
+                    document.getElementById('clientePreview').classList.remove('d-none');
+                    
+                    // Mostrar sección de datos adicionales
+                    document.getElementById('datosAdicionalesSection').classList.remove('d-none');
+                    
+                    // Marcar pasos como completados
+                    document.getElementById('step2').classList.add('completed');
+                    document.getElementById('step3').classList.add('active');
+                    
+                    // Habilitar botón de generar
+                    document.getElementById('btnGenerar').disabled = false;
+                    
+                    // Establecer fecha de inicio como hoy
+                    const today = new Date().toISOString().split('T')[0];
+                    document.getElementById('fechaInicio').value = today;
+                }
+            });
     } else {
         document.getElementById('clientePreview').classList.add('d-none');
         document.getElementById('datosAdicionalesSection').classList.add('d-none');
@@ -556,7 +643,7 @@ document.getElementById('contratoForm').addEventListener('submit', function(e) {
                 confirmButtonText: 'Descargar Ahora',
                 cancelButtonText: 'Ver Después'
             }).then((result) => {
-                if (result.isConfirmed) {
+                if (result.isConfirmed && data.archivo_url) {
                     window.open(data.archivo_url, '_blank');
                 }
                 location.reload();

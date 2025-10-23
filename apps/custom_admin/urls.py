@@ -9,11 +9,6 @@ urlpatterns = [
     
     # Usuarios
     path('usuarios/', views.usuarios_list, name='usuarios_list'),
-    # path('usuarios/crear/', views.usuario_create, name='usuario_create'),  # Comentar
-    # path('usuarios/<int:pk>/editar/', views.usuario_edit, name='usuario_edit'),  # Comentar
-    # path('usuarios/<int:pk>/eliminar/', views.usuario_delete, name='usuario_delete'),  # Comentar
-    
-    # APIs de Usuarios (estas sí las necesitas)
     path('usuarios/api/<int:pk>/', views.usuario_detail_api, name='usuario_detail_api'),
     path('usuarios/api/crear/', views.usuario_create_api, name='usuario_create_api'),
     path('usuarios/api/<int:pk>/actualizar/', views.usuario_update_api, name='usuario_update_api'),
@@ -48,20 +43,33 @@ urlpatterns = [
     
     # Categorías
     path('categorias/', views.categorias_list, name='categorias_list'),
-    path('categorias/api/<int:categoria_id>/', views.categoria_detail_api, name='categoria_detail_api'),  # ✅ AGREGAR ESTA LÍNEA
+    path('categorias/api/<int:categoria_id>/', views.categoria_detail_api, name='categoria_detail_api'),
     path('categorias/api/create/', views.categoria_create_api, name='categoria_create_api'),
     path('categorias/api/<int:pk>/update/', views.categoria_update_api, name='categoria_update_api'),
     path('categorias/api/<int:pk>/delete/', views.categoria_delete_api, name='categoria_delete_api'),
+    
     # Contratos
     path('contratos/', views.contratos_list, name='contratos_list'),
     path('contratos/api/create/', views.contrato_create_api, name='contrato_create_api'),
     path('contratos/api/<int:pk>/', views.contrato_detail_api, name='contrato_detail_api'),
     path('contratos/api/<int:pk>/update/', views.contrato_update_api, name='contrato_update_api'),
     
+    # ==================== CONTRATOS GENERADOS ====================
+    path('contratos-generados/', views.contratos_generados_list, name='contratos_generados_list'),
+    path('contratos/api/generar/', views.contrato_generar_api, name='contrato_generar_api'),
+    path('contratos/api/<int:id>/eliminar/', views.contrato_eliminar_api, name='contrato_eliminar_api'),
+    
+    # ==================== APIs PARA OBTENER DATOS ====================
+    path('api/plantillas-contrato/', views.api_plantillas_contrato, name='api_plantillas_contrato'),
+    path('api/clientes-activos/', views.api_clientes_activos, name='api_clientes_activos'),
+    path('api/plantilla/<int:id>/detalle/', views.api_plantilla_detalle, name='api_plantilla_detalle'),
+    path('api/cliente/<int:id>/detalle/', views.api_cliente_detalle, name='api_cliente_detalle'),
+    
     # Transmisiones
     path('transmisiones/', views.transmisiones_list, name='transmisiones_list'),
     path('transmisiones/api/programacion/', views.programacion_list_api, name='programacion_list_api'),
     path('transmisiones/api/programacion/create/', views.programacion_create_api, name='programacion_create_api'),
+    
     # ==================== PLANTILLAS DE CONTRATO ====================
     path('plantillas-contrato/', views.plantillas_contrato_list, name='plantillas_contrato_list'),
     path('plantillas-contrato/api/crear/', views.plantilla_contrato_crear_api, name='plantilla_contrato_crear_api'),
@@ -74,17 +82,13 @@ urlpatterns = [
     # Semáforos
     path('semaforos/', views.semaforos_list, name='semaforos_list'),
     path('semaforos/api/estados/', views.semaforos_estados_api, name='semaforos_estados_api'),
-    path('semaforos/', views.semaforos_list, name='semaforos_list'),
-path('semaforos/api/<int:estado_id>/', views.semaforo_detail_api, name='semaforo_detail_api'),
-path('semaforos/api/<int:estado_id>/recalcular/', views.semaforo_recalcular_api, name='semaforo_recalcular_api'),
-path('semaforos/configuracion/', views.configuracion_semaforos, name='configuracion_semaforos'),
+    path('semaforos/api/<int:estado_id>/', views.semaforo_detail_api, name='semaforo_detail_api'),
+    path('semaforos/api/<int:estado_id>/recalcular/', views.semaforo_recalcular_api, name='semaforo_recalcular_api'),
+    path('semaforos/configuracion/', views.configuracion_semaforos, name='configuracion_semaforos'),
+    
     # Reportes
     path('reportes/', views.reportes_dashboard, name='reportes_dashboard'),
     
     # Configuración
     path('configuracion/', views.configuracion, name='configuracion'),
-    # Contratos Generados
-    path('contratos/', views.contratos_generados_list, name='contratos_list'),
-    path('contratos/api/generar/', views.contrato_generar_api, name='contrato_generar_api'),
-    path('contratos/api/<int:id>/eliminar/', views.contrato_eliminar_api, name='contrato_eliminar_api'),
 ]
