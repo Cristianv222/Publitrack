@@ -7,7 +7,7 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
-      - media_volume:/app/media
+      - ./media:/app/media        # Esta línea sincroniza la media carpeta con tu equipo
       - static_volume:/app/staticfiles
       - logs_volume:/app/logs
     environment:
@@ -65,7 +65,6 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  media_volume:
   static_volume:
   logs_volume:
 
