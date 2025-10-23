@@ -22,20 +22,25 @@ from apps.content_management.models import PlantillaContrato
 User = get_user_model()
 
 # Imports condicionales para modelos
+# IMPORTS CONDICIONALES PARA MODELOS
 try:
     from apps.content_management.models import (
         CuñaPublicitaria, 
-        CategoriaPublicitaria,
-        TipoContrato,
-        ArchivoAudio
+        CategoriaPublicitaria, 
+        TipoContrato, 
+        ArchivoAudio,
+        ContratoGenerado,  # ✅ AÑADE ESTA LÍNEA
     )
     CONTENT_MODELS_AVAILABLE = True
-except ImportError:
+except ImportError as e:
+    print(f"⚠️ Error importando modelos de content_management: {e}")
     CONTENT_MODELS_AVAILABLE = False
     CuñaPublicitaria = None
     CategoriaPublicitaria = None
     TipoContrato = None
     ArchivoAudio = None
+    ContratoGenerado = None  # ✅ AÑADE ESTA LÍNEA
+
 
 try:
     from apps.transmission_control.models import ProgramacionTransmision
@@ -184,47 +189,94 @@ def api_cliente_detalle(request, id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 # ==================== CONTRATOS GENERADOS ====================
-
 @login_required
 @user_passes_test(is_admin)
 def contratos_generados_list(request):
     """Vista principal para gestión de contratos generados"""
     
+    print("\n" + "="*80)
+    print("🔍 INICIANDO contratos_generados_list")
+    print("="*80)
+    
     # Obtener plantillas activas
     plantillas = PlantillaContrato.objects.filter(is_active=True).order_by('-is_default', 'nombre')
+    print(f"📄 Plantillas encontradas: {plantillas.count()}")
     
     # Obtener clientes activos
     clientes = CustomUser.objects.filter(
         rol='cliente',
         is_active=True
     ).order_by('empresa', 'username')
+    print(f"👥 Clientes encontrados: {clientes.count()}")
     
-    # Obtener contratos recientes (verificar si el modelo existe)
+    # Inicializar variables
     contratos_recientes = []
     total_contratos = 0
     contratos_hoy = 0
     contratos_mes = 0
     
-    try:
-        from apps.content_management.models import ContratoGenerado
-        from django.utils import timezone
-        from datetime import timedelta
+    # Verificar disponibilidad del modelo
+    print(f"\n📊 CONTENT_MODELS_AVAILABLE: {CONTENT_MODELS_AVAILABLE}")
+    
+    if CONTENT_MODELS_AVAILABLE:
+        print(f"📊 ContratoGenerado is None: {ContratoGenerado is None}")
         
-        contratos_recientes = ContratoGenerado.objects.select_related(
-            'cliente', 'plantilla_usada', 'generado_por'
-        ).order_by('-fecha_generacion')[:10]
-        
-        total_contratos = ContratoGenerado.objects.count()
-        contratos_hoy = ContratoGenerado.objects.filter(
-            fecha_generacion__date=timezone.now().date()
-        ).count()
-        contratos_mes = ContratoGenerado.objects.filter(
-            fecha_generacion__gte=timezone.now() - timedelta(days=30)
-        ).count()
-    except Exception as e:
-        print(f"Error cargando contratos generados: {e}")
-        # Si el modelo no existe, usar valores por defecto
-        pass
+        if ContratoGenerado is not None:
+            try:
+                from datetime import timedelta
+                
+                # ✅ Obtener TODOS los contratos sin filtros
+                all_contratos = ContratoGenerado.objects.all()
+                print(f"\n✅ Total contratos en BD (sin filtros): {all_contratos.count()}")
+                
+                # Listar los primeros 3 contratos para debug
+                if all_contratos.exists():
+                    print("\n📋 Primeros 3 contratos (RAW):")
+                    for idx, c in enumerate(all_contratos[:3], 1):
+                        print(f"   {idx}. ID:{c.id} | Num:{c.numero_contrato} | Cliente:{c.nombre_cliente}")
+                
+                # Obtener contratos recientes con select_related
+                contratos_recientes = list(
+                    ContratoGenerado.objects
+                    .select_related('cliente', 'plantilla_usada', 'generado_por')
+                    .order_by('-fecha_generacion')[:10]
+                )
+                
+                print(f"✅ Contratos recientes (después de select_related): {len(contratos_recientes)}")
+                
+                # Calcular estadísticas
+                total_contratos = ContratoGenerado.objects.count()
+                contratos_hoy = ContratoGenerado.objects.filter(
+                    fecha_generacion__date=timezone.now().date()
+                ).count()
+                contratos_mes = ContratoGenerado.objects.filter(
+                    fecha_generacion__gte=timezone.now() - timedelta(days=30)
+                ).count()
+                
+                print(f"✅ Contratos hoy: {contratos_hoy}")
+                print(f"✅ Contratos último mes: {contratos_mes}")
+                
+                # Detalles de cada contrato reciente
+                if contratos_recientes:
+                    print("\n📋 Detalles de contratos recientes:")
+                    for idx, c in enumerate(contratos_recientes, 1):
+                        print(f"   {idx}. {c.numero_contrato} | {c.nombre_cliente} | {c.fecha_generacion}")
+                        print(f"      - Cliente ID: {c.cliente_id if hasattr(c, 'cliente_id') else 'N/A'}")
+                        print(f"      - Plantilla: {c.plantilla_usada.nombre if c.plantilla_usada else 'N/A'}")
+                        if idx >= 3:  # Solo mostrar 3 para no llenar los logs
+                            break
+                
+            except Exception as e:
+                import traceback
+                print(f"\n❌ ERROR al cargar contratos:")
+                print(f"   Tipo de error: {type(e).__name__}")
+                print(f"   Mensaje: {str(e)}")
+                print(f"\n📋 Traceback completo:")
+                print(traceback.format_exc())
+        else:
+            print("❌ ContratoGenerado es None")
+    else:
+        print("❌ CONTENT_MODELS_AVAILABLE es False")
     
     plantillas_activas = plantillas.count()
     
@@ -237,6 +289,16 @@ def contratos_generados_list(request):
         'contratos_mes': contratos_mes,
         'plantillas_activas': plantillas_activas,
     }
+    
+    print(f"\n📦 CONTEXT FINAL:")
+    print(f"   - plantillas: {type(context['plantillas'])} | Count: {context['plantillas'].count()}")
+    print(f"   - clientes: {type(context['clientes'])} | Count: {context['clientes'].count()}")
+    print(f"   - contratos_recientes: {type(context['contratos_recientes'])} | Len: {len(context['contratos_recientes'])}")
+    print(f"   - total_contratos: {context['total_contratos']}")
+    print(f"   - contratos_hoy: {context['contratos_hoy']}")
+    print(f"   - contratos_mes: {context['contratos_mes']}")
+    print(f"   - plantillas_activas: {context['plantillas_activas']}")
+    print("="*80 + "\n")
     
     return render(request, 'custom_admin/contratos/list.html', context)
 
@@ -1940,18 +2002,6 @@ def categoria_delete_api(request, pk):
     return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
 
 # ============= VISTAS DE CONTRATOS =============
-@login_required
-@user_passes_test(is_admin)
-def contratos_list(request):
-    """Lista de contratos"""
-    if not CONTENT_MODELS_AVAILABLE:
-        context = {'mensaje': 'Módulo de Contratos no disponible'}
-        return render(request, 'custom_admin/en_desarrollo.html', context)
-    
-    contratos = TipoContrato.objects.all().order_by('nombre')
-    context = {'contratos': contratos}
-    return render(request, 'custom_admin/contratos/list.html', context)
-
 @login_required
 @user_passes_test(is_admin)
 def contrato_create_api(request):

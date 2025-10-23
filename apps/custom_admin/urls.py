@@ -49,7 +49,8 @@ urlpatterns = [
     path('categorias/api/<int:pk>/delete/', views.categoria_delete_api, name='categoria_delete_api'),
     
     # Contratos
-    path('contratos/', views.contratos_list, name='contratos_list'),
+    
+    path('contratos/', views.contratos_generados_list, name='contratos_list'),
     path('contratos/api/create/', views.contrato_create_api, name='contrato_create_api'),
     path('contratos/api/<int:pk>/', views.contrato_detail_api, name='contrato_detail_api'),
     path('contratos/api/<int:pk>/update/', views.contrato_update_api, name='contrato_update_api'),
