@@ -301,19 +301,14 @@ def contratos_generados_list(request):
     print("="*80 + "\n")
     
     return render(request, 'custom_admin/contratos/list.html', context)
-
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["POST"])
 def contrato_generar_api(request):
     """API para generar un contrato desde una plantilla"""
     try:
-        from apps.content_management.models import ContratoGenerado, CuñaPublicitaria
-        from docx import Document
+        from apps.content_management.models import ContratoGenerado
         from datetime import datetime
-        import os
-        from django.core.files.base import ContentFile
-        import io
         
         data = json.loads(request.body)
         
@@ -328,29 +323,26 @@ def contrato_generar_api(request):
                 'error': 'La plantilla no tiene un archivo asociado'
             }, status=400)
         
-        # Crear una cuña publicitaria temporal para asociar al contrato
-        cuña_temporal = CuñaPublicitaria.objects.create(
-            codigo=f"TEMP-{datetime.now().strftime('%Y%m%d%H%M%S')}",
-            titulo=f"Contrato Temporal - {cliente.empresa or cliente.get_full_name()}",
-            cliente=cliente,
-            duracion_planeada=int(data.get('duracion_spot', 30)),
-            repeticiones_dia=int(data.get('spots_dia', 1)),
-            fecha_inicio=datetime.strptime(data['fecha_inicio'], '%Y-%m-%d').date(),
-            fecha_fin=datetime.strptime(data['fecha_fin'], '%Y-%m-%d').date(),
-            precio_total=Decimal(str(data['valor_contrato'])),
-            estado='borrador'
-        )
-        
-        # Crear el contrato generado
+        # ✅ CREAR CONTRATO SIN CUÑA TEMPORAL
         contrato = ContratoGenerado.objects.create(
-            cuña=cuña_temporal,
             plantilla_usada=plantilla,
             cliente=cliente,
             nombre_cliente=cliente.empresa or cliente.get_full_name(),
             ruc_dni_cliente=cliente.ruc_dni or '',
             valor_sin_iva=Decimal(str(data['valor_contrato'])),
-            generado_por=request.user
+            generado_por=request.user,
+            estado='borrador'  # Inicia en borrador
         )
+        
+        # ✅ GUARDAR DATOS PARA USAR DESPUÉS AL CREAR LA CUÑA
+        contrato.datos_generacion = {
+            'FECHA_INICIO_RAW': data['fecha_inicio'],
+            'FECHA_FIN_RAW': data['fecha_fin'],
+            'SPOTS_DIA': data.get('spots_dia', 1),
+            'DURACION_SPOT': data.get('duracion_spot', 30),
+            'OBSERVACIONES': data.get('observaciones', '')
+        }
+        contrato.save()
         
         # Generar el archivo del contrato
         if contrato.generar_contrato():
@@ -359,7 +351,7 @@ def contrato_generar_api(request):
                 'message': 'Contrato generado exitosamente',
                 'contrato_id': contrato.id,
                 'numero_contrato': contrato.numero_contrato,
-                'archivo_url': contrato.archivo_contrato.url if contrato.archivo_contrato else None
+                'archivo_url': contrato.archivo_contrato_pdf.url if contrato.archivo_contrato_pdf else None
             })
         else:
             return JsonResponse({
@@ -381,6 +373,77 @@ def contrato_generar_api(request):
             'success': False,
             'error': f'Error al generar el contrato: {str(e)}'
         }, status=500)
+
+
+# ✅ NUEVA API: Subir contrato validado
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def contrato_subir_validado_api(request, id):
+    """API para subir un contrato validado y crear automáticamente la cuña"""
+    try:
+        from apps.content_management.models import ContratoGenerado
+        
+        contrato = ContratoGenerado.objects.get(pk=id)
+        
+        # Validar que se haya enviado un archivo
+        if 'archivo' not in request.FILES:
+            return JsonResponse({
+                'success': False,
+                'error': 'Debe seleccionar un archivo PDF'
+            }, status=400)
+        
+        archivo = request.FILES['archivo']
+        
+        # Validar que sea PDF
+        if not archivo.name.endswith('.pdf'):
+            return JsonResponse({
+                'success': False,
+                'error': 'El archivo debe ser un PDF'
+            }, status=400)
+        
+        # Guardar el archivo validado
+        contrato.archivo_contrato_validado = archivo
+        contrato.save()
+        
+        # ✅ VALIDAR Y CREAR CUÑA AUTOMÁTICAMENTE
+        resultado = contrato.validar_y_crear_cuna(user=request.user)
+        
+        if resultado['success']:
+            # Registrar en historial
+            LogEntry.objects.log_action(
+                user_id=request.user.pk,
+                content_type_id=ContentType.objects.get_for_model(contrato).pk,
+                object_id=contrato.pk,
+                object_repr=contrato.numero_contrato,
+                action_flag=CHANGE,
+                change_message=f'Contrato validado y cuña creada automáticamente (ID: {resultado["cuna_id"]})'
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Contrato validado y cuña creada exitosamente',
+                'cuna_id': resultado['cuna_id']
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': resultado.get('error', 'Error al crear la cuña')
+            }, status=500)
+        
+    except ContratoGenerado.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Contrato no encontrado'}, status=404)
+    except Exception as e:
+        import traceback
+        print("="*50)
+        print("ERROR AL SUBIR CONTRATO VALIDADO:")
+        print(traceback.format_exc())
+        print("="*50)
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al subir el contrato: {str(e)}'
+        }, status=500)
+
 
 @login_required
 @user_passes_test(is_admin)

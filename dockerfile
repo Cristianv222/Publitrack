@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     gettext \
     curl \
+    libreoffice \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar dependencias de Python

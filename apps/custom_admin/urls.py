@@ -59,7 +59,7 @@ urlpatterns = [
     path('contratos-generados/', views.contratos_generados_list, name='contratos_generados_list'),
     path('contratos/api/generar/', views.contrato_generar_api, name='contrato_generar_api'),
     path('contratos/api/<int:id>/eliminar/', views.contrato_eliminar_api, name='contrato_eliminar_api'),
-    
+    path('contratos/api/<int:id>/subir-validado/', views.contrato_subir_validado_api, name='contrato_subir_validado_api'),  # ✅ NUEVA RUTA
     # ==================== APIs PARA OBTENER DATOS ====================
     path('api/plantillas-contrato/', views.api_plantillas_contrato, name='api_plantillas_contrato'),
     path('api/clientes-activos/', views.api_clientes_activos, name='api_clientes_activos'),

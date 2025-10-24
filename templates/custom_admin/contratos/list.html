@@ -371,36 +371,56 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for contrato in contratos_recientes %}
-                    <tr>
-                        <td><strong>#{{ contrato.numero_contrato }}</strong></td>
-                        <td>{{ contrato.nombre_cliente }}</td>
-                        <td>{{ contrato.plantilla_usada.nombre }}</td>
-                        <td>{{ contrato.fecha_generacion|date:"d/m/Y H:i" }}</td>
-                        <td>S/ {{ contrato.valor_total }}</td>
-                        <td>
-                            <span class="badge bg-success">Generado</span>
-                        </td>
-                        <td>
-                            {% if contrato.archivo_contrato %}
-                            <a href="{{ contrato.archivo_contrato.url }}" class="btn btn-sm btn-primary" target="_blank">
-                                <i class="fas fa-download"></i>
-                            </a>
-                            {% endif %}
-                            <button class="btn btn-sm btn-danger" onclick="eliminarContrato({{ contrato.id }})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="7" class="text-center text-muted py-4">
-                            <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
-                            No hay contratos generados aún
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
+  {% for contrato in contratos_recientes %}
+  <tr>
+    <td><strong>#{{ contrato.numero_contrato }}</strong></td>
+    <td>{{ contrato.nombre_cliente }}</td>
+    <td>{{ contrato.plantilla_usada.nombre }}</td>
+    <td>{{ contrato.fecha_generacion|date:"d/m/Y H:i" }}</td>
+    <td>S/ {{ contrato.valor_total }}</td>
+    <td>
+      {% if contrato.estado == 'generado' %}
+        <span class="badge bg-success">Generado</span>
+      {% elif contrato.estado == 'validado' %}
+        <span class="badge bg-primary">Validado</span>
+      {% elif contrato.estado == 'borrador' %}
+        <span class="badge bg-warning">Borrador</span>
+      {% else %}
+        <span class="badge bg-secondary">{{ contrato.get_estado_display }}</span>
+      {% endif %}
+    </td>
+    <td>
+      <!-- Botón Descargar -->
+      {% if contrato.archivo_contrato_pdf %}
+        <a href="{{ contrato.archivo_contrato_pdf.url }}" class="btn btn-sm btn-primary" target="_blank" title="Descargar">
+          <i class="fas fa-download"></i>
+        </a>
+      {% endif %}
+      
+      <!-- ✅ Botón Subir (solo si está en estado 'generado' y no tiene cuña) -->
+      {% if contrato.estado == 'generado' and not contrato.cuña %}
+        <button class="btn btn-sm btn-success" onclick="subirContratoValidado({{ contrato.id }})" title="Subir contrato validado">
+          <i class="fas fa-upload"></i>
+        </button>
+      {% endif %}
+      
+      <!-- Botón Eliminar -->
+      <button class="btn btn-sm btn-danger" onclick="eliminarContrato({{ contrato.id }})" title="Eliminar">
+        <i class="fas fa-trash"></i>
+      </button>
+    </td>
+  </tr>
+  {% empty %}
+  <tr>
+    <td colspan="7" class="text-center text-muted py-4">
+      <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+      No hay contratos generados aún
+    </td>
+  </tr>
+  {% endfor %}
+</tbody>
+
+
             </table>
         </div>
     </div>
@@ -419,6 +439,90 @@ document.addEventListener('DOMContentLoaded', function() {
     cargarPlantillas();
     cargarClientes();
 });
+// ✅ NUEVA FUNCIÓN: Subir contrato validado
+function subirContratoValidado(id) {
+    Swal.fire({
+        title: 'Subir Contrato Validado',
+        html: `
+            <p class="mb-3">Seleccione el archivo PDF del contrato firmado/validado</p>
+            <input type="file" id="archivoContrato" class="form-control" accept=".pdf">
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Subir y Validar',
+        cancelButtonText: 'Cancelar',
+        preConfirm: () => {
+            const archivo = document.getElementById('archivoContrato').files[0];
+            
+            if (!archivo) {
+                Swal.showValidationMessage('Debe seleccionar un archivo PDF');
+                return false;
+            }
+            
+            if (!archivo.name.endsWith('.pdf')) {
+                Swal.showValidationMessage('El archivo debe ser un PDF');
+                return false;
+            }
+            
+            return archivo;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const archivo = result.value;
+            const formData = new FormData();
+            formData.append('archivo', archivo);
+            
+            // Mostrar loading
+            Swal.fire({
+                title: 'Subiendo Contrato',
+                html: 'Por favor espere...<br><small>Se creará automáticamente la cuña publicitaria</small>',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Enviar archivo
+            fetch(`/panel/contratos/api/${id}/subir-validado/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Contrato Validado!',
+                        html: `
+                            <p>El contrato ha sido validado exitosamente</p>
+                            <p><strong>Cuña publicitaria creada automáticamente</strong></p>
+                            <small>ID de cuña: ${data.cuna_id}</small>
+                        `,
+                        confirmButtonText: 'Aceptar'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error || 'No se pudo validar el contrato'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Ocurrió un error al subir el contrato'
+                });
+            });
+        }
+    });
+}
 
 function cargarPlantillas() {
     fetch('/panel/api/plantillas-contrato/')

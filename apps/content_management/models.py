@@ -47,6 +47,11 @@ def contract_output_path(instance, filename):
     ruta = f"staticfiles/contratos/{unique_filename}"
     print("RUTA GENERADA:", ruta)
     return ruta
+def contrato_validado_path(instance, filename):
+    # Guarda en media/contratos_validados/<numero_contrato>_<ID>_<original>
+    ext = filename.split('.')[-1].lower()
+    base = f"contrato_validado_{instance.numero_contrato}_{instance.id if instance.id else 'tmp'}.{ext}"
+    return os.path.join('contratos_validados', base)
 
 def numero_a_letras(numero):
     """
@@ -1104,12 +1109,15 @@ class PlantillaContrato(models.Model):
     
     def get_absolute_url(self):
         return reverse('content:plantilla_contrato_detail', kwargs={'pk': self.pk})
-
-
+def str_to_date(s):
+    try:
+        return datetime.strptime(s, "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        return timezone.now().date()
 class ContratoGenerado(models.Model):
     """
     Contratos generados a partir de plantillas.
-    Guarda el archivo rellenado, los datos utilizados y el estado del contrato.
+    Guarda el archivo PDF rellenado, los datos utilizados y el estado del contrato.
     """
 
     ESTADO_CHOICES = [
@@ -1124,11 +1132,15 @@ class ContratoGenerado(models.Model):
 
     numero_contrato = models.CharField('Número de Contrato', max_length=50, unique=True)
     cuña = models.ForeignKey(
-        CuñaPublicitaria, on_delete=models.CASCADE, related_name='contratos',
-        verbose_name='Cuña Publicitaria'
+        'CuñaPublicitaria', 
+        on_delete=models.CASCADE, 
+        related_name='contratos',
+        verbose_name='Cuña Publicitaria',
+        null=True,        # <-- CAMBIO CLAVE
+        blank=True
     )
     plantilla_usada = models.ForeignKey(
-        PlantillaContrato, on_delete=models.SET_NULL, null=True,
+        'PlantillaContrato', on_delete=models.SET_NULL, null=True,
         related_name='contratos_generados', verbose_name='Plantilla Utilizada'
     )
     cliente = models.ForeignKey(
@@ -1137,14 +1149,17 @@ class ContratoGenerado(models.Model):
     )
     nombre_cliente = models.CharField('Nombre del Cliente', max_length=255)
     ruc_dni_cliente = models.CharField('RUC/DNI del Cliente', max_length=20)
-    archivo_contrato = models.FileField(
-        'Archivo del Contrato', upload_to=contract_output_path,
-        blank=True, null=True
-    )
     archivo_contrato_pdf = models.FileField(
         'Contrato en PDF', upload_to=contract_output_path,
         blank=True, null=True
     )
+    archivo_contrato_validado = models.FileField(
+        'Contrato Validado (Subido)',
+        upload_to=contrato_validado_path,
+        blank=True, null=True,
+        help_text='PDF subido manualmente después de firmar/validar'
+    )
+
     valor_sin_iva = models.DecimalField('Valor sin IVA', max_digits=10, decimal_places=2)
     valor_iva = models.DecimalField('Valor IVA', max_digits=10, decimal_places=2, default=Decimal('0.00'))
     valor_total = models.DecimalField('Valor Total', max_digits=10, decimal_places=2)
@@ -1191,29 +1206,35 @@ class ContratoGenerado(models.Model):
     def generar_numero_contrato(self):
         año = timezone.now().year
         mes = timezone.now().month
-        count = ContratoGenerado.objects.filter(
-            fecha_generacion__year=año,
-            fecha_generacion__month=mes
-        ).count() + 1
-        return f"CTR{año}{mes:02d}{count:04d}"
+        for intento in range(1, 100):
+            count = ContratoGenerado.objects.filter(
+                fecha_generacion__year=año,
+                fecha_generacion__month=mes
+            ).count() + intento
+            numero = f"CTR{año}{mes:02d}{count:04d}"
+        # Verifica que no existe
+            if not ContratoGenerado.objects.filter(numero_contrato=numero).exists():
+                return numero
+        raise Exception("No se pudo generar un número de contrato único")
 
     def generar_contrato(self):
-        """
-        Genera el archivo Word del contrato rellenando los {{CAMPOS}} usando docxtpl.
-        Requiere: pip install docxtpl
-        """
+    
         try:
             from docxtpl import DocxTemplate
             from io import BytesIO
+            import os
+            import subprocess
+            from django.core.files.base import ContentFile
 
+        # VALIDACIÓN
             if not self.plantilla_usada or not self.plantilla_usada.archivo_plantilla:
                 raise ValueError("No hay plantilla asignada")
 
             doc = DocxTemplate(self.plantilla_usada.archivo_plantilla.path)
-            cliente = self.cuña.cliente
-            cuña = self.cuña
+            cliente = self.cliente   # <--- ESTE CAMBIO!
+            datos_gen = self.datos_generacion
 
-            valor_sin_iva = self.valor_sin_iva or cuña.precio_total
+            valor_sin_iva = self.valor_sin_iva
             if self.plantilla_usada.incluye_iva:
                 porcentaje_iva = self.plantilla_usada.porcentaje_iva / 100
                 valor_iva = valor_sin_iva * Decimal(str(porcentaje_iva))
@@ -1222,45 +1243,74 @@ class ContratoGenerado(models.Model):
                 valor_iva = Decimal('0.00')
                 valor_total = valor_sin_iva
 
-            duracion_dias = cuña.duracion_total_dias
+        # Duración e información mostrada
+            from datetime import datetime
+            if datos_gen.get('FECHA_INICIO_RAW') and datos_gen.get('FECHA_FIN_RAW'):
+                fecha_inicio = datetime.strptime(datos_gen['FECHA_INICIO_RAW'], '%Y-%m-%d')
+                fecha_fin = datetime.strptime(datos_gen['FECHA_FIN_RAW'], '%Y-%m-%d')
+                duracion_dias = (fecha_fin - fecha_inicio).days + 1
+            else:
+                duracion_dias = 30
             duracion_meses = round(duracion_dias / 30, 1)
 
             context = {
-                'NOMBRE_CLIENTE': cliente.empresa or getattr(cliente, 'razon_social', None) or cliente.get_full_name(),
-                'RUC_DNI': getattr(cliente, 'ruc_dni', None) or 'N/A',
-                'CIUDAD': getattr(cliente, 'ciudad', None) or 'N/A',
-                'PROVINCIA': getattr(cliente, 'provincia', None) or '',
-                'DIRECCION_EXACTA': getattr(cliente, 'direccion_exacta', None) or getattr(cliente, 'direccion', None) or 'N/A',
-                'DIRECCION': getattr(cliente, 'direccion_exacta', None) or getattr(cliente, 'direccion', None) or 'N/A',
+                'NOMBRE_CLIENTE': self.nombre_cliente,
+                'RUC_DNI': self.ruc_dni_cliente,
+                'CIUDAD': getattr(cliente, 'ciudad', '') or 'N/A',
+                'PROVINCIA': getattr(cliente, 'provincia', '') if hasattr(cliente, 'provincia') else '',
+                'DIRECCION_EXACTA': getattr(cliente, 'direccion_exacta', '') or getattr(cliente, 'direccion', '') or 'N/A',
+                'DIRECCION': getattr(cliente, 'direccion_exacta', '') or getattr(cliente, 'direccion', '') or 'N/A',
                 'VALOR_NUMEROS': f"{valor_sin_iva:.2f}",
                 'IVA_NUMEROS': f"{valor_iva:.2f}",
                 'TOTAL_NUMEROS': f"{valor_total:.2f}",
                 'VALOR_LETRAS': numero_a_letras(valor_sin_iva),
                 'IVA_LETRAS': numero_a_letras(valor_iva),
                 'TOTAL_LETRAS': numero_a_letras(valor_total),
-                'FECHA_INICIO': cuña.fecha_inicio.strftime('%d de %B del %Y') if cuña.fecha_inicio else 'N/A',
-                'FECHA_FIN': cuña.fecha_fin.strftime('%d de %B del %Y') if cuña.fecha_fin else 'N/A',
+                'FECHA_INICIO': fecha_inicio.strftime('%d de %B del %Y') if datos_gen.get('FECHA_INICIO_RAW') else 'N/A',
+                'FECHA_FIN': fecha_fin.strftime('%d de %B del %Y') if datos_gen.get('FECHA_FIN_RAW') else 'N/A',
                 'FECHA_ACTUAL': timezone.now().strftime('%d de %B del %Y'),
                 'DURACION_DIAS': str(duracion_dias),
                 'DURACION_MESES': str(duracion_meses),
-                'SPOTS_DIA': str(getattr(cuña, 'repeticiones_dia', '')),
-                'DURACION_SPOT': str(getattr(cuña, 'duracion_planeada', '')),
+                'SPOTS_DIA': str(datos_gen.get('SPOTS_DIA', '1')),
+                'DURACION_SPOT': str(datos_gen.get('DURACION_SPOT', '30')),
                 'NUMERO_CONTRATO': self.numero_contrato,
-                'CODIGO_CUÑA': getattr(cuña, 'codigo', ''),
-                'TITULO_CUÑA': getattr(cuña, 'titulo', ''),
+                'NOMBRE_CONTACTO': (
+                                    getattr(cliente, 'nombre_contacto', None)
+                                    or getattr(cliente, 'contacto_nombre', None)
+                                    or (cliente.get_full_name() if hasattr(cliente, 'get_full_name') else self.nombre_cliente)
+)
+
             }
+            self.datos_generacion = {**datos_gen, **context}
+            self.valor_iva = valor_iva
+            self.valor_total = valor_total
 
-            self.datos_generacion = context
-
-            doc.render(context)
+        # Generar Word temporal y convertir a PDF
             buffer = BytesIO()
+            doc.render(context)
             doc.save(buffer)
             buffer.seek(0)
-            from django.core.files.base import ContentFile
-            nombre_archivo = f"contrato_{self.numero_contrato}.docx"
-            self.archivo_contrato.save(
-                nombre_archivo, ContentFile(buffer.read()), save=False
-            )
+
+            temp_docx_path = f"/tmp/contrato_{self.numero_contrato}.docx"
+            temp_pdf_path = f"/tmp/contrato_{self.numero_contrato}.pdf"
+            with open(temp_docx_path, 'wb') as tempdocx:
+                tempdocx.write(buffer.read())
+
+            subprocess.run([
+                "libreoffice",
+                "--headless",
+                "--convert-to", "pdf",
+                "--outdir", "/tmp",
+                temp_docx_path
+            ], check=True)
+
+            with open(temp_pdf_path, 'rb') as pdf_file:
+                pdf_filename = f"contrato_{self.numero_contrato}.pdf"
+                self.archivo_contrato_pdf.save(pdf_filename, ContentFile(pdf_file.read()), save=False)
+
+            os.remove(temp_docx_path)
+            os.remove(temp_pdf_path)
+
             self.estado = 'generado'
             self.save()
             return True
@@ -1268,6 +1318,41 @@ class ContratoGenerado(models.Model):
         except Exception as e:
             print(f'Error generando contrato: {e}')
             return False
+            from datetime import datetime
+
+
+
+    def validar_y_crear_cuna(self, user=None):
+    
+        from apps.content_management.models import CuñaPublicitaria
+        from django.utils import timezone
+        try:
+            if self.cuña:
+                return {'success': False, 'error': 'Este contrato ya tiene una cuña asociada'}
+            datos = self.datos_generacion or {}
+            cuna = CuñaPublicitaria.objects.create(
+                codigo=f"CÑ-{self.numero_contrato}",
+                titulo=datos.get('TITULO_CUÑA', f"Cuña {self.nombre_cliente}"),
+                descripcion=f"Cuña generada automáticamente desde contrato {self.numero_contrato}",
+                cliente=self.cliente,
+                duracion_planeada=int(datos.get('DURACION_SPOT', 30)),
+                repeticiones_dia=int(datos.get('SPOTS_DIA', 1)),
+                fecha_inicio=str_to_date(self.datos_generacion.get('FECHA_INICIO_RAW')),
+                fecha_fin=str_to_date(self.datos_generacion.get('FECHA_FIN_RAW')),
+                precio_total=self.valor_total,
+                precio_por_segundo=self.valor_total / int(datos.get('DURACION_SPOT', 30)),
+                estado='activa',
+                observaciones=self.observaciones
+            )
+            self.cuña = cuna
+            self.estado = 'validado'
+            self.fecha_validacion = timezone.now()
+            self.validado_por = user
+            self.save()
+            return {'success': True, 'cuna_id': cuna.id, 'message': 'Cuña creada exitosamente'}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
 
     def marcar_como_enviado(self):
         self.estado = 'enviado'
