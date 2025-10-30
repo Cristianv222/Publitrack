@@ -9,21 +9,22 @@ from .models import CustomUser, UserLoginHistory
 class CustomUserAdmin(UserAdmin):
     """Administración personalizada para CustomUser"""
     
-    # Campos que se muestran en la lista
+    # Campos que se muestran en la lista - ACTUALIZADO
     list_display = (
         'username', 'get_full_name', 'email', 'rol', 'status_badge', 
-        'empresa', 'vendedor_asignado', 'ultima_conexion', 'created_at'
+        'empresa', 'cargo_empresa', 'profesion', 'vendedor_asignado', 'ultima_conexion', 'created_at'
     )
     
-    # Filtros laterales
+    # Filtros laterales - ACTUALIZADO
     list_filter = (
-        'rol', 'status', 'is_active', 'is_staff', 'created_at', 'ultima_conexion'
+        'rol', 'status', 'is_active', 'is_staff', 'created_at', 'ultima_conexion',
+        'cargo_empresa', 'profesion'  # Nuevos filtros
     )
     
-    # Campos de búsqueda
+    # Campos de búsqueda - ACTUALIZADO
     search_fields = (
         'username', 'first_name', 'last_name', 'email', 
-        'empresa', 'ruc_dni', 'telefono'
+        'empresa', 'ruc_dni', 'telefono', 'cargo_empresa', 'profesion'  # Nuevos campos de búsqueda
     )
     
     # Campos para ordenar
@@ -35,7 +36,7 @@ class CustomUserAdmin(UserAdmin):
         'date_joined', 'last_login'
     )
     
-    # Configuración de fieldsets para el formulario
+    # Configuración de fieldsets para el formulario - ACTUALIZADO
     fieldsets = (
         ('Información Básica', {
             'fields': ('username', 'password', 'first_name', 'last_name', 'email')
@@ -47,7 +48,7 @@ class CustomUserAdmin(UserAdmin):
             'fields': ('rol', 'status', 'is_active', 'is_staff', 'is_superuser')
         }),
         ('Información de Cliente', {
-            'fields': ('empresa', 'ruc_dni', 'razon_social', 'giro_comercial', 
+            'fields': ('empresa', 'cargo_empresa', 'profesion', 'ruc_dni', 'razon_social', 'giro_comercial', 
                       'vendedor_asignado', 'limite_credito', 'dias_credito'),
             'classes': ('collapse',),
             'description': 'Información específica para clientes'
@@ -77,7 +78,7 @@ class CustomUserAdmin(UserAdmin):
         }),
     )
     
-    # *** CORRECCIÓN: Fieldsets para agregar usuario con campos obligatorios ***
+    # *** CORRECCIÓN: Fieldsets para agregar usuario con campos obligatorios *** - ACTUALIZADO
     add_fieldsets = (
         ('Información Básica', {
             'classes': ('wide',),
@@ -92,7 +93,7 @@ class CustomUserAdmin(UserAdmin):
             'classes': ('collapse',),
         }),
         ('Información de Cliente/Empresa', {
-            'fields': ('empresa', 'ruc_dni', 'razon_social', 'giro_comercial', 'vendedor_asignado'),
+            'fields': ('empresa', 'cargo_empresa', 'profesion', 'ruc_dni', 'razon_social', 'giro_comercial', 'vendedor_asignado'),
             'classes': ('collapse',),
             'description': 'REQUERIDO para clientes: Al menos empresa o RUC/DNI debe ser completado'
         }),
@@ -126,6 +127,17 @@ class CustomUserAdmin(UserAdmin):
             obj.get_status_display()
         )
     status_badge.short_description = 'Estado'
+    
+    # Métodos para mostrar los nuevos campos en la lista
+    def cargo_empresa_display(self, obj):
+        """Muestra el cargo de la empresa"""
+        return obj.cargo_empresa or '-'
+    cargo_empresa_display.short_description = 'Cargo'
+    
+    def profesion_display(self, obj):
+        """Muestra la profesión"""
+        return obj.profesion or '-'
+    profesion_display.short_description = 'Profesión'
     
     def get_queryset(self, request):
         """Optimiza las consultas"""
@@ -201,7 +213,6 @@ class CustomUserAdmin(UserAdmin):
             readonly.extend(['is_superuser', 'user_permissions', 'groups'])
         
         return readonly
-
 
 @admin.register(UserLoginHistory)
 class UserLoginHistoryAdmin(admin.ModelAdmin):

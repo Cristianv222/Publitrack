@@ -149,6 +149,23 @@ class CustomUser(AbstractUser):
         help_text='Nombre de la empresa del cliente'
     )
     
+    # NUEVOS CAMPOS AÑADIDOS
+    cargo_empresa = models.CharField(
+        'Cargo en la Empresa',
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text='Cargo que ocupa el cliente en la empresa (ej: Gerente, Director, etc.)'
+    )   
+
+    profesion = models.CharField(
+        'Profesión/Título',
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text='Título profesional (ej: Ing., Msc., Doc., Lic., etc.)'
+    )
+
     ruc_dni = models.CharField(
         'RUC/DNI',
         max_length=20,

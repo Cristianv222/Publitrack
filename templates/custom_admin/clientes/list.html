@@ -227,11 +227,8 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if cliente.profesion_display %}
-                                <span class="profesion-badge">{{ cliente.profesion_display }}</span>
-                                {% if cliente.abreviatura_profesion %}
-                                <br><small class="text-muted">Abrev: {{ cliente.abreviatura_profesion }}</small>
-                                {% endif %}
+                                {% if cliente.profesion %}
+                                <span class="profesion-badge">{{ cliente.profesion }}</span>
                                 {% else %}
                                 <span class="text-muted">Sin profesión</span>
                                 {% endif %}
@@ -493,8 +490,7 @@ function editarCliente(clienteId) {
             document.getElementById('status').value = data.status;
             
             // CORRECCIÓN: Cargar información profesional correctamente
-            // Usamos profesion_display que viene del modelo
-            document.getElementById('profesion').value = data.profesion_display || '';
+            document.getElementById('profesion').value = data.profesion || '';
             document.getElementById('cargo_empresa').value = data.cargo_empresa || '';
             
             if (document.getElementById('vendedor_asignado')) {
@@ -502,7 +498,7 @@ function editarCliente(clienteId) {
             }
             
             console.log("Datos cargados para edición:", {
-                profesion_display: data.profesion_display,
+                profesion: data.profesion,
                 cargo_empresa: data.cargo_empresa
             });
             
@@ -584,31 +580,19 @@ function verDetalleCliente(clienteId) {
         .then(data => {
             // Construir HTML para información profesional
             let infoProfesionalHtml = '';
-            if (data.profesion_display) {
+            if (data.profesion) {
                 infoProfesionalHtml = `
                     <div class="info-profesional">
                         <h6 class="mb-3">Información Profesional</h6>
                         <div class="row">
                             <div class="col-md-6">
                                 <strong>Profesión:</strong><br>
-                                <span class="profesion-badge">${data.profesion_display}</span>
+                                <span class="profesion-badge">${data.profesion}</span>
                             </div>
-                            ${data.abreviatura_profesion ? `
-                            <div class="col-md-6">
-                                <strong>Abreviatura:</strong><br>
-                                ${data.abreviatura_profesion}
-                            </div>
-                            ` : ''}
                             ${data.cargo_empresa ? `
                             <div class="col-md-6 mt-2">
                                 <strong>Cargo:</strong><br>
                                 <span class="cargo-badge">${data.cargo_empresa}</span>
-                            </div>
-                            ` : ''}
-                            ${data.firma_contrato ? `
-                            <div class="col-md-12 mt-2">
-                                <strong>Firma para Contratos:</strong><br>
-                                <code>${data.firma_contrato}</code>
                             </div>
                             ` : ''}
                         </div>
@@ -783,12 +767,10 @@ function debugUltimoCliente() {
                 html: `
                     <div class="text-left">
                         <p><strong>Empresa:</strong> ${data.empresa || '-'}</p>
-                        <p><strong>Profesión (código):</strong> ${data.profesion || '-'}</p>
-                        <p><strong>Otra Profesión:</strong> ${data.otra_profesion || '-'}</p>
-                        <p><strong>Profesión Display:</strong> ${data.profesion_display || '-'}</p>
+                        <p><strong>Profesión:</strong> ${data.profesion || '-'}</p>
                         <p><strong>Cargo:</strong> ${data.cargo_empresa || '-'}</p>
-                        <p><strong>Tiene profesión:</strong> ${data.tiene_profesion ? 'Sí' : 'No'}</p>
-                        <p><strong>Tiene cargo:</strong> ${data.tiene_cargo ? 'Sí' : 'No'}</p>
+                        <p><strong>Tiene profesión:</strong> ${data.profesion ? 'Sí' : 'No'}</p>
+                        <p><strong>Tiene cargo:</strong> ${data.cargo_empresa ? 'Sí' : 'No'}</p>
                         <p><strong>Fecha creación:</strong> ${data.fecha_creacion}</p>
                     </div>
                 `,

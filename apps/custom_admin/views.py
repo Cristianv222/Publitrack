@@ -2659,6 +2659,9 @@ def cliente_detail_api(request, cliente_id):
             'dias_credito': cliente.dias_credito or 0,
             'status': cliente.status,
             'fecha_registro': cliente.fecha_registro.strftime('%d/%m/%Y %H:%M') if cliente.fecha_registro else '',
+            # --- LOS DOS CAMPOS NUEVOS ---
+            'cargo_empresa': cliente.cargo_empresa or '',
+            'profesion': cliente.profesion or '',
         }
         
         return JsonResponse(data)
@@ -2667,16 +2670,17 @@ def cliente_detail_api(request, cliente_id):
         return JsonResponse({'error': 'Cliente no encontrado'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-
 @login_required
 def cliente_create_api(request):
     """API para crear un nuevo cliente"""
     if not request.user.es_admin and not request.user.es_vendedor:
         messages.error(request, 'No tienes permisos para crear clientes')
         return redirect('custom_admin:clientes_list')
+    
     if request.method != 'POST':
         messages.error(request, 'Método no permitido')
         return redirect('custom_admin:clientes_list')
+    
     try:
         # Validar que no exista el username
         username = request.POST.get('username')
@@ -2713,6 +2717,7 @@ def cliente_create_api(request):
         cliente.ciudad = request.POST.get('ciudad', '')
         cliente.provincia = request.POST.get('provincia', '')
         cliente.direccion_exacta = request.POST.get('direccion_exacta', '')
+        
         # --- LOS DOS CAMPOS NUEVOS ---
         cliente.cargo_empresa = request.POST.get('cargo_empresa', '')
         cliente.profesion = request.POST.get('profesion', '')
@@ -2743,6 +2748,7 @@ def cliente_create_api(request):
 
         # Guardar el cliente
         cliente.save()
+        
         # Registrar en historial con LogEntry
         from django.contrib.admin.models import LogEntry, ADDITION
         from django.contrib.contenttypes.models import ContentType
@@ -2757,6 +2763,7 @@ def cliente_create_api(request):
 
         messages.success(request, f'✓ Cliente "{cliente.empresa}" creado exitosamente')
         return redirect('custom_admin:clientes_list')
+    
     except Exception as e:
         import traceback
         print(traceback.format_exc())  # Para debug en consola
@@ -2768,11 +2775,14 @@ def cliente_update_api(request, cliente_id):
     if not request.user.es_admin and not request.user.es_vendedor:
         messages.error(request, 'No tienes permisos para editar clientes')
         return redirect('custom_admin:clientes_list')
+    
     if request.method != 'POST':
         messages.error(request, 'Método no permitido')
         return redirect('custom_admin:clientes_list')
+    
     try:
         cliente = CustomUser.objects.get(pk=cliente_id, rol='cliente')
+        
         # Verificar permisos de vendedor
         if request.user.es_vendedor and cliente.vendedor_asignado != request.user:
             messages.error(request, 'No tienes permisos para editar este cliente')
@@ -2789,6 +2799,7 @@ def cliente_update_api(request, cliente_id):
         cliente.ciudad = request.POST.get('ciudad', cliente.ciudad)
         cliente.provincia = request.POST.get('provincia', cliente.provincia)
         cliente.direccion_exacta = request.POST.get('direccion_exacta', cliente.direccion_exacta)
+        
         # --- LOS DOS CAMPOS NUEVOS ---
         cliente.cargo_empresa = request.POST.get('cargo_empresa', cliente.cargo_empresa)
         cliente.profesion = request.POST.get('profesion', cliente.profesion)
@@ -2829,12 +2840,12 @@ def cliente_update_api(request, cliente_id):
 
         messages.success(request, f'✓ Cliente "{cliente.empresa}" actualizado exitosamente')
         return redirect('custom_admin:clientes_list')
+    
     except Exception as e:
         import traceback
         print(traceback.format_exc())
         messages.error(request, f'Error al actualizar el cliente: {str(e)}')
         return redirect('custom_admin:clientes_list')
-
 @login_required
 def cliente_delete_api(request, cliente_id):
     """API para eliminar/inactivar un cliente"""
