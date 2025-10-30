@@ -742,13 +742,13 @@
                         </h2>
                         <div id="ordersCollapse" class="accordion-collapse collapse" data-bs-parent="#ordersAccordion">
                             <div class="accordion-body">
-                                <a href="{% url 'custom_admin:ordenes_toma_list' %}" class="submenu-link {% if 'ordenes_toma' in request.resolver_match.url_name %}active{% endif %}">
+                                <a href="{% url 'custom_admin:orders_list' %}" class="submenu-link {% if 'orders' in request.resolver_match.url_name %}active{% endif %}">
                                     <i class="fas fa-microphone"></i>Órdenes de Toma
                                 </a>
-                                <a href="{% url 'custom_admin:ordenes_produccion_list' %}" class="submenu-link {% if 'ordenes_produccion' in request.resolver_match.url_name %}active{% endif %}">
+                                    <a href="{% url 'custom_admin:orders_list' %}" class="submenu-link {% if 'orders' in request.resolver_match.url_name %}active{% endif %}">
                                     <i class="fas fa-cogs"></i>Órdenes de Producción
                                 </a>
-                                <a href="{% url 'custom_admin:ordenes_finalizacion_list' %}" class="submenu-link {% if 'ordenes_finalizacion' in request.resolver_match.url_name %}active{% endif %}">
+                                    <a href="{% url 'custom_admin:orders_list' %}" class="submenu-link {% if 'orders' in request.resolver_match.url_name %}active{% endif %}">
                                     <i class="fas fa-flag-checkered"></i>Órdenes de Finalización
                                 </a>
                             </div>
@@ -760,7 +760,7 @@
             <!-- PANTEONES (nueva sección) -->
             <div class="menu-section">
                 <div class="menu-section-title">PARTE MORTORIOS</div>
-                <a href="{% url 'custom_admin:panteones_list' %}" class="menu-link {% if 'panteones' in request.resolver_match.url_name %}active{% endif %}">
+            <a href="{% url 'custom_admin:orders_list' %}" class="submenu-link {% if 'orders' in request.resolver_match.url_name %}active{% endif %}">
                     <i class="fas fa-monument menu-icon"></i>
                     <span>Gestión de Parte Mortorios</span>
                 </a>

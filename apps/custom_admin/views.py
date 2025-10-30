@@ -68,152 +68,6 @@ def is_admin(user):
     """Verifica si el usuario es administrador"""
     return user.is_superuser or user.is_staff or getattr(user, 'rol', None) == 'admin'
 
-# ==================== VISTAS DE ÓRDENES ====================
-
-@login_required
-@user_passes_test(is_admin)
-def ordenes_toma_list(request):
-    """Lista de órdenes de toma"""
-    context = {
-        'title': 'Órdenes de Toma',
-        'header_title': 'Gestión de Órdenes de Toma',
-        'description': 'Administre las órdenes de toma de audio publicitario'
-    }
-    return render(request, 'custom_admin/orders/list.html', context)
-
-@login_required
-@user_passes_test(is_admin)
-def ordenes_produccion_list(request):
-    """Lista de órdenes de producción"""
-    context = {
-        'title': 'Órdenes de Producción',
-        'header_title': 'Gestión de Órdenes de Producción',
-        'description': 'Administre las órdenes de producción de contenido'
-    }
-    return render(request, 'custom_admin/ordenes/produccion_list.html', context)
-
-@login_required
-@user_passes_test(is_admin)
-def ordenes_finalizacion_list(request):
-    """Lista de órdenes de finalización"""
-    context = {
-        'title': 'Órdenes de Finalización',
-        'header_title': 'Gestión de Órdenes de Finalización',
-        'description': 'Administre las órdenes de finalización de proyectos'
-    }
-    return render(request, 'custom_admin/ordenes/finalizacion_list.html', context)
-
-# ==================== VISTAS DE PANTEONES ====================
-
-@login_required
-@user_passes_test(is_admin)
-def panteones_list(request):
-    """Lista de panteones"""
-    context = {
-        'title': 'Gestión de Panteones',
-        'header_title': 'Gestión de Panteones',
-        'description': 'Administre los panteones del sistema'
-    }
-    return render(request, 'custom_admin/parte_mortorios/list.html', context)
-
-# ==================== APIs PARA ÓRDENES ====================
-
-@login_required
-@user_passes_test(is_admin)
-def api_ordenes_toma(request):
-    """API para obtener órdenes de toma"""
-    try:
-        # Datos de ejemplo - reemplazar con tu modelo real
-        ordenes = [
-            {
-                'id': 1,
-                'numero_orden': 'OT-001',
-                'cliente': 'Cliente Ejemplo 1',
-                'fecha_solicitud': '2024-01-15',
-                'estado': 'pendiente',
-                'prioridad': 'alta',
-                'descripcion': 'Toma de audio para spot comercial'
-            },
-            {
-                'id': 2,
-                'numero_orden': 'OT-002',
-                'cliente': 'Cliente Ejemplo 2',
-                'fecha_solicitud': '2024-01-16',
-                'estado': 'en_proceso',
-                'prioridad': 'media',
-                'descripcion': 'Toma de voz para cuña informativa'
-            }
-        ]
-        
-        return JsonResponse({'success': True, 'ordenes': ordenes})
-    
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
-
-@login_required
-@user_passes_test(is_admin)
-def api_ordenes_produccion(request):
-    """API para obtener órdenes de producción"""
-    try:
-        # Datos de ejemplo - reemplazar con tu modelo real
-        ordenes = [
-            {
-                'id': 1,
-                'numero_orden': 'OP-001',
-                'cliente': 'Cliente Ejemplo 1',
-                'fecha_entrega': '2024-01-20',
-                'estado': 'en_produccion',
-                'tipo_produccion': 'edicion_audio',
-                'responsable': 'Producción 1'
-            },
-            {
-                'id': 2,
-                'numero_orden': 'OP-002',
-                'cliente': 'Cliente Ejemplo 2',
-                'fecha_entrega': '2024-01-22',
-                'estado': 'pendiente',
-                'tipo_produccion': 'mezcla_audio',
-                'responsable': 'Producción 2'
-            }
-        ]
-        
-        return JsonResponse({'success': True, 'ordenes': ordenes})
-    
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
-
-@login_required
-@user_passes_test(is_admin)
-def api_ordenes_finalizacion(request):
-    """API para obtener órdenes de finalización"""
-    try:
-        # Datos de ejemplo - reemplazar con tu modelo real
-        ordenes = [
-            {
-                'id': 1,
-                'numero_orden': 'OF-001',
-                'cliente': 'Cliente Ejemplo 1',
-                'fecha_finalizacion': '2024-01-18',
-                'estado': 'completado',
-                'resultado': 'aprobado',
-                'observaciones': 'Proyecto finalizado satisfactoriamente'
-            },
-            {
-                'id': 2,
-                'numero_orden': 'OF-002',
-                'cliente': 'Cliente Ejemplo 2',
-                'fecha_finalizacion': '2024-01-19',
-                'estado': 'pendiente_revision',
-                'resultado': 'en_revision',
-                'observaciones': 'Esperando aprobación del cliente'
-            }
-        ]
-        
-        return JsonResponse({'success': True, 'ordenes': ordenes})
-    
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
-
 # ==================== APIs PARA PANTEONES ====================
 
 @login_required
@@ -2915,241 +2769,219 @@ def configuracion(request):
     """Configuración del sistema"""
     context = {'mensaje': 'Configuración del Sistema - En desarrollo'}
     return render(request, 'custom_admin/en_desarrollo.html', context)
-# ==================== VISTAS PARA ÓRDENES ====================
+# ==================== VISTAS COMPLETAS DE ÓRDENES ====================
+from django.core.paginator import Paginator
 
 @login_required
 @user_passes_test(is_admin)
 def orders_list(request):
-    """Lista de órdenes del sistema"""
-    
-    # Filtros
+    from apps.orders.models import OrdenToma
+    from apps.authentication.models import CustomUser
+
     search = request.GET.get('search', '')
     estado_filter = request.GET.get('estado', '')
     prioridad_filter = request.GET.get('prioridad', '')
-    fecha_filter = request.GET.get('fecha', '')
-    
-    # Datos de ejemplo - reemplazar con tu modelo real
-    ordenes = [
-        {
-            'id': 1,
-            'numero_orden': 'ORD-001',
-            'cliente': {
-                'empresa': 'Empresa Ejemplo 1',
-                'get_full_name': 'Cliente Uno',
-                'ruc_dni': '12345678901'
-            },
-            'fecha_orden': timezone.now().date(),
-            'detalle_productos': 'Servicio de publicidad radial - Spot 30 segundos',
-            'total': Decimal('1500.00'),
-            'prioridad': 'alta',
-            'estado': 'pendiente',
-            'vendedor': request.user if hasattr(request.user, 'get_full_name') else None
-        },
-        {
-            'id': 2,
-            'numero_orden': 'ORD-002',
-            'cliente': {
-                'empresa': 'Empresa Ejemplo 2', 
-                'get_full_name': 'Cliente Dos',
-                'ruc_dni': '10987654321'
-            },
-            'fecha_orden': timezone.now().date() - timedelta(days=1),
-            'detalle_productos': 'Producción de cuña publicitaria',
-            'total': Decimal('2500.00'),
-            'prioridad': 'media',
-            'estado': 'procesando',
-            'vendedor': request.user if hasattr(request.user, 'get_full_name') else None
-        }
-    ]
-    
-    # Aplicar filtros
+
+    ordenes = OrdenToma.objects.select_related('cliente', 'vendedor_asignado').all()
     if search:
-        ordenes = [o for o in ordenes if search.lower() in o['numero_orden'].lower() or 
-                 search.lower() in o['cliente']['empresa'].lower()]
-    
+        ordenes = ordenes.filter(
+            Q(codigo__icontains=search) |
+            Q(nombre_cliente__icontains=search) |
+            Q(ruc_dni_cliente__icontains=search) |
+            Q(empresa_cliente__icontains=search)
+        )
     if estado_filter:
-        ordenes = [o for o in ordenes if o['estado'] == estado_filter]
-    
+        ordenes = ordenes.filter(estado=estado_filter)
     if prioridad_filter:
-        ordenes = [o for o in ordenes if o['prioridad'] == prioridad_filter]
-    
-    # Estadísticas
-    total_ordenes = len(ordenes)
-    ordenes_pendientes = len([o for o in ordenes if o['estado'] == 'pendiente'])
-    ordenes_procesando = len([o for o in ordenes if o['estado'] == 'procesando'])
-    ordenes_completadas = len([o for o in ordenes if o['estado'] == 'completado'])
-    
-    # Obtener clientes para el formulario
-    clientes = CustomUser.objects.filter(rol='cliente', is_active=True)
-    
+        ordenes = ordenes.filter(prioridad=prioridad_filter)
+
+    total_ordenes = OrdenToma.objects.count()
+    ordenes_generadas = OrdenToma.objects.filter(estado='generado').count()
+    ordenes_validadas = OrdenToma.objects.filter(estado='validado').count()
+    ordenes_completadas = OrdenToma.objects.filter(estado='completado').count()
+
+    # Importante: define aquí la variable
+    paginator = Paginator(ordenes, 20)
+    page = request.GET.get('page', 1)
+    ordenes_paginadas = paginator.get_page(page)
+
+    clientes = CustomUser.objects.filter(rol='cliente', is_active=True).order_by('empresa', 'first_name')
+
     context = {
-        'ordenes': ordenes,
+        'ordenes': ordenes_paginadas,               # ← Aquí usas la variable correcta
         'total_ordenes': total_ordenes,
-        'ordenes_pendientes': ordenes_pendientes,
-        'ordenes_procesando': ordenes_procesando,
+        'ordenes_generadas': ordenes_generadas,
+        'ordenes_validadas': ordenes_validadas,
         'ordenes_completadas': ordenes_completadas,
-        'clientes': clientes,
         'search': search,
         'estado_filter': estado_filter,
         'prioridad_filter': prioridad_filter,
-        'fecha_filter': fecha_filter,
+        'clientes': clientes,
     }
-    
     return render(request, 'custom_admin/orders/list.html', context)
 
 @login_required
 @user_passes_test(is_admin)
 def order_detail_api(request, order_id):
-    """API para obtener detalles de una orden"""
+    """API para obtener detalle de orden"""
     try:
-        # Datos de ejemplo - reemplazar con tu modelo real
-        ordenes_data = {
-            1: {
-                'id': 1,
-                'numero_orden': 'ORD-001',
-                'cliente_id': 1,
-                'cliente_nombre': 'Empresa Ejemplo 1 - Cliente Uno',
-                'cliente_ruc': '12345678901',
-                'fecha_orden': '2024-01-15',
-                'detalle_productos': 'Servicio de publicidad radial - Spot 30 segundos',
-                'cantidad': 1,
-                'total': '1500.00',
-                'prioridad': 'alta',
-                'estado': 'pendiente',
-                'observaciones': 'Cliente solicita revisión previa',
-                'vendedor_nombre': request.user.get_full_name(),
-                'fecha_creacion': timezone.now().strftime('%d/%m/%Y %H:%M')
-            },
-            2: {
-                'id': 2,
-                'numero_orden': 'ORD-002', 
-                'cliente_id': 2,
-                'cliente_nombre': 'Empresa Ejemplo 2 - Cliente Dos',
-                'cliente_ruc': '10987654321',
-                'fecha_orden': '2024-01-14',
-                'detalle_productos': 'Producción de cuña publicitaria',
-                'cantidad': 1,
-                'total': '2500.00',
-                'prioridad': 'media',
-                'estado': 'procesando',
-                'observaciones': 'En proceso de grabación',
-                'vendedor_nombre': request.user.get_full_name(),
-                'fecha_creacion': timezone.now().strftime('%d/%m/%Y %H:%M')
+        from apps.orders.models import OrdenToma
+        
+        orden = get_object_or_404(OrdenToma, pk=order_id)
+        
+        return JsonResponse({
+            'success': True,
+            'orden': {
+                'id': orden.id,
+                'codigo': orden.codigo,
+                'cliente_id': orden.cliente.id if orden.cliente else None,  # ← AGREGAR
+                'nombre_cliente': orden.nombre_cliente,
+                'ruc_dni_cliente': orden.ruc_dni_cliente,
+                'empresa_cliente': orden.empresa_cliente,
+                'ciudad_cliente': orden.ciudad_cliente,
+                'direccion_cliente': orden.direccion_cliente,
+                'telefono_cliente': orden.telefono_cliente,
+                'email_cliente': orden.email_cliente,
+                'detalle_productos': orden.detalle_productos,
+                'cantidad': orden.cantidad,
+                'total': str(orden.total),
+                'estado': orden.estado,
+                'prioridad': orden.prioridad,
+                'observaciones': orden.observaciones,
+                'fecha_orden': orden.fecha_orden.strftime('%d/%m/%Y %H:%M'),
+                'vendedor': orden.vendedor_asignado.get_full_name() if orden.vendedor_asignado else None,
             }
-        }
+        })
         
-        orden = ordenes_data.get(order_id)
-        if not orden:
-            return JsonResponse({'error': 'Orden no encontrada'}, status=404)
-        
-        return JsonResponse(orden)
-    
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["POST"])
 def order_create_api(request):
-    """API para crear una nueva orden"""
+    """API para crear orden manualmente"""
     try:
+        from apps.orders.models import OrdenToma
+        
         data = json.loads(request.body)
         
-        # Validar campos requeridos
-        required_fields = ['numero_orden', 'cliente', 'fecha_orden', 'detalle_productos', 'total']
-        for field in required_fields:
-            if not data.get(field):
-                return JsonResponse({
-                    'success': False,
-                    'error': f'El campo {field} es obligatorio'
-                }, status=400)
+        cliente_id = data.get('cliente_id')
+        if not cliente_id:
+            return JsonResponse({'success': False, 'error': 'Cliente requerido'}, status=400)
         
-        # Aquí iría la lógica para crear la orden en la base de datos
-        # Por ahora simulamos la creación
+        cliente = get_object_or_404(CustomUser, pk=cliente_id, rol='cliente')
         
-        # Registrar en historial
+        orden = OrdenToma.objects.create(
+            cliente=cliente,
+            detalle_productos=data.get('detalle_productos', ''),
+            cantidad=int(data.get('cantidad', 1)),
+            total=Decimal(data.get('total', '0.00')),
+            prioridad=data.get('prioridad', 'normal'),
+            observaciones=data.get('observaciones', ''),
+            created_by=request.user,
+        )
+        
+        # Registrar en LogEntry
         LogEntry.objects.log_action(
             user_id=request.user.pk,
-            content_type_id=ContentType.objects.get_for_model(CustomUser).pk,  # Temporal
-            object_id=request.user.pk,
-            object_repr=f"Orden creada: {data['numero_orden']}",
+            content_type_id=ContentType.objects.get_for_model(orden).pk,
+            object_id=orden.pk,
+            object_repr=orden.codigo,
             action_flag=ADDITION,
-            change_message=f'Orden creada: {data["numero_orden"]} - Cliente: {data["cliente"]}'
+            change_message=f'Orden creada manualmente'
         )
         
         return JsonResponse({
             'success': True,
             'message': 'Orden creada exitosamente',
-            'order_id': 3  # ID simulado
+            'orden_id': orden.id,
+            'codigo': orden.codigo
         })
         
     except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': f'Error al crear la orden: {str(e)}'
-        }, status=500)
+        import traceback
+        print(traceback.format_exc())
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
 
 @login_required
 @user_passes_test(is_admin)
-@require_http_methods(["POST"])
+@require_http_methods(["PUT", "POST"])
 def order_update_api(request, order_id):
-    """API para actualizar una orden existente"""
+    """API para actualizar orden"""
     try:
+        from apps.orders.models import OrdenToma
+        
+        orden = get_object_or_404(OrdenToma, pk=order_id)
         data = json.loads(request.body)
         
-        # Validar que la orden existe
-        # Aquí iría la lógica para buscar y actualizar la orden en la base de datos
+        # Actualizar campos
+        orden.detalle_productos = data.get('detalle_productos', orden.detalle_productos)
+        orden.cantidad = int(data.get('cantidad', orden.cantidad))
+        orden.total = Decimal(data.get('total', orden.total))
+        orden.prioridad = data.get('prioridad', orden.prioridad)
+        orden.observaciones = data.get('observaciones', orden.observaciones)
         
-        # Registrar en historial
+        # Cambio de estado
+        nuevo_estado = data.get('estado')
+        if nuevo_estado and nuevo_estado != orden.estado:
+            if nuevo_estado == 'validado':
+                orden.validar(request.user)
+            elif nuevo_estado == 'en_produccion':
+                orden.enviar_a_produccion()
+            elif nuevo_estado == 'completado':
+                orden.completar(request.user)
+            elif nuevo_estado == 'cancelado':
+                orden.cancelar()
+        else:
+            orden.save()
+        
+        # Registrar en LogEntry
         LogEntry.objects.log_action(
             user_id=request.user.pk,
-            content_type_id=ContentType.objects.get_for_model(CustomUser).pk,  # Temporal
-            object_id=request.user.pk,
-            object_repr=f"Orden actualizada: {data.get('numero_orden', 'N/A')}",
+            content_type_id=ContentType.objects.get_for_model(orden).pk,
+            object_id=orden.pk,
+            object_repr=orden.codigo,
             action_flag=CHANGE,
-            change_message=f'Orden {order_id} actualizada'
+            change_message=f'Orden actualizada'
         )
         
-        return JsonResponse({
-            'success': True,
-            'message': 'Orden actualizada exitosamente'
-        })
+        return JsonResponse({'success': True, 'message': 'Orden actualizada exitosamente'})
         
     except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': f'Error al actualizar la orden: {str(e)}'
-        }, status=500)
+        import traceback
+        print(traceback.format_exc())
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
 
 @login_required
 @user_passes_test(is_admin)
-@require_http_methods(["POST"])
+@require_http_methods(["DELETE", "POST"])
 def order_delete_api(request, order_id):
-    """API para eliminar una orden"""
+    """API para eliminar orden"""
     try:
-        # Validar que la orden existe
-        # Aquí iría la lógica para eliminar la orden de la base de datos
+        from apps.orders.models import OrdenToma
         
-        # Registrar en historial
+        orden = get_object_or_404(OrdenToma, pk=order_id)
+        codigo = orden.codigo
+        
+        # Registrar en LogEntry antes de eliminar
         LogEntry.objects.log_action(
             user_id=request.user.pk,
-            content_type_id=ContentType.objects.get_for_model(CustomUser).pk,  # Temporal
-            object_id=request.user.pk,
-            object_repr=f"Orden eliminada: {order_id}",
+            content_type_id=ContentType.objects.get_for_model(orden).pk,
+            object_id=orden.pk,
+            object_repr=codigo,
             action_flag=DELETION,
-            change_message=f'Orden {order_id} eliminada'
+            change_message=f'Orden eliminada'
         )
         
-        return JsonResponse({
-            'success': True,
-            'message': 'Orden eliminada exitosamente'
-        })
+        orden.delete()
+        
+        return JsonResponse({'success': True, 'message': f'Orden {codigo} eliminada exitosamente'})
         
     except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': f'Error al eliminar la orden: {str(e)}'
-        }, status=500)
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 # ==================== VISTAS PARA PARTE MORTORIOS ====================
 
