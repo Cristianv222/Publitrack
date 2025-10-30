@@ -21,7 +21,6 @@ from apps.content_management.models import PlantillaContrato
 # Obtener el modelo de usuario correcto
 User = get_user_model()
 
-# Imports condicionales para modelos
 # IMPORTS CONDICIONALES PARA MODELOS
 try:
     from apps.content_management.models import (
@@ -29,7 +28,7 @@ try:
         CategoriaPublicitaria, 
         TipoContrato, 
         ArchivoAudio,
-        ContratoGenerado,  # ✅ AÑADE ESTA LÍNEA
+        ContratoGenerado,
     )
     CONTENT_MODELS_AVAILABLE = True
 except ImportError as e:
@@ -39,8 +38,7 @@ except ImportError as e:
     CategoriaPublicitaria = None
     TipoContrato = None
     ArchivoAudio = None
-    ContratoGenerado = None  # ✅ AÑADE ESTA LÍNEA
-
+    ContratoGenerado = None
 
 try:
     from apps.transmission_control.models import ProgramacionTransmision
@@ -69,6 +67,188 @@ except ImportError:
 def is_admin(user):
     """Verifica si el usuario es administrador"""
     return user.is_superuser or user.is_staff or getattr(user, 'rol', None) == 'admin'
+
+# ==================== VISTAS DE ÓRDENES ====================
+
+@login_required
+@user_passes_test(is_admin)
+def ordenes_toma_list(request):
+    """Lista de órdenes de toma"""
+    context = {
+        'title': 'Órdenes de Toma',
+        'header_title': 'Gestión de Órdenes de Toma',
+        'description': 'Administre las órdenes de toma de audio publicitario'
+    }
+    return render(request, 'custom_admin/orders/list.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def ordenes_produccion_list(request):
+    """Lista de órdenes de producción"""
+    context = {
+        'title': 'Órdenes de Producción',
+        'header_title': 'Gestión de Órdenes de Producción',
+        'description': 'Administre las órdenes de producción de contenido'
+    }
+    return render(request, 'custom_admin/ordenes/produccion_list.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def ordenes_finalizacion_list(request):
+    """Lista de órdenes de finalización"""
+    context = {
+        'title': 'Órdenes de Finalización',
+        'header_title': 'Gestión de Órdenes de Finalización',
+        'description': 'Administre las órdenes de finalización de proyectos'
+    }
+    return render(request, 'custom_admin/ordenes/finalizacion_list.html', context)
+
+# ==================== VISTAS DE PANTEONES ====================
+
+@login_required
+@user_passes_test(is_admin)
+def panteones_list(request):
+    """Lista de panteones"""
+    context = {
+        'title': 'Gestión de Panteones',
+        'header_title': 'Gestión de Panteones',
+        'description': 'Administre los panteones del sistema'
+    }
+    return render(request, 'custom_admin/parte_mortorios/list.html', context)
+
+# ==================== APIs PARA ÓRDENES ====================
+
+@login_required
+@user_passes_test(is_admin)
+def api_ordenes_toma(request):
+    """API para obtener órdenes de toma"""
+    try:
+        # Datos de ejemplo - reemplazar con tu modelo real
+        ordenes = [
+            {
+                'id': 1,
+                'numero_orden': 'OT-001',
+                'cliente': 'Cliente Ejemplo 1',
+                'fecha_solicitud': '2024-01-15',
+                'estado': 'pendiente',
+                'prioridad': 'alta',
+                'descripcion': 'Toma de audio para spot comercial'
+            },
+            {
+                'id': 2,
+                'numero_orden': 'OT-002',
+                'cliente': 'Cliente Ejemplo 2',
+                'fecha_solicitud': '2024-01-16',
+                'estado': 'en_proceso',
+                'prioridad': 'media',
+                'descripcion': 'Toma de voz para cuña informativa'
+            }
+        ]
+        
+        return JsonResponse({'success': True, 'ordenes': ordenes})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+def api_ordenes_produccion(request):
+    """API para obtener órdenes de producción"""
+    try:
+        # Datos de ejemplo - reemplazar con tu modelo real
+        ordenes = [
+            {
+                'id': 1,
+                'numero_orden': 'OP-001',
+                'cliente': 'Cliente Ejemplo 1',
+                'fecha_entrega': '2024-01-20',
+                'estado': 'en_produccion',
+                'tipo_produccion': 'edicion_audio',
+                'responsable': 'Producción 1'
+            },
+            {
+                'id': 2,
+                'numero_orden': 'OP-002',
+                'cliente': 'Cliente Ejemplo 2',
+                'fecha_entrega': '2024-01-22',
+                'estado': 'pendiente',
+                'tipo_produccion': 'mezcla_audio',
+                'responsable': 'Producción 2'
+            }
+        ]
+        
+        return JsonResponse({'success': True, 'ordenes': ordenes})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+def api_ordenes_finalizacion(request):
+    """API para obtener órdenes de finalización"""
+    try:
+        # Datos de ejemplo - reemplazar con tu modelo real
+        ordenes = [
+            {
+                'id': 1,
+                'numero_orden': 'OF-001',
+                'cliente': 'Cliente Ejemplo 1',
+                'fecha_finalizacion': '2024-01-18',
+                'estado': 'completado',
+                'resultado': 'aprobado',
+                'observaciones': 'Proyecto finalizado satisfactoriamente'
+            },
+            {
+                'id': 2,
+                'numero_orden': 'OF-002',
+                'cliente': 'Cliente Ejemplo 2',
+                'fecha_finalizacion': '2024-01-19',
+                'estado': 'pendiente_revision',
+                'resultado': 'en_revision',
+                'observaciones': 'Esperando aprobación del cliente'
+            }
+        ]
+        
+        return JsonResponse({'success': True, 'ordenes': ordenes})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+# ==================== APIs PARA PANTEONES ====================
+
+@login_required
+@user_passes_test(is_admin)
+def api_panteones(request):
+    """API para obtener panteones"""
+    try:
+        # Datos de ejemplo - reemplazar con tu modelo real
+        panteones = [
+            {
+                'id': 1,
+                'codigo': 'PAN-001',
+                'nombre': 'Panteón Familiar Ejemplo',
+                'ubicacion': 'Sector A - Nivel 1',
+                'capacidad': 4,
+                'ocupados': 2,
+                'estado': 'disponible',
+                'responsable': 'Admin Cementerio'
+            },
+            {
+                'id': 2,
+                'codigo': 'PAN-002',
+                'nombre': 'Panteón Comunitario',
+                'ubicacion': 'Sector B - Nivel 2',
+                'capacidad': 6,
+                'ocupados': 6,
+                'estado': 'completo',
+                'responsable': 'Admin Cementerio'
+            }
+        ]
+        
+        return JsonResponse({'success': True, 'panteones': panteones})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 # ==================== APIs PARA CONTRATOS ====================
 
@@ -301,6 +481,7 @@ def contratos_generados_list(request):
     print("="*80 + "\n")
     
     return render(request, 'custom_admin/contratos/list.html', context)
+
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["POST"])
@@ -2490,28 +2671,25 @@ def cliente_detail_api(request, cliente_id):
 @login_required
 def cliente_create_api(request):
     """API para crear un nuevo cliente"""
-    
     if not request.user.es_admin and not request.user.es_vendedor:
         messages.error(request, 'No tienes permisos para crear clientes')
         return redirect('custom_admin:clientes_list')
-    
     if request.method != 'POST':
         messages.error(request, 'Método no permitido')
         return redirect('custom_admin:clientes_list')
-    
     try:
         # Validar que no exista el username
         username = request.POST.get('username')
         if CustomUser.objects.filter(username=username).exists():
             messages.error(request, f'El usuario "{username}" ya existe')
             return redirect('custom_admin:clientes_list')
-        
+
         # Validar que no exista el email
         email = request.POST.get('email')
         if CustomUser.objects.filter(email=email).exists():
             messages.error(request, f'El email "{email}" ya está registrado')
             return redirect('custom_admin:clientes_list')
-        
+
         # Crear el cliente sin contraseña
         cliente = CustomUser(
             username=username,
@@ -2519,14 +2697,13 @@ def cliente_create_api(request):
             first_name=request.POST.get('first_name', ''),
             last_name=request.POST.get('last_name', ''),
         )
-        
         # Establecer contraseña como no utilizable (sin contraseña)
         cliente.set_unusable_password()
-        
+
         # Establecer rol como cliente
         cliente.rol = 'cliente'
         cliente.is_active = True
-        
+
         # Campos adicionales del cliente
         cliente.telefono = request.POST.get('telefono', '')
         cliente.empresa = request.POST.get('empresa', '')
@@ -2536,26 +2713,26 @@ def cliente_create_api(request):
         cliente.ciudad = request.POST.get('ciudad', '')
         cliente.provincia = request.POST.get('provincia', '')
         cliente.direccion_exacta = request.POST.get('direccion_exacta', '')
-        
+        # --- LOS DOS CAMPOS NUEVOS ---
+        cliente.cargo_empresa = request.POST.get('cargo_empresa', '')
+        cliente.profesion = request.POST.get('profesion', '')
+
         # Manejar valores numéricos
         try:
             cliente.limite_credito = float(request.POST.get('limite_credito', 0))
         except (ValueError, TypeError):
             cliente.limite_credito = 0
-            
         try:
             cliente.dias_credito = int(request.POST.get('dias_credito', 0))
         except (ValueError, TypeError):
             cliente.dias_credito = 0
-        
+
         cliente.status = request.POST.get('status', 'activo')
-        
+
         # Asignar vendedor
         if request.user.es_vendedor:
-            # Si es vendedor, asignarse a sí mismo
             cliente.vendedor_asignado = request.user
         elif request.POST.get('vendedor_asignado'):
-            # Si es admin, asignar el vendedor seleccionado
             vendedor_id = request.POST.get('vendedor_asignado')
             if vendedor_id:
                 try:
@@ -2563,14 +2740,12 @@ def cliente_create_api(request):
                     cliente.vendedor_asignado = vendedor
                 except CustomUser.DoesNotExist:
                     pass
-        
+
         # Guardar el cliente
         cliente.save()
-        
         # Registrar en historial con LogEntry
         from django.contrib.admin.models import LogEntry, ADDITION
         from django.contrib.contenttypes.models import ContentType
-        
         LogEntry.objects.log_action(
             user_id=request.user.pk,
             content_type_id=ContentType.objects.get_for_model(cliente).pk,
@@ -2579,96 +2754,84 @@ def cliente_create_api(request):
             action_flag=ADDITION,
             change_message=f'Cliente creado: {cliente.empresa} ({cliente.ruc_dni}) - Sin contraseña'
         )
-        
+
         messages.success(request, f'✓ Cliente "{cliente.empresa}" creado exitosamente')
         return redirect('custom_admin:clientes_list')
-    
     except Exception as e:
         import traceback
         print(traceback.format_exc())  # Para debug en consola
         messages.error(request, f'Error al crear el cliente: {str(e)}')
         return redirect('custom_admin:clientes_list')
-    
 @login_required
 def cliente_update_api(request, cliente_id):
     """API para actualizar un cliente existente"""
-    
     if not request.user.es_admin and not request.user.es_vendedor:
         messages.error(request, 'No tienes permisos para editar clientes')
         return redirect('custom_admin:clientes_list')
-    
     if request.method != 'POST':
         messages.error(request, 'Método no permitido')
         return redirect('custom_admin:clientes_list')
-    
     try:
         cliente = CustomUser.objects.get(pk=cliente_id, rol='cliente')
-        
         # Verificar permisos de vendedor
         if request.user.es_vendedor and cliente.vendedor_asignado != request.user:
             messages.error(request, 'No tienes permisos para editar este cliente')
             return redirect('custom_admin:clientes_list')
-        
-        # Guardar cambios para el log
-        cambios = []
-        
-        # Actualizar campos
-        if request.POST.get('username') and request.POST.get('username') != cliente.username:
-            cambios.append(f"Username: {cliente.username} → {request.POST.get('username')}")
-            cliente.username = request.POST.get('username')
-        
-        if request.POST.get('email') and request.POST.get('email') != cliente.email:
-            cambios.append(f"Email: {cliente.email} → {request.POST.get('email')}")
-            cliente.email = request.POST.get('email')
-        
-        cliente.first_name = request.POST.get('first_name', '')
-        cliente.last_name = request.POST.get('last_name', '')
-        cliente.telefono = request.POST.get('telefono', '')
-        cliente.empresa = request.POST.get('empresa', '')
-        cliente.ruc_dni = request.POST.get('ruc_dni', '')
-        cliente.razon_social = request.POST.get('razon_social', '')
-        cliente.giro_comercial = request.POST.get('giro_comercial', '')
-        cliente.ciudad = request.POST.get('ciudad', '')
-        cliente.provincia = request.POST.get('provincia', '')
-        cliente.direccion_exacta = request.POST.get('direccion_exacta', '')
-        cliente.limite_credito = request.POST.get('limite_credito', 0)
-        cliente.dias_credito = request.POST.get('dias_credito', 0)
-        cliente.status = request.POST.get('status', 'activo')
-        
-        # Actualizar vendedor asignado (solo admin)
+
+        # Actualizar datos
+        cliente.first_name = request.POST.get('first_name', cliente.first_name)
+        cliente.last_name = request.POST.get('last_name', cliente.last_name)
+        cliente.telefono = request.POST.get('telefono', cliente.telefono)
+        cliente.empresa = request.POST.get('empresa', cliente.empresa)
+        cliente.ruc_dni = request.POST.get('ruc_dni', cliente.ruc_dni)
+        cliente.razon_social = request.POST.get('razon_social', cliente.razon_social)
+        cliente.giro_comercial = request.POST.get('giro_comercial', cliente.giro_comercial)
+        cliente.ciudad = request.POST.get('ciudad', cliente.ciudad)
+        cliente.provincia = request.POST.get('provincia', cliente.provincia)
+        cliente.direccion_exacta = request.POST.get('direccion_exacta', cliente.direccion_exacta)
+        # --- LOS DOS CAMPOS NUEVOS ---
+        cliente.cargo_empresa = request.POST.get('cargo_empresa', cliente.cargo_empresa)
+        cliente.profesion = request.POST.get('profesion', cliente.profesion)
+
+        try:
+            cliente.limite_credito = float(request.POST.get('limite_credito', cliente.limite_credito))
+        except (ValueError, TypeError):
+            pass
+        try:
+            cliente.dias_credito = int(request.POST.get('dias_credito', cliente.dias_credito))
+        except (ValueError, TypeError):
+            pass
+
+        cliente.status = request.POST.get('status', cliente.status)
+
         if request.user.es_admin and request.POST.get('vendedor_asignado'):
             vendedor_id = request.POST.get('vendedor_asignado')
             if vendedor_id:
                 try:
                     vendedor = CustomUser.objects.get(pk=vendedor_id, rol='vendedor')
-                    if cliente.vendedor_asignado != vendedor:
-                        cambios.append(f"Vendedor: {cliente.vendedor_asignado} → {vendedor}")
-                        cliente.vendedor_asignado = vendedor
+                    cliente.vendedor_asignado = vendedor
                 except CustomUser.DoesNotExist:
                     pass
-        
+
         cliente.save()
-        
+
         # Registrar en historial con LogEntry
         from django.contrib.admin.models import LogEntry, CHANGE
         from django.contrib.contenttypes.models import ContentType
-        
         LogEntry.objects.log_action(
             user_id=request.user.pk,
             content_type_id=ContentType.objects.get_for_model(cliente).pk,
             object_id=cliente.pk,
             object_repr=str(cliente.empresa or cliente.username),
             action_flag=CHANGE,
-            change_message=f'Modificado: {", ".join(cambios) if cambios else "Datos actualizados"}'
+            change_message=f'Cliente actualizado: {cliente.empresa} ({cliente.ruc_dni})'
         )
-        
-        messages.success(request, f'Cliente "{cliente.empresa}" actualizado exitosamente')
-        return redirect('custom_admin:clientes_list')
-    
-    except CustomUser.DoesNotExist:
-        messages.error(request, 'Cliente no encontrado')
+
+        messages.success(request, f'✓ Cliente "{cliente.empresa}" actualizado exitosamente')
         return redirect('custom_admin:clientes_list')
     except Exception as e:
+        import traceback
+        print(traceback.format_exc())
         messages.error(request, f'Error al actualizar el cliente: {str(e)}')
         return redirect('custom_admin:clientes_list')
 
@@ -2741,3 +2904,466 @@ def configuracion(request):
     """Configuración del sistema"""
     context = {'mensaje': 'Configuración del Sistema - En desarrollo'}
     return render(request, 'custom_admin/en_desarrollo.html', context)
+# ==================== VISTAS PARA ÓRDENES ====================
+
+@login_required
+@user_passes_test(is_admin)
+def orders_list(request):
+    """Lista de órdenes del sistema"""
+    
+    # Filtros
+    search = request.GET.get('search', '')
+    estado_filter = request.GET.get('estado', '')
+    prioridad_filter = request.GET.get('prioridad', '')
+    fecha_filter = request.GET.get('fecha', '')
+    
+    # Datos de ejemplo - reemplazar con tu modelo real
+    ordenes = [
+        {
+            'id': 1,
+            'numero_orden': 'ORD-001',
+            'cliente': {
+                'empresa': 'Empresa Ejemplo 1',
+                'get_full_name': 'Cliente Uno',
+                'ruc_dni': '12345678901'
+            },
+            'fecha_orden': timezone.now().date(),
+            'detalle_productos': 'Servicio de publicidad radial - Spot 30 segundos',
+            'total': Decimal('1500.00'),
+            'prioridad': 'alta',
+            'estado': 'pendiente',
+            'vendedor': request.user if hasattr(request.user, 'get_full_name') else None
+        },
+        {
+            'id': 2,
+            'numero_orden': 'ORD-002',
+            'cliente': {
+                'empresa': 'Empresa Ejemplo 2', 
+                'get_full_name': 'Cliente Dos',
+                'ruc_dni': '10987654321'
+            },
+            'fecha_orden': timezone.now().date() - timedelta(days=1),
+            'detalle_productos': 'Producción de cuña publicitaria',
+            'total': Decimal('2500.00'),
+            'prioridad': 'media',
+            'estado': 'procesando',
+            'vendedor': request.user if hasattr(request.user, 'get_full_name') else None
+        }
+    ]
+    
+    # Aplicar filtros
+    if search:
+        ordenes = [o for o in ordenes if search.lower() in o['numero_orden'].lower() or 
+                 search.lower() in o['cliente']['empresa'].lower()]
+    
+    if estado_filter:
+        ordenes = [o for o in ordenes if o['estado'] == estado_filter]
+    
+    if prioridad_filter:
+        ordenes = [o for o in ordenes if o['prioridad'] == prioridad_filter]
+    
+    # Estadísticas
+    total_ordenes = len(ordenes)
+    ordenes_pendientes = len([o for o in ordenes if o['estado'] == 'pendiente'])
+    ordenes_procesando = len([o for o in ordenes if o['estado'] == 'procesando'])
+    ordenes_completadas = len([o for o in ordenes if o['estado'] == 'completado'])
+    
+    # Obtener clientes para el formulario
+    clientes = CustomUser.objects.filter(rol='cliente', is_active=True)
+    
+    context = {
+        'ordenes': ordenes,
+        'total_ordenes': total_ordenes,
+        'ordenes_pendientes': ordenes_pendientes,
+        'ordenes_procesando': ordenes_procesando,
+        'ordenes_completadas': ordenes_completadas,
+        'clientes': clientes,
+        'search': search,
+        'estado_filter': estado_filter,
+        'prioridad_filter': prioridad_filter,
+        'fecha_filter': fecha_filter,
+    }
+    
+    return render(request, 'custom_admin/orders/list.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def order_detail_api(request, order_id):
+    """API para obtener detalles de una orden"""
+    try:
+        # Datos de ejemplo - reemplazar con tu modelo real
+        ordenes_data = {
+            1: {
+                'id': 1,
+                'numero_orden': 'ORD-001',
+                'cliente_id': 1,
+                'cliente_nombre': 'Empresa Ejemplo 1 - Cliente Uno',
+                'cliente_ruc': '12345678901',
+                'fecha_orden': '2024-01-15',
+                'detalle_productos': 'Servicio de publicidad radial - Spot 30 segundos',
+                'cantidad': 1,
+                'total': '1500.00',
+                'prioridad': 'alta',
+                'estado': 'pendiente',
+                'observaciones': 'Cliente solicita revisión previa',
+                'vendedor_nombre': request.user.get_full_name(),
+                'fecha_creacion': timezone.now().strftime('%d/%m/%Y %H:%M')
+            },
+            2: {
+                'id': 2,
+                'numero_orden': 'ORD-002', 
+                'cliente_id': 2,
+                'cliente_nombre': 'Empresa Ejemplo 2 - Cliente Dos',
+                'cliente_ruc': '10987654321',
+                'fecha_orden': '2024-01-14',
+                'detalle_productos': 'Producción de cuña publicitaria',
+                'cantidad': 1,
+                'total': '2500.00',
+                'prioridad': 'media',
+                'estado': 'procesando',
+                'observaciones': 'En proceso de grabación',
+                'vendedor_nombre': request.user.get_full_name(),
+                'fecha_creacion': timezone.now().strftime('%d/%m/%Y %H:%M')
+            }
+        }
+        
+        orden = ordenes_data.get(order_id)
+        if not orden:
+            return JsonResponse({'error': 'Orden no encontrada'}, status=404)
+        
+        return JsonResponse(orden)
+    
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def order_create_api(request):
+    """API para crear una nueva orden"""
+    try:
+        data = json.loads(request.body)
+        
+        # Validar campos requeridos
+        required_fields = ['numero_orden', 'cliente', 'fecha_orden', 'detalle_productos', 'total']
+        for field in required_fields:
+            if not data.get(field):
+                return JsonResponse({
+                    'success': False,
+                    'error': f'El campo {field} es obligatorio'
+                }, status=400)
+        
+        # Aquí iría la lógica para crear la orden en la base de datos
+        # Por ahora simulamos la creación
+        
+        # Registrar en historial
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(CustomUser).pk,  # Temporal
+            object_id=request.user.pk,
+            object_repr=f"Orden creada: {data['numero_orden']}",
+            action_flag=ADDITION,
+            change_message=f'Orden creada: {data["numero_orden"]} - Cliente: {data["cliente"]}'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Orden creada exitosamente',
+            'order_id': 3  # ID simulado
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al crear la orden: {str(e)}'
+        }, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def order_update_api(request, order_id):
+    """API para actualizar una orden existente"""
+    try:
+        data = json.loads(request.body)
+        
+        # Validar que la orden existe
+        # Aquí iría la lógica para buscar y actualizar la orden en la base de datos
+        
+        # Registrar en historial
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(CustomUser).pk,  # Temporal
+            object_id=request.user.pk,
+            object_repr=f"Orden actualizada: {data.get('numero_orden', 'N/A')}",
+            action_flag=CHANGE,
+            change_message=f'Orden {order_id} actualizada'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Orden actualizada exitosamente'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al actualizar la orden: {str(e)}'
+        }, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def order_delete_api(request, order_id):
+    """API para eliminar una orden"""
+    try:
+        # Validar que la orden existe
+        # Aquí iría la lógica para eliminar la orden de la base de datos
+        
+        # Registrar en historial
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(CustomUser).pk,  # Temporal
+            object_id=request.user.pk,
+            object_repr=f"Orden eliminada: {order_id}",
+            action_flag=DELETION,
+            change_message=f'Orden {order_id} eliminada'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Orden eliminada exitosamente'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al eliminar la orden: {str(e)}'
+        }, status=500)
+
+# ==================== VISTAS PARA PARTE MORTORIOS ====================
+
+@login_required
+@user_passes_test(is_admin)
+def parte_mortorios_list(request):
+    """Lista de partes mortorios del sistema"""
+    
+    # Filtros
+    search = request.GET.get('search', '')
+    estado_filter = request.GET.get('estado', '')
+    urgencia_filter = request.GET.get('urgencia', '')
+    fecha_filter = request.GET.get('fecha', '')
+    
+    # Datos de ejemplo - reemplazar con tu modelo real
+    partes = [
+        {
+            'id': 1,
+            'numero_parte': 'PM-001',
+            'nombre_fallecido': 'Juan Pérez García',
+            'edad_fallecido': 75,
+            'fecha_registro': timezone.now().date(),
+            'lugar_fallecimiento': 'Hospital Regional de Lima',
+            'causa_fallecimiento': 'Paro cardíaco',
+            'urgencia': 'normal',
+            'estado': 'registrado',
+            'registrado_por': request.user
+        },
+        {
+            'id': 2,
+            'numero_parte': 'PM-002',
+            'nombre_fallecido': 'María López Martínez',
+            'edad_fallecido': 82,
+            'fecha_registro': timezone.now().date() - timedelta(days=1),
+            'lugar_fallecimiento': 'Domicilio particular - Av. Principal 123',
+            'causa_fallecimiento': 'Insuficiencia respiratoria',
+            'urgencia': 'urgente',
+            'estado': 'verificado',
+            'registrado_por': request.user
+        }
+    ]
+    
+    # Aplicar filtros
+    if search:
+        partes = [p for p in partes if search.lower() in p['numero_parte'].lower() or 
+                 search.lower() in p['nombre_fallecido'].lower()]
+    
+    if estado_filter:
+        partes = [p for p in partes if p['estado'] == estado_filter]
+    
+    if urgencia_filter:
+        partes = [p for p in partes if p['urgencia'] == urgencia_filter]
+    
+    # Estadísticas
+    total_partes = len(partes)
+    partes_registrados = len([p for p in partes if p['estado'] == 'registrado'])
+    partes_verificados = len([p for p in partes if p['estado'] == 'verificado'])
+    partes_completados = len([p for p in partes if p['estado'] == 'completado'])
+    
+    context = {
+        'partes': partes,
+        'total_partes': total_partes,
+        'partes_registrados': partes_registrados,
+        'partes_verificados': partes_verificados,
+        'partes_completados': partes_completados,
+        'search': search,
+        'estado_filter': estado_filter,
+        'urgencia_filter': urgencia_filter,
+        'fecha_filter': fecha_filter,
+    }
+    
+    return render(request, 'custom_admin/parte_mortorios/list.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def parte_mortorio_detail_api(request, parte_id):
+    """API para obtener detalles de un parte mortorio"""
+    try:
+        # Datos de ejemplo - reemplazar con tu modelo real
+        partes_data = {
+            1: {
+                'id': 1,
+                'numero_parte': 'PM-001',
+                'nombre_fallecido': 'Juan Pérez García',
+                'edad_fallecido': 75,
+                'dni_fallecido': '12345678',
+                'urgencia': 'normal',
+                'fecha_fallecimiento': '2024-01-15',
+                'hora_fallecimiento': '14:30',
+                'lugar_fallecimiento': 'Hospital Regional de Lima',
+                'causa_fallecimiento': 'Paro cardíaco',
+                'estado': 'registrado',
+                'observaciones': 'Fallecimiento natural',
+                'registrado_por_nombre': request.user.get_full_name(),
+                'fecha_registro': timezone.now().strftime('%d/%m/%Y %H:%M'),
+                'fecha_actualizacion': timezone.now().strftime('%d/%m/%Y %H:%M')
+            },
+            2: {
+                'id': 2,
+                'numero_parte': 'PM-002',
+                'nombre_fallecido': 'María López Martínez', 
+                'edad_fallecido': 82,
+                'dni_fallecido': '87654321',
+                'urgencia': 'urgente',
+                'fecha_fallecimiento': '2024-01-14',
+                'hora_fallecimiento': '09:15',
+                'lugar_fallecimiento': 'Domicilio particular - Av. Principal 123',
+                'causa_fallecimiento': 'Insuficiencia respiratoria',
+                'estado': 'verificado',
+                'observaciones': 'Requiere traslado urgente',
+                'registrado_por_nombre': request.user.get_full_name(),
+                'fecha_registro': (timezone.now() - timedelta(days=1)).strftime('%d/%m/%Y %H:%M'),
+                'fecha_actualizacion': timezone.now().strftime('%d/%m/%Y %H:%M')
+            }
+        }
+        
+        parte = partes_data.get(parte_id)
+        if not parte:
+            return JsonResponse({'error': 'Parte mortorio no encontrado'}, status=404)
+        
+        return JsonResponse(parte)
+    
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def parte_mortorio_create_api(request):
+    """API para crear un nuevo parte mortorio"""
+    try:
+        data = json.loads(request.body)
+        
+        # Validar campos requeridos
+        required_fields = ['numero_parte', 'nombre_fallecido', 'fecha_fallecimiento', 'lugar_fallecimiento']
+        for field in required_fields:
+            if not data.get(field):
+                return JsonResponse({
+                    'success': False,
+                    'error': f'El campo {field} es obligatorio'
+                }, status=400)
+        
+        # Aquí iría la lógica para crear el parte mortorio en la base de datos
+        # Por ahora simulamos la creación
+        
+        # Registrar en historial
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(CustomUser).pk,  # Temporal
+            object_id=request.user.pk,
+            object_repr=f"Parte mortorio creado: {data['numero_parte']}",
+            action_flag=ADDITION,
+            change_message=f'Parte mortorio creado: {data["numero_parte"]} - Fallecido: {data["nombre_fallecido"]}'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Parte mortorio creado exitosamente',
+            'parte_id': 3  # ID simulado
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al crear el parte mortorio: {str(e)}'
+        }, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def parte_mortorio_update_api(request, parte_id):
+    """API para actualizar un parte mortorio existente"""
+    try:
+        data = json.loads(request.body)
+        
+        # Validar que el parte mortorio existe
+        # Aquí iría la lógica para buscar y actualizar el parte mortorio en la base de datos
+        
+        # Registrar en historial
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(CustomUser).pk,  # Temporal
+            object_id=request.user.pk,
+            object_repr=f"Parte mortorio actualizado: {data.get('numero_parte', 'N/A')}",
+            action_flag=CHANGE,
+            change_message=f'Parte mortorio {parte_id} actualizado'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Parte mortorio actualizado exitosamente'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al actualizar el parte mortorio: {str(e)}'
+        }, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def parte_mortorio_delete_api(request, parte_id):
+    """API para eliminar un parte mortorio"""
+    try:
+        # Validar que el parte mortorio existe
+        # Aquí iría la lógica para eliminar el parte mortorio de la base de datos
+        
+        # Registrar en historial
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(CustomUser).pk,  # Temporal
+            object_id=request.user.pk,
+            object_repr=f"Parte mortorio eliminado: {parte_id}",
+            action_flag=DELETION,
+            change_message=f'Parte mortorio {parte_id} eliminado'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Parte mortorio eliminado exitosamente'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al eliminar el parte mortorio: {str(e)}'
+        }, status=500)

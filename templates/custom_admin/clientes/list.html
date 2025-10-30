@@ -49,7 +49,7 @@
         font-size: 0.875rem;
     }
     
-    /* Estilos para modales animados - IDÉNTICOS A USUARIOS */
+    /* Estilos para modales animados */
     .animated-modal {
         border-radius: 15px !important;
         box-shadow: 0 10px 40px rgba(0,0,0,0.2) !important;
@@ -71,6 +71,31 @@
     .swal2-popup.animated-modal .btn:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    /* Estilos para información profesional */
+    .profesion-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .cargo-badge {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .info-profesional {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 10px;
     }
 </style>
 {% endblock %}
@@ -95,22 +120,28 @@
 
     <!-- Estadísticas -->
     <div class="row mb-4">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="stats-card">
                 <h3 class="text-primary">{{ total_clientes }}</h3>
                 <p>Total de Clientes</p>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="stats-card">
                 <h3 class="text-success">{{ clientes_activos }}</h3>
                 <p>Clientes Activos</p>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="stats-card">
                 <h3 class="text-danger">{{ clientes_inactivos }}</h3>
                 <p>Clientes Inactivos</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3 class="text-info">{{ clientes_con_profesion }}</h3>
+                <p>Con Profesión Registrada</p>
             </div>
         </div>
     </div>
@@ -121,10 +152,10 @@
             <form method="get" class="row g-3">
                 <div class="col-md-4">
                     <input type="text" name="search" class="form-control" 
-                           placeholder="Buscar por nombre, empresa, RUC..." 
+                           placeholder="Buscar por nombre, empresa, RUC, profesión..." 
                            value="{{ search }}">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <select name="status" class="form-select">
                         <option value="">Todos los estados</option>
                         <option value="activo" {% if status_filter == 'activo' %}selected{% endif %}>Activos</option>
@@ -132,8 +163,15 @@
                         <option value="suspendido" {% if status_filter == 'suspendido' %}selected{% endif %}>Suspendidos</option>
                     </select>
                 </div>
+                <div class="col-md-2">
+                    <select name="tiene_profesion" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="si" {% if tiene_profesion_filter == 'si' %}selected{% endif %}>Con profesión</option>
+                        <option value="no" {% if tiene_profesion_filter == 'no' %}selected{% endif %}>Sin profesión</option>
+                    </select>
+                </div>
                 {% if user.es_admin %}
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <select name="vendedor" class="form-select">
                         <option value="">Todos los vendedores</option>
                         {% for vendedor in vendedores %}
@@ -163,6 +201,7 @@
                             <th>Empresa</th>
                             <th>RUC/Cédula</th>
                             <th>Contacto</th>
+                            <th>Información Profesional</th>
                             <th>Email</th>
                             <th>Teléfono</th>
                             <th>Ciudad</th>
@@ -181,7 +220,22 @@
                                 {% endif %}
                             </td>
                             <td>{{ cliente.ruc_dni|default:"-" }}</td>
-                            <td>{{ cliente.get_full_name|default:cliente.username }}</td>
+                            <td>
+                                {{ cliente.get_full_name|default:cliente.username }}
+                                {% if cliente.cargo_empresa %}
+                                <br><small class="text-muted">{{ cliente.cargo_empresa }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if cliente.profesion_display %}
+                                <span class="profesion-badge">{{ cliente.profesion_display }}</span>
+                                {% if cliente.abreviatura_profesion %}
+                                <br><small class="text-muted">Abrev: {{ cliente.abreviatura_profesion }}</small>
+                                {% endif %}
+                                {% else %}
+                                <span class="text-muted">Sin profesión</span>
+                                {% endif %}
+                            </td>
                             <td>{{ cliente.email }}</td>
                             <td>{{ cliente.telefono|default:"-" }}</td>
                             <td>{{ cliente.ciudad|default:"-" }}</td>
@@ -225,7 +279,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="9" class="text-center py-4">
+                            <td colspan="10" class="text-center py-4">
                                 <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                                 <p class="text-muted">No se encontraron clientes</p>
                             </td>
@@ -271,6 +325,23 @@
                         <div class="col-md-12">
                             <label class="form-label">Razón Social</label>
                             <input type="text" class="form-control" name="razon_social" id="razon_social">
+                        </div>
+                    </div>
+
+                    <!-- Información Profesional -->
+                    <h6 class="mb-3 text-primary">Información Profesional</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Profesión</label>
+                            <input type="text" class="form-control" name="profesion" id="profesion" 
+                                   placeholder="Ej: Ingeniero Civil, Licenciado en Administración, Médico...">
+                            <small class="text-muted">Profesión del contacto principal para contratos</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Cargo en la Empresa</label>
+                            <input type="text" class="form-control" name="cargo_empresa" id="cargo_empresa" 
+                                   placeholder="Ej: Gerente General, Propietario, Director...">
+                            <small class="text-muted">Cargo que desempeña en la empresa</small>
                         </div>
                     </div>
 
@@ -397,7 +468,6 @@ function abrirModalCrear() {
     document.getElementById('cliente_id').value = '';
     modalCliente.show();
 }
-
 function editarCliente(clienteId) {
     document.getElementById('modalClienteTitulo').textContent = 'Editar Cliente';
     document.getElementById('cliente_id').value = clienteId;
@@ -422,9 +492,19 @@ function editarCliente(clienteId) {
             document.getElementById('dias_credito').value = data.dias_credito || '0';
             document.getElementById('status').value = data.status;
             
+            // CORRECCIÓN: Cargar información profesional correctamente
+            // Usamos profesion_display que viene del modelo
+            document.getElementById('profesion').value = data.profesion_display || '';
+            document.getElementById('cargo_empresa').value = data.cargo_empresa || '';
+            
             if (document.getElementById('vendedor_asignado')) {
                 document.getElementById('vendedor_asignado').value = data.vendedor_asignado_id || '';
             }
+            
+            console.log("Datos cargados para edición:", {
+                profesion_display: data.profesion_display,
+                cargo_empresa: data.cargo_empresa
+            });
             
             modalCliente.show();
         })
@@ -438,10 +518,16 @@ function editarCliente(clienteId) {
             });
         });
 }
-
 function guardarCliente() {
     const clienteId = document.getElementById('cliente_id').value;
     const form = document.getElementById('formCliente');
+    
+    // DEBUG: Mostrar datos antes de enviar
+    console.log("=== DEBUG FRONTEND ANTES DE ENVIAR ===");
+    const formData = new FormData(form);
+    for (let [key, value] of formData.entries()) {
+        console.log(`📝 ${key}: '${value}'`);
+    }
     
     // Validación básica antes de enviar
     if (!form.checkValidity()) {
@@ -452,7 +538,7 @@ function guardarCliente() {
     // Cerrar modal de cliente
     modalCliente.hide();
     
-    // Mostrar loading IDÉNTICO A USUARIOS
+    // Mostrar loading
     Swal.fire({
         title: clienteId ? 'Actualizando...' : 'Guardando...',
         html: `
@@ -496,6 +582,40 @@ function verDetalleCliente(clienteId) {
     fetch(`/panel/clientes/${clienteId}/detalle/`)
         .then(response => response.json())
         .then(data => {
+            // Construir HTML para información profesional
+            let infoProfesionalHtml = '';
+            if (data.profesion_display) {
+                infoProfesionalHtml = `
+                    <div class="info-profesional">
+                        <h6 class="mb-3">Información Profesional</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Profesión:</strong><br>
+                                <span class="profesion-badge">${data.profesion_display}</span>
+                            </div>
+                            ${data.abreviatura_profesion ? `
+                            <div class="col-md-6">
+                                <strong>Abreviatura:</strong><br>
+                                ${data.abreviatura_profesion}
+                            </div>
+                            ` : ''}
+                            ${data.cargo_empresa ? `
+                            <div class="col-md-6 mt-2">
+                                <strong>Cargo:</strong><br>
+                                <span class="cargo-badge">${data.cargo_empresa}</span>
+                            </div>
+                            ` : ''}
+                            ${data.firma_contrato ? `
+                            <div class="col-md-12 mt-2">
+                                <strong>Firma para Contratos:</strong><br>
+                                <code>${data.firma_contrato}</code>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
             const html = `
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -559,6 +679,7 @@ function verDetalleCliente(clienteId) {
                         ${data.fecha_registro}
                     </div>
                 </div>
+                ${infoProfesionalHtml}
             `;
             document.getElementById('detalleClienteContent').innerHTML = html;
         })
@@ -573,7 +694,7 @@ function verDetalleCliente(clienteId) {
         });
 }
 
-// FUNCIÓN ELIMINAR - IDÉNTICA A USUARIOS
+// FUNCIÓN ELIMINAR
 function eliminarCliente(clienteId, nombreEmpresa) {
     Swal.fire({
         title: '¿Eliminar cliente?',
@@ -609,7 +730,7 @@ function eliminarCliente(clienteId, nombreEmpresa) {
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            // Mostrar loading IDÉNTICO A USUARIOS
+            // Mostrar loading
             Swal.fire({
                 title: 'Eliminando...',
                 html: `
@@ -647,6 +768,37 @@ function eliminarCliente(clienteId, nombreEmpresa) {
             form.submit();
         }
     });
+}
+
+// Función para probar el último cliente creado
+function debugUltimoCliente() {
+    fetch('/panel/debug/ultimo-cliente/')
+        .then(response => response.json())
+        .then(data => {
+            console.log("=== DEBUG ÚLTIMO CLIENTE ===");
+            console.log("Datos del último cliente:", data);
+            
+            Swal.fire({
+                title: 'Último Cliente Creado',
+                html: `
+                    <div class="text-left">
+                        <p><strong>Empresa:</strong> ${data.empresa || '-'}</p>
+                        <p><strong>Profesión (código):</strong> ${data.profesion || '-'}</p>
+                        <p><strong>Otra Profesión:</strong> ${data.otra_profesion || '-'}</p>
+                        <p><strong>Profesión Display:</strong> ${data.profesion_display || '-'}</p>
+                        <p><strong>Cargo:</strong> ${data.cargo_empresa || '-'}</p>
+                        <p><strong>Tiene profesión:</strong> ${data.tiene_profesion ? 'Sí' : 'No'}</p>
+                        <p><strong>Tiene cargo:</strong> ${data.tiene_cargo ? 'Sí' : 'No'}</p>
+                        <p><strong>Fecha creación:</strong> ${data.fecha_creacion}</p>
+                    </div>
+                `,
+                icon: 'info',
+                confirmButtonText: 'Cerrar'
+            });
+        })
+        .catch(error => {
+            console.error('Error en debug:', error);
+        });
 }
 </script>
 {% endblock %}

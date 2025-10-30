@@ -86,6 +86,22 @@
         align-items: center;
         gap: 8px;
     }
+    .profesion-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .cargo-badge {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
 </style>
 {% endblock %}
 
@@ -230,7 +246,9 @@
                                     data-email="{{ cliente.email }}"
                                     data-telefono="{{ cliente.telefono }}"
                                     data-ciudad="{{ cliente.ciudad }}"
-                                    data-direccion="{{ cliente.direccion_exacta }}">
+                                    data-direccion="{{ cliente.direccion_exacta }}"
+                                    data-profesion="{{ cliente.profesion_display }}"
+                                    data-cargo="{{ cliente.cargo_empresa }}">
                                 {{ cliente.empresa|default:cliente.get_full_name }}
                                 {% if cliente.ruc_dni %}({{ cliente.ruc_dni }}){% endif %}
                             </option>
@@ -262,6 +280,15 @@
                                     <div class="col-12">
                                         <small class="text-muted d-block">Ciudad:</small>
                                         <strong id="previewClienteCiudad"></strong>
+                                    </div>
+                                    <!-- NUEVO: Información Profesional -->
+                                    <div class="col-12" id="previewClienteProfesionGroup" style="display: none;">
+                                        <small class="text-muted d-block">Profesión:</small>
+                                        <span class="profesion-badge" id="previewClienteProfesion"></span>
+                                    </div>
+                                    <div class="col-12" id="previewClienteCargoGroup" style="display: none;">
+                                        <small class="text-muted d-block">Cargo:</small>
+                                        <span class="cargo-badge" id="previewClienteCargo"></span>
                                     </div>
                                 </div>
                             </div>
@@ -363,6 +390,7 @@
                     <tr>
                         <th>Número</th>
                         <th>Cliente</th>
+                        <th>Información Profesional</th>
                         <th>Plantilla</th>
                         <th>Fecha Generación</th>
                         <th>Valor</th>
@@ -371,56 +399,69 @@
                     </tr>
                 </thead>
                 <tbody>
-  {% for contrato in contratos_recientes %}
-  <tr>
-    <td><strong>#{{ contrato.numero_contrato }}</strong></td>
-    <td>{{ contrato.nombre_cliente }}</td>
-    <td>{{ contrato.plantilla_usada.nombre }}</td>
-    <td>{{ contrato.fecha_generacion|date:"d/m/Y H:i" }}</td>
-    <td>S/ {{ contrato.valor_total }}</td>
-    <td>
-      {% if contrato.estado == 'generado' %}
-        <span class="badge bg-success">Generado</span>
-      {% elif contrato.estado == 'validado' %}
-        <span class="badge bg-primary">Validado</span>
-      {% elif contrato.estado == 'borrador' %}
-        <span class="badge bg-warning">Borrador</span>
-      {% else %}
-        <span class="badge bg-secondary">{{ contrato.get_estado_display }}</span>
-      {% endif %}
-    </td>
-    <td>
-      <!-- Botón Descargar -->
-      {% if contrato.archivo_contrato_pdf %}
-        <a href="{{ contrato.archivo_contrato_pdf.url }}" class="btn btn-sm btn-primary" target="_blank" title="Descargar">
-          <i class="fas fa-download"></i>
-        </a>
-      {% endif %}
-      
-      <!-- ✅ Botón Subir (solo si está en estado 'generado' y no tiene cuña) -->
-      {% if contrato.estado == 'generado' and not contrato.cuña %}
-        <button class="btn btn-sm btn-success" onclick="subirContratoValidado({{ contrato.id }})" title="Subir contrato validado">
-          <i class="fas fa-upload"></i>
-        </button>
-      {% endif %}
-      
-      <!-- Botón Eliminar -->
-      <button class="btn btn-sm btn-danger" onclick="eliminarContrato({{ contrato.id }})" title="Eliminar">
-        <i class="fas fa-trash"></i>
-      </button>
-    </td>
-  </tr>
-  {% empty %}
-  <tr>
-    <td colspan="7" class="text-center text-muted py-4">
-      <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
-      No hay contratos generados aún
-    </td>
-  </tr>
-  {% endfor %}
-</tbody>
-
-
+                    {% for contrato in contratos_recientes %}
+                    <tr>
+                        <td><strong>#{{ contrato.numero_contrato }}</strong></td>
+                        <td>
+                            {{ contrato.nombre_cliente }}
+                            {% if contrato.cliente.cargo_empresa %}
+                            <br><small class="text-muted">{{ contrato.cliente.cargo_empresa }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if contrato.cliente.profesion_display %}
+                            <span class="profesion-badge">{{ contrato.cliente.profesion_display }}</span>
+                            {% if contrato.cliente.abreviatura_profesion %}
+                            <br><small class="text-muted">Abrev: {{ contrato.cliente.abreviatura_profesion }}</small>
+                            {% endif %}
+                            {% else %}
+                            <span class="text-muted">Sin profesión</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ contrato.plantilla_usada.nombre }}</td>
+                        <td>{{ contrato.fecha_generacion|date:"d/m/Y H:i" }}</td>
+                        <td>S/ {{ contrato.valor_total }}</td>
+                        <td>
+                            {% if contrato.estado == 'generado' %}
+                                <span class="badge bg-success">Generado</span>
+                            {% elif contrato.estado == 'validado' %}
+                                <span class="badge bg-primary">Validado</span>
+                            {% elif contrato.estado == 'borrador' %}
+                                <span class="badge bg-warning">Borrador</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ contrato.get_estado_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <!-- Botón Descargar -->
+                            {% if contrato.archivo_contrato_pdf %}
+                                <a href="{{ contrato.archivo_contrato_pdf.url }}" class="btn btn-sm btn-primary" target="_blank" title="Descargar">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                            {% endif %}
+                            
+                            <!-- ✅ Botón Subir (solo si está en estado 'generado' y no tiene cuña) -->
+                            {% if contrato.estado == 'generado' and not contrato.cuña %}
+                                <button class="btn btn-sm btn-success" onclick="subirContratoValidado({{ contrato.id }})" title="Subir contrato validado">
+                                    <i class="fas fa-upload"></i>
+                                </button>
+                            {% endif %}
+                            
+                            <!-- Botón Eliminar -->
+                            <button class="btn btn-sm btn-danger" onclick="eliminarContrato({{ contrato.id }})" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                            No hay contratos generados aún
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
             </table>
         </div>
     </div>
@@ -439,6 +480,7 @@ document.addEventListener('DOMContentLoaded', function() {
     cargarPlantillas();
     cargarClientes();
 });
+
 // ✅ NUEVA FUNCIÓN: Subir contrato validado
 function subirContratoValidado(id) {
     Swal.fire({
@@ -576,6 +618,8 @@ function cargarClientes() {
                     option.dataset.telefono = cliente.telefono;
                     option.dataset.ciudad = cliente.ciudad;
                     option.dataset.direccion = cliente.direccion;
+                    option.dataset.profesion = cliente.profesion_display || '';
+                    option.dataset.cargo = cliente.cargo_empresa || '';
                     select.appendChild(option);
                 });
             } else {
@@ -629,37 +673,44 @@ document.getElementById('clienteSelect').addEventListener('change', function() {
     
     if (clienteId) {
         clienteSeleccionado = clienteId;
+        const selectedOption = this.options[this.selectedIndex];
         
-        // Cargar detalles del cliente
-        fetch(`/panel/api/cliente/${clienteId}/detalle/`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const cliente = data.cliente;
-                    
-                    // Mostrar preview de cliente
-                    document.getElementById('previewClienteNombre').textContent = cliente.empresa || cliente.nombre_completo;
-                    document.getElementById('previewClienteRUC').textContent = cliente.ruc_dni || 'No registrado';
-                    document.getElementById('previewClienteEmail').textContent = cliente.email || 'No registrado';
-                    document.getElementById('previewClienteCiudad').textContent = cliente.ciudad || 'No registrada';
-                    
-                    document.getElementById('clientePreview').classList.remove('d-none');
-                    
-                    // Mostrar sección de datos adicionales
-                    document.getElementById('datosAdicionalesSection').classList.remove('d-none');
-                    
-                    // Marcar pasos como completados
-                    document.getElementById('step2').classList.add('completed');
-                    document.getElementById('step3').classList.add('active');
-                    
-                    // Habilitar botón de generar
-                    document.getElementById('btnGenerar').disabled = false;
-                    
-                    // Establecer fecha de inicio como hoy
-                    const today = new Date().toISOString().split('T')[0];
-                    document.getElementById('fechaInicio').value = today;
-                }
-            });
+        // Mostrar información básica del cliente
+        document.getElementById('previewClienteNombre').textContent = selectedOption.dataset.nombre;
+        document.getElementById('previewClienteRUC').textContent = selectedOption.dataset.ruc || 'No registrado';
+        document.getElementById('previewClienteEmail').textContent = selectedOption.dataset.email || 'No registrado';
+        document.getElementById('previewClienteCiudad').textContent = selectedOption.dataset.ciudad || 'No registrada';
+        
+        // NUEVO: Mostrar información profesional si está disponible
+        if (selectedOption.dataset.profesion) {
+            document.getElementById('previewClienteProfesion').textContent = selectedOption.dataset.profesion;
+            document.getElementById('previewClienteProfesionGroup').style.display = 'block';
+        } else {
+            document.getElementById('previewClienteProfesionGroup').style.display = 'none';
+        }
+        
+        if (selectedOption.dataset.cargo) {
+            document.getElementById('previewClienteCargo').textContent = selectedOption.dataset.cargo;
+            document.getElementById('previewClienteCargoGroup').style.display = 'block';
+        } else {
+            document.getElementById('previewClienteCargoGroup').style.display = 'none';
+        }
+        
+        document.getElementById('clientePreview').classList.remove('d-none');
+        
+        // Mostrar sección de datos adicionales
+        document.getElementById('datosAdicionalesSection').classList.remove('d-none');
+        
+        // Marcar pasos como completados
+        document.getElementById('step2').classList.add('completed');
+        document.getElementById('step3').classList.add('active');
+        
+        // Habilitar botón de generar
+        document.getElementById('btnGenerar').disabled = false;
+        
+        // Establecer fecha de inicio como hoy
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('fechaInicio').value = today;
     } else {
         document.getElementById('clientePreview').classList.add('d-none');
         document.getElementById('datosAdicionalesSection').classList.add('d-none');
@@ -720,7 +771,7 @@ document.getElementById('contratoForm').addEventListener('submit', function(e) {
     // Mostrar loading
     Swal.fire({
         title: 'Generando Contrato',
-        html: 'Por favor espere...',
+        html: 'Por favor espere...<br><small>Incluyendo información profesional del cliente</small>',
         allowOutsideClick: false,
         didOpen: () => {
             Swal.showLoading();
@@ -742,7 +793,11 @@ document.getElementById('contratoForm').addEventListener('submit', function(e) {
             Swal.fire({
                 icon: 'success',
                 title: '¡Contrato Generado!',
-                text: 'El contrato se ha generado correctamente',
+                html: `
+                    <p>El contrato se ha generado correctamente</p>
+                    <p><strong>Incluye información profesional del cliente</strong></p>
+                    <small>Número: ${data.numero_contrato}</small>
+                `,
                 showCancelButton: true,
                 confirmButtonText: 'Descargar Ahora',
                 cancelButtonText: 'Ver Después'

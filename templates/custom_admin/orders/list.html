@@ -1,0 +1,650 @@
+{% extends 'custom_admin/base_admin.html' %}
+{% load static %}
+
+{% block title %}Gestión de Órdenes - PubliTrack{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .stats-card h3 {
+        font-size: 2rem;
+        margin: 0;
+        color: #333;
+    }
+    .stats-card p {
+        margin: 5px 0 0 0;
+        color: #666;
+        font-size: 0.9rem;
+    }
+    .badge-status {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    .badge-pendiente {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    .badge-procesando {
+        background-color: #cce7ff;
+        color: #004085;
+    }
+    .badge-completado {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    .badge-cancelado {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    .badge-prioridad {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+    }
+    .badge-alta {
+        background-color: #dc3545;
+        color: white;
+    }
+    .badge-media {
+        background-color: #ffc107;
+        color: #000;
+    }
+    .badge-baja {
+        background-color: #28a745;
+        color: white;
+    }
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
+        cursor: pointer;
+    }
+    .btn-action {
+        padding: 5px 10px;
+        font-size: 0.875rem;
+    }
+    .order-number {
+        font-weight: 600;
+        color: #2c5aa0;
+    }
+    
+    /* Estilos para modales animados - CONSISTENTES CON CLIENTES */
+    .animated-modal {
+        border-radius: 15px !important;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2) !important;
+    }
+    .animated-modal .swal2-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+    }
+    .animated-modal .swal2-html-container {
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+    .swal2-popup.animated-modal .btn {
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    .swal2-popup.animated-modal .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="fas fa-shopping-cart me-2"></i>Gestión de Órdenes
+            </h2>
+            <p class="text-muted mb-0">Administra las órdenes y pedidos del sistema</p>
+        </div>
+        {% if user.es_admin or user.es_vendedor %}
+        <button class="btn btn-primary" onclick="abrirModalCrear()">
+            <i class="fas fa-plus me-2"></i>Nueva Orden
+        </button>
+        {% endif %}
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3 class="text-primary">{{ total_ordenes }}</h3>
+                <p>Total de Órdenes</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3 class="text-warning">{{ ordenes_pendientes }}</h3>
+                <p>Pendientes</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3 class="text-info">{{ ordenes_procesando }}</h3>
+                <p>En Proceso</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3 class="text-success">{{ ordenes_completadas }}</h3>
+                <p>Completadas</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Buscar por número, cliente..." 
+                           value="{{ search }}">
+                </div>
+                <div class="col-md-2">
+                    <select name="estado" class="form-select">
+                        <option value="">Todos los estados</option>
+                        <option value="pendiente" {% if estado_filter == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                        <option value="procesando" {% if estado_filter == 'procesando' %}selected{% endif %}>Procesando</option>
+                        <option value="completado" {% if estado_filter == 'completado' %}selected{% endif %}>Completado</option>
+                        <option value="cancelado" {% if estado_filter == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="prioridad" class="form-select">
+                        <option value="">Todas las prioridades</option>
+                        <option value="alta" {% if prioridad_filter == 'alta' %}selected{% endif %}>Alta</option>
+                        <option value="media" {% if prioridad_filter == 'media' %}selected{% endif %}>Media</option>
+                        <option value="baja" {% if prioridad_filter == 'baja' %}selected{% endif %}>Baja</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <input type="date" name="fecha" class="form-control" 
+                           value="{{ fecha_filter }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-2"></i>Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de Órdenes -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>N° Orden</th>
+                            <th>Cliente</th>
+                            <th>Fecha</th>
+                            <th>Productos/Servicios</th>
+                            <th>Total</th>
+                            <th>Prioridad</th>
+                            <th>Estado</th>
+                            <th>Vendedor</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for orden in ordenes %}
+                        <tr>
+                            <td>
+                                <span class="order-number">#{{ orden.numero_orden }}</span>
+                            </td>
+                            <td>
+                                <strong>{{ orden.cliente.empresa|default:orden.cliente.get_full_name }}</strong>
+                                {% if orden.cliente.ruc_dni %}
+                                <br><small class="text-muted">{{ orden.cliente.ruc_dni }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ orden.fecha_orden|date:"d/m/Y" }}</td>
+                            <td>
+                                <small>
+                                    {% if orden.detalle_productos %}
+                                        {{ orden.detalle_productos|truncatewords:5 }}
+                                    {% else %}
+                                        <span class="text-muted">Sin detalles</span>
+                                    {% endif %}
+                                </small>
+                            </td>
+                            <td>
+                                <strong>S/ {{ orden.total|floatformat:2 }}</strong>
+                            </td>
+                            <td>
+                                {% if orden.prioridad == 'alta' %}
+                                    <span class="badge-prioridad badge-alta">Alta</span>
+                                {% elif orden.prioridad == 'media' %}
+                                    <span class="badge-prioridad badge-media">Media</span>
+                                {% else %}
+                                    <span class="badge-prioridad badge-baja">Baja</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if orden.estado == 'completado' %}
+                                    <span class="badge-status badge-completado">Completado</span>
+                                {% elif orden.estado == 'procesando' %}
+                                    <span class="badge-status badge-procesando">Procesando</span>
+                                {% elif orden.estado == 'cancelado' %}
+                                    <span class="badge-status badge-cancelado">Cancelado</span>
+                                {% else %}
+                                    <span class="badge-status badge-pendiente">Pendiente</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if orden.vendedor %}
+                                    <span class="badge bg-info">{{ orden.vendedor.get_full_name }}</span>
+                                {% else %}
+                                    <span class="text-muted">Sin asignar</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-info btn-action" 
+                                        onclick="verDetalleOrden({{ orden.id }})"
+                                        title="Ver detalles">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                {% if user.es_admin or user.es_vendedor and orden.vendedor == user %}
+                                <button class="btn btn-sm btn-warning btn-action" 
+                                        onclick="editarOrden({{ orden.id }})"
+                                        title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                {% endif %}
+                                {% if user.es_admin %}
+                                <button class="btn btn-sm btn-danger btn-action" 
+                                        onclick="eliminarOrden({{ orden.id }}, '{{ orden.numero_orden|escapejs }}')"
+                                        title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-4">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No se encontraron órdenes</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal Crear/Editar Orden -->
+<div class="modal fade" id="modalOrden" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalOrdenTitulo">Nueva Orden</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formOrden">
+                    {% csrf_token %}
+                    <input type="hidden" id="orden_id" name="orden_id">
+                    
+                    <!-- Información Básica -->
+                    <h6 class="mb-3 text-primary">Información de la Orden</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Número de Orden <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="numero_orden" id="numero_orden" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Cliente <span class="text-danger">*</span></label>
+                            <select class="form-select" name="cliente" id="cliente" required>
+                                <option value="">Seleccionar cliente...</option>
+                                {% for cliente in clientes %}
+                                <option value="{{ cliente.id }}">{{ cliente.empresa }} - {{ cliente.ruc_dni }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha de Orden <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" name="fecha_orden" id="fecha_orden" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Prioridad <span class="text-danger">*</span></label>
+                            <select class="form-select" name="prioridad" id="prioridad" required>
+                                <option value="baja">Baja</option>
+                                <option value="media">Media</option>
+                                <option value="alta">Alta</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Detalles de Productos/Servicios -->
+                    <h6 class="mb-3 text-primary">Detalles de Productos/Servicios</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-12">
+                            <label class="form-label">Descripción <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="detalle_productos" id="detalle_productos" rows="3" required 
+                                      placeholder="Describa los productos o servicios solicitados..."></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Cantidad</label>
+                            <input type="number" class="form-control" name="cantidad" id="cantidad" value="1" min="1">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Total (S/) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="total" id="total" step="0.01" required>
+                        </div>
+                    </div>
+
+                    <!-- Información Adicional -->
+                    <h6 class="mb-3 text-primary">Información Adicional</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-12">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" name="estado" id="estado">
+                                <option value="pendiente">Pendiente</option>
+                                <option value="procesando">Procesando</option>
+                                <option value="completado">Completado</option>
+                                <option value="cancelado">Cancelado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Observaciones</label>
+                            <textarea class="form-control" name="observaciones" id="observaciones" rows="2"
+                                      placeholder="Observaciones adicionales..."></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="guardarOrden()">
+                    <i class="fas fa-save me-2"></i>Guardar Orden
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ver Detalles -->
+<div class="modal fade" id="modalDetalleOrden" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalles de la Orden</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalleOrdenContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let modalOrden;
+let modalDetalleOrden;
+
+document.addEventListener('DOMContentLoaded', function() {
+    modalOrden = new bootstrap.Modal(document.getElementById('modalOrden'));
+    modalDetalleOrden = new bootstrap.Modal(document.getElementById('modalDetalleOrden'));
+    
+    // Establecer fecha actual por defecto
+    document.getElementById('fecha_orden').valueAsDate = new Date();
+});
+
+function abrirModalCrear() {
+    document.getElementById('modalOrdenTitulo').textContent = 'Nueva Orden';
+    document.getElementById('formOrden').reset();
+    document.getElementById('orden_id').value = '';
+    document.getElementById('fecha_orden').valueAsDate = new Date();
+    modalOrden.show();
+}
+
+function editarOrden(ordenId) {
+    document.getElementById('modalOrdenTitulo').textContent = 'Editar Orden';
+    document.getElementById('orden_id').value = ordenId;
+    
+    // Cargar datos de la orden
+    fetch(`/panel/orders/${ordenId}/detalle/`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('numero_orden').value = data.numero_orden;
+            document.getElementById('cliente').value = data.cliente_id;
+            document.getElementById('fecha_orden').value = data.fecha_orden;
+            document.getElementById('prioridad').value = data.prioridad;
+            document.getElementById('detalle_productos').value = data.detalle_productos || '';
+            document.getElementById('cantidad').value = data.cantidad || 1;
+            document.getElementById('total').value = data.total;
+            document.getElementById('estado').value = data.estado;
+            document.getElementById('observaciones').value = data.observaciones || '';
+            
+            modalOrden.show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error al cargar los datos de la orden',
+                confirmButtonColor: '#3085d6'
+            });
+        });
+}
+
+function guardarOrden() {
+    const ordenId = document.getElementById('orden_id').value;
+    const form = document.getElementById('formOrden');
+    
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    modalOrden.hide();
+    
+    Swal.fire({
+        title: ordenId ? 'Actualizando...' : 'Guardando...',
+        html: `
+            <div class="text-center py-3">
+                <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Guardando...</span>
+                </div>
+                <p class="text-muted mb-0">Por favor espere un momento</p>
+            </div>
+        `,
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        customClass: {
+            popup: 'animated-modal'
+        },
+        showClass: {
+            popup: 'animate__animated animate__fadeIn animate__faster'
+        }
+    });
+    
+    form.action = ordenId 
+        ? `/panel/orders/${ordenId}/editar/`
+        : '/panel/orders/crear/';
+    form.method = 'POST';
+    form.submit();
+}
+
+function verDetalleOrden(ordenId) {
+    const loadingHtml = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
+    `;
+    document.getElementById('detalleOrdenContent').innerHTML = loadingHtml;
+    modalDetalleOrden.show();
+    
+    fetch(`/panel/orders/${ordenId}/detalle/`)
+        .then(response => response.json())
+        .then(data => {
+            const html = `
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <strong>Número de Orden:</strong><br>
+                        <span class="order-number">#${data.numero_orden}</span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Fecha:</strong><br>
+                        ${data.fecha_orden}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Cliente:</strong><br>
+                        ${data.cliente_nombre}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>RUC/DNI:</strong><br>
+                        ${data.cliente_ruc}
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <strong>Productos/Servicios:</strong><br>
+                        ${data.detalle_productos || 'Sin detalles'}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Cantidad:</strong><br>
+                        ${data.cantidad || 1}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Total:</strong><br>
+                        <strong>S/ ${data.total}</strong>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Prioridad:</strong><br>
+                        <span class="badge-prioridad badge-${data.prioridad}">${data.prioridad}</span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Estado:</strong><br>
+                        <span class="badge-status badge-${data.estado}">${data.estado}</span>
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <strong>Observaciones:</strong><br>
+                        ${data.observaciones || 'Ninguna'}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Vendedor:</strong><br>
+                        ${data.vendedor_nombre || 'Sin asignar'}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Fecha de Creación:</strong><br>
+                        ${data.fecha_creacion}
+                    </div>
+                </div>
+            `;
+            document.getElementById('detalleOrdenContent').innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('detalleOrdenContent').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Error al cargar los detalles de la orden
+                </div>
+            `;
+        });
+}
+
+function eliminarOrden(ordenId, numeroOrden) {
+    Swal.fire({
+        title: '¿Eliminar orden?',
+        html: `
+            <div class="text-center mb-3">
+                <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                <p class="mb-2">¿Estás seguro de eliminar la orden:</p>
+                <h5 class="text-primary mb-2">#${numeroOrden}</h5>
+                <small class="text-muted d-block">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Esta acción no se puede deshacer
+                </small>
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fas fa-trash me-2"></i>Sí, eliminar',
+        cancelButtonText: '<i class="fas fa-times me-2"></i>Cancelar',
+        reverseButtons: true,
+        customClass: {
+            popup: 'animated-modal',
+            confirmButton: 'btn btn-lg px-4',
+            cancelButton: 'btn btn-lg px-4'
+        },
+        buttonsStyling: false,
+        showClass: {
+            popup: 'animate__animated animate__zoomIn animate__faster'
+        },
+        hideClass: {
+            popup: 'animate__animated animate__zoomOut animate__faster'
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Eliminando...',
+                html: `
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-danger mb-3" style="width: 3rem; height: 3rem;" role="status">
+                            <span class="visually-hidden">Eliminando...</span>
+                        </div>
+                        <p class="text-muted mb-0">Por favor espere un momento</p>
+                    </div>
+                `,
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                customClass: {
+                    popup: 'animated-modal'
+                },
+                showClass: {
+                    popup: 'animate__animated animate__fadeIn animate__faster'
+                }
+            });
+            
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/panel/orders/${ordenId}/eliminar/`;
+            
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            form.appendChild(csrfInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+</script>
+{% endblock %}

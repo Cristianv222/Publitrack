@@ -55,6 +55,9 @@ LOCAL_APPS = [
     'apps.reports_analytics',
     'apps.system_configuration',
     'apps.custom_admin',
+    # ✨ NUEVAS APPS AGREGADAS
+    'apps.orders',
+    'apps.parte_mortorios',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -480,6 +483,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 print("✅ Settings de PubliTrack cargados correctamente")
 print("📱 PWA con django-pwa configurada")
+print("🆕 Nuevas apps integradas: orders, parte_mortorios")
 if DEBUG:
     print(f"🔧 Modo: DESARROLLO")
     print(f"🗄️  Base de datos: {DATABASES['default']['NAME']} en {DATABASES['default']['HOST']}")

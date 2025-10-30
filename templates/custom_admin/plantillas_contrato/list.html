@@ -83,6 +83,17 @@
         font-size: 0.8rem;
         font-weight: 600;
     }
+    .variable-category {
+        margin-bottom: 15px;
+    }
+    .variable-category h6 {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #6b7280;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #e5e7eb;
+        padding-bottom: 5px;
+    }
 </style>
 {% endblock %}
 
@@ -525,21 +536,30 @@
                             </h6>
                             
                             <div class="preview-plantilla">
-                                <small class="d-block mb-2 text-muted">
-                                    <strong>Variables de Cliente:</strong>
-                                </small>
-                                <div class="mb-3">
+                                <!-- Variables de Cliente -->
+                                <div class="variable-category">
+                                    <h6>Variables de Cliente</h6>
                                     <span class="variable-tag">&#123;&#123;NOMBRE_CLIENTE&#125;&#125;</span>
                                     <span class="variable-tag">&#123;&#123;RUC_DNI&#125;&#125;</span>
                                     <span class="variable-tag">&#123;&#123;CIUDAD&#125;&#125;</span>
                                     <span class="variable-tag">&#123;&#123;PROVINCIA&#125;&#125;</span>
                                     <span class="variable-tag">&#123;&#123;DIRECCION_EXACTA&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;DIRECCION&#125;&#125;</span>
                                 </div>
                                 
-                                <small class="d-block mb-2 text-muted">
-                                    <strong>Variables Monetarias:</strong>
-                                </small>
-                                <div class="mb-3">
+                                <!-- NUEVAS VARIABLES PROFESIONALES -->
+                                <div class="variable-category">
+                                    <h6>Información Profesional</h6>
+                                    <span class="variable-tag">&#123;&#123;PROFESION_CLIENTE&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;ABREVIATURA_PROFESION&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;CARGO_CLIENTE&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;FIRMA_CONTRATO&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;INFORMACION_PROFESIONAL&#125;&#125;</span>
+                                </div>
+                                
+                                <!-- Variables Monetarias -->
+                                <div class="variable-category">
+                                    <h6>Variables Monetarias</h6>
                                     <span class="variable-tag">&#123;&#123;VALOR_NUMEROS&#125;&#125;</span>
                                     <span class="variable-tag">&#123;&#123;VALOR_LETRAS&#125;&#125;</span>
                                     <span class="variable-tag">&#123;&#123;IVA_NUMEROS&#125;&#125;</span>
@@ -548,10 +568,9 @@
                                     <span class="variable-tag">&#123;&#123;TOTAL_LETRAS&#125;&#125;</span>
                                 </div>
                                 
-                                <small class="d-block mb-2 text-muted">
-                                    <strong>Variables de Fechas:</strong>
-                                </small>
-                                <div class="mb-3">
+                                <!-- Variables de Fechas -->
+                                <div class="variable-category">
+                                    <h6>Variables de Fechas</h6>
                                     <span class="variable-tag">&#123;&#123;FECHA_INICIO&#125;&#125;</span>
                                     <span class="variable-tag">&#123;&#123;FECHA_FIN&#125;&#125;</span>
                                     <span class="variable-tag">&#123;&#123;FECHA_ACTUAL&#125;&#125;</span>
@@ -559,10 +578,9 @@
                                     <span class="variable-tag">&#123;&#123;DURACION_MESES&#125;&#125;</span>
                                 </div>
                                 
-                                <small class="d-block mb-2 text-muted">
-                                    <strong>Variables de Contrato:</strong>
-                                </small>
-                                <div>
+                                <!-- Variables de Contrato -->
+                                <div class="variable-category">
+                                    <h6>Variables de Contrato</h6>
                                     <span class="variable-tag">&#123;&#123;NUMERO_CONTRATO&#125;&#125;</span>
                                     <span class="variable-tag">&#123;&#123;SPOTS_DIA&#125;&#125;</span>
                                     <span class="variable-tag">&#123;&#123;DURACION_SPOT&#125;&#125;</span>

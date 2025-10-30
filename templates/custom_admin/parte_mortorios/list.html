@@ -1,0 +1,645 @@
+{% extends 'custom_admin/base_admin.html' %}
+{% load static %}
+
+{% block title %}Parte Mortorios - PubliTrack{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .stats-card h3 {
+        font-size: 2rem;
+        margin: 0;
+        color: #333;
+    }
+    .stats-card p {
+        margin: 5px 0 0 0;
+        color: #666;
+        font-size: 0.9rem;
+    }
+    .badge-status {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    .badge-registrado {
+        background-color: #cce7ff;
+        color: #004085;
+    }
+    .badge-verificado {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    .badge-completado {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    .badge-cancelado {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    .badge-urgencia {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+    }
+    .badge-urgente {
+        background-color: #dc3545;
+        color: white;
+    }
+    .badge-normal {
+        background-color: #28a745;
+        color: white;
+    }
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
+        cursor: pointer;
+    }
+    .btn-action {
+        padding: 5px 10px;
+        font-size: 0.875rem;
+    }
+    .parte-number {
+        font-weight: 600;
+        color: #2c5aa0;
+    }
+    
+    /* Estilos para modales animados - CONSISTENTES CON CLIENTES */
+    .animated-modal {
+        border-radius: 15px !important;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2) !important;
+    }
+    .animated-modal .swal2-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+    }
+    .animated-modal .swal2-html-container {
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+    .swal2-popup.animated-modal .btn {
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    .swal2-popup.animated-modal .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="fas fa-file-medical me-2"></i>Parte Mortorios
+            </h2>
+            <p class="text-muted mb-0">Gestión de partes mortuorios del sistema</p>
+        </div>
+        {% if user.es_admin or user.es_vendedor %}
+        <button class="btn btn-primary" onclick="abrirModalCrear()">
+            <i class="fas fa-plus me-2"></i>Nuevo Parte
+        </button>
+        {% endif %}
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3 class="text-primary">{{ total_partes }}</h3>
+                <p>Total de Partes</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3 class="text-info">{{ partes_registrados }}</h3>
+                <p>Registrados</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3 class="text-warning">{{ partes_verificados }}</h3>
+                <p>Verificados</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3 class="text-success">{{ partes_completados }}</h3>
+                <p>Completados</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Buscar por número, fallecido..." 
+                           value="{{ search }}">
+                </div>
+                <div class="col-md-2">
+                    <select name="estado" class="form-select">
+                        <option value="">Todos los estados</option>
+                        <option value="registrado" {% if estado_filter == 'registrado' %}selected{% endif %}>Registrado</option>
+                        <option value="verificado" {% if estado_filter == 'verificado' %}selected{% endif %}>Verificado</option>
+                        <option value="completado" {% if estado_filter == 'completado' %}selected{% endif %}>Completado</option>
+                        <option value="cancelado" {% if estado_filter == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="urgencia" class="form-select">
+                        <option value="">Todas las urgencias</option>
+                        <option value="urgente" {% if urgencia_filter == 'urgente' %}selected{% endif %}>Urgente</option>
+                        <option value="normal" {% if urgencia_filter == 'normal' %}selected{% endif %}>Normal</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <input type="date" name="fecha" class="form-control" 
+                           value="{{ fecha_filter }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-2"></i>Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de Partes Mortorios -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>N° Parte</th>
+                            <th>Fallecido</th>
+                            <th>Fecha Registro</th>
+                            <th>Lugar de Fallecimiento</th>
+                            <th>Causa</th>
+                            <th>Urgencia</th>
+                            <th>Estado</th>
+                            <th>Registrado por</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for parte in partes %}
+                        <tr>
+                            <td>
+                                <span class="parte-number">#{{ parte.numero_parte }}</span>
+                            </td>
+                            <td>
+                                <strong>{{ parte.nombre_fallecido }}</strong>
+                                {% if parte.edad_fallecido %}
+                                <br><small class="text-muted">{{ parte.edad_fallecido }} años</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ parte.fecha_registro|date:"d/m/Y" }}</td>
+                            <td>
+                                <small>{{ parte.lugar_fallecimiento|truncatewords:3 }}</small>
+                            </td>
+                            <td>
+                                <small>{{ parte.causa_fallecimiento|truncatewords:3|default:"-" }}</small>
+                            </td>
+                            <td>
+                                {% if parte.urgencia == 'urgente' %}
+                                    <span class="badge-urgencia badge-urgente">Urgente</span>
+                                {% else %}
+                                    <span class="badge-urgencia badge-normal">Normal</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if parte.estado == 'completado' %}
+                                    <span class="badge-status badge-completado">Completado</span>
+                                {% elif parte.estado == 'verificado' %}
+                                    <span class="badge-status badge-verificado">Verificado</span>
+                                {% elif parte.estado == 'cancelado' %}
+                                    <span class="badge-status badge-cancelado">Cancelado</span>
+                                {% else %}
+                                    <span class="badge-status badge-registrado">Registrado</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ parte.registrado_por.get_full_name }}</span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-info btn-action" 
+                                        onclick="verDetalleParte({{ parte.id }})"
+                                        title="Ver detalles">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                {% if user.es_admin or parte.registrado_por == user %}
+                                <button class="btn btn-sm btn-warning btn-action" 
+                                        onclick="editarParte({{ parte.id }})"
+                                        title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                {% endif %}
+                                {% if user.es_admin %}
+                                <button class="btn btn-sm btn-danger btn-action" 
+                                        onclick="eliminarParte({{ parte.id }}, '{{ parte.numero_parte|escapejs }}')"
+                                        title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-4">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No se encontraron partes mortorios</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal Crear/Editar Parte -->
+<div class="modal fade" id="modalParte" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalParteTitulo">Nuevo Parte Mortorio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formParte">
+                    {% csrf_token %}
+                    <input type="hidden" id="parte_id" name="parte_id">
+                    
+                    <!-- Información del Fallecido -->
+                    <h6 class="mb-3 text-primary">Información del Fallecido</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Número de Parte <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="numero_parte" id="numero_parte" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nombre Completo <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="nombre_fallecido" id="nombre_fallecido" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Edad</label>
+                            <input type="number" class="form-control" name="edad_fallecido" id="edad_fallecido" min="0" max="120">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">DNI/Cédula</label>
+                            <input type="text" class="form-control" name="dni_fallecido" id="dni_fallecido">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Urgencia</label>
+                            <select class="form-select" name="urgencia" id="urgencia">
+                                <option value="normal">Normal</option>
+                                <option value="urgente">Urgente</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Información del Fallecimiento -->
+                    <h6 class="mb-3 text-primary">Información del Fallecimiento</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha de Fallecimiento <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" name="fecha_fallecimiento" id="fecha_fallecimiento" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Hora de Fallecimiento</label>
+                            <input type="time" class="form-control" name="hora_fallecimiento" id="hora_fallecimiento">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Lugar de Fallecimiento <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="lugar_fallecimiento" id="lugar_fallecimiento" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Causa de Fallecimiento</label>
+                            <textarea class="form-control" name="causa_fallecimiento" id="causa_fallecimiento" rows="2"
+                                      placeholder="Describa la causa del fallecimiento..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Información Adicional -->
+                    <h6 class="mb-3 text-primary">Información Adicional</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-12">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" name="estado" id="estado">
+                                <option value="registrado">Registrado</option>
+                                <option value="verificado">Verificado</option>
+                                <option value="completado">Completado</option>
+                                <option value="cancelado">Cancelado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Observaciones</label>
+                            <textarea class="form-control" name="observaciones" id="observaciones" rows="3"
+                                      placeholder="Observaciones adicionales..."></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="guardarParte()">
+                    <i class="fas fa-save me-2"></i>Guardar Parte
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ver Detalles -->
+<div class="modal fade" id="modalDetalleParte" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalles del Parte Mortorio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalleParteContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let modalParte;
+let modalDetalleParte;
+
+document.addEventListener('DOMContentLoaded', function() {
+    modalParte = new bootstrap.Modal(document.getElementById('modalParte'));
+    modalDetalleParte = new bootstrap.Modal(document.getElementById('modalDetalleParte'));
+    
+    // Establecer fecha actual por defecto
+    document.getElementById('fecha_fallecimiento').valueAsDate = new Date();
+});
+
+function abrirModalCrear() {
+    document.getElementById('modalParteTitulo').textContent = 'Nuevo Parte Mortorio';
+    document.getElementById('formParte').reset();
+    document.getElementById('parte_id').value = '';
+    document.getElementById('fecha_fallecimiento').valueAsDate = new Date();
+    modalParte.show();
+}
+
+function editarParte(parteId) {
+    document.getElementById('modalParteTitulo').textContent = 'Editar Parte Mortorio';
+    document.getElementById('parte_id').value = parteId;
+    
+    // Cargar datos del parte
+    fetch(`/panel/parte-mortorios/${parteId}/detalle/`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('numero_parte').value = data.numero_parte;
+            document.getElementById('nombre_fallecido').value = data.nombre_fallecido;
+            document.getElementById('edad_fallecido').value = data.edad_fallecido || '';
+            document.getElementById('dni_fallecido').value = data.dni_fallecido || '';
+            document.getElementById('urgencia').value = data.urgencia;
+            document.getElementById('fecha_fallecimiento').value = data.fecha_fallecimiento;
+            document.getElementById('hora_fallecimiento').value = data.hora_fallecimiento || '';
+            document.getElementById('lugar_fallecimiento').value = data.lugar_fallecimiento;
+            document.getElementById('causa_fallecimiento').value = data.causa_fallecimiento || '';
+            document.getElementById('estado').value = data.estado;
+            document.getElementById('observaciones').value = data.observaciones || '';
+            
+            modalParte.show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error al cargar los datos del parte',
+                confirmButtonColor: '#3085d6'
+            });
+        });
+}
+
+function guardarParte() {
+    const parteId = document.getElementById('parte_id').value;
+    const form = document.getElementById('formParte');
+    
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    modalParte.hide();
+    
+    Swal.fire({
+        title: parteId ? 'Actualizando...' : 'Guardando...',
+        html: `
+            <div class="text-center py-3">
+                <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Guardando...</span>
+                </div>
+                <p class="text-muted mb-0">Por favor espere un momento</p>
+            </div>
+        `,
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        customClass: {
+            popup: 'animated-modal'
+        },
+        showClass: {
+            popup: 'animate__animated animate__fadeIn animate__faster'
+        }
+    });
+    
+    form.action = parteId 
+        ? `/panel/parte-mortorios/${parteId}/editar/`
+        : '/panel/parte-mortorios/crear/';
+    form.method = 'POST';
+    form.submit();
+}
+
+function verDetalleParte(parteId) {
+    const loadingHtml = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
+    `;
+    document.getElementById('detalleParteContent').innerHTML = loadingHtml;
+    modalDetalleParte.show();
+    
+    fetch(`/panel/parte-mortorios/${parteId}/detalle/`)
+        .then(response => response.json())
+        .then(data => {
+            const html = `
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <strong>Número de Parte:</strong><br>
+                        <span class="parte-number">#${data.numero_parte}</span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Fecha de Registro:</strong><br>
+                        ${data.fecha_registro}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Fallecido:</strong><br>
+                        ${data.nombre_fallecido}
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <strong>Edad:</strong><br>
+                        ${data.edad_fallecido || 'N/A'} años
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <strong>DNI/Cédula:</strong><br>
+                        ${data.dni_fallecido || 'N/A'}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Fecha Fallecimiento:</strong><br>
+                        ${data.fecha_fallecimiento}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Hora Fallecimiento:</strong><br>
+                        ${data.hora_fallecimiento || 'N/A'}
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <strong>Lugar de Fallecimiento:</strong><br>
+                        ${data.lugar_fallecimiento}
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <strong>Causa de Fallecimiento:</strong><br>
+                        ${data.causa_fallecimiento || 'No especificada'}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Urgencia:</strong><br>
+                        <span class="badge-urgencia badge-${data.urgencia}">${data.urgencia}</span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Estado:</strong><br>
+                        <span class="badge-status badge-${data.estado}">${data.estado}</span>
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <strong>Observaciones:</strong><br>
+                        ${data.observaciones || 'Ninguna'}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Registrado por:</strong><br>
+                        ${data.registrado_por_nombre}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Última Actualización:</strong><br>
+                        ${data.fecha_actualizacion}
+                    </div>
+                </div>
+            `;
+            document.getElementById('detalleParteContent').innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('detalleParteContent').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Error al cargar los detalles del parte
+                </div>
+            `;
+        });
+}
+
+function eliminarParte(parteId, numeroParte) {
+    Swal.fire({
+        title: '¿Eliminar parte mortorio?',
+        html: `
+            <div class="text-center mb-3">
+                <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                <p class="mb-2">¿Estás seguro de eliminar el parte:</p>
+                <h5 class="text-primary mb-2">#${numeroParte}</h5>
+                <small class="text-muted d-block">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Esta acción no se puede deshacer
+                </small>
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fas fa-trash me-2"></i>Sí, eliminar',
+        cancelButtonText: '<i class="fas fa-times me-2"></i>Cancelar',
+        reverseButtons: true,
+        customClass: {
+            popup: 'animated-modal',
+            confirmButton: 'btn btn-lg px-4',
+            cancelButton: 'btn btn-lg px-4'
+        },
+        buttonsStyling: false,
+        showClass: {
+            popup: 'animate__animated animate__zoomIn animate__faster'
+        },
+        hideClass: {
+            popup: 'animate__animated animate__zoomOut animate__faster'
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Eliminando...',
+                html: `
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-danger mb-3" style="width: 3rem; height: 3rem;" role="status">
+                            <span class="visually-hidden">Eliminando...</span>
+                        </div>
+                        <p class="text-muted mb-0">Por favor espere un momento</p>
+                    </div>
+                `,
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                customClass: {
+                    popup: 'animated-modal'
+                },
+                showClass: {
+                    popup: 'animate__animated animate__fadeIn animate__faster'
+                }
+            });
+            
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/panel/parte-mortorios/${parteId}/eliminar/`;
+            
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            form.appendChild(csrfInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+</script>
+{% endblock %}

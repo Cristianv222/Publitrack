@@ -49,7 +49,6 @@ urlpatterns = [
     path('categorias/api/<int:pk>/delete/', views.categoria_delete_api, name='categoria_delete_api'),
     
     # Contratos
-    
     path('contratos/', views.contratos_generados_list, name='contratos_list'),
     path('contratos/api/create/', views.contrato_create_api, name='contrato_create_api'),
     path('contratos/api/<int:pk>/', views.contrato_detail_api, name='contrato_detail_api'),
@@ -59,12 +58,27 @@ urlpatterns = [
     path('contratos-generados/', views.contratos_generados_list, name='contratos_generados_list'),
     path('contratos/api/generar/', views.contrato_generar_api, name='contrato_generar_api'),
     path('contratos/api/<int:id>/eliminar/', views.contrato_eliminar_api, name='contrato_eliminar_api'),
-    path('contratos/api/<int:id>/subir-validado/', views.contrato_subir_validado_api, name='contrato_subir_validado_api'),  # ✅ NUEVA RUTA
+    path('contratos/api/<int:id>/subir-validado/', views.contrato_subir_validado_api, name='contrato_subir_validado_api'),
+    
     # ==================== APIs PARA OBTENER DATOS ====================
     path('api/plantillas-contrato/', views.api_plantillas_contrato, name='api_plantillas_contrato'),
     path('api/clientes-activos/', views.api_clientes_activos, name='api_clientes_activos'),
     path('api/plantilla/<int:id>/detalle/', views.api_plantilla_detalle, name='api_plantilla_detalle'),
     path('api/cliente/<int:id>/detalle/', views.api_cliente_detalle, name='api_cliente_detalle'),
+    
+    # ==================== NUEVAS URLs PARA ÓRDENES ====================
+    path('ordenes-toma/', views.ordenes_toma_list, name='ordenes_toma_list'),
+    path('ordenes-produccion/', views.ordenes_produccion_list, name='ordenes_produccion_list'),
+    path('ordenes-finalizacion/', views.ordenes_finalizacion_list, name='ordenes_finalizacion_list'),
+    
+    # APIs para órdenes
+    path('api/ordenes-toma/', views.api_ordenes_toma, name='api_ordenes_toma'),
+    path('api/ordenes-produccion/', views.api_ordenes_produccion, name='api_ordenes_produccion'),
+    path('api/ordenes-finalizacion/', views.api_ordenes_finalizacion, name='api_ordenes_finalizacion'),
+    
+    # ==================== NUEVAS URLs PARA PANTEONES ====================
+    path('panteones/', views.panteones_list, name='panteones_list'),
+    path('api/panteones/', views.api_panteones, name='api_panteones'),
     
     # Transmisiones
     path('transmisiones/', views.transmisiones_list, name='transmisiones_list'),
@@ -92,4 +106,19 @@ urlpatterns = [
     
     # Configuración
     path('configuracion/', views.configuracion, name='configuracion'),
+
+    # ==================== NUEVAS URLs PARA ÓRDENES ====================
+    path('orders/', views.orders_list, name='orders_list'),
+    path('orders/<int:order_id>/detalle/', views.order_detail_api, name='order_detail_api'),
+    path('orders/crear/', views.order_create_api, name='order_create_api'),
+    path('orders/<int:order_id>/editar/', views.order_update_api, name='order_update_api'),
+    path('orders/<int:order_id>/eliminar/', views.order_delete_api, name='order_delete_api'),
+    
+    # ==================== NUEVAS URLs PARA PARTE MORTORIOS ====================
+    path('parte-mortorios/', views.parte_mortorios_list, name='parte_mortorios_list'),
+    path('parte-mortorios/<int:parte_id>/detalle/', views.parte_mortorio_detail_api, name='parte_mortorio_detail_api'),
+    path('parte-mortorios/crear/', views.parte_mortorio_create_api, name='parte_mortorio_create_api'),
+    path('parte-mortorios/<int:parte_id>/editar/', views.parte_mortorio_update_api, name='parte_mortorio_update_api'),
+    path('parte-mortorios/<int:parte_id>/eliminar/', views.parte_mortorio_delete_api, name='parte_mortorio_delete_api'),
+
 ]
