@@ -1,61 +1,93 @@
-# apps/orders/signals.py
-from django.db.models.signals import post_save
+"""
+Señales para la aplicación Orders
+"""
+
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from django.contrib.auth import get_user_model
+from django.conf import settings
+from django.utils import timezone
+from decimal import Decimal
 from .models import OrdenToma, HistorialOrden
 
-User = get_user_model()
 
-@receiver(post_save, sender=User)
-def crear_orden_toma_automatica(sender, instance, created, **kwargs):
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+def crear_orden_toma_al_crear_cliente(sender, instance, created, **kwargs):
     """
-    Crea automáticamente una orden de toma cuando se crea un nuevo cliente
+    Señal que crea automáticamente una OrdenToma cuando se crea un cliente
     """
-    # Solo crear orden si es un cliente nuevo
+    # Solo ejecutar si es un cliente nuevo y tiene rol 'cliente'
     if created and instance.rol == 'cliente':
+        print(f"🔔 SEÑAL EJECUTADA: Creando orden para cliente {instance.username}")
+        
         try:
-            # Crear orden de toma automáticamente
-            orden_toma = OrdenToma.objects.create(
+            # Verificar si ya existe una orden para este cliente (evitar duplicados)
+            if OrdenToma.objects.filter(cliente=instance).exists():
+                print(f"⚠️ El cliente {instance.username} ya tiene una orden existente")
+                return
+            
+            # Crear la orden de toma automáticamente
+            orden = OrdenToma.objects.create(
                 cliente=instance,
-                descripcion=f'Orden de toma automática para el cliente {instance.empresa or instance.get_full_name()}',
-                tipo_toma='voz',
-                duracion_estimada=30,
-                estado='generada',
-                prioridad='normal',
-                created_by=instance,  # Esto se ajustará en save_model del admin
+                detalle_productos=f'Orden de toma automática para {instance.get_full_name() or instance.username}',
+                cantidad=1,
+                total=Decimal('0.00'),
+                created_by=instance,
+                estado='pendiente'
             )
             
-            # Crear entrada en el historial
-            HistorialOrden.objects.create(
-                orden_toma=orden_toma,
-                accion='creada',
-                usuario=instance,  # Esto se ajustará en save_model del admin
-                descripcion=f'Orden de toma creada automáticamente para el cliente {instance.empresa}'
-            )
+            print(f"✅ Orden creada exitosamente: {orden.codigo} para cliente {instance.username}")
             
-            print(f"✅ Orden de toma creada automáticamente: {orden_toma.codigo} para cliente: {instance.empresa}")
-            
-        except Exception as e:
-            print(f"❌ Error al crear orden de toma automática: {e}")
-
-@receiver(post_save, sender=OrdenToma)
-def crear_historial_orden(sender, instance, created, **kwargs):
-    """
-    Crea entrada en el historial cuando se crea o modifica una orden
-    """
-    if created:
-        try:
+            # Registrar en historial
             HistorialOrden.objects.create(
-                orden_toma=instance,
+                orden=orden,
                 accion='creada',
-                usuario=instance.created_by,
-                descripcion=f'Orden de toma creada para el cliente {instance.cliente.empresa}',
+                usuario=instance,
+                descripcion='Orden de toma creada automáticamente al registrar cliente',
                 datos_nuevos={
-                    'codigo': instance.codigo,
-                    'estado': instance.estado,
-                    'tipo_toma': instance.tipo_toma,
-                    'cliente': instance.cliente.empresa,
+                    'codigo': orden.codigo,
+                    'cliente': instance.get_full_name() or instance.username,
+                    'estado': orden.estado,
                 }
             )
+            
         except Exception as e:
-            print(f"❌ Error al crear historial de orden: {e}")
+            print(f"❌ ERROR al crear orden: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
+
+@receiver(pre_save, sender=OrdenToma)
+def orden_pre_save(sender, instance, **kwargs):
+    """Captura el estado anterior antes de guardar"""
+    if instance.pk:
+        try:
+            instance._estado_anterior = OrdenToma.objects.get(pk=instance.pk)
+        except OrdenToma.DoesNotExist:
+            instance._estado_anterior = None
+    else:
+        instance._estado_anterior = None
+
+
+@receiver(post_save, sender=OrdenToma)
+def orden_post_save(sender, instance, created, **kwargs):
+    """Crea entrada en el historial después de guardar"""
+    if not created:
+        estado_anterior = getattr(instance, '_estado_anterior', None)
+        if estado_anterior and estado_anterior.estado != instance.estado:
+            accion_map = {
+                'validado': 'validada',
+                'en_produccion': 'produccion',
+                'completado': 'completada',
+                'cancelado': 'cancelada',
+            }
+            
+            accion = accion_map.get(instance.estado, 'editada')
+            
+            HistorialOrden.objects.create(
+                orden=instance,
+                accion=accion,
+                usuario=getattr(instance, 'validado_por', None) or getattr(instance, 'completado_por', None),
+                descripcion=f'Orden cambió de estado: {estado_anterior.estado} → {instance.estado}',
+                datos_anteriores={'estado': estado_anterior.estado},
+                datos_nuevos={'estado': instance.estado}
+            )

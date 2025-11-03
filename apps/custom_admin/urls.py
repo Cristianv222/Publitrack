@@ -98,11 +98,11 @@ urlpatterns = [
     path('parte-mortorios/crear/', views.parte_mortorio_create_api, name='parte_mortorio_create_api'),
     path('parte-mortorios/<int:parte_id>/editar/', views.parte_mortorio_update_api, name='parte_mortorio_update_api'),
     path('parte-mortorios/<int:parte_id>/eliminar/', views.parte_mortorio_delete_api, name='parte_mortorio_delete_api'),
-    # ==================== ÓRDENES DE TOMA ====================
-    path('orders/', views.orders_list, name='orders_list'),
-    path('orders/<int:order_id>/detalle/', views.order_detail_api, name='order_detail_api'),
-    path('orders/crear/', views.order_create_api, name='order_create_api'),
-    path('orders/<int:order_id>/editar/', views.order_update_api, name='order_update_api'),
-    path('orders/<int:order_id>/eliminar/', views.order_delete_api, name='order_delete_api'),
+   # ==================== ÓRDENES DE TOMA ====================
+path('orders/', views.orders_list, name='orders_list'),
+path('orders/<int:order_id>/detalle/', views.order_detail_api, name='order_detail_api'),
+path('orders/crear/', views.order_create_api, name='order_create_api'),
+path('orders/<int:order_id>/editar/', views.order_update_api, name='order_update_api'),
+path('orders/<int:order_id>/eliminar/', views.order_delete_api, name='order_delete_api'),
 
 ]

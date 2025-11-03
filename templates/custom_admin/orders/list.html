@@ -28,7 +28,7 @@
         font-size: 0.85rem;
         font-weight: 500;
     }
-    .badge-generado {
+    .badge-pendiente {
         background-color: #fff3cd;
         color: #856404;
     }
@@ -77,12 +77,17 @@
         padding: 5px 10px;
         font-size: 0.875rem;
     }
+    .btn-action-completar {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        white-space: nowrap;
+    }
     .order-number {
         font-weight: 600;
         color: #2c5aa0;
     }
     
-    /* Estilos para modales animados - CONSISTENTES CON CLIENTES */
+    /* Estilos para modales animados */
     .animated-modal {
         border-radius: 15px !important;
         box-shadow: 0 10px 40px rgba(0,0,0,0.2) !important;
@@ -136,8 +141,8 @@
         </div>
         <div class="col-md-3">
             <div class="stats-card">
-                <h3 class="text-warning">{{ ordenes_generadas }}</h3>
-                <p>Generadas</p>
+                <h3 class="text-warning">{{ ordenes_pendientes }}</h3>
+                <p>Pendientes</p>
             </div>
         </div>
         <div class="col-md-3">
@@ -166,7 +171,7 @@
                 <div class="col-md-3">
                     <select name="estado" class="form-select">
                         <option value="">Todos los estados</option>
-                        <option value="generado" {% if estado_filter == 'generado' %}selected{% endif %}>Generado</option>
+                        <option value="pendiente" {% if estado_filter == 'pendiente' %}selected{% endif %}>Pendiente</option>
                         <option value="validado" {% if estado_filter == 'validado' %}selected{% endif %}>Validado</option>
                         <option value="en_produccion" {% if estado_filter == 'en_produccion' %}selected{% endif %}>En Producción</option>
                         <option value="completado" {% if estado_filter == 'completado' %}selected{% endif %}>Completado</option>
@@ -205,7 +210,7 @@
                             <th>Total</th>
                             <th>Prioridad</th>
                             <th>Estado</th>
-                            <th>Vendedor</th>
+                            <th>Acción</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
@@ -245,10 +250,14 @@
                                 </span>
                             </td>
                             <td>
-                                {% if orden.vendedor_asignado %}
-                                    <span class="badge bg-info">{{ orden.vendedor_asignado.get_full_name }}</span>
+                                {% if orden.estado == 'pendiente' or orden.estado == 'validado' %}
+                                    <button class="btn btn-sm btn-success btn-action-completar" 
+                                            onclick="completarToma({{ orden.id }})"
+                                            title="Completar Toma">
+                                        <i class="fas fa-check-circle me-1"></i>Completar Toma
+                                    </button>
                                 {% else %}
-                                    <span class="text-muted">Sin asignar</span>
+                                    <span class="text-muted">Completada</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -389,7 +398,7 @@
                         <div class="col-md-12">
                             <label class="form-label">Estado</label>
                             <select class="form-select" name="estado" id="estado">
-                                <option value="generado" selected>Generado</option>
+                                <option value="pendiente" selected>Pendiente</option>
                                 <option value="validado">Validado</option>
                                 <option value="en_produccion">En Producción</option>
                                 <option value="completado">Completado</option>
@@ -452,7 +461,7 @@ function abrirModalCrear() {
     document.getElementById('formOrden').reset();
     document.getElementById('orden_id').value = '';
     document.getElementById('prioridad').value = 'normal';
-    document.getElementById('estado').value = 'generado';
+    document.getElementById('estado').value = 'pendiente';
     modalOrden.show();
 }
 
@@ -590,6 +599,238 @@ function guardarOrden() {
     });
 }
 
+function completarToma(ordenId) {
+    // Cargar datos actuales de la orden
+    fetch(`/panel/orders/${ordenId}/detalle/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const orden = data.orden;
+                
+                const modalHtml = `
+                    <div class="modal fade" id="modalCompletarToma" tabindex="-1">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Completar Toma - ${orden.codigo}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form id="formCompletarToma">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="orden_id" value="${ordenId}">
+                                        
+                                        <h6 class="mb-3 text-primary">Información de la Producción</h6>
+                                        <div class="row g-3 mb-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Proyecto/Campaña <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" name="proyecto_campania" required
+                                                       value="${orden.proyecto_campania || ''}" placeholder="Nombre del proyecto o campaña">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Título del Material <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" name="titulo_material" required
+                                                       value="${orden.titulo_material || ''}" placeholder="Título del material a producir">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row g-3 mb-3">
+                                            <div class="col-md-12">
+                                                <label class="form-label">Descripción Breve <span class="text-danger">*</span></label>
+                                                <textarea class="form-control" name="descripcion_breve" rows="2" required placeholder="Descripción breve del trabajo a realizar">${orden.descripcion_breve || ''}</textarea>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row g-3 mb-3">
+                                            <div class="col-md-12">
+                                                <label class="form-label">Locaciones <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" name="locaciones" required
+                                                       value="${orden.locaciones || ''}" placeholder="Locaciones donde se realizará la toma">
+                                            </div>
+                                        </div>
+                                        
+                                        <h6 class="mb-3 text-primary">Fechas y Horarios</h6>
+                                        <div class="row g-3 mb-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Fecha Inicio Producción <span class="text-danger">*</span></label>
+                                                <input type="date" class="form-control" name="fecha_produccion_inicio" required
+                                                       value="${orden.fecha_produccion_inicio || ''}">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Fecha Fin Producción <span class="text-danger">*</span></label>
+                                                <input type="date" class="form-control" name="fecha_produccion_fin" required
+                                                       value="${orden.fecha_produccion_fin || ''}">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row g-3 mb-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Hora Inicio <span class="text-danger">*</span></label>
+                                                <input type="time" class="form-control" name="hora_inicio" required
+                                                       value="${orden.hora_inicio || ''}">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Hora Fin <span class="text-danger">*</span></label>
+                                                <input type="time" class="form-control" name="hora_fin" required
+                                                       value="${orden.hora_fin || ''}">
+                                            </div>
+                                        </div>
+                                        
+                                        <h6 class="mb-3 text-primary">Recursos y Equipos</h6>
+                                        <div class="row g-3 mb-3">
+                                            <div class="col-md-12">
+                                                <label class="form-label">Equipo Asignado <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" name="equipo_asignado" required
+                                                       value="${orden.equipo_asignado || ''}" placeholder="Equipo técnico asignado">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row g-3 mb-3">
+                                            <div class="col-md-12">
+                                                <label class="form-label">Recursos Necesarios</label>
+                                                <textarea class="form-control" name="recursos_necesarios" rows="2" placeholder="Recursos adicionales necesarios">${orden.recursos_necesarios || ''}</textarea>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row g-3 mb-3">
+                                            <div class="col-md-12">
+                                                <label class="form-label">Observaciones de Completado</label>
+                                                <textarea class="form-control" name="observaciones_completado" rows="2" placeholder="Observaciones al completar la toma">${orden.observaciones_completado || ''}</textarea>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                        <i class="fas fa-times me-2"></i>Cancelar
+                                    </button>
+                                    <button type="button" class="btn btn-success" onclick="guardarCompletarToma()">
+                                        <i class="fas fa-check-circle me-2"></i>Completar Toma
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Añadir el modal al DOM
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                const modal = new bootstrap.Modal(document.getElementById('modalCompletarToma'));
+                modal.show();
+                
+                // Limpiar el modal cuando se cierre
+                document.getElementById('modalCompletarToma').addEventListener('hidden.bs.modal', function() {
+                    this.remove();
+                });
+                
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.error || 'Error al cargar los datos',
+                    confirmButtonColor: '#3085d6'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error al cargar los datos de la orden',
+                confirmButtonColor: '#3085d6'
+            });
+        });
+}
+function guardarCompletarToma() {
+    const form = document.getElementById('formCompletarToma');
+    const ordenId = form.orden_id.value;
+    
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    // ✅ RECOLECTAR TODOS LOS DATOS CORRECTAMENTE
+    const formData = new FormData(form);
+    const data = {
+        estado: 'completado',
+        proyecto_campania: formData.get('proyecto_campania'),
+        titulo_material: formData.get('titulo_material'),
+        descripcion_breve: formData.get('descripcion_breve'),
+        locaciones: formData.get('locaciones'),
+        fecha_produccion_inicio: formData.get('fecha_produccion_inicio'),
+        fecha_produccion_fin: formData.get('fecha_produccion_fin'),
+        hora_inicio: formData.get('hora_inicio'),
+        hora_fin: formData.get('hora_fin'),
+        equipo_asignado: formData.get('equipo_asignado'),
+        recursos_necesarios: formData.get('recursos_necesarios'),
+        observaciones_completado: formData.get('observaciones_completado')
+    };
+    
+    console.log("📤 Datos a enviar:", data);
+    
+    // Cerrar el modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalCompletarToma'));
+    modal.hide();
+    
+    Swal.fire({
+        title: 'Completando toma...',
+        html: `
+            <div class="text-center py-3">
+                <div class="spinner-border text-success mb-3" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Completando...</span>
+                </div>
+                <p class="text-muted mb-0">Guardando información de producción...</p>
+            </div>
+        `,
+        allowOutsideClick: false,
+        showConfirmButton: false
+    });
+    
+    fetch(`/panel/orders/${ordenId}/editar/`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        console.log("📥 Respuesta HTTP:", response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log("📥 Respuesta JSON:", data);
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Toma Completada!',
+                text: 'La información de producción se guardó correctamente',
+                confirmButtonColor: '#28a745'
+            }).then(() => {
+                window.location.reload();
+            });
+        } else {
+            console.error("❌ Error del servidor:", data.error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error || 'Error al guardar la información de producción',
+                confirmButtonColor: '#dc3545'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('❌ Error de conexión:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de conexión',
+            text: 'No se pudo conectar con el servidor',
+            confirmButtonColor: '#dc3545'
+        });
+    });
+}
 function verDetalleOrden(ordenId) {
     const loadingHtml = `
         <div class="text-center py-4">
@@ -606,47 +847,121 @@ function verDetalleOrden(ordenId) {
         .then(data => {
             if (data.success) {
                 const orden = data.orden;
+                
+                // ✅ VERIFICAR EN CONSOLA
+                console.log("📋 Datos recibidos del servidor:", orden);
+                
+                let camposAdicionales = '';
+                
+                if (orden.estado === 'completado') {
+                    camposAdicionales = `
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3 border-bottom pb-2">Información de Producción</h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>Proyecto/Campaña:</strong><br>
+                                ${orden.proyecto_campania || '<span class="text-muted">No definido</span>'}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>Título del Material:</strong><br>
+                                ${orden.titulo_material || '<span class="text-muted">No definido</span>'}
+                            </div>
+                            <div class="col-12 mb-3">
+                                <strong>Descripción Breve:</strong><br>
+                                ${orden.descripcion_breve || '<span class="text-muted">No definido</span>'}
+                            </div>
+                            <div class="col-12 mb-3">
+                                <strong>Locaciones:</strong><br>
+                                ${orden.locaciones || '<span class="text-muted">No definido</span>'}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>Fecha Inicio Producción:</strong><br>
+                                ${orden.fecha_produccion_inicio || '<span class="text-muted">No definido</span>'}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>Fecha Fin Producción:</strong><br>
+                                ${orden.fecha_produccion_fin || '<span class="text-muted">No definido</span>'}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>Hora Inicio:</strong><br>
+                                ${orden.hora_inicio || '<span class="text-muted">No definido</span>'}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>Hora Fin:</strong><br>
+                                ${orden.hora_fin || '<span class="text-muted">No definido</span>'}
+                            </div>
+                            <div class="col-12 mb-3">
+                                <strong>Equipo Asignado:</strong><br>
+                                ${orden.equipo_asignado || '<span class="text-muted">No definido</span>'}
+                            </div>
+                            <div class="col-12 mb-3">
+                                <strong>Recursos Necesarios:</strong><br>
+                                ${orden.recursos_necesarios || '<span class="text-muted">No definido</span>'}
+                            </div>
+                            <div class="col-12 mb-3">
+                                <strong>Observaciones de Completado:</strong><br>
+                                ${orden.observaciones_completado || '<span class="text-muted">Ninguna</span>'}
+                            </div>
+                        </div>
+                    `;
+                }
+                
                 const html = `
                     <div class="row">
+                        <!-- Información Básica -->
+                        <div class="col-12 mb-4">
+                            <h6 class="text-primary border-bottom pb-2">Información Básica</h6>
+                        </div>
                         <div class="col-md-6 mb-3">
                             <strong>Código:</strong><br>
-                            <span class="order-number">${orden.codigo}</span>
+                            <span class="order-number badge bg-primary">${orden.codigo}</span>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <strong>Fecha:</strong><br>
+                            <strong>Fecha de Orden:</strong><br>
                             ${orden.fecha_orden}
                         </div>
+                        
+                        <!-- Información del Cliente -->
+                        <div class="col-12 mb-4 mt-2">
+                            <h6 class="text-primary border-bottom pb-2">Información del Cliente</h6>
+                        </div>
                         <div class="col-md-6 mb-3">
-                            <strong>Cliente:</strong><br>
-                            ${orden.nombre_cliente}
+                            <strong>Nombre:</strong><br>
+                            ${orden.nombre_cliente || '<span class="text-muted">N/A</span>'}
                         </div>
                         <div class="col-md-6 mb-3">
                             <strong>RUC/DNI:</strong><br>
-                            ${orden.ruc_dni_cliente || 'N/A'}
+                            ${orden.ruc_dni_cliente || '<span class="text-muted">N/A</span>'}
                         </div>
                         <div class="col-md-6 mb-3">
                             <strong>Empresa:</strong><br>
-                            ${orden.empresa_cliente || 'N/A'}
+                            ${orden.empresa_cliente || '<span class="text-muted">N/A</span>'}
                         </div>
                         <div class="col-md-6 mb-3">
                             <strong>Ciudad:</strong><br>
-                            ${orden.ciudad_cliente || 'N/A'}
+                            ${orden.ciudad_cliente || '<span class="text-muted">N/A</span>'}
                         </div>
-                        <div class="col-md-12 mb-3">
+                        <div class="col-12 mb-3">
                             <strong>Dirección:</strong><br>
-                            ${orden.direccion_cliente || 'N/A'}
+                            ${orden.direccion_cliente || '<span class="text-muted">N/A</span>'}
                         </div>
                         <div class="col-md-6 mb-3">
                             <strong>Teléfono:</strong><br>
-                            ${orden.telefono_cliente || 'N/A'}
+                            ${orden.telefono_cliente || '<span class="text-muted">N/A</span>'}
                         </div>
                         <div class="col-md-6 mb-3">
                             <strong>Email:</strong><br>
-                            ${orden.email_cliente || 'N/A'}
+                            ${orden.email_cliente || '<span class="text-muted">N/A</span>'}
                         </div>
-                        <div class="col-md-12 mb-3">
+                        
+                        <!-- Detalles de la Orden -->
+                        <div class="col-12 mb-4 mt-2">
+                            <h6 class="text-primary border-bottom pb-2">Detalles de la Orden</h6>
+                        </div>
+                        <div class="col-12 mb-3">
                             <strong>Productos/Servicios:</strong><br>
-                            ${orden.detalle_productos || 'Sin detalles'}
+                            ${orden.detalle_productos || '<span class="text-muted">Sin detalles</span>'}
                         </div>
                         <div class="col-md-6 mb-3">
                             <strong>Cantidad:</strong><br>
@@ -656,6 +971,11 @@ function verDetalleOrden(ordenId) {
                             <strong>Total:</strong><br>
                             <strong class="text-success">S/ ${orden.total}</strong>
                         </div>
+                        
+                        <!-- Estado y Prioridad -->
+                        <div class="col-12 mb-4 mt-2">
+                            <h6 class="text-primary border-bottom pb-2">Estado y Prioridad</h6>
+                        </div>
                         <div class="col-md-6 mb-3">
                             <strong>Prioridad:</strong><br>
                             <span class="badge-prioridad badge-${orden.prioridad}">${orden.prioridad}</span>
@@ -664,14 +984,12 @@ function verDetalleOrden(ordenId) {
                             <strong>Estado:</strong><br>
                             <span class="badge-status badge-${orden.estado}">${orden.estado}</span>
                         </div>
-                        <div class="col-md-12 mb-3">
+                        <div class="col-12 mb-3">
                             <strong>Observaciones:</strong><br>
-                            ${orden.observaciones || 'Ninguna'}
+                            ${orden.observaciones || '<span class="text-muted">Ninguna</span>'}
                         </div>
-                        <div class="col-md-12 mb-3">
-                            <strong>Vendedor Asignado:</strong><br>
-                            ${orden.vendedor || 'Sin asignar'}
-                        </div>
+                        
+                        ${camposAdicionales}
                     </div>
                 `;
                 document.getElementById('detalleOrdenContent').innerHTML = html;

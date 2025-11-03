@@ -19,20 +19,26 @@ class OrdenTomaAdmin(admin.ModelAdmin):
         'codigo',
         'nombre_cliente_display',
         'empresa_display',
+        'ruc_dni_display',
         'total_display',
         'estado_badge',
         'prioridad_badge',
-        'vendedor_display',
+        'proyecto_campania',
+        'titulo_material',
+        'fecha_produccion_inicio',
+        'fecha_produccion_fin',
+        'hora_inicio',
+        'hora_fin',
         'dias_desde_creacion',
-        'fecha_orden',
     ]
     
     list_filter = [
         'estado',
         'prioridad',
         'vendedor_asignado',
+        'fecha_produccion_inicio',
+        'fecha_produccion_fin',
         'created_at',
-        'fecha_validacion',
     ]
     
     search_fields = [
@@ -42,6 +48,8 @@ class OrdenTomaAdmin(admin.ModelAdmin):
         'empresa_cliente',
         'email_cliente',
         'detalle_productos',
+        'proyecto_campania',
+        'titulo_material',
     ]
     
     readonly_fields = [
@@ -73,8 +81,7 @@ class OrdenTomaAdmin(admin.ModelAdmin):
                 'direccion_cliente',
                 'telefono_cliente',
                 'email_cliente',
-            ),
-            'classes': ('collapse',),
+            )
         }),
         ('Detalles de la Orden', {
             'fields': (
@@ -83,6 +90,22 @@ class OrdenTomaAdmin(admin.ModelAdmin):
                 'total',
                 'observaciones',
             )
+        }),
+        ('Información de Producción (Completar Toma)', {
+            'fields': (
+                'proyecto_campania',
+                'titulo_material',
+                'descripcion_breve',
+                'locaciones',
+                'fecha_produccion_inicio',
+                'fecha_produccion_fin',
+                'hora_inicio',
+                'hora_fin',
+                'equipo_asignado',
+                'recursos_necesarios',
+                'observaciones_completado',
+            ),
+            'description': 'Estos campos se completan cuando se finaliza la toma'
         }),
         ('Gestión Comercial', {
             'fields': (
@@ -121,7 +144,10 @@ class OrdenTomaAdmin(admin.ModelAdmin):
         """Muestra la empresa"""
         return obj.empresa_cliente or '-'
     empresa_display.short_description = 'Empresa'
-    
+    def ruc_dni_display(self, obj):
+        """Muestra el RUC/DNI del cliente"""
+        return obj.ruc_dni_cliente or '-'
+    ruc_dni_display.short_description = 'RUC/DNI'
     def total_display(self, obj):
         """Muestra el total formateado"""
         return format_html('<strong>S/ {}</strong>', obj.total)
@@ -130,7 +156,7 @@ class OrdenTomaAdmin(admin.ModelAdmin):
     def estado_badge(self, obj):
         """Muestra el estado como badge con color"""
         colors = {
-            'generado': '#ffc107',
+            'pendiente': '#ffc107',
             'validado': '#17a2b8',
             'en_produccion': '#007bff',
             'completado': '#28a745',

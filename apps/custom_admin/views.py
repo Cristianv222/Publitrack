@@ -2526,7 +2526,7 @@ def cliente_detail_api(request, cliente_id):
         return JsonResponse({'error': str(e)}, status=500)
 @login_required
 def cliente_create_api(request):
-    """API para crear un nuevo cliente"""
+    """API para crear un nuevo cliente - VERSIÓN CORREGIDA para activar señales"""
     if not request.user.es_admin and not request.user.es_vendedor:
         messages.error(request, 'No tienes permisos para crear clientes')
         return redirect('custom_admin:clientes_list')
@@ -2548,17 +2548,18 @@ def cliente_create_api(request):
             messages.error(request, f'El email "{email}" ya está registrado')
             return redirect('custom_admin:clientes_list')
 
-        # Crear el cliente sin contraseña
-        cliente = CustomUser(
+        # ✅ CREAR CLIENTE USANDO EL MÉTODO NORMAL PARA ACTIVAR SEÑALES
+        cliente = CustomUser.objects.create(
             username=username,
             email=email,
             first_name=request.POST.get('first_name', ''),
             last_name=request.POST.get('last_name', ''),
+            # Establecer contraseña como no utilizable
+            # No usar set_unusable_password() aquí, dejar que el manager lo maneje
         )
-        # Establecer contraseña como no utilizable (sin contraseña)
-        cliente.set_unusable_password()
 
-        # Establecer rol como cliente
+        # ✅ CONFIGURAR CAMPOS ADICIONALES DESPUÉS DE CREAR
+        cliente.set_unusable_password()  # Ahora sí, después de crear
         cliente.rol = 'cliente'
         cliente.is_active = True
 
@@ -2572,7 +2573,7 @@ def cliente_create_api(request):
         cliente.provincia = request.POST.get('provincia', '')
         cliente.direccion_exacta = request.POST.get('direccion_exacta', '')
         
-        # --- LOS DOS CAMPOS NUEVOS ---
+        # Los dos campos nuevos
         cliente.cargo_empresa = request.POST.get('cargo_empresa', '')
         cliente.profesion = request.POST.get('profesion', '')
 
@@ -2600,8 +2601,31 @@ def cliente_create_api(request):
                 except CustomUser.DoesNotExist:
                     pass
 
-        # Guardar el cliente
+        # ✅ GUARDAR LOS CAMBIOS - ESTO ACTIVARÁ LAS SEÑALES
         cliente.save()
+
+        # ✅ VERIFICAR SI SE CREÓ LA ORDEN
+        from apps.orders.models import OrdenToma
+        orden_creada = OrdenToma.objects.filter(cliente=cliente).exists()
+        
+        if orden_creada:
+            print(f"✅ Orden creada automáticamente para {cliente.username}")
+        else:
+            print(f"⚠️ No se creó orden automática para {cliente.username}")
+            # Crear orden manualmente como fallback
+            try:
+                from decimal import Decimal
+                orden = OrdenToma.objects.create(
+                    cliente=cliente,
+                    detalle_productos=f'Orden de toma automática para {cliente.get_full_name()}',
+                    cantidad=1,
+                    total=Decimal('0.00'),
+                    created_by=request.user,
+                    estado='pendiente'
+                )
+                print(f"✅ Orden creada manualmente: {orden.codigo}")
+            except Exception as e:
+                print(f"❌ Error creando orden manual: {e}")
         
         # Registrar en historial con LogEntry
         from django.contrib.admin.models import LogEntry, ADDITION
@@ -2612,7 +2636,7 @@ def cliente_create_api(request):
             object_id=cliente.pk,
             object_repr=str(cliente.empresa or cliente.username),
             action_flag=ADDITION,
-            change_message=f'Cliente creado: {cliente.empresa} ({cliente.ruc_dni}) - Sin contraseña'
+            change_message=f'Cliente creado: {cliente.empresa} ({cliente.ruc_dni}) - Orden: {"Sí" if orden_creada else "No"}'
         )
 
         messages.success(request, f'✓ Cliente "{cliente.empresa}" creado exitosamente')
@@ -2620,7 +2644,7 @@ def cliente_create_api(request):
     
     except Exception as e:
         import traceback
-        print(traceback.format_exc())  # Para debug en consola
+        print(traceback.format_exc())
         messages.error(request, f'Error al crear el cliente: {str(e)}')
         return redirect('custom_admin:clientes_list')
 @login_required
@@ -2771,6 +2795,7 @@ def configuracion(request):
     return render(request, 'custom_admin/en_desarrollo.html', context)
 # ==================== VISTAS COMPLETAS DE ÓRDENES ====================
 from django.core.paginator import Paginator
+from django.db.models import Q
 
 @login_required
 @user_passes_test(is_admin)
@@ -2783,6 +2808,7 @@ def orders_list(request):
     prioridad_filter = request.GET.get('prioridad', '')
 
     ordenes = OrdenToma.objects.select_related('cliente', 'vendedor_asignado').all()
+    
     if search:
         ordenes = ordenes.filter(
             Q(codigo__icontains=search) |
@@ -2790,27 +2816,33 @@ def orders_list(request):
             Q(ruc_dni_cliente__icontains=search) |
             Q(empresa_cliente__icontains=search)
         )
+    
     if estado_filter:
         ordenes = ordenes.filter(estado=estado_filter)
+    
     if prioridad_filter:
         ordenes = ordenes.filter(prioridad=prioridad_filter)
 
     total_ordenes = OrdenToma.objects.count()
-    ordenes_generadas = OrdenToma.objects.filter(estado='generado').count()
+    ordenes_pendientes = OrdenToma.objects.filter(estado='pendiente').count()
     ordenes_validadas = OrdenToma.objects.filter(estado='validado').count()
     ordenes_completadas = OrdenToma.objects.filter(estado='completado').count()
 
-    # Importante: define aquí la variable
+    # Paginación
     paginator = Paginator(ordenes, 20)
     page = request.GET.get('page', 1)
-    ordenes_paginadas = paginator.get_page(page)
+    
+    try:
+        ordenes_paginadas = paginator.page(page)
+    except:
+        ordenes_paginadas = paginator.page(1)
 
     clientes = CustomUser.objects.filter(rol='cliente', is_active=True).order_by('empresa', 'first_name')
 
     context = {
-        'ordenes': ordenes_paginadas,               # ← Aquí usas la variable correcta
+        'ordenes': ordenes_paginadas,
         'total_ordenes': total_ordenes,
-        'ordenes_generadas': ordenes_generadas,
+        'ordenes_pendientes': ordenes_pendientes,
         'ordenes_validadas': ordenes_validadas,
         'ordenes_completadas': ordenes_completadas,
         'search': search,
@@ -2823,18 +2855,27 @@ def orders_list(request):
 @login_required
 @user_passes_test(is_admin)
 def order_detail_api(request, order_id):
-    """API para obtener detalle de orden"""
+    """API para obtener detalle de orden - MEJORADO"""
     try:
         from apps.orders.models import OrdenToma
         
         orden = get_object_or_404(OrdenToma, pk=order_id)
+        
+        # ✅ VERIFICAR DATOS DEL CLIENTE
+        print(f"🔍 Verificando datos de orden {orden.codigo}:")
+        print(f"   - Nombre: {orden.nombre_cliente}")
+        print(f"   - Empresa: {orden.empresa_cliente}")
+        print(f"   - RUC/DNI: {orden.ruc_dni_cliente}")
+        print(f"   - Ciudad: {orden.ciudad_cliente}")
+        print(f"   - Dirección: {orden.direccion_cliente}")
+        print(f"   - Teléfono: {orden.telefono_cliente}")
         
         return JsonResponse({
             'success': True,
             'orden': {
                 'id': orden.id,
                 'codigo': orden.codigo,
-                'cliente_id': orden.cliente.id if orden.cliente else None,  # ← AGREGAR
+                'cliente_id': orden.cliente.id if orden.cliente else None,
                 'nombre_cliente': orden.nombre_cliente,
                 'ruc_dni_cliente': orden.ruc_dni_cliente,
                 'empresa_cliente': orden.empresa_cliente,
@@ -2850,10 +2891,25 @@ def order_detail_api(request, order_id):
                 'observaciones': orden.observaciones,
                 'fecha_orden': orden.fecha_orden.strftime('%d/%m/%Y %H:%M'),
                 'vendedor': orden.vendedor_asignado.get_full_name() if orden.vendedor_asignado else None,
+                # Campos adicionales para completar toma
+                'proyecto_campania': orden.proyecto_campania,
+                'titulo_material': orden.titulo_material,
+                'descripcion_breve': orden.descripcion_breve,
+                'locaciones': orden.locaciones,
+                'fecha_produccion_inicio': orden.fecha_produccion_inicio.strftime('%Y-%m-%d') if orden.fecha_produccion_inicio else None,
+                'fecha_produccion_fin': orden.fecha_produccion_fin.strftime('%Y-%m-%d') if orden.fecha_produccion_fin else None,
+                'hora_inicio': orden.hora_inicio.strftime('%H:%M') if orden.hora_inicio else None,
+                'hora_fin': orden.hora_fin.strftime('%H:%M') if orden.hora_fin else None,
+                'equipo_asignado': orden.equipo_asignado,
+                'recursos_necesarios': orden.recursos_necesarios,
+                'observaciones_completado': orden.observaciones_completado,
             }
         })
         
     except Exception as e:
+        print(f"❌ ERROR en order_detail_api: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 @login_required
@@ -2880,6 +2936,7 @@ def order_create_api(request):
             prioridad=data.get('prioridad', 'normal'),
             observaciones=data.get('observaciones', ''),
             created_by=request.user,
+            estado='pendiente'
         )
         
         # Registrar en LogEntry
@@ -2904,38 +2961,122 @@ def order_create_api(request):
         print(traceback.format_exc())
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["PUT", "POST"])
 def order_update_api(request, order_id):
-    """API para actualizar orden"""
+    """API para actualizar orden - CORREGIDO para guardar todos los campos del modal"""
     try:
         from apps.orders.models import OrdenToma
+        from datetime import datetime
         
         orden = get_object_or_404(OrdenToma, pk=order_id)
         data = json.loads(request.body)
         
-        # Actualizar campos
-        orden.detalle_productos = data.get('detalle_productos', orden.detalle_productos)
-        orden.cantidad = int(data.get('cantidad', orden.cantidad))
-        orden.total = Decimal(data.get('total', orden.total))
-        orden.prioridad = data.get('prioridad', orden.prioridad)
-        orden.observaciones = data.get('observaciones', orden.observaciones)
+        print(f"📥 Datos recibidos para orden {order_id}:", data)  # Debug
         
-        # Cambio de estado
+        # Si estamos completando la toma (estado cambia a completado)
         nuevo_estado = data.get('estado')
-        if nuevo_estado and nuevo_estado != orden.estado:
-            if nuevo_estado == 'validado':
-                orden.validar(request.user)
-            elif nuevo_estado == 'en_produccion':
-                orden.enviar_a_produccion()
-            elif nuevo_estado == 'completado':
-                orden.completar(request.user)
-            elif nuevo_estado == 'cancelado':
-                orden.cancelar()
-        else:
+        if nuevo_estado and nuevo_estado == 'completado' and orden.estado != 'completado':
+            # Validar campos requeridos para completar la toma
+            campos_requeridos = [
+                'proyecto_campania', 'titulo_material', 'descripcion_breve',
+                'locaciones', 'fecha_produccion_inicio', 'fecha_produccion_fin',
+                'hora_inicio', 'hora_fin', 'equipo_asignado'
+            ]
+            
+            campos_faltantes = []
+            for campo in campos_requeridos:
+                if not data.get(campo):
+                    campos_faltantes.append(campo.replace('_', ' ').title())
+            
+            if campos_faltantes:
+                return JsonResponse({
+                    'success': False, 
+                    'error': f'Campos requeridos faltantes para completar la toma: {", ".join(campos_faltantes)}'
+                }, status=400)
+            
+            # ✅ ACTUALIZAR TODOS LOS CAMPOS ADICIONALES DE LA TOMA
+            orden.proyecto_campania = data.get('proyecto_campania')
+            orden.titulo_material = data.get('titulo_material')
+            orden.descripcion_breve = data.get('descripcion_breve')
+            orden.locaciones = data.get('locaciones')
+            
+            # Convertir fechas y horas
+            try:
+                if data.get('fecha_produccion_inicio'):
+                    orden.fecha_produccion_inicio = datetime.strptime(data.get('fecha_produccion_inicio'), '%Y-%m-%d').date()
+                if data.get('fecha_produccion_fin'):
+                    orden.fecha_produccion_fin = datetime.strptime(data.get('fecha_produccion_fin'), '%Y-%m-%d').date()
+                if data.get('hora_inicio'):
+                    orden.hora_inicio = datetime.strptime(data.get('hora_inicio'), '%H:%M').time()
+                if data.get('hora_fin'):
+                    orden.hora_fin = datetime.strptime(data.get('hora_fin'), '%H:%M').time()
+            except ValueError as e:
+                return JsonResponse({'success': False, 'error': f'Error en formato de fecha/hora: {str(e)}'}, status=400)
+            
+            orden.equipo_asignado = data.get('equipo_asignado')
+            orden.recursos_necesarios = data.get('recursos_necesarios', '')
+            orden.observaciones_completado = data.get('observaciones_completado', '')
+            
+            # Completar la orden
+            orden.estado = 'completado'
+            orden.completado_por = request.user
+            orden.fecha_completado = timezone.now()
             orden.save()
+            
+            print(f"✅ Orden {orden.codigo} completada con datos de producción")  # Debug
+            
+        else:
+            # Actualización normal (sin completar)
+            orden.detalle_productos = data.get('detalle_productos', orden.detalle_productos)
+            orden.cantidad = int(data.get('cantidad', orden.cantidad))
+            orden.total = Decimal(data.get('total', orden.total))
+            orden.prioridad = data.get('prioridad', orden.prioridad)
+            orden.observaciones = data.get('observaciones', orden.observaciones)
+            
+            # ✅ ACTUALIZAR CAMPOS DE PRODUCCIÓN SI ESTÁN PRESENTES
+            if data.get('proyecto_campania') is not None:
+                orden.proyecto_campania = data.get('proyecto_campania')
+            if data.get('titulo_material') is not None:
+                orden.titulo_material = data.get('titulo_material')
+            if data.get('descripcion_breve') is not None:
+                orden.descripcion_breve = data.get('descripcion_breve')
+            if data.get('locaciones') is not None:
+                orden.locaciones = data.get('locaciones')
+            if data.get('equipo_asignado') is not None:
+                orden.equipo_asignado = data.get('equipo_asignado')
+            if data.get('recursos_necesarios') is not None:
+                orden.recursos_necesarios = data.get('recursos_necesarios')
+            if data.get('observaciones_completado') is not None:
+                orden.observaciones_completado = data.get('observaciones_completado')
+            
+            # Manejar fechas si vienen
+            try:
+                if data.get('fecha_produccion_inicio'):
+                    orden.fecha_produccion_inicio = datetime.strptime(data.get('fecha_produccion_inicio'), '%Y-%m-%d').date()
+                if data.get('fecha_produccion_fin'):
+                    orden.fecha_produccion_fin = datetime.strptime(data.get('fecha_produccion_fin'), '%Y-%m-%d').date()
+                if data.get('hora_inicio'):
+                    orden.hora_inicio = datetime.strptime(data.get('hora_inicio'), '%H:%M').time()
+                if data.get('hora_fin'):
+                    orden.hora_fin = datetime.strptime(data.get('hora_fin'), '%H:%M').time()
+            except ValueError as e:
+                print(f"⚠️ Error en fechas: {e}")  # Debug
+            
+            # Cambio de estado normal
+            if nuevo_estado and nuevo_estado != orden.estado:
+                if nuevo_estado == 'validado':
+                    orden.validar(request.user)
+                elif nuevo_estado == 'en_produccion':
+                    orden.enviar_a_produccion()
+                elif nuevo_estado == 'cancelado':
+                    orden.cancelar()
+                else:
+                    orden.estado = nuevo_estado
+                    orden.save()
+            else:
+                orden.save()
         
         # Registrar en LogEntry
         LogEntry.objects.log_action(
@@ -2944,17 +3085,28 @@ def order_update_api(request, order_id):
             object_id=orden.pk,
             object_repr=orden.codigo,
             action_flag=CHANGE,
-            change_message=f'Orden actualizada'
+            change_message=f'Orden actualizada - Estado: {orden.estado} - Datos producción guardados'
         )
         
-        return JsonResponse({'success': True, 'message': 'Orden actualizada exitosamente'})
+        return JsonResponse({
+            'success': True, 
+            'message': 'Orden actualizada exitosamente',
+            'orden_actualizada': {
+                'id': orden.id,
+                'estado': orden.estado,
+                'proyecto_campania': orden.proyecto_campania,
+                'titulo_material': orden.titulo_material,
+                'descripcion_breve': orden.descripcion_breve,
+                'locaciones': orden.locaciones,
+                'equipo_asignado': orden.equipo_asignado
+            }
+        })
         
     except Exception as e:
         import traceback
+        print("❌ ERROR en order_update_api:")
         print(traceback.format_exc())
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
-
-
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["DELETE", "POST"])
@@ -2982,7 +3134,6 @@ def order_delete_api(request, order_id):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
-
 # ==================== VISTAS PARA PARTE MORTORIOS ====================
 
 @login_required

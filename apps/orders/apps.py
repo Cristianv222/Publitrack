@@ -18,6 +18,16 @@ class OrdersConfig(AppConfig):
         Método que se ejecuta cuando la aplicación está lista
         Aquí importamos las señales para que se registren
         """
-        # Importar señales para que se registren automáticamente
-        import apps.orders.models  # Esto registra las señales definidas en models.py
-        print("✓ Señales de Órdenes registradas correctamente")
+        try:
+            # Importar señales para que se registren automáticamente
+            from . import signals
+            print("✅ Señales de Órdenes registradas correctamente")
+        except ImportError as e:
+            print(f"⚠️ No se pudieron cargar las señales: {e}")
+            # Intentar importar desde models como fallback
+            try:
+                # Las señales ahora están en signals.py, pero por compatibilidad
+                from .models import OrdenToma, HistorialOrden
+                print("✅ Modelos de órdenes cargados correctamente")
+            except Exception as e2:
+                print(f"❌ Error cargando modelos: {e2}")

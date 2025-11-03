@@ -21,7 +21,7 @@ class OrdenToma(models.Model):
     """
     
     ESTADO_CHOICES = [
-        ('generado', 'Generado'),
+        ('pendiente', 'Pendiente'),
         ('validado', 'Validado'),
         ('en_produccion', 'En Producción'),
         ('completado', 'Completado'),
@@ -86,7 +86,7 @@ class OrdenToma(models.Model):
         'Estado',
         max_length=20,
         choices=ESTADO_CHOICES,
-        default='generado',
+        default='pendiente',
         help_text='Estado actual de la orden'
     )
     
@@ -98,7 +98,83 @@ class OrdenToma(models.Model):
         help_text='Prioridad de la orden'
     )
     
-    # Observaciones
+    # Campos adicionales para completar la toma
+    proyecto_campania = models.CharField(
+        'Proyecto/Campaña',
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text='Nombre del proyecto o campaña'
+    )
+    
+    titulo_material = models.CharField(
+        'Título del Material',
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text='Título del material a producir'
+    )
+    
+    descripcion_breve = models.TextField(
+        'Descripción Breve',
+        blank=True,
+        null=True,
+        help_text='Descripción breve del trabajo a realizar'
+    )
+    
+    locaciones = models.TextField(
+        'Locaciones',
+        blank=True,
+        null=True,
+        help_text='Locaciones donde se realizará la toma'
+    )
+    
+    fecha_produccion_inicio = models.DateField(
+        'Fecha Inicio Producción',
+        blank=True,
+        null=True
+    )
+    
+    fecha_produccion_fin = models.DateField(
+        'Fecha Fin Producción',
+        blank=True,
+        null=True
+    )
+    
+    hora_inicio = models.TimeField(
+        'Hora Inicio',
+        blank=True,
+        null=True
+    )
+    
+    hora_fin = models.TimeField(
+        'Hora Fin',
+        blank=True,
+        null=True
+    )
+    
+    equipo_asignado = models.TextField(
+        'Equipo Asignado',
+        blank=True,
+        null=True,
+        help_text='Equipo técnico asignado para la producción'
+    )
+    
+    recursos_necesarios = models.TextField(
+        'Recursos Necesarios',
+        blank=True,
+        null=True,
+        help_text='Recursos adicionales necesarios'
+    )
+    
+    observaciones_completado = models.TextField(
+        'Observaciones de Completado',
+        blank=True,
+        null=True,
+        help_text='Observaciones al completar la toma'
+    )
+    
+    # Observaciones generales
     observaciones = models.TextField(
         'Observaciones',
         blank=True,
@@ -180,40 +256,53 @@ class OrdenToma(models.Model):
         return f"{self.codigo} - {self.nombre_cliente}"
     
     def save(self, *args, **kwargs):
-        """Override save para generar código automáticamente"""
-        if not self.codigo:
+        """Método save corregido para evitar bucles infinitos"""
+        # Si es nuevo y no tiene código, generar uno
+        if not self.pk and not self.codigo:
             self.codigo = self.generar_codigo()
-        
-        # Copiar información del cliente si no está presente
-        if self.cliente and not self.nombre_cliente:
+    
+        # ✅ COPIAR INFORMACIÓN DEL CLIENTE SIEMPRE QUE HAYA CLIENTE
+        if self.cliente:
             self.copiar_datos_cliente()
-        
+    
+        # Llamar al save original una sola vez
         super().save(*args, **kwargs)
     
     def generar_codigo(self):
-        """Genera un código único para la orden"""
-        año = timezone.now().year
-        mes = timezone.now().month
-        
-        count = OrdenToma.objects.filter(
-            created_at__year=año,
-            created_at__month=mes
-        ).count() + 1
-        
-        return f"OT{año}{mes:02d}{count:04d}"
+        """Genera código único basado en el próximo ID"""
+        try:
+            # Obtener el último ID para generar el siguiente
+            ultima_orden = OrdenToma.objects.order_by('-id').first()
+            if ultima_orden:
+                siguiente_numero = ultima_orden.id + 1
+            else:
+                siguiente_numero = 1
+            
+            return f"OT{siguiente_numero:06d}"
+        except Exception:
+            # Fallback si hay algún error
+            import time
+            return f"OT{int(time.time())}"
     
     def copiar_datos_cliente(self):
-        """Copia los datos del cliente a la orden"""
         if self.cliente:
+            print(f"📋 Copiando datos del cliente: {self.cliente.username}")
+        
+            # Información personal
             self.nombre_cliente = self.cliente.get_full_name() or self.cliente.username
             self.ruc_dni_cliente = self.cliente.ruc_dni or ''
             self.empresa_cliente = self.cliente.empresa or ''
+        
+        # Información de contacto y ubicación
             self.ciudad_cliente = self.cliente.ciudad or ''
             self.direccion_cliente = self.cliente.direccion_exacta or self.cliente.direccion or ''
             self.telefono_cliente = self.cliente.telefono or ''
             self.email_cliente = self.cliente.email or ''
+        
+        # Vendedor asignado
             self.vendedor_asignado = self.cliente.vendedor_asignado
-    
+        
+            print(f"✅ Datos copiados: {self.nombre_cliente} - {self.empresa_cliente} - {self.ruc_dni_cliente}")
     def validar(self, user):
         """Valida la orden y cambia estado a validado"""
         self.estado = 'validado'
@@ -227,11 +316,25 @@ class OrdenToma(models.Model):
             self.estado = 'en_produccion'
             self.save()
     
-    def completar(self, user):
-        """Completa la orden"""
+    def completar(self, user, datos_produccion=None):
         self.estado = 'completado'
         self.completado_por = user
         self.fecha_completado = timezone.now()
+    
+        # ✅ GUARDAR DATOS DE PRODUCCIÓN SI SE PROVEEN
+        if datos_produccion:
+            self.proyecto_campania = datos_produccion.get('proyecto_campania', self.proyecto_campania)
+            self.titulo_material = datos_produccion.get('titulo_material', self.titulo_material)
+            self.descripcion_breve = datos_produccion.get('descripcion_breve', self.descripcion_breve)
+            self.locaciones = datos_produccion.get('locaciones', self.locaciones)
+            self.fecha_produccion_inicio = datos_produccion.get('fecha_produccion_inicio', self.fecha_produccion_inicio)
+            self.fecha_produccion_fin = datos_produccion.get('fecha_produccion_fin', self.fecha_produccion_fin)
+            self.hora_inicio = datos_produccion.get('hora_inicio', self.hora_inicio)
+            self.hora_fin = datos_produccion.get('hora_fin', self.hora_fin)
+            self.equipo_asignado = datos_produccion.get('equipo_asignado', self.equipo_asignado)
+            self.recursos_necesarios = datos_produccion.get('recursos_necesarios', self.recursos_necesarios)
+            self.observaciones_completado = datos_produccion.get('observaciones_completado', self.observaciones_completado)
+    
         self.save()
     
     def cancelar(self):
@@ -324,74 +427,3 @@ class HistorialOrden(models.Model):
     
     def __str__(self):
         return f"{self.orden.codigo} - {self.get_accion_display()} - {self.fecha.strftime('%d/%m/%Y %H:%M')}"
-
-
-# ==================== SEÑALES ====================
-
-from django.db.models.signals import post_save, pre_save
-from django.dispatch import receiver
-
-@receiver(post_save, sender=settings.AUTH_USER_MODEL)
-def crear_orden_toma_al_crear_cliente(sender, instance, created, **kwargs):
-    """
-    Señal que crea automáticamente una OrdenToma cuando se crea un cliente
-    """
-    if created and instance.rol == 'cliente':
-        # Crear la orden de toma automáticamente
-        orden = OrdenToma.objects.create(
-            cliente=instance,
-            detalle_productos=f'Orden de toma automática para {instance.get_full_name()}',
-            cantidad=1,
-            total=Decimal('0.00'),
-            created_by=instance,
-        )
-        
-        # Registrar en historial
-        HistorialOrden.objects.create(
-            orden=orden,
-            accion='creada',
-            usuario=instance,
-            descripcion=f'Orden de toma creada automáticamente al registrar cliente',
-            datos_nuevos={
-                'codigo': orden.codigo,
-                'cliente': instance.get_full_name(),
-                'estado': orden.estado,
-            }
-        )
-
-
-@receiver(pre_save, sender=OrdenToma)
-def orden_pre_save(sender, instance, **kwargs):
-    """Captura el estado anterior antes de guardar"""
-    if instance.pk:
-        try:
-            instance._estado_anterior = OrdenToma.objects.get(pk=instance.pk)
-        except OrdenToma.DoesNotExist:
-            instance._estado_anterior = None
-    else:
-        instance._estado_anterior = None
-
-
-@receiver(post_save, sender=OrdenToma)
-def orden_post_save(sender, instance, created, **kwargs):
-    """Crea entrada en el historial después de guardar"""
-    if not created:
-        estado_anterior = getattr(instance, '_estado_anterior', None)
-        if estado_anterior and estado_anterior.estado != instance.estado:
-            accion_map = {
-                'validado': 'validada',
-                'en_produccion': 'produccion',
-                'completado': 'completada',
-                'cancelado': 'cancelada',
-            }
-            
-            accion = accion_map.get(instance.estado, 'editada')
-            
-            HistorialOrden.objects.create(
-                orden=instance,
-                accion=accion,
-                usuario=getattr(instance, 'validado_por', None) or getattr(instance, 'completado_por', None),
-                descripcion=f'Orden cambió de estado: {estado_anterior.estado} → {instance.estado}',
-                datos_anteriores={'estado': estado_anterior.estado},
-                datos_nuevos={'estado': instance.estado}
-            )
