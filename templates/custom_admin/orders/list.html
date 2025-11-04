@@ -33,16 +33,20 @@
         color: #856404;
     }
     .badge-validado {
-        background-color: #cce7ff;
-        color: #004085;
+        background-color: #d4edda;
+        color: #155724;
     }
     .badge-en_produccion {
         background-color: #d1ecf1;
         color: #0c5460;
     }
     .badge-completado {
-        background-color: #d4edda;
-        color: #155724;
+        background-color: #cce7ff;
+        color: #004085;
+    }
+    .badge-no_validado {
+        background-color: #fff3cd;
+        color: #856404;
     }
     .badge-cancelado {
         background-color: #f8d7da;
@@ -74,8 +78,9 @@
         cursor: pointer;
     }
     .btn-action {
-        padding: 5px 10px;
-        font-size: 0.875rem;
+        padding: 5px 8px;
+        font-size: 0.8rem;
+        margin: 1px;
     }
     .btn-action-completar {
         padding: 6px 12px;
@@ -87,28 +92,34 @@
         color: #2c5aa0;
     }
     
-    /* Estilos para modales animados */
-    .animated-modal {
-        border-radius: 15px !important;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.2) !important;
+    /* Estilos para botones de documentos */
+    .btn-descargar {
+        background-color: #17a2b8;
+        border-color: #17a2b8;
+        color: white;
     }
-    .animated-modal .swal2-title {
-        font-size: 1.75rem;
-        font-weight: 600;
+    .btn-descargar:hover {
+        background-color: #138496;
+        border-color: #117a8b;
     }
-    .animated-modal .swal2-html-container {
-        font-size: 1rem;
-        line-height: 1.6;
+    
+    .btn-subir {
+        background-color: #28a745;
+        border-color: #28a745;
+        color: white;
     }
-    .swal2-popup.animated-modal .btn {
-        padding: 10px 24px;
-        border-radius: 8px;
-        font-weight: 500;
-        transition: all 0.3s ease;
+    .btn-subir:hover {
+        background-color: #218838;
+        border-color: #1e7e34;
     }
-    .swal2-popup.animated-modal .btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    
+    /* Indicadores de estado */
+    .estado-info {
+        font-size: 0.75rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
     }
 </style>
 {% endblock %}
@@ -175,6 +186,7 @@
                         <option value="validado" {% if estado_filter == 'validado' %}selected{% endif %}>Validado</option>
                         <option value="en_produccion" {% if estado_filter == 'en_produccion' %}selected{% endif %}>En Producción</option>
                         <option value="completado" {% if estado_filter == 'completado' %}selected{% endif %}>Completado</option>
+                        <option value="no_validado" {% if estado_filter == 'no_validado' %}selected{% endif %}>No Validado</option>
                         <option value="cancelado" {% if estado_filter == 'cancelado' %}selected{% endif %}>Cancelado</option>
                     </select>
                 </div>
@@ -219,6 +231,13 @@
                         <tr>
                             <td>
                                 <span class="order-number">{{ orden.codigo }}</span>
+                                {% if orden.ordenes_generadas.exists %}
+                                <br>
+                                <small class="estado-info">
+                                    <i class="fas fa-file-pdf text-danger"></i>
+                                    PDF Generado
+                                </small>
+                                {% endif %}
                             </td>
                             <td>
                                 <strong>{{ orden.nombre_cliente }}</strong>
@@ -248,6 +267,13 @@
                                 <span class="badge-status badge-{{ orden.estado }}">
                                     {{ orden.get_estado_display }}
                                 </span>
+                                {% if orden.estado == 'no_validado' %}
+                                <br>
+                                <small class="estado-info mt-1">
+                                    <i class="fas fa-clock text-warning"></i>
+                                    Esperando validación
+                                </small>
+                                {% endif %}
                             </td>
                             <td>
                                 {% if orden.estado == 'pendiente' or orden.estado == 'validado' %}
@@ -256,30 +282,66 @@
                                             title="Completar Toma">
                                         <i class="fas fa-check-circle me-1"></i>Completar Toma
                                     </button>
+                                {% elif orden.estado == 'no_validado' %}
+                                    <span class="text-muted">Esperando validación</span>
                                 {% else %}
-                                    <span class="text-muted">Completada</span>
+                                    <span class="text-muted">Finalizada</span>
                                 {% endif %}
                             </td>
                             <td>
-                                <button class="btn btn-sm btn-info btn-action" 
-                                        onclick="verDetalleOrden({{ orden.id }})"
-                                        title="Ver detalles">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                {% if user.es_admin or user.es_vendedor %}
-                                <button class="btn btn-sm btn-warning btn-action" 
-                                        onclick="editarOrden({{ orden.id }})"
-                                        title="Editar">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                {% endif %}
-                                {% if user.es_admin %}
-                                <button class="btn btn-sm btn-danger btn-action" 
-                                        onclick="eliminarOrden({{ orden.id }}, '{{ orden.codigo|escapejs }}')"
-                                        title="Eliminar">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                                {% endif %}
+                                <div class="btn-group btn-group-sm">
+                                    <!-- Botón Ver -->
+                                    <button class="btn btn-info btn-action" 
+                                            onclick="verDetalleOrden({{ orden.id }})"
+                                            title="Ver detalles">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    
+                                    <!-- Botones según estado -->
+                                    {% if orden.estado == 'no_validado' %}
+                                        <!-- Orden completada pero no validada -->
+                                        <button class="btn btn-descargar btn-action" 
+                                                onclick="descargarOrden({{ orden.id }})"
+                                                title="Descargar PDF">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                        <button class="btn btn-subir btn-action" 
+                                                onclick="subirOrdenValidada({{ orden.id }}, '{{ orden.codigo|escapejs }}')"
+                                                title="Subir Orden Validada">
+                                            <i class="fas fa-upload"></i>
+                                        </button>
+                                    {% elif orden.estado == 'validado' %}
+                                        <!-- Orden validada -->
+                                        <button class="btn btn-descargar btn-action" 
+                                                onclick="descargarOrden({{ orden.id }})"
+                                                title="Descargar PDF Validado">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                    {% elif orden.estado == 'completado' %}
+                                        <!-- Orden completada (antiguo estado) -->
+                                        <button class="btn btn-descargar btn-action" 
+                                                onclick="descargarOrden({{ orden.id }})"
+                                                title="Descargar PDF">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                    {% endif %}
+                                    
+                                    {% if user.es_admin or user.es_vendedor %}
+                                    <button class="btn btn-warning btn-action" 
+                                            onclick="editarOrden({{ orden.id }})"
+                                            title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    {% endif %}
+                                    
+                                    {% if user.es_admin %}
+                                    <button class="btn btn-danger btn-action" 
+                                            onclick="eliminarOrden({{ orden.id }}, '{{ orden.codigo|escapejs }}')"
+                                            title="Eliminar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                         {% empty %}
@@ -327,6 +389,46 @@
         </div>
     </div>
 
+</div>
+
+<!-- Modal para Subir Orden Validada -->
+<div class="modal fade" id="modalSubirOrden" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Subir Orden Validada</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formSubirOrden" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" id="subir_orden_id" name="orden_generada_id">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Seleccionar archivo PDF firmado:</label>
+                        <input type="file" class="form-control" id="archivo_orden" name="archivo" accept=".pdf" required>
+                        <small class="text-muted">Solo se permiten archivos PDF (máx. 10MB)</small>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <small>
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            Sube el PDF de la orden ya validada y firmada por el cliente.
+                            Esto cambiará el estado de la orden a "Validado".
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-success" onclick="subirOrdenValidadaConfirmar()">
+                    <i class="fas fa-upload me-2"></i>Subir Orden Validada
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Modal Crear/Editar Orden -->
@@ -402,6 +504,7 @@
                                 <option value="validado">Validado</option>
                                 <option value="en_produccion">En Producción</option>
                                 <option value="completado">Completado</option>
+                                <option value="no_validado">No Validado</option>
                                 <option value="cancelado">Cancelado</option>
                             </select>
                         </div>
@@ -450,10 +553,12 @@
 <script>
 let modalOrden;
 let modalDetalleOrden;
+let modalSubirOrden;
 
 document.addEventListener('DOMContentLoaded', function() {
     modalOrden = new bootstrap.Modal(document.getElementById('modalOrden'));
     modalDetalleOrden = new bootstrap.Modal(document.getElementById('modalDetalleOrden'));
+    modalSubirOrden = new bootstrap.Modal(document.getElementById('modalSubirOrden'));
 });
 
 function abrirModalCrear() {
@@ -537,13 +642,7 @@ function guardarOrden() {
             </div>
         `,
         allowOutsideClick: false,
-        showConfirmButton: false,
-        customClass: {
-            popup: 'animated-modal'
-        },
-        showClass: {
-            popup: 'animate__animated animate__fadeIn animate__faster'
-        }
+        showConfirmButton: false
     });
     
     // Endpoint según sea crear o editar
@@ -570,10 +669,7 @@ function guardarOrden() {
                 icon: 'success',
                 title: '¡Éxito!',
                 text: data.message,
-                confirmButtonColor: '#28a745',
-                customClass: {
-                    popup: 'animated-modal'
-                }
+                confirmButtonColor: '#28a745'
             }).then(() => {
                 window.location.reload();
             });
@@ -600,161 +696,213 @@ function guardarOrden() {
 }
 
 function completarToma(ordenId) {
-    // Cargar datos actuales de la orden
-    fetch(`/panel/orders/${ordenId}/detalle/`)
+    // Primero cargar plantillas disponibles
+    fetch('/panel/plantillas-orden/api/')
         .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const orden = data.orden;
-                
-                const modalHtml = `
-                    <div class="modal fade" id="modalCompletarToma" tabindex="-1">
-                        <div class="modal-dialog modal-lg">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Completar Toma - ${orden.codigo}</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <form id="formCompletarToma">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="orden_id" value="${ordenId}">
-                                        
-                                        <h6 class="mb-3 text-primary">Información de la Producción</h6>
-                                        <div class="row g-3 mb-3">
-                                            <div class="col-md-6">
-                                                <label class="form-label">Proyecto/Campaña <span class="text-danger">*</span></label>
-                                                <input type="text" class="form-control" name="proyecto_campania" required
-                                                       value="${orden.proyecto_campania || ''}" placeholder="Nombre del proyecto o campaña">
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">Título del Material <span class="text-danger">*</span></label>
-                                                <input type="text" class="form-control" name="titulo_material" required
-                                                       value="${orden.titulo_material || ''}" placeholder="Título del material a producir">
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="row g-3 mb-3">
-                                            <div class="col-md-12">
-                                                <label class="form-label">Descripción Breve <span class="text-danger">*</span></label>
-                                                <textarea class="form-control" name="descripcion_breve" rows="2" required placeholder="Descripción breve del trabajo a realizar">${orden.descripcion_breve || ''}</textarea>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="row g-3 mb-3">
-                                            <div class="col-md-12">
-                                                <label class="form-label">Locaciones <span class="text-danger">*</span></label>
-                                                <input type="text" class="form-control" name="locaciones" required
-                                                       value="${orden.locaciones || ''}" placeholder="Locaciones donde se realizará la toma">
-                                            </div>
-                                        </div>
-                                        
-                                        <h6 class="mb-3 text-primary">Fechas y Horarios</h6>
-                                        <div class="row g-3 mb-3">
-                                            <div class="col-md-6">
-                                                <label class="form-label">Fecha Inicio Producción <span class="text-danger">*</span></label>
-                                                <input type="date" class="form-control" name="fecha_produccion_inicio" required
-                                                       value="${orden.fecha_produccion_inicio || ''}">
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">Fecha Fin Producción <span class="text-danger">*</span></label>
-                                                <input type="date" class="form-control" name="fecha_produccion_fin" required
-                                                       value="${orden.fecha_produccion_fin || ''}">
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="row g-3 mb-3">
-                                            <div class="col-md-6">
-                                                <label class="form-label">Hora Inicio <span class="text-danger">*</span></label>
-                                                <input type="time" class="form-control" name="hora_inicio" required
-                                                       value="${orden.hora_inicio || ''}">
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">Hora Fin <span class="text-danger">*</span></label>
-                                                <input type="time" class="form-control" name="hora_fin" required
-                                                       value="${orden.hora_fin || ''}">
-                                            </div>
-                                        </div>
-                                        
-                                        <h6 class="mb-3 text-primary">Recursos y Equipos</h6>
-                                        <div class="row g-3 mb-3">
-                                            <div class="col-md-12">
-                                                <label class="form-label">Equipo Asignado <span class="text-danger">*</span></label>
-                                                <input type="text" class="form-control" name="equipo_asignado" required
-                                                       value="${orden.equipo_asignado || ''}" placeholder="Equipo técnico asignado">
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="row g-3 mb-3">
-                                            <div class="col-md-12">
-                                                <label class="form-label">Recursos Necesarios</label>
-                                                <textarea class="form-control" name="recursos_necesarios" rows="2" placeholder="Recursos adicionales necesarios">${orden.recursos_necesarios || ''}</textarea>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="row g-3 mb-3">
-                                            <div class="col-md-12">
-                                                <label class="form-label">Observaciones de Completado</label>
-                                                <textarea class="form-control" name="observaciones_completado" rows="2" placeholder="Observaciones al completar la toma">${orden.observaciones_completado || ''}</textarea>
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                        <i class="fas fa-times me-2"></i>Cancelar
-                                    </button>
-                                    <button type="button" class="btn btn-success" onclick="guardarCompletarToma()">
-                                        <i class="fas fa-check-circle me-2"></i>Completar Toma
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                // Añadir el modal al DOM
-                document.body.insertAdjacentHTML('beforeend', modalHtml);
-                const modal = new bootstrap.Modal(document.getElementById('modalCompletarToma'));
-                modal.show();
-                
-                // Limpiar el modal cuando se cierre
-                document.getElementById('modalCompletarToma').addEventListener('hidden.bs.modal', function() {
-                    this.remove();
-                });
-                
-            } else {
+        .then(plantillasData => {
+            if (!plantillasData.success || !plantillasData.plantillas || plantillasData.plantillas.length === 0) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: data.error || 'Error al cargar los datos',
+                    text: 'No hay plantillas disponibles. Contacte al administrador.',
                     confirmButtonColor: '#3085d6'
                 });
+                return;
             }
+
+            // Luego cargar datos de la orden
+            return fetch(`/panel/orders/${ordenId}/detalle/`)
+                .then(response => response.json())
+                .then(ordenData => {
+                    if (ordenData.success) {
+                        const orden = ordenData.orden;
+                        
+                        // Generar opciones de plantillas
+                        let plantillasOptions = '';
+                        plantillasData.plantillas.forEach(plantilla => {
+                            plantillasOptions += `
+                                <option value="${plantilla.id}" ${plantilla.is_default ? 'selected' : ''}>
+                                    ${plantilla.nombre} (${plantilla.tipo_orden_display}) - v${plantilla.version}
+                                    ${plantilla.is_default ? ' ★' : ''}
+                                </option>
+                            `;
+                        });
+
+                        const modalHtml = `
+                            <div class="modal fade" id="modalCompletarToma" tabindex="-1">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Completar Toma - ${orden.codigo}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form id="formCompletarToma">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="orden_id" value="${ordenId}">
+                                                
+                                                <!-- Selección de Plantilla -->
+                                                <h6 class="mb-3 text-primary">Seleccionar Plantilla</h6>
+                                                <div class="row g-3 mb-4">
+                                                    <div class="col-12">
+                                                        <label class="form-label">Plantilla para la orden <span class="text-danger">*</span></label>
+                                                        <select class="form-select" name="plantilla_id" id="plantilla_id" required>
+                                                            <option value="">Seleccionar plantilla...</option>
+                                                            ${plantillasOptions}
+                                                        </select>
+                                                        <small class="text-muted">Selecciona la plantilla que se usará para generar el PDF de la orden</small>
+                                                    </div>
+                                                </div>
+                                                
+                                                <h6 class="mb-3 text-primary">Información de la Producción</h6>
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Proyecto/Campaña <span class="text-danger">*</span></label>
+                                                        <input type="text" class="form-control" name="proyecto_campania" required
+                                                               value="${orden.proyecto_campania || ''}" placeholder="Nombre del proyecto o campaña">
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Título del Material <span class="text-danger">*</span></label>
+                                                        <input type="text" class="form-control" name="titulo_material" required
+                                                               value="${orden.titulo_material || ''}" placeholder="Título del material a producir">
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-md-12">
+                                                        <label class="form-label">Descripción Breve <span class="text-danger">*</span></label>
+                                                        <textarea class="form-control" name="descripcion_breve" rows="2" required placeholder="Descripción breve del trabajo a realizar">${orden.descripcion_breve || ''}</textarea>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-md-12">
+                                                        <label class="form-label">Locaciones <span class="text-danger">*</span></label>
+                                                        <input type="text" class="form-control" name="locaciones" required
+                                                               value="${orden.locaciones || ''}" placeholder="Locaciones donde se realizará la toma">
+                                                    </div>
+                                                </div>
+                                                
+                                                <h6 class="mb-3 text-primary">Fechas y Horarios</h6>
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Fecha Inicio Producción <span class="text-danger">*</span></label>
+                                                        <input type="date" class="form-control" name="fecha_produccion_inicio" required
+                                                               value="${orden.fecha_produccion_inicio || ''}">
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Fecha Fin Producción <span class="text-danger">*</span></label>
+                                                        <input type="date" class="form-control" name="fecha_produccion_fin" required
+                                                               value="${orden.fecha_produccion_fin || ''}">
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Hora Inicio <span class="text-danger">*</span></label>
+                                                        <input type="time" class="form-control" name="hora_inicio" required
+                                                               value="${orden.hora_inicio || ''}">
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Hora Fin <span class="text-danger">*</span></label>
+                                                        <input type="time" class="form-control" name="hora_fin" required
+                                                               value="${orden.hora_fin || ''}">
+                                                    </div>
+                                                </div>
+                                                
+                                                <h6 class="mb-3 text-primary">Recursos y Equipos</h6>
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-md-12">
+                                                        <label class="form-label">Equipo Asignado <span class="text-danger">*</span></label>
+                                                        <input type="text" class="form-control" name="equipo_asignado" required
+                                                               value="${orden.equipo_asignado || ''}" placeholder="Equipo técnico asignado">
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-md-12">
+                                                        <label class="form-label">Recursos Necesarios</label>
+                                                        <textarea class="form-control" name="recursos_necesarios" rows="2" placeholder="Recursos adicionales necesarios">${orden.recursos_necesarios || ''}</textarea>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-md-12">
+                                                        <label class="form-label">Observaciones de Completado</label>
+                                                        <textarea class="form-control" name="observaciones_completado" rows="2" placeholder="Observaciones al completar la toma">${orden.observaciones_completado || ''}</textarea>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                <i class="fas fa-times me-2"></i>Cancelar
+                                            </button>
+                                            <button type="button" class="btn btn-success" onclick="guardarCompletarToma()">
+                                                <i class="fas fa-check-circle me-2"></i>Completar Toma y Generar PDF
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        // Añadir el modal al DOM
+                        document.body.insertAdjacentHTML('beforeend', modalHtml);
+                        const modal = new bootstrap.Modal(document.getElementById('modalCompletarToma'));
+                        modal.show();
+                        
+                        // Limpiar el modal cuando se cierre
+                        document.getElementById('modalCompletarToma').addEventListener('hidden.bs.modal', function() {
+                            this.remove();
+                        });
+                        
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: ordenData.error || 'Error al cargar los datos',
+                            confirmButtonColor: '#3085d6'
+                        });
+                    }
+                });
         })
         .catch(error => {
             console.error('Error:', error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'Error al cargar los datos de la orden',
+                text: 'Error al cargar los datos',
                 confirmButtonColor: '#3085d6'
             });
         });
 }
+
 function guardarCompletarToma() {
     const form = document.getElementById('formCompletarToma');
     const ordenId = form.orden_id.value;
+    const plantillaId = document.getElementById('plantilla_id').value;
     
     if (!form.checkValidity()) {
         form.reportValidity();
         return;
     }
     
-    // ✅ RECOLECTAR TODOS LOS DATOS CORRECTAMENTE
+    if (!plantillaId) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Plantilla requerida',
+            text: 'Por favor selecciona una plantilla',
+            confirmButtonColor: '#3085d6'
+        });
+        return;
+    }
+    
+    // RECOLECTAR TODOS LOS DATOS CORRECTAMENTE
     const formData = new FormData(form);
     const data = {
-        estado: 'completado',
+        estado: 'no_validado', // CORREGIDO: Cambia a "no_validado" como en tu backend
+        plantilla_id: plantillaId,
         proyecto_campania: formData.get('proyecto_campania'),
         titulo_material: formData.get('titulo_material'),
         descripcion_breve: formData.get('descripcion_breve'),
@@ -781,13 +929,14 @@ function guardarCompletarToma() {
                 <div class="spinner-border text-success mb-3" style="width: 3rem; height: 3rem;" role="status">
                     <span class="visually-hidden">Completando...</span>
                 </div>
-                <p class="text-muted mb-0">Guardando información de producción...</p>
+                <p class="text-muted mb-0">Guardando información y generando PDF...</p>
             </div>
         `,
         allowOutsideClick: false,
         showConfirmButton: false
     });
     
+    // Primero actualizar la orden con los datos de producción
     fetch(`/panel/orders/${ordenId}/editar/`, {
         method: 'PUT',
         headers: {
@@ -796,41 +945,66 @@ function guardarCompletarToma() {
         },
         body: JSON.stringify(data)
     })
-    .then(response => {
-        console.log("📥 Respuesta HTTP:", response.status);
-        return response.json();
+    .then(response => response.json())
+    .then(updateData => {
+        if (updateData.success) {
+            // Luego generar el PDF
+            return fetch(`/panel/orders/${ordenId}/generar/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({
+                    plantilla_id: plantillaId
+                })
+            });
+        } else {
+            throw new Error(updateData.error || 'Error al guardar la información');
+        }
     })
-    .then(data => {
-        console.log("📥 Respuesta JSON:", data);
-        if (data.success) {
+    .then(response => response.json())
+    .then(pdfData => {
+        if (pdfData.success) {
             Swal.fire({
                 icon: 'success',
                 title: '¡Toma Completada!',
-                text: 'La información de producción se guardó correctamente',
-                confirmButtonColor: '#28a745'
-            }).then(() => {
-                window.location.reload();
+                html: `
+                    <p>La información de producción se guardó correctamente y el PDF fue generado.</p>
+                    <p class="text-muted">Estado: <strong>No Validado</strong> - Esperando firma del cliente</p>
+                    ${pdfData.archivo_url ? 
+                        `<a href="${pdfData.archivo_url}" target="_blank" class="btn btn-success mt-2">
+                            <i class="fas fa-download me-2"></i>Descargar PDF
+                        </a>` : 
+                        ''
+                    }
+                `,
+                confirmButtonColor: '#28a745',
+                showCancelButton: true,
+                cancelButtonText: 'Cerrar',
+                confirmButtonText: 'Ver Orden'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.reload();
+                } else {
+                    window.location.reload();
+                }
             });
         } else {
-            console.error("❌ Error del servidor:", data.error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: data.error || 'Error al guardar la información de producción',
-                confirmButtonColor: '#dc3545'
-            });
+            throw new Error(pdfData.error || 'Error al generar el PDF');
         }
     })
     .catch(error => {
-        console.error('❌ Error de conexión:', error);
+        console.error('❌ Error:', error);
         Swal.fire({
             icon: 'error',
-            title: 'Error de conexión',
-            text: 'No se pudo conectar con el servidor',
+            title: 'Error',
+            text: error.message || 'Error al completar la toma',
             confirmButtonColor: '#dc3545'
         });
     });
 }
+
 function verDetalleOrden(ordenId) {
     const loadingHtml = `
         <div class="text-center py-4">
@@ -848,12 +1022,9 @@ function verDetalleOrden(ordenId) {
             if (data.success) {
                 const orden = data.orden;
                 
-                // ✅ VERIFICAR EN CONSOLA
-                console.log("📋 Datos recibidos del servidor:", orden);
-                
                 let camposAdicionales = '';
                 
-                if (orden.estado === 'completado') {
+                if (orden.estado === 'no_validado' || orden.estado === 'validado' || orden.estado === 'completado') {
                     camposAdicionales = `
                         <div class="row mt-4">
                             <div class="col-12">
@@ -1033,19 +1204,7 @@ function eliminarOrden(ordenId, codigoOrden) {
         cancelButtonColor: '#6c757d',
         confirmButtonText: '<i class="fas fa-trash me-2"></i>Sí, eliminar',
         cancelButtonText: '<i class="fas fa-times me-2"></i>Cancelar',
-        reverseButtons: true,
-        customClass: {
-            popup: 'animated-modal',
-            confirmButton: 'btn btn-lg px-4',
-            cancelButton: 'btn btn-lg px-4'
-        },
-        buttonsStyling: false,
-        showClass: {
-            popup: 'animate__animated animate__zoomIn animate__faster'
-        },
-        hideClass: {
-            popup: 'animate__animated animate__zoomOut animate__faster'
-        }
+        reverseButtons: true
     }).then((result) => {
         if (result.isConfirmed) {
             Swal.fire({
@@ -1059,13 +1218,7 @@ function eliminarOrden(ordenId, codigoOrden) {
                     </div>
                 `,
                 allowOutsideClick: false,
-                showConfirmButton: false,
-                customClass: {
-                    popup: 'animated-modal'
-                },
-                showClass: {
-                    popup: 'animate__animated animate__fadeIn animate__faster'
-                }
+                showConfirmButton: false
             });
             
             fetch(`/panel/orders/${ordenId}/eliminar/`, {
@@ -1082,10 +1235,7 @@ function eliminarOrden(ordenId, codigoOrden) {
                         icon: 'success',
                         title: '¡Eliminado!',
                         text: data.message,
-                        confirmButtonColor: '#28a745',
-                        customClass: {
-                            popup: 'animated-modal'
-                        }
+                        confirmButtonColor: '#28a745'
                     }).then(() => {
                         window.location.reload();
                     });
@@ -1108,6 +1258,166 @@ function eliminarOrden(ordenId, codigoOrden) {
                 });
             });
         }
+    });
+}
+
+// ==================== FUNCIONES PARA DOCUMENTOS ====================
+function descargarOrden(ordenId) {
+    console.log("🔍 Intentando descargar orden ID:", ordenId);
+    
+    Swal.fire({
+        title: 'Buscando PDF...',
+        html: `
+            <div class="text-center py-3">
+                <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Buscando...</span>
+                </div>
+                <p class="text-muted mb-0">Buscando archivo PDF generado...</p>
+            </div>
+        `,
+        allowOutsideClick: false,
+        showConfirmButton: false
+    });
+
+    // Usar el endpoint de detalle que ya existe y buscar en las órdenes generadas
+    fetch(`/panel/orders/${ordenId}/detalle/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log("✅ Datos de orden cargados:", data.orden);
+                
+                // Verificar si hay órdenes generadas en la respuesta
+                if (data.orden.ordenes_generadas && data.orden.ordenes_generadas.length > 0) {
+                    const ultimaOrden = data.orden.ordenes_generadas[0];
+                    if (ultimaOrden.archivo_orden_pdf) {
+                        // Descargar directamente
+                        window.open(ultimaOrden.archivo_orden_pdf, '_blank');
+                        Swal.close();
+                    } else {
+                        throw new Error('La orden generada no tiene archivo PDF');
+                    }
+                } else {
+                    throw new Error('No se encontraron órdenes generadas para esta orden');
+                }
+            } else {
+                throw new Error('No se pudo cargar la orden');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error al descargar:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message || 'No se pudo descargar el PDF',
+                confirmButtonColor: '#dc3545'
+            });
+        });
+}
+
+function subirOrdenValidada(ordenId, codigoOrden) {
+    document.getElementById('subir_orden_id').value = ordenId;
+    
+    // Limpiar formulario
+    document.getElementById('formSubirOrden').reset();
+    
+    // Actualizar título del modal
+    document.querySelector('#modalSubirOrden .modal-title').textContent = 
+        `Subir Orden Validada - ${codigoOrden}`;
+    
+    modalSubirOrden.show();
+}
+
+function subirOrdenValidadaConfirmar() {
+    const form = document.getElementById('formSubirOrden');
+    const ordenId = document.getElementById('subir_orden_id').value;
+    const archivo = document.getElementById('archivo_orden').files[0];
+    
+    if (!archivo) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Archivo requerido',
+            text: 'Por favor selecciona un archivo PDF',
+            confirmButtonColor: '#3085d6'
+        });
+        return;
+    }
+    
+    if (!archivo.name.toLowerCase().endsWith('.pdf')) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Formato incorrecto',
+            text: 'Solo se permiten archivos PDF',
+            confirmButtonColor: '#dc3545'
+        });
+        return;
+    }
+    
+    if (archivo.size > 10 * 1024 * 1024) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Archivo muy grande',
+            text: 'El archivo no debe superar los 10MB',
+            confirmButtonColor: '#dc3545'
+        });
+        return;
+    }
+    
+    const formData = new FormData(form);
+    
+    modalSubirOrden.hide();
+    
+    Swal.fire({
+        title: 'Subiendo orden validada...',
+        html: `
+            <div class="text-center py-3">
+                <div class="spinner-border text-success mb-3" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Subiendo...</span>
+                </div>
+                <p class="text-muted mb-0">Procesando archivo y actualizando estado...</p>
+            </div>
+        `,
+        allowOutsideClick: false,
+        showConfirmButton: false
+    });
+    
+    fetch(`/panel/orders/generadas/${ordenId}/subir-validada/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Orden Validada!',
+                html: `
+                    <p>La orden ha sido validada correctamente.</p>
+                    <p class="text-muted">Estado: <strong>Validado</strong></p>
+                `,
+                confirmButtonColor: '#28a745'
+            }).then(() => {
+                window.location.reload();
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error || 'Error al subir la orden validada',
+                confirmButtonColor: '#dc3545'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de conexión',
+            text: 'No se pudo subir el archivo',
+            confirmButtonColor: '#dc3545'
+        });
     });
 }
 </script>

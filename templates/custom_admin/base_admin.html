@@ -730,32 +730,36 @@
             </div>
 
             <!-- ÓRDENES (nueva sección) -->
-            <div class="menu-section">
-                <div class="menu-section-title">ÓRDENES</div>
-                <div class="accordion menu-accordion" id="ordersAccordion">
-                    <div class="accordion-item">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#ordersCollapse">
-                                <i class="fas fa-tasks menu-icon"></i>
-                                <span>Gestión de Órdenes</span>
-                            </button>
-                        </h2>
-                        <div id="ordersCollapse" class="accordion-collapse collapse" data-bs-parent="#ordersAccordion">
-                            <div class="accordion-body">
-                                <a href="{% url 'custom_admin:orders_list' %}" class="submenu-link {% if 'orders' in request.resolver_match.url_name %}active{% endif %}">
-                                    <i class="fas fa-microphone"></i>Órdenes de Toma
-                                </a>
-                                    <a href="{% url 'custom_admin:orders_list' %}" class="submenu-link {% if 'orders' in request.resolver_match.url_name %}active{% endif %}">
-                                    <i class="fas fa-cogs"></i>Órdenes de Producción
-                                </a>
-                                    <a href="{% url 'custom_admin:orders_list' %}" class="submenu-link {% if 'orders' in request.resolver_match.url_name %}active{% endif %}">
-                                    <i class="fas fa-flag-checkered"></i>Órdenes de Finalización
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+<div class="menu-section">
+    <div class="menu-section-title">ÓRDENES</div>
+    <div class="accordion menu-accordion" id="ordersAccordion">
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#ordersCollapse">
+                    <i class="fas fa-tasks menu-icon"></i>
+                    <span>Gestión de Órdenes</span>
+                </button>
+            </h2>
+            <div id="ordersCollapse" class="accordion-collapse collapse" data-bs-parent="#ordersAccordion">
+                <div class="accordion-body">
+                    <a href="{% url 'custom_admin:orders_list' %}" class="submenu-link {% if 'orders' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fas fa-microphone"></i>Órdenes de Toma
+                    </a>
+                    <!-- NUEVO: Plantillas de Orden -->
+                    <a href="{% url 'custom_admin:plantillas_orden_list' %}" class="submenu-link {% if 'plantillas_orden' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fas fa-file-alt"></i>Plantillas de Orden
+                    </a>
+                    <a href="{% url 'custom_admin:orders_list' %}" class="submenu-link {% if 'orders' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fas fa-cogs"></i>Órdenes de Producción
+                    </a>
+                    <a href="{% url 'custom_admin:orders_list' %}" class="submenu-link {% if 'orders' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fas fa-flag-checkered"></i>Órdenes de Finalización
+                    </a>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
 
             <!-- PANTEONES (nueva sección) -->
             <div class="menu-section">

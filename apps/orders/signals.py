@@ -8,52 +8,8 @@ from django.conf import settings
 from django.utils import timezone
 from decimal import Decimal
 from .models import OrdenToma, HistorialOrden
+from apps.authentication.models import CustomUser
 
-
-@receiver(post_save, sender=settings.AUTH_USER_MODEL)
-def crear_orden_toma_al_crear_cliente(sender, instance, created, **kwargs):
-    """
-    Señal que crea automáticamente una OrdenToma cuando se crea un cliente
-    """
-    # Solo ejecutar si es un cliente nuevo y tiene rol 'cliente'
-    if created and instance.rol == 'cliente':
-        print(f"🔔 SEÑAL EJECUTADA: Creando orden para cliente {instance.username}")
-        
-        try:
-            # Verificar si ya existe una orden para este cliente (evitar duplicados)
-            if OrdenToma.objects.filter(cliente=instance).exists():
-                print(f"⚠️ El cliente {instance.username} ya tiene una orden existente")
-                return
-            
-            # Crear la orden de toma automáticamente
-            orden = OrdenToma.objects.create(
-                cliente=instance,
-                detalle_productos=f'Orden de toma automática para {instance.get_full_name() or instance.username}',
-                cantidad=1,
-                total=Decimal('0.00'),
-                created_by=instance,
-                estado='pendiente'
-            )
-            
-            print(f"✅ Orden creada exitosamente: {orden.codigo} para cliente {instance.username}")
-            
-            # Registrar en historial
-            HistorialOrden.objects.create(
-                orden=orden,
-                accion='creada',
-                usuario=instance,
-                descripcion='Orden de toma creada automáticamente al registrar cliente',
-                datos_nuevos={
-                    'codigo': orden.codigo,
-                    'cliente': instance.get_full_name() or instance.username,
-                    'estado': orden.estado,
-                }
-            )
-            
-        except Exception as e:
-            print(f"❌ ERROR al crear orden: {str(e)}")
-            import traceback
-            traceback.print_exc()
 
 
 @receiver(pre_save, sender=OrdenToma)

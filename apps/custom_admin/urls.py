@@ -104,5 +104,27 @@ path('orders/<int:order_id>/detalle/', views.order_detail_api, name='order_detai
 path('orders/crear/', views.order_create_api, name='order_create_api'),
 path('orders/<int:order_id>/editar/', views.order_update_api, name='order_update_api'),
 path('orders/<int:order_id>/eliminar/', views.order_delete_api, name='order_delete_api'),
+# ==================== URLs PARA ÓRDENES ====================
+path('orders/plantillas/', views.plantillas_orden_list, name='plantillas_orden_list'),
+path('orders/plantillas/crear/', views.plantilla_orden_crear_api, name='plantilla_orden_crear_api'),
 
+path('orders/<int:orden_toma_id>/generar/', views.orden_generar_api, name='orden_generar_api'),
+path('orders/<int:orden_toma_id>/completar-generar/', views.orden_completar_y_generar_api, name='orden_completar_y_generar_api'),
+path('orders/generadas/<int:orden_generada_id>/subir-validada/', views.orden_subir_validada_api, name='orden_subir_validada_api'),
+path('orders/generadas/<int:orden_generada_id>/descargar/', views.orden_descargar_api, name='orden_descargar_api'),
+# ==================== URLs PARA PLANTILLAS DE ORDEN ====================
+path('plantillas-orden/', views.plantillas_orden_list, name='plantillas_orden_list'),
+path('plantillas-orden/api/crear/', views.plantilla_orden_crear_api, name='plantilla_orden_crear_api'),
+path('plantillas-orden/api/<int:id>/', views.plantilla_orden_detalle_api, name='plantilla_orden_detalle_api'),
+path('plantillas-orden/api/<int:id>/actualizar/', views.plantilla_orden_actualizar_api, name='plantilla_orden_actualizar_api'),
+path('plantillas-orden/api/<int:id>/eliminar/', views.plantilla_orden_eliminar_api, name='plantilla_orden_eliminar_api'),
+path('plantillas-orden/api/<int:id>/marcar-default/', views.plantilla_orden_marcar_default_api, name='plantilla_orden_marcar_default_api'),
+path('plantillas-orden/api/<int:id>/descargar/', views.plantilla_orden_descargar_api, name='plantilla_orden_descargar_api'),
+# Agregar estas URLs en custom_admin/urls.py
+
+# ==================== URLs PARA ÓRDENES GENERADAS ====================
+path('orders/generadas/<int:orden_generada_id>/verificar/', views.orden_verificar_api, name='orden_verificar_api'),
+path('orders/generadas/<int:orden_generada_id>/subir-validada/', views.orden_subir_validada_api, name='orden_subir_validada_api'),
+path('orders/<int:orden_toma_id>/generar/', views.orden_generar_api, name='orden_generar_api'),
+path('plantillas-orden/api/', views.api_plantillas_orden, name='api_plantillas_orden'),
 ]

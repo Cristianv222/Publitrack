@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum
 from django.utils import timezone
-from django.http import JsonResponse
+from django.http import JsonResponse, FileResponse
 import json
 from decimal import Decimal
 from datetime import datetime, timedelta
@@ -17,6 +17,8 @@ from django.contrib.admin.models import LogEntry, ADDITION, CHANGE, DELETION
 from django.contrib.contenttypes.models import ContentType
 from apps.authentication.models import CustomUser
 from apps.content_management.models import PlantillaContrato
+from apps.orders.models import PlantillaOrden, OrdenGenerada
+from apps.orders.models import OrdenToma 
 
 # Obtener el modelo de usuario correcto
 User = get_user_model()
@@ -63,6 +65,15 @@ except ImportError:
     HistorialEstadoSemaforo = None
     AlertaSemaforo = None
     ResumenEstadosSemaforo = None
+try:
+    from apps.orders.models import PlantillaOrden, OrdenGenerada, OrdenToma
+    ORDERS_MODELS_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Error importando modelos de orders: {e}")
+    ORDERS_MODELS_AVAILABLE = False
+    PlantillaOrden = None
+    OrdenGenerada = None
+    OrdenToma = None
 
 def is_admin(user):
     """Verifica si el usuario es administrador"""
@@ -2526,7 +2537,7 @@ def cliente_detail_api(request, cliente_id):
         return JsonResponse({'error': str(e)}, status=500)
 @login_required
 def cliente_create_api(request):
-    """API para crear un nuevo cliente - VERSIÓN CORREGIDA para activar señales"""
+    """API para crear un nuevo cliente - VERSIÓN CON DEBUG"""
     if not request.user.es_admin and not request.user.es_vendedor:
         messages.error(request, 'No tienes permisos para crear clientes')
         return redirect('custom_admin:clientes_list')
@@ -2536,30 +2547,36 @@ def cliente_create_api(request):
         return redirect('custom_admin:clientes_list')
     
     try:
+        print("🟡 INICIANDO CREACIÓN DE CLIENTE...")
+        
         # Validar que no exista el username
         username = request.POST.get('username')
+        print(f"🟡 Username: {username}")
+        
         if CustomUser.objects.filter(username=username).exists():
             messages.error(request, f'El usuario "{username}" ya existe')
             return redirect('custom_admin:clientes_list')
 
         # Validar que no exista el email
         email = request.POST.get('email')
+        print(f"🟡 Email: {email}")
+        
         if CustomUser.objects.filter(email=email).exists():
             messages.error(request, f'El email "{email}" ya está registrado')
             return redirect('custom_admin:clientes_list')
 
-        # ✅ CREAR CLIENTE USANDO EL MÉTODO NORMAL PARA ACTIVAR SEÑALES
+        # ✅ CREAR CLIENTE
+        print("🟡 Creando objeto cliente...")
         cliente = CustomUser.objects.create(
             username=username,
             email=email,
             first_name=request.POST.get('first_name', ''),
             last_name=request.POST.get('last_name', ''),
-            # Establecer contraseña como no utilizable
-            # No usar set_unusable_password() aquí, dejar que el manager lo maneje
         )
 
-        # ✅ CONFIGURAR CAMPOS ADICIONALES DESPUÉS DE CREAR
-        cliente.set_unusable_password()  # Ahora sí, después de crear
+        # ✅ CONFIGURAR CAMPOS ADICIONALES
+        print("🟡 Configurando campos adicionales...")
+        cliente.set_unusable_password()
         cliente.rol = 'cliente'
         cliente.is_active = True
 
@@ -2572,8 +2589,6 @@ def cliente_create_api(request):
         cliente.ciudad = request.POST.get('ciudad', '')
         cliente.provincia = request.POST.get('provincia', '')
         cliente.direccion_exacta = request.POST.get('direccion_exacta', '')
-        
-        # Los dos campos nuevos
         cliente.cargo_empresa = request.POST.get('cargo_empresa', '')
         cliente.profesion = request.POST.get('profesion', '')
 
@@ -2582,6 +2597,7 @@ def cliente_create_api(request):
             cliente.limite_credito = float(request.POST.get('limite_credito', 0))
         except (ValueError, TypeError):
             cliente.limite_credito = 0
+            
         try:
             cliente.dias_credito = int(request.POST.get('dias_credito', 0))
         except (ValueError, TypeError):
@@ -2601,35 +2617,46 @@ def cliente_create_api(request):
                 except CustomUser.DoesNotExist:
                     pass
 
-        # ✅ GUARDAR LOS CAMBIOS - ESTO ACTIVARÁ LAS SEÑALES
+        # ✅ GUARDAR PRIMERO EL CLIENTE
+        print("🟡 Guardando cliente en BD...")
         cliente.save()
+        print(f"✅ CLIENTE GUARDADO - ID: {cliente.id}")
 
-        # ✅ VERIFICAR SI SE CREÓ LA ORDEN
+        # ✅ CREAR ORDEN AUTOMÁTICA
+        print("🟡 Intentando crear orden automática...")
         from apps.orders.models import OrdenToma
-        orden_creada = OrdenToma.objects.filter(cliente=cliente).exists()
+        from decimal import Decimal
         
-        if orden_creada:
-            print(f"✅ Orden creada automáticamente para {cliente.username}")
-        else:
-            print(f"⚠️ No se creó orden automática para {cliente.username}")
-            # Crear orden manualmente como fallback
-            try:
-                from decimal import Decimal
-                orden = OrdenToma.objects.create(
-                    cliente=cliente,
-                    detalle_productos=f'Orden de toma automática para {cliente.get_full_name()}',
-                    cantidad=1,
-                    total=Decimal('0.00'),
-                    created_by=request.user,
-                    estado='pendiente'
-                )
-                print(f"✅ Orden creada manualmente: {orden.codigo}")
-            except Exception as e:
-                print(f"❌ Error creando orden manual: {e}")
-        
-        # Registrar en historial con LogEntry
+        try:
+            orden = OrdenToma.objects.create(
+                cliente=cliente,
+                detalle_productos=f'Orden de toma automática para {cliente.get_full_name()}',
+                cantidad=1,
+                total=Decimal('0.00'),
+                created_by=request.user,
+                estado='pendiente'
+            )
+            
+            print(f"✅ ORDEN CREADA - Código: {orden.codigo}")
+            
+            # ✅ FORZAR COPIAR DATOS
+            print("🟡 Copiando datos del cliente a la orden...")
+            orden.copiar_datos_cliente()
+            orden.save()
+            print("✅ DATOS COPIADOS Y ORDEN GUARDADA")
+            
+            orden_creada = True
+            
+        except Exception as e:
+            print(f"❌ ERROR creando orden: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            orden_creada = False
+
+        # Registrar en historial
         from django.contrib.admin.models import LogEntry, ADDITION
         from django.contrib.contenttypes.models import ContentType
+        
         LogEntry.objects.log_action(
             user_id=request.user.pk,
             content_type_id=ContentType.objects.get_for_model(cliente).pk,
@@ -2640,11 +2667,13 @@ def cliente_create_api(request):
         )
 
         messages.success(request, f'✓ Cliente "{cliente.empresa}" creado exitosamente')
+        print("✅ PROCESO COMPLETADO - Redirigiendo...")
         return redirect('custom_admin:clientes_list')
     
     except Exception as e:
+        print(f"❌ ERROR GENERAL: {str(e)}")
         import traceback
-        print(traceback.format_exc())
+        traceback.print_exc()
         messages.error(request, f'Error al crear el cliente: {str(e)}')
         return redirect('custom_admin:clientes_list')
 @login_required
@@ -2851,24 +2880,26 @@ def orders_list(request):
         'clientes': clientes,
     }
     return render(request, 'custom_admin/orders/list.html', context)
-
 @login_required
 @user_passes_test(is_admin)
 def order_detail_api(request, order_id):
-    """API para obtener detalle de orden - MEJORADO"""
+    """API para obtener detalle de orden - MEJORADO con órdenes generadas"""
     try:
         from apps.orders.models import OrdenToma
         
         orden = get_object_or_404(OrdenToma, pk=order_id)
         
-        # ✅ VERIFICAR DATOS DEL CLIENTE
-        print(f"🔍 Verificando datos de orden {orden.codigo}:")
-        print(f"   - Nombre: {orden.nombre_cliente}")
-        print(f"   - Empresa: {orden.empresa_cliente}")
-        print(f"   - RUC/DNI: {orden.ruc_dni_cliente}")
-        print(f"   - Ciudad: {orden.ciudad_cliente}")
-        print(f"   - Dirección: {orden.direccion_cliente}")
-        print(f"   - Teléfono: {orden.telefono_cliente}")
+        # Obtener órdenes generadas relacionadas
+        ordenes_generadas_data = []
+        for og in orden.ordenes_generadas.all().order_by('-fecha_generacion'):
+            ordenes_generadas_data.append({
+                'id': og.id,
+                'numero_orden': og.numero_orden,
+                'archivo_orden_pdf': og.archivo_orden_pdf.url if og.archivo_orden_pdf else None,
+                'estado': og.estado,
+                'fecha_generacion': og.fecha_generacion.strftime('%d/%m/%Y %H:%M'),
+                'plantilla_usada': og.plantilla_usada.nombre if og.plantilla_usada else None
+            })
         
         return JsonResponse({
             'success': True,
@@ -2903,6 +2934,8 @@ def order_detail_api(request, order_id):
                 'equipo_asignado': orden.equipo_asignado,
                 'recursos_necesarios': orden.recursos_necesarios,
                 'observaciones_completado': orden.observaciones_completado,
+                # Órdenes generadas
+                'ordenes_generadas': ordenes_generadas_data
             }
         })
         
@@ -2911,7 +2944,6 @@ def order_detail_api(request, order_id):
         import traceback
         traceback.print_exc()
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
-
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["POST"])
@@ -3361,3 +3393,493 @@ def parte_mortorio_delete_api(request, parte_id):
             'success': False,
             'error': f'Error al eliminar el parte mortorio: {str(e)}'
         }, status=500)
+# ==================== VISTAS PARA PLANTILLAS DE ORDEN ====================
+
+@login_required
+@user_passes_test(is_admin)
+def plantillas_orden_list(request):
+    """Lista de plantillas de orden"""
+    plantillas = PlantillaOrden.objects.all().order_by('-created_at')
+    
+    # Estadísticas
+    total_plantillas = plantillas.count()
+    plantillas_activas = plantillas.filter(is_active=True).count()
+    plantillas_default = plantillas.filter(is_default=True).count()
+    total_ordenes_generadas = OrdenGenerada.objects.count()
+    
+    context = {
+        'plantillas': plantillas,
+        'total_plantillas': total_plantillas,
+        'plantillas_activas': plantillas_activas,
+        'plantillas_default': plantillas_default,
+        'total_ordenes_generadas': total_ordenes_generadas,
+    }
+    return render(request, 'custom_admin/orders/plantillas_list.html', context)
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def plantilla_orden_crear_api(request):
+    """API para crear plantilla de orden - VERSIÓN CORREGIDA"""
+    try:
+        nombre = request.POST.get('nombre')
+        tipo_orden = request.POST.get('tipo_orden')
+        version = request.POST.get('version', '1.0')
+        descripcion = request.POST.get('descripcion', '')
+        is_active = request.POST.get('is_active') == 'true'
+        is_default = request.POST.get('is_default') == 'false'  # Por defecto False para evitar conflictos
+        instrucciones = request.POST.get('instrucciones', '')
+        archivo_plantilla = request.FILES.get('archivo_plantilla')
+        
+        # Validaciones
+        if not nombre:
+            return JsonResponse({
+                'success': False,
+                'error': 'El nombre es obligatorio'
+            }, status=400)
+        
+        if not tipo_orden:
+            return JsonResponse({
+                'success': False,
+                'error': 'El tipo de orden es obligatorio'
+            }, status=400)
+        
+        if not archivo_plantilla:
+            return JsonResponse({
+                'success': False,
+                'error': 'El archivo de plantilla es obligatorio'
+            }, status=400)
+        
+        # Validar que sea archivo .docx
+        if not archivo_plantilla.name.endswith('.docx'):
+            return JsonResponse({
+                'success': False,
+                'error': 'Solo se permiten archivos .docx'
+            }, status=400)
+        
+        # Validar tamaño (máx 10MB)
+        if archivo_plantilla.size > 10 * 1024 * 1024:
+            return JsonResponse({
+                'success': False,
+                'error': 'El archivo no debe superar los 10MB'
+            }, status=400)
+        
+        # Si se marca como default, desmarcar las demás del mismo tipo
+        if is_default:
+            PlantillaOrden.objects.filter(
+                tipo_orden=tipo_orden,
+                is_default=True
+            ).update(is_default=False)
+        
+        # Crear la plantilla
+        plantilla = PlantillaOrden.objects.create(
+            nombre=nombre,
+            tipo_orden=tipo_orden,
+            version=version,
+            descripcion=descripcion,
+            is_active=is_active,
+            is_default=is_default,
+            instrucciones=instrucciones,
+            archivo_plantilla=archivo_plantilla,
+            created_by=request.user
+        )
+        
+        # Registrar en historial
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(plantilla).pk,
+            object_id=plantilla.pk,
+            object_repr=str(plantilla.nombre),
+            action_flag=ADDITION,
+            change_message=f'Plantilla de orden creada: {plantilla.nombre} - Tipo: {plantilla.get_tipo_orden_display()}'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Plantilla creada exitosamente',
+            'id': plantilla.id
+        })
+        
+    except Exception as e:
+        import traceback
+        print("ERROR al crear plantilla:", traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al crear la plantilla: {str(e)}'
+        }, status=500)
+# ==================== VISTAS PARA GENERAR ÓRDENES ====================
+
+@login_required
+@user_passes_test(is_admin)
+def orden_generar_api(request, orden_toma_id):
+    """API para generar orden desde orden de toma"""
+    try:
+        from apps.orders.models import OrdenToma
+        
+        orden_toma = get_object_or_404(OrdenToma, pk=orden_toma_id)
+        data = json.loads(request.body)
+        
+        plantilla_id = data.get('plantilla_id')
+        
+        # Generar la orden
+        orden_generada = orden_toma.generar_orden_impresion(
+            plantilla_id=plantilla_id,
+            user=request.user
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Orden generada exitosamente',
+            'orden_generada_id': orden_generada.id,
+            'numero_orden': orden_generada.numero_orden,
+            'archivo_url': orden_generada.archivo_orden_pdf.url if orden_generada.archivo_orden_pdf else None
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def orden_completar_y_generar_api(request, orden_toma_id):
+    """Completa la orden y genera la orden para imprimir"""
+    try:
+        from apps.orders.models import OrdenToma
+        from datetime import datetime
+        
+        orden_toma = get_object_or_404(OrdenToma, pk=orden_toma_id)
+        data = json.loads(request.body)
+        
+        # Validar campos requeridos para completar
+        campos_requeridos = [
+            'proyecto_campania', 'titulo_material', 'descripcion_breve',
+            'locaciones', 'fecha_produccion_inicio', 'fecha_produccion_fin',
+            'hora_inicio', 'hora_fin', 'equipo_asignado'
+        ]
+        
+        campos_faltantes = []
+        for campo in campos_requeridos:
+            if not data.get(campo):
+                campos_faltantes.append(campo.replace('_', ' ').title())
+        
+        if campos_faltantes:
+            return JsonResponse({
+                'success': False, 
+                'error': f'Campos requeridos faltantes: {", ".join(campos_faltantes)}'
+            }, status=400)
+        
+        # Convertir fechas
+        try:
+            if data.get('fecha_produccion_inicio'):
+                data['fecha_produccion_inicio'] = datetime.strptime(data['fecha_produccion_inicio'], '%Y-%m-%d').date()
+            if data.get('fecha_produccion_fin'):
+                data['fecha_produccion_fin'] = datetime.strptime(data['fecha_produccion_fin'], '%Y-%m-%d').date()
+            if data.get('hora_inicio'):
+                data['hora_inicio'] = datetime.strptime(data['hora_inicio'], '%H:%M').time()
+            if data.get('hora_fin'):
+                data['hora_fin'] = datetime.strptime(data['hora_fin'], '%H:%M').time()
+        except ValueError as e:
+            return JsonResponse({'success': False, 'error': f'Error en formato de fecha/hora: {str(e)}'}, status=400)
+        
+        # Completar y generar orden
+        orden_generada = orden_toma.completar_y_generar_orden(
+            user=request.user,
+            datos_completado=data
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Orden completada y generada exitosamente',
+            'orden_generada_id': orden_generada.id,
+            'numero_orden': orden_generada.numero_orden,
+            'orden_toma_estado': 'completado'
+        })
+        
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def orden_subir_validada_api(request, orden_generada_id):
+    """API para subir orden validada"""
+    try:
+        orden_generada = get_object_or_404(OrdenGenerada, pk=orden_generada_id)
+        
+        if 'archivo' not in request.FILES:
+            return JsonResponse({
+                'success': False,
+                'error': 'Debe seleccionar un archivo PDF'
+            }, status=400)
+        
+        archivo = request.FILES['archivo']
+        
+        if not archivo.name.endswith('.pdf'):
+            return JsonResponse({
+                'success': False,
+                'error': 'El archivo debe ser un PDF'
+            }, status=400)
+        
+        # Marcar como validada
+        orden_generada.marcar_como_validada(request.user, archivo)
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Orden validada exitosamente'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+def orden_descargar_api(request, orden_generada_id):
+    """Descargar orden generada"""
+    try:
+        orden_generada = get_object_or_404(OrdenGenerada, pk=orden_generada_id)
+        
+        if not orden_generada.archivo_orden_pdf:
+            messages.error(request, 'La orden no ha sido generada aún.')
+            return redirect('custom_admin:orders_list')
+        
+        response = FileResponse(
+            orden_generada.archivo_orden_pdf.open('rb'),
+            content_type='application/pdf'
+        )
+        response['Content-Disposition'] = f'attachment; filename="Orden_{orden_generada.numero_orden}.pdf"'
+        
+        return response
+        
+    except Exception as e:
+        messages.error(request, f'Error al descargar la orden: {str(e)}')
+        return redirect('custom_admin:orders_list')
+        # ==================== APIs PARA PLANTILLAS DE ORDEN ====================
+
+@login_required
+@user_passes_test(is_admin)
+def plantilla_orden_detalle_api(request, id):
+    """API para obtener detalles de una plantilla de orden"""
+    try:
+        plantilla = PlantillaOrden.objects.get(pk=id)
+        
+        data = {
+            'id': plantilla.id,
+            'nombre': plantilla.nombre,
+            'tipo_orden': plantilla.tipo_orden,
+            'tipo_orden_display': plantilla.get_tipo_orden_display(),
+            'version': plantilla.version,
+            'descripcion': plantilla.descripcion or '',
+            'is_active': plantilla.is_active,
+            'is_default': plantilla.is_default,
+            'instrucciones': plantilla.instrucciones or '',
+            'archivo_plantilla': plantilla.archivo_plantilla.url if plantilla.archivo_plantilla else None,
+            'created_by': plantilla.created_by.username if plantilla.created_by else None,
+            'created_at': plantilla.created_at.strftime('%d/%m/%Y %H:%M'),
+            'updated_at': plantilla.updated_at.strftime('%d/%m/%Y %H:%M'),
+            'ordenes_count': plantilla.ordenes_generadas.count(),
+            'variables_disponibles': plantilla.variables_disponibles
+        }
+        
+        return JsonResponse(data)
+    except PlantillaOrden.DoesNotExist:
+        return JsonResponse({'error': 'Plantilla no encontrada'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["PUT", "POST"])
+def plantilla_orden_actualizar_api(request, id):
+    """API para actualizar una plantilla de orden"""
+    try:
+        plantilla = PlantillaOrden.objects.get(pk=id)
+        
+        if request.method == 'PUT':
+            data = json.loads(request.body)
+            nombre = data.get('nombre', plantilla.nombre)
+            tipo_orden = data.get('tipo_orden', plantilla.tipo_orden)
+            version = data.get('version', plantilla.version)
+            descripcion = data.get('descripcion', plantilla.descripcion)
+            is_active = data.get('is_active', plantilla.is_active)
+            is_default = data.get('is_default', plantilla.is_default)
+            instrucciones = data.get('instrucciones', plantilla.instrucciones)
+            archivo_plantilla = None
+        else:
+            nombre = request.POST.get('nombre', plantilla.nombre)
+            tipo_orden = request.POST.get('tipo_orden', plantilla.tipo_orden)
+            version = request.POST.get('version', plantilla.version)
+            descripcion = request.POST.get('descripcion', plantilla.descripcion)
+            is_active = request.POST.get('is_active') == 'true'
+            is_default = request.POST.get('is_default') == 'true'
+            instrucciones = request.POST.get('instrucciones', plantilla.instrucciones)
+            archivo_plantilla = request.FILES.get('archivo_plantilla')
+        
+        # Si se marca como default, desmarcar las demás del mismo tipo
+        if is_default and not plantilla.is_default:
+            PlantillaOrden.objects.filter(
+                tipo_orden=plantilla.tipo_orden,
+                is_default=True
+            ).exclude(pk=id).update(is_default=False)
+        
+        plantilla.nombre = nombre
+        plantilla.tipo_orden = tipo_orden
+        plantilla.version = version
+        plantilla.descripcion = descripcion
+        plantilla.is_active = is_active
+        plantilla.is_default = is_default
+        plantilla.instrucciones = instrucciones
+        
+        if archivo_plantilla:
+            plantilla.archivo_plantilla = archivo_plantilla
+        
+        plantilla.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Plantilla actualizada exitosamente'
+        })
+        
+    except PlantillaOrden.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Plantilla no encontrada'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["DELETE"])
+def plantilla_orden_eliminar_api(request, id):
+    """API para eliminar una plantilla de orden"""
+    try:
+        plantilla = PlantillaOrden.objects.get(pk=id)
+        
+        # Verificar si tiene órdenes generadas
+        if plantilla.ordenes_generadas.exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'No se puede eliminar la plantilla porque tiene órdenes generadas asociadas'
+            }, status=400)
+        
+        plantilla.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Plantilla eliminada exitosamente'
+        })
+    except PlantillaOrden.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Plantilla no encontrada'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def plantilla_orden_marcar_default_api(request, id):
+    """API para marcar una plantilla como predeterminada"""
+    try:
+        plantilla = PlantillaOrden.objects.get(pk=id)
+        
+        # Desmarcar todas las demás plantillas del mismo tipo como default
+        PlantillaOrden.objects.filter(
+            tipo_orden=plantilla.tipo_orden,
+            is_default=True
+        ).exclude(pk=id).update(is_default=False)
+        
+        # Marcar esta plantilla como default
+        plantilla.is_default = True
+        plantilla.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Plantilla "{plantilla.nombre}" marcada como predeterminada'
+        })
+        
+    except PlantillaOrden.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Plantilla no encontrada'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+def plantilla_orden_descargar_api(request, id):
+    """API para descargar el archivo de plantilla"""
+    try:
+        from django.http import FileResponse
+        import os
+        
+        plantilla = PlantillaOrden.objects.get(pk=id)
+        
+        if not plantilla.archivo_plantilla:
+            return JsonResponse({
+                'success': False,
+                'error': 'La plantilla no tiene un archivo adjunto'
+            }, status=404)
+        
+        file_name = os.path.basename(plantilla.archivo_plantilla.name)
+        response = FileResponse(
+            plantilla.archivo_plantilla.open('rb'),
+            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+        
+        return response
+        
+    except PlantillaOrden.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Plantilla no encontrada'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+        # Agregar estas vistas en custom_admin/views.py
+
+@login_required
+@user_passes_test(is_admin)
+def api_plantillas_orden(request):
+    """API para obtener todas las plantillas de orden activas"""
+    try:
+        plantillas = PlantillaOrden.objects.filter(is_active=True).order_by('-is_default', 'nombre')
+        
+        data = []
+        for plantilla in plantillas:
+            data.append({
+                'id': plantilla.id,
+                'nombre': plantilla.nombre,
+                'tipo_orden': plantilla.tipo_orden,
+                'tipo_orden_display': plantilla.get_tipo_orden_display(),
+                'version': plantilla.version,
+                'is_default': plantilla.is_default,
+                'descripcion': plantilla.descripcion or '',
+                'archivo_url': plantilla.archivo_plantilla.url if plantilla.archivo_plantilla else None
+            })
+        
+        return JsonResponse({'success': True, 'plantillas': data})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+def orden_verificar_api(request, orden_generada_id):
+    """API para verificar si una orden ya fue generada"""
+    try:
+        orden_generada = OrdenGenerada.objects.get(pk=orden_generada_id)
+        
+        return JsonResponse({
+            'success': True,
+            'archivo_url': orden_generada.archivo_orden_pdf.url if orden_generada.archivo_orden_pdf else None,
+            'numero_orden': orden_generada.numero_orden,
+            'estado': orden_generada.estado
+        })
+    
+    except OrdenGenerada.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Orden no generada'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+def actualizar_datos_clientes_ordenes():
+    """Actualiza los datos de cliente en todas las órdenes"""
+    ordenes = OrdenToma.objects.all()
+    for orden in ordenes:
+        if orden.cliente:
+            print(f"Actualizando orden {orden.codigo} - Cliente: {orden.cliente.username}")
+            orden.copiar_datos_cliente()
+            orden.save()
+    print("✅ Todas las órdenes actualizadas")    
