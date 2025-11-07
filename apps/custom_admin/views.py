@@ -4271,12 +4271,11 @@ def orden_produccion_validar_api(request, order_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 # Añade estas APIs en views.py
-
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["POST"])
 def orden_produccion_generar_api(request, order_id):
-    """API para generar orden de producción desde plantilla"""
+    """API para generar orden de producción desde plantilla - VERSIÓN CORREGIDA"""
     try:
         from apps.orders.models import OrdenProduccion, OrdenGenerada
         
@@ -4291,23 +4290,39 @@ def orden_produccion_generar_api(request, order_id):
                 'error': 'Plantilla requerida'
             }, status=400)
         
-        # Generar la orden
+        try:
+            plantilla = PlantillaOrden.objects.get(id=plantilla_id, is_active=True)
+        except PlantillaOrden.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Plantilla no encontrada o no activa'
+            }, status=404)
+        
+        # ✅ USAR EL MÉTODO CORREGIDO
         orden_generada = orden.generar_orden_desde_plantilla(
             plantilla_id=plantilla_id,
             user=request.user
         )
         
-        return JsonResponse({
-            'success': True,
-            'message': 'Orden de producción generada exitosamente',
-            'orden_generada_id': orden_generada.id,
-            'numero_orden': orden_generada.numero_orden,
-            'archivo_url': orden_generada.archivo_orden_pdf.url if orden_generada.archivo_orden_pdf else None
-        })
+        if orden_generada:
+            return JsonResponse({
+                'success': True,
+                'message': 'Orden de producción generada exitosamente',
+                'orden_generada_id': orden_generada.id,
+                'numero_orden': orden_generada.numero_orden,
+                'archivo_url': orden_generada.archivo_orden_pdf.url if orden_generada.archivo_orden_pdf else None
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'Error al generar la orden'
+            }, status=500)
         
     except Exception as e:
+        print(f"❌ ERROR en orden_produccion_generar_api: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
-
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["POST"])
@@ -4400,16 +4415,15 @@ def orden_produccion_descargar_plantilla_api(request, order_id):
 @login_required
 @user_passes_test(is_admin)
 def orden_produccion_obtener_plantillas_api(request, order_id):
-    """API para obtener plantillas disponibles para orden de producción"""
+    """API para obtener plantillas disponibles para orden de producción - MEJORADO"""
     try:
         from apps.orders.models import OrdenProduccion
         
         orden = get_object_or_404(OrdenProduccion, pk=order_id)
         
-        # Obtener plantillas activas del tipo adecuado para producción
+        # Obtener plantillas activas de todos los tipos relevantes para producción
         plantillas = PlantillaOrden.objects.filter(
-            is_active=True,
-            tipo_orden__in=['produccion_audio', 'edicion_video', 'produccion_completa', 'otro']
+            is_active=True
         ).order_by('-is_default', 'nombre')
         
         data = []
@@ -4428,4 +4442,5 @@ def orden_produccion_obtener_plantillas_api(request, order_id):
         return JsonResponse({'success': True, 'plantillas': data})
     
     except Exception as e:
+        print(f"❌ ERROR en orden_produccion_obtener_plantillas_api: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)

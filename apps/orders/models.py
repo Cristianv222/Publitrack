@@ -997,7 +997,7 @@ class OrdenGenerada(models.Model):
             import traceback
             print(f'📋 Traceback: {traceback.format_exc()}')
             return False
-            
+
     def marcar_como_impresa(self, user):
         self.estado = 'impresa'
         self.impreso_por = user
@@ -1360,8 +1360,8 @@ class OrdenProduccion(models.Model):
                 return (hoy - self.fecha_fin_planeada).days
         return 0
     def generar_orden_desde_plantilla(self, plantilla_id=None, user=None):
-        """Genera una orden para imprimilar similar a OrdenToma"""
-        # Obtener plantilla
+        """Genera una orden para imprimir similar a OrdenToma"""
+    # Obtener plantilla
         if plantilla_id:
             plantilla = PlantillaOrden.objects.get(id=plantilla_id)
         else:
@@ -1370,25 +1370,26 @@ class OrdenProduccion(models.Model):
             ).first()
             if not plantilla:
                 plantilla = PlantillaOrden.objects.filter(is_active=True).first()
-        
+    
         if not plantilla:
             raise ValueError("No hay plantillas de orden disponibles")
-        
-        # Crear orden generada
+    
+        # ✅ CORREGIDO: Crear orden generada con orden_toma (obligatorio) y orden_produccion (opcional)
         orden_generada = OrdenGenerada.objects.create(
-            orden_produccion=self,  # Nuevo campo para relacionar con producción
+            orden_toma=self.orden_toma,  # ✅ ESTE CAMPO ES OBLIGATORIO
+            orden_produccion=self,       # ✅ ESTE ES OPCIONAL
             plantilla_usada=plantilla,
             generado_por=user or self.created_by,
             estado='borrador'
         )
-        
+    
         # Generar el PDF
         if orden_generada.generar_orden_produccion_pdf():
             return orden_generada
         else:
             orden_generada.delete()
             raise ValueError("Error al generar la orden PDF")
-    
+
     def subir_orden_firmada(self, archivo_firmado, usuario):
         """Procesa la orden firmada subida - igual que OrdenToma"""
         try:
