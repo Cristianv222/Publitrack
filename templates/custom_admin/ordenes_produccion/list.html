@@ -1,0 +1,1426 @@
+{% extends 'custom_admin/base_admin.html' %}
+{% load static %}
+
+{% block title %}Órdenes de Producción - PubliTrack{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .stats-card h3 {
+        font-size: 2rem;
+        margin: 0;
+        color: #333;
+    }
+    .stats-card p {
+        margin: 5px 0 0 0;
+        color: #666;
+        font-size: 0.9rem;
+    }
+    .badge-status {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    .badge-pendiente {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    .badge-en_produccion {
+        background-color: #d1ecf1;
+        color: #0c5460;
+    }
+    .badge-completado {
+        background-color: #cce7ff;
+        color: #004085;
+    }
+    .badge-validado {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    .badge-cancelado {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    .badge-prioridad {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+    }
+    .badge-urgente {
+        background-color: #dc3545;
+        color: white;
+    }
+    .badge-alta {
+        background-color: #ffc107;
+        color: #000;
+    }
+    .badge-normal {
+        background-color: #17a2b8;
+        color: white;
+    }
+    .badge-baja {
+        background-color: #28a745;
+        color: white;
+    }
+    .badge-tipo {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        background-color: #6f42c1;
+        color: white;
+    }
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
+        cursor: pointer;
+    }
+    .btn-action {
+        padding: 5px 8px;
+        font-size: 0.8rem;
+        margin: 1px;
+    }
+    .order-number {
+        font-weight: 600;
+        color: #2c5aa0;
+    }
+    .retraso-alto {
+        color: #dc3545;
+        font-weight: bold;
+    }
+    .retraso-medio {
+        color: #ffc107;
+        font-weight: bold;
+    }
+    .al-dia {
+        color: #28a745;
+    }
+    
+    /* ESTILOS COPIADOS DE ÓRDENES DE TOMA */
+    .btn-descargar {
+        background-color: #17a2b8;
+        border-color: #17a2b8;
+        color: white;
+    }
+    .btn-descargar:hover {
+        background-color: #138496;
+        border-color: #117a8b;
+    }
+    
+    .btn-subir {
+        background-color: #28a745;
+        border-color: #28a745;
+        color: white;
+    }
+    .btn-subir:hover {
+        background-color: #218838;
+        border-color: #1e7e34;
+    }
+    
+    .estado-info {
+        font-size: 0.75rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+    }
+    
+    .btn-action-completar {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        white-space: nowrap;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="fas fa-cogs me-2"></i>Órdenes de Producción
+            </h2>
+            <p class="text-muted mb-0">Gestiona las órdenes de producción del sistema</p>
+        </div>
+        <div>
+            <a href="{% url 'custom_admin:orders_list' %}" class="btn btn-outline-primary me-2">
+                <i class="fas fa-arrow-left me-2"></i>Ver Órdenes de Toma
+            </a>
+            {% if user.es_admin or user.es_productor %}
+            <button class="btn btn-primary" onclick="abrirModalCrear()">
+                <i class="fas fa-plus me-2"></i>Nueva Orden
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="stats-card">
+                <h3 class="text-primary">{{ total_ordenes }}</h3>
+                <p>Total</p>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stats-card">
+                <h3 class="text-warning">{{ ordenes_pendientes }}</h3>
+                <p>Pendientes</p>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stats-card">
+                <h3 class="text-info">{{ ordenes_en_produccion }}</h3>
+                <p>En Producción</p>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stats-card">
+                <h3 class="text-success">{{ ordenes_completadas }}</h3>
+                <p>Completadas</p>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stats-card">
+                <h3 class="text-success">{{ ordenes_validadas }}</h3>
+                <p>Validadas</p>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stats-card">
+                <h3 class="text-danger">{{ ordenes_pendientes }}</h3>
+                <p>Por Iniciar</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Buscar por código, cliente, proyecto..." 
+                           value="{{ search }}">
+                </div>
+                <div class="col-md-2">
+                    <select name="estado" class="form-select">
+                        <option value="">Todos los estados</option>
+                        <option value="pendiente" {% if estado_filter == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                        <option value="en_produccion" {% if estado_filter == 'en_produccion' %}selected{% endif %}>En Producción</option>
+                        <option value="completado" {% if estado_filter == 'completado' %}selected{% endif %}>Completado</option>
+                        <option value="validado" {% if estado_filter == 'validado' %}selected{% endif %}>Validado</option>
+                        <option value="cancelado" {% if estado_filter == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="tipo" class="form-select">
+                        <option value="">Todos los tipos</option>
+                        {% for tipo_val, tipo_label in tipos_produccion %}
+                        <option value="{{ tipo_val }}" {% if tipo_filter == tipo_val %}selected{% endif %}>{{ tipo_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="prioridad" class="form-select">
+                        <option value="">Todas las prioridades</option>
+                        <option value="urgente" {% if prioridad_filter == 'urgente' %}selected{% endif %}>Urgente</option>
+                        <option value="alta" {% if prioridad_filter == 'alta' %}selected{% endif %}>Alta</option>
+                        <option value="normal" {% if prioridad_filter == 'normal' %}selected{% endif %}>Normal</option>
+                        <option value="baja" {% if prioridad_filter == 'baja' %}selected{% endif %}>Baja</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-2"></i>Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de Órdenes de Producción -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Código</th>
+                            <th>Orden Toma</th>
+                            <th>Cliente</th>
+                            <th>Proyecto</th>
+                            <th>Tipo</th>
+                            <th>Fechas Planeadas</th>
+                            <th>Prioridad</th>
+                            <th>Estado</th>
+                            <th>Retraso</th>
+                            <th>Productor</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for orden in ordenes %}
+                        <tr>
+                            <td>
+                                <span class="order-number">{{ orden.codigo }}</span>
+                                {% if orden.ordenes_generadas_produccion.exists %}
+                                <br>
+                                <small class="estado-info">
+                                    <i class="fas fa-file-pdf text-danger"></i>
+                                    PDF Generado
+                                </small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'custom_admin:order_detail_api' orden.orden_toma.id %}" 
+                                   class="text-decoration-none">
+                                    {{ orden.orden_toma.codigo }}
+                                </a>
+                            </td>
+                            <td>
+                                <strong>{{ orden.nombre_cliente }}</strong>
+                                {% if orden.empresa_cliente %}
+                                <br><small class="text-muted">{{ orden.empresa_cliente }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ orden.proyecto_campania|truncatewords:3 }}</strong>
+                                {% if orden.titulo_material %}
+                                <br><small class="text-muted">{{ orden.titulo_material|truncatewords:2 }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge-tipo">
+                                    {{ orden.get_tipo_produccion_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <small>
+                                    <strong>Inicio:</strong> {{ orden.fecha_inicio_planeada|date:"d/m/y" }}<br>
+                                    <strong>Fin:</strong> {{ orden.fecha_fin_planeada|date:"d/m/y" }}
+                                </small>
+                            </td>
+                            <td>
+                                <span class="badge-prioridad badge-{{ orden.prioridad }}">
+                                    {{ orden.get_prioridad_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge-status badge-{{ orden.estado }}">
+                                    {{ orden.get_estado_display }}
+                                </span>
+                                {% if orden.estado == 'pendiente' %}
+                                <br>
+                                <small class="estado-info mt-1">
+                                    <i class="fas fa-clock text-warning"></i>
+                                    Esperando producción
+                                </small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if orden.dias_retraso > 0 %}
+                                    <span class="retraso-alto">{{ orden.dias_retraso }} días</span>
+                                {% elif orden.dias_retraso == 0 %}
+                                    <span class="al-dia">Al día</span>
+                                {% else %}
+                                    <span class="retraso-medio">{{ orden.dias_retraso_abs }} días</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if orden.productor_asignado %}
+                                    {{ orden.productor_asignado.get_full_name }}
+                                {% else %}
+                                    <span class="text-muted">Sin asignar</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <!-- Botón Ver -->
+                                    <button class="btn btn-info btn-action" 
+                                            onclick="verDetalleOrden({{ orden.id }})"
+                                            title="Ver detalles">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    
+                                    <!-- BOTONES DE DOCUMENTOS - COPIADO DE ÓRDENES DE TOMA -->
+                                    {% if orden.estado == 'pendiente' or orden.estado == 'en_produccion' or orden.estado == 'completado' %}
+                                        <!-- Orden en producción - Mostrar botones de documentos -->
+                                        <button class="btn btn-descargar btn-action" 
+                                                onclick="descargarOrdenProduccion({{ orden.id }})"
+                                                title="Descargar PDF">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                        
+                                        {% if orden.ordenes_generadas_produccion.exists %}
+                                        <button class="btn btn-subir btn-action" 
+                                                onclick="subirOrdenProduccionValidada({{ orden.id }}, '{{ orden.codigo|escapejs }}')"
+                                                title="Subir Orden Validada">
+                                            <i class="fas fa-upload"></i>
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-subir btn-action" 
+                                                onclick="generarOrdenProduccion({{ orden.id }}, '{{ orden.codigo|escapejs }}')"
+                                                title="Generar Orden">
+                                            <i class="fas fa-file-alt"></i>
+                                        </button>
+                                        {% endif %}
+                                        
+                                    {% elif orden.estado == 'validado' %}
+                                        <!-- Orden validada -->
+                                        <button class="btn btn-descargar btn-action" 
+                                                onclick="descargarOrdenProduccion({{ orden.id }})"
+                                                title="Descargar PDF Validado">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                    {% endif %}
+                                    
+                                    <!-- Botones de estado -->
+                                    {% if orden.estado == 'pendiente' %}
+                                        <button class="btn btn-success btn-action" 
+                                                onclick="iniciarProduccion({{ orden.id }})"
+                                                title="Iniciar Producción">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                    {% elif orden.estado == 'en_produccion' %}
+                                        <button class="btn btn-warning btn-action" 
+                                                onclick="completarProduccion({{ orden.id }})"
+                                                title="Completar Producción">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    {% endif %}
+                                    
+                                    {% if user.es_admin or user.es_productor %}
+                                    <button class="btn btn-warning btn-action" 
+                                            onclick="editarOrden({{ orden.id }})"
+                                            title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    {% endif %}
+                                    
+                                    {% if user.es_admin %}
+                                    <button class="btn btn-danger btn-action" 
+                                            onclick="eliminarOrden({{ orden.id }}, '{{ orden.codigo|escapejs }}')"
+                                            title="Eliminar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="11" class="text-center py-4">
+                                <i class="fas fa-cogs fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No se encontraron órdenes de producción</p>
+                                {% if user.es_admin or user.es_productor %}
+                                <button class="btn btn-primary mt-2" onclick="abrirModalCrear()">
+                                    <i class="fas fa-plus me-2"></i>Crear Primera Orden
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            {% if ordenes.has_other_pages %}
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if ordenes.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ ordenes.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if estado_filter %}&estado={{ estado_filter }}{% endif %}{% if tipo_filter %}&tipo={{ tipo_filter }}{% endif %}{% if prioridad_filter %}&prioridad={{ prioridad_filter }}{% endif %}">
+                            Anterior
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in ordenes.paginator.page_range %}
+                    <li class="page-item {% if ordenes.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if estado_filter %}&estado={{ estado_filter }}{% endif %}{% if tipo_filter %}&tipo={{ tipo_filter }}{% endif %}{% if prioridad_filter %}&prioridad={{ prioridad_filter }}{% endif %}">
+                            {{ num }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                    
+                    {% if ordenes.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ ordenes.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if estado_filter %}&estado={{ estado_filter }}{% endif %}{% if tipo_filter %}&tipo={{ tipo_filter }}{% endif %}{% if prioridad_filter %}&prioridad={{ prioridad_filter }}{% endif %}">
+                            Siguiente
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal para Subir Orden de Producción Validada -->
+<div class="modal fade" id="modalSubirOrdenProduccion" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Subir Orden de Producción Validada</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formSubirOrdenProduccion" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" id="subir_orden_produccion_id" name="orden_produccion_id">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Seleccionar archivo PDF firmado:</label>
+                        <input type="file" class="form-control" id="archivo_orden_produccion" name="archivo" accept=".pdf" required>
+                        <small class="text-muted">Solo se permiten archivos PDF (máx. 10MB)</small>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <small>
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            Sube el PDF de la orden de producción ya validada y firmada por el cliente.
+                            Esto cambiará el estado de la orden a "Validado".
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-success" onclick="subirOrdenProduccionValidadaConfirmar()">
+                    <i class="fas fa-upload me-2"></i>Subir Orden Validada
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Generar Orden de Producción -->
+<div class="modal fade" id="modalGenerarOrdenProduccion" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Generar Orden de Producción</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formGenerarOrdenProduccion">
+                    {% csrf_token %}
+                    <input type="hidden" id="generar_orden_produccion_id" name="orden_produccion_id">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Seleccionar plantilla:</label>
+                        <select class="form-select" id="plantilla_orden_produccion" name="plantilla_id" required>
+                            <option value="">Cargando plantillas...</option>
+                        </select>
+                        <small class="text-muted">Selecciona la plantilla para generar la orden de producción</small>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <small>
+                            <i class="fas fa-info-circle me-1"></i>
+                            Se generará un PDF con los datos de la orden de producción que podrás descargar y enviar al cliente.
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="generarOrdenProduccionConfirmar()">
+                    <i class="fas fa-file-alt me-2"></i>Generar Orden
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Crear/Editar Orden de Producción -->
+<div class="modal fade" id="modalOrdenProduccion" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalOrdenProduccionTitulo">Nueva Orden de Producción</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formOrdenProduccion">
+                    {% csrf_token %}
+                    <input type="hidden" id="orden_produccion_id" name="orden_produccion_id">
+                    
+                    <!-- Información Básica -->
+                    <h6 class="mb-3 text-primary">Información de la Orden</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Orden de Toma <span class="text-danger">*</span></label>
+                            <select class="form-select" name="orden_toma_id" id="orden_toma_id" required>
+                                <option value="">Seleccionar orden de toma...</option>
+                                <!-- Se llenará dinámicamente -->
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo de Producción <span class="text-danger">*</span></label>
+                            <select class="form-select" name="tipo_produccion" id="tipo_produccion" required>
+                                {% for tipo_val, tipo_label in tipos_produccion %}
+                                <option value="{{ tipo_val }}">{{ tipo_label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Prioridad <span class="text-danger">*</span></label>
+                            <select class="form-select" name="prioridad" id="prioridad" required>
+                                <option value="baja">Baja</option>
+                                <option value="normal" selected>Normal</option>
+                                <option value="alta">Alta</option>
+                                <option value="urgente">Urgente</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Productor Asignado</label>
+                            <select class="form-select" name="productor_asignado_id" id="productor_asignado_id">
+                                <option value="">Sin asignar</option>
+                                {% for productor in productores %}
+                                <option value="{{ productor.id }}">{{ productor.get_full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Información Adicional -->
+                    <h6 class="mb-3 text-primary">Información Adicional</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-12">
+                            <label class="form-label">Especificaciones Técnicas</label>
+                            <textarea class="form-control" name="especificaciones_tecnicas" id="especificaciones_tecnicas" rows="3"
+                                      placeholder="Formatos, resoluciones, codecs, etc..."></textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Archivos Entregables</label>
+                            <textarea class="form-control" name="archivos_entregables" id="archivos_entregables" rows="2"
+                                      placeholder="Lista de archivos a entregar..."></textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Observaciones de Producción</label>
+                            <textarea class="form-control" name="observaciones_produccion" id="observaciones_produccion" rows="2"
+                                      placeholder="Observaciones adicionales..."></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="guardarOrdenProduccion()">
+                    <i class="fas fa-save me-2"></i>Guardar Orden
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ver Detalles -->
+<div class="modal fade" id="modalDetalleOrdenProduccion" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalles de la Orden de Producción</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalleOrdenProduccionContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let modalOrdenProduccion;
+let modalDetalleOrdenProduccion;
+let modalSubirOrdenProduccion;
+let modalGenerarOrdenProduccion;
+
+document.addEventListener('DOMContentLoaded', function() {
+    modalOrdenProduccion = new bootstrap.Modal(document.getElementById('modalOrdenProduccion'));
+    modalDetalleOrdenProduccion = new bootstrap.Modal(document.getElementById('modalDetalleOrdenProduccion'));
+    modalSubirOrdenProduccion = new bootstrap.Modal(document.getElementById('modalSubirOrdenProduccion'));
+    modalGenerarOrdenProduccion = new bootstrap.Modal(document.getElementById('modalGenerarOrdenProduccion'));
+    
+    // Cargar órdenes de toma disponibles para crear nueva orden de producción
+    cargarOrdenesTomaDisponibles();
+});
+
+function cargarOrdenesTomaDisponibles() {
+    // En una implementación real, harías una petición AJAX para obtener las órdenes de toma validadas
+    // que no tengan orden de producción asociada
+    console.log("Cargando órdenes de toma disponibles...");
+}
+
+// ==================== FUNCIONES PARA DOCUMENTOS - COPIADO DE ÓRDENES DE TOMA ====================
+
+function descargarOrdenProduccion(ordenId) {
+    console.log("🔍 Intentando descargar orden de producción ID:", ordenId);
+    
+    Swal.fire({
+        title: 'Generando PDF...',
+        html: `
+            <div class="text-center py-3">
+                <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Generando...</span>
+                </div>
+                <p class="text-muted mb-0">Generando archivo PDF desde plantilla...</p>
+            </div>
+        `,
+        allowOutsideClick: false,
+        showConfirmButton: false
+    });
+
+    // Descargar directamente desde el endpoint
+    window.open(`/panel/ordenes-produccion/${ordenId}/descargar-plantilla/`, '_blank');
+    Swal.close();
+}
+
+function generarOrdenProduccion(ordenId, codigoOrden) {
+    document.getElementById('generar_orden_produccion_id').value = ordenId;
+    
+    // Cargar plantillas disponibles
+    cargarPlantillasOrdenProduccion(ordenId);
+    
+    // Actualizar título del modal
+    document.querySelector('#modalGenerarOrdenProduccion .modal-title').textContent = 
+        `Generar Orden - ${codigoOrden}`;
+    
+    modalGenerarOrdenProduccion.show();
+}
+
+function cargarPlantillasOrdenProduccion(ordenId) {
+    const select = document.getElementById('plantilla_orden_produccion');
+    select.innerHTML = '<option value="">Cargando plantillas...</option>';
+    
+    fetch(`/panel/ordenes-produccion/${ordenId}/plantillas/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                let options = '<option value="">Seleccionar plantilla...</option>';
+                data.plantillas.forEach(plantilla => {
+                    options += `
+                        <option value="${plantilla.id}" ${plantilla.is_default ? 'selected' : ''}>
+                            ${plantilla.nombre} (${plantilla.tipo_orden_display}) - v${plantilla.version}
+                            ${plantilla.is_default ? ' ★' : ''}
+                        </option>
+                    `;
+                });
+                select.innerHTML = options;
+            } else {
+                select.innerHTML = '<option value="">Error al cargar plantillas</option>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            select.innerHTML = '<option value="">Error al cargar plantillas</option>';
+        });
+}
+
+function generarOrdenProduccionConfirmar() {
+    const ordenId = document.getElementById('generar_orden_produccion_id').value;
+    const plantillaId = document.getElementById('plantilla_orden_produccion').value;
+    
+    if (!plantillaId) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Plantilla requerida',
+            text: 'Por favor selecciona una plantilla',
+            confirmButtonColor: '#3085d6'
+        });
+        return;
+    }
+    
+    modalGenerarOrdenProduccion.hide();
+    
+    Swal.fire({
+        title: 'Generando orden...',
+        html: `
+            <div class="text-center py-3">
+                <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Generando...</span>
+                </div>
+                <p class="text-muted mb-0">Generando PDF desde plantilla...</p>
+            </div>
+        `,
+        allowOutsideClick: false,
+        showConfirmButton: false
+    });
+    
+    fetch(`/panel/ordenes-produccion/${ordenId}/generar/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            plantilla_id: plantillaId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Orden Generada!',
+                html: `
+                    <p>La orden de producción se generó correctamente.</p>
+                    ${data.archivo_url ? 
+                        `<a href="${data.archivo_url}" target="_blank" class="btn btn-success mt-2">
+                            <i class="fas fa-download me-2"></i>Descargar PDF
+                        </a>` : 
+                        ''
+                    }
+                `,
+                confirmButtonColor: '#28a745'
+            }).then(() => {
+                window.location.reload();
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error || 'Error al generar la orden',
+                confirmButtonColor: '#dc3545'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de conexión',
+            text: 'No se pudo generar la orden',
+            confirmButtonColor: '#dc3545'
+        });
+    });
+}
+
+function subirOrdenProduccionValidada(ordenId, codigoOrden) {
+    document.getElementById('subir_orden_produccion_id').value = ordenId;
+    
+    // Limpiar formulario
+    document.getElementById('formSubirOrdenProduccion').reset();
+    
+    // Actualizar título del modal
+    document.querySelector('#modalSubirOrdenProduccion .modal-title').textContent = 
+        `Subir Orden Validada - ${codigoOrden}`;
+    
+    modalSubirOrdenProduccion.show();
+}
+
+function subirOrdenProduccionValidadaConfirmar() {
+    const form = document.getElementById('formSubirOrdenProduccion');
+    const ordenId = document.getElementById('subir_orden_produccion_id').value;
+    const archivo = document.getElementById('archivo_orden_produccion').files[0];
+    
+    if (!archivo) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Archivo requerido',
+            text: 'Por favor selecciona un archivo PDF',
+            confirmButtonColor: '#3085d6'
+        });
+        return;
+    }
+    
+    if (!archivo.name.toLowerCase().endsWith('.pdf')) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Formato incorrecto',
+            text: 'Solo se permiten archivos PDF',
+            confirmButtonColor: '#dc3545'
+        });
+        return;
+    }
+    
+    if (archivo.size > 10 * 1024 * 1024) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Archivo muy grande',
+            text: 'El archivo no debe superar los 10MB',
+            confirmButtonColor: '#dc3545'
+        });
+        return;
+    }
+    
+    const formData = new FormData(form);
+    
+    modalSubirOrdenProduccion.hide();
+    
+    Swal.fire({
+        title: 'Subiendo orden validada...',
+        html: `
+            <div class="text-center py-3">
+                <div class="spinner-border text-success mb-3" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Subiendo...</span>
+                </div>
+                <p class="text-muted mb-0">Procesando archivo y validando orden...</p>
+            </div>
+        `,
+        allowOutsideClick: false,
+        showConfirmButton: false
+    });
+    
+    // Usar el nuevo endpoint para subir órdenes de producción validadas
+    fetch(`/panel/ordenes-produccion/${ordenId}/subir-firmada/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Orden Validada!',
+                html: `
+                    <p>La orden de producción ha sido validada correctamente.</p>
+                    <p class="text-muted">Estado: <strong>Validado</strong></p>
+                `,
+                confirmButtonColor: '#28a745'
+            }).then(() => {
+                window.location.reload();
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error || 'Error al subir la orden validada',
+                confirmButtonColor: '#dc3545'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de conexión',
+            text: 'No se pudo subir el archivo',
+            confirmButtonColor: '#dc3545'
+        });
+    });
+}
+
+// ==================== FUNCIONES EXISTENTES ====================
+
+function abrirModalCrear() {
+    document.getElementById('modalOrdenProduccionTitulo').textContent = 'Nueva Orden de Producción';
+    document.getElementById('formOrdenProduccion').reset();
+    document.getElementById('orden_produccion_id').value = '';
+    document.getElementById('prioridad').value = 'normal';
+    document.getElementById('tipo_produccion').value = 'video';
+    modalOrdenProduccion.show();
+}
+
+function editarOrden(ordenId) {
+    document.getElementById('modalOrdenProduccionTitulo').textContent = 'Editar Orden de Producción';
+    document.getElementById('orden_produccion_id').value = ordenId;
+    
+    // Cargar datos de la orden
+    fetch(`/panel/ordenes-produccion/${ordenId}/detalle/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const orden = data.orden;
+                document.getElementById('tipo_produccion').value = orden.tipo_produccion;
+                document.getElementById('prioridad').value = orden.prioridad;
+                document.getElementById('especificaciones_tecnicas').value = orden.especificaciones_tecnicas || '';
+                document.getElementById('archivos_entregables').value = orden.archivos_entregables || '';
+                document.getElementById('observaciones_produccion').value = orden.observaciones_produccion || '';
+                document.getElementById('productor_asignado_id').value = orden.productor_asignado_id || '';
+                
+                modalOrdenProduccion.show();
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.error || 'Error al cargar los datos',
+                    confirmButtonColor: '#3085d6'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error al cargar los datos de la orden',
+                confirmButtonColor: '#3085d6'
+            });
+        });
+}
+
+function guardarOrdenProduccion() {
+    const ordenId = document.getElementById('orden_produccion_id').value;
+    const form = document.getElementById('formOrdenProduccion');
+    
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const formData = {
+        orden_toma_id: document.getElementById('orden_toma_id').value,
+        tipo_produccion: document.getElementById('tipo_produccion').value,
+        prioridad: document.getElementById('prioridad').value,
+        productor_asignado_id: document.getElementById('productor_asignado_id').value || null,
+        especificaciones_tecnicas: document.getElementById('especificaciones_tecnicas').value,
+        archivos_entregables: document.getElementById('archivos_entregables').value,
+        observaciones_produccion: document.getElementById('observaciones_produccion').value,
+    };
+    
+    modalOrdenProduccion.hide();
+    
+    Swal.fire({
+        title: ordenId ? 'Actualizando...' : 'Guardando...',
+        html: `
+            <div class="text-center py-3">
+                <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Guardando...</span>
+                </div>
+                <p class="text-muted mb-0">Por favor espere un momento</p>
+            </div>
+        `,
+        allowOutsideClick: false,
+        showConfirmButton: false
+    });
+    
+    const url = ordenId 
+        ? `/panel/ordenes-produccion/${ordenId}/editar/`
+        : '/panel/ordenes-produccion/crear/';
+    
+    const method = ordenId ? 'PUT' : 'POST';
+    
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: data.message,
+                confirmButtonColor: '#28a745'
+            }).then(() => {
+                window.location.reload();
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error || 'Error al guardar la orden',
+                confirmButtonColor: '#dc3545'
+            });
+            modalOrdenProduccion.show();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error de conexión al guardar',
+            confirmButtonColor: '#dc3545'
+        });
+        modalOrdenProduccion.show();
+    });
+}
+
+function verDetalleOrden(ordenId) {
+    const loadingHtml = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
+    `;
+    document.getElementById('detalleOrdenProduccionContent').innerHTML = loadingHtml;
+    modalDetalleOrdenProduccion.show();
+    
+    fetch(`/panel/ordenes-produccion/${ordenId}/detalle/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const orden = data.orden;
+                
+                let estadoBoton = '';
+                if (orden.estado === 'pendiente') {
+                    estadoBoton = `<button class="btn btn-success btn-sm" onclick="iniciarProduccion(${orden.id})">
+                        <i class="fas fa-play me-1"></i>Iniciar Producción
+                    </button>`;
+                } else if (orden.estado === 'en_produccion') {
+                    estadoBoton = `<button class="btn btn-warning btn-sm" onclick="completarProduccion(${orden.id})">
+                        <i class="fas fa-check me-1"></i>Completar Producción
+                    </button>`;
+                } else if (orden.estado === 'completado') {
+                    estadoBoton = `<button class="btn btn-primary btn-sm" onclick="validarProduccion(${orden.id})">
+                        <i class="fas fa-check-double me-1"></i>Validar Producción
+                    </button>`;
+                }
+                
+                const html = `
+                    <div class="row">
+                        <!-- Información Básica -->
+                        <div class="col-12 mb-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="text-primary mb-0">Información Básica</h6>
+                                ${estadoBoton}
+                            </div>
+                            <hr>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Código:</strong><br>
+                            <span class="order-number badge bg-primary">${orden.codigo}</span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Orden de Toma:</strong><br>
+                            <a href="/panel/orders/${orden.orden_toma_id}/detalle/" class="text-decoration-none">
+                                ${orden.orden_toma_codigo}
+                            </a>
+                        </div>
+                        
+                        <!-- Información del Cliente -->
+                        <div class="col-12 mb-4 mt-2">
+                            <h6 class="text-primary border-bottom pb-2">Información del Cliente</h6>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Nombre:</strong><br>
+                            ${orden.nombre_cliente}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>RUC/DNI:</strong><br>
+                            ${orden.ruc_dni_cliente}
+                        </div>
+                        <div class="col-12 mb-3">
+                            <strong>Empresa:</strong><br>
+                            ${orden.empresa_cliente || '<span class="text-muted">N/A</span>'}
+                        </div>
+                        
+                        <!-- Detalles de la Producción -->
+                        <div class="col-12 mb-4 mt-2">
+                            <h6 class="text-primary border-bottom pb-2">Detalles de la Producción</h6>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Proyecto/Campaña:</strong><br>
+                            ${orden.proyecto_campania}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Título del Material:</strong><br>
+                            ${orden.titulo_material}
+                        </div>
+                        <div class="col-12 mb-3">
+                            <strong>Descripción Breve:</strong><br>
+                            ${orden.descripcion_breve || '<span class="text-muted">N/A</span>'}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Tipo de Producción:</strong><br>
+                            ${orden.tipo_produccion}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Prioridad:</strong><br>
+                            <span class="badge-prioridad badge-${orden.prioridad}">${orden.prioridad}</span>
+                        </div>
+                        
+                        <!-- Fechas -->
+                        <div class="col-12 mb-4 mt-2">
+                            <h6 class="text-primary border-bottom pb-2">Fechas</h6>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Inicio Planeado:</strong><br>
+                            ${orden.fecha_inicio_planeada || '<span class="text-muted">No definido</span>'}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Fin Planeado:</strong><br>
+                            ${orden.fecha_fin_planeada || '<span class="text-muted">No definido</span>'}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Inicio Real:</strong><br>
+                            ${orden.fecha_inicio_real || '<span class="text-muted">No iniciado</span>'}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Fin Real:</strong><br>
+                            ${orden.fecha_fin_real || '<span class="text-muted">No completado</span>'}
+                        </div>
+                        
+                        <!-- Recursos y Equipo -->
+                        <div class="col-12 mb-4 mt-2">
+                            <h6 class="text-primary border-bottom pb-2">Recursos y Equipo</h6>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <strong>Equipo Asignado:</strong><br>
+                            ${orden.equipo_asignado || '<span class="text-muted">No definido</span>'}
+                        </div>
+                        <div class="col-12 mb-3">
+                            <strong>Recursos Necesarios:</strong><br>
+                            ${orden.recursos_necesarios || '<span class="text-muted">No definido</span>'}
+                        </div>
+                        <div class="col-12 mb-3">
+                            <strong>Productor Asignado:</strong><br>
+                            ${orden.productor_asignado_nombre || '<span class="text-muted">Sin asignar</span>'}
+                        </div>
+                        
+                        <!-- Especificaciones -->
+                        <div class="col-12 mb-4 mt-2">
+                            <h6 class="text-primary border-bottom pb-2">Especificaciones</h6>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <strong>Especificaciones Técnicas:</strong><br>
+                            ${orden.especificaciones_tecnicas || '<span class="text-muted">No definido</span>'}
+                        </div>
+                        <div class="col-12 mb-3">
+                            <strong>Archivos Entregables:</strong><br>
+                            ${orden.archivos_entregables || '<span class="text-muted">No definido</span>'}
+                        </div>
+                        <div class="col-12 mb-3">
+                            <strong>Observaciones:</strong><br>
+                            ${orden.observaciones_produccion || '<span class="text-muted">Ninguna</span>'}
+                        </div>
+                        
+                        <!-- Estado -->
+                        <div class="col-12 mb-4 mt-2">
+                            <h6 class="text-primary border-bottom pb-2">Estado</h6>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Estado:</strong><br>
+                            <span class="badge-status badge-${orden.estado}">${orden.estado}</span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Días de Retraso:</strong><br>
+                            ${orden.dias_retraso > 0 ? 
+                                `<span class="retraso-alto">${orden.dias_retraso} días</span>` :
+                                orden.dias_retraso === 0 ?
+                                '<span class="al-dia">Al día</span>' :
+                                `<span class="retraso-medio">${orden.dias_retraso_abs} días</span>`
+                            }
+                        </div>
+                        <div class="col-12 mb-3">
+                            <strong>Fecha de Creación:</strong><br>
+                            ${orden.fecha_creacion}
+                        </div>
+                    </div>
+                `;
+                document.getElementById('detalleOrdenProduccionContent').innerHTML = html;
+            } else {
+                document.getElementById('detalleOrdenProduccionContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        ${data.error || 'Error al cargar detalles'}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('detalleOrdenProduccionContent').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Error al cargar los detalles de la orden
+                </div>
+            `;
+        });
+}
+
+function iniciarProduccion(ordenId) {
+    Swal.fire({
+        title: '¿Iniciar producción?',
+        text: '¿Estás seguro de iniciar la producción de esta orden?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fas fa-play me-2"></i>Sí, iniciar',
+        cancelButtonText: '<i class="fas fa-times me-2"></i>Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/panel/ordenes-produccion/${ordenId}/iniciar/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Producción Iniciada!',
+                        text: data.message,
+                        confirmButtonColor: '#28a745'
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error || 'Error al iniciar la producción',
+                        confirmButtonColor: '#dc3545'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error de conexión',
+                    confirmButtonColor: '#dc3545'
+                });
+            });
+        }
+    });
+}
+
+function completarProduccion(ordenId) {
+    Swal.fire({
+        title: '¿Completar producción?',
+        text: '¿Estás seguro de marcar esta orden como completada?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#ffc107',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fas fa-check me-2"></i>Sí, completar',
+        cancelButtonText: '<i class="fas fa-times me-2"></i>Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/panel/ordenes-produccion/${ordenId}/completar/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Producción Completada!',
+                        text: data.message,
+                        confirmButtonColor: '#28a745'
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error || 'Error al completar la producción',
+                        confirmButtonColor: '#dc3545'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error de conexión',
+                    confirmButtonColor: '#dc3545'
+                });
+            });
+        }
+    });
+}
+
+function eliminarOrden(ordenId, codigoOrden) {
+    Swal.fire({
+        title: '¿Eliminar orden?',
+        html: `
+            <div class="text-center mb-3">
+                <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                <p class="mb-2">¿Estás seguro de eliminar la orden:</p>
+                <h5 class="text-primary mb-2">${codigoOrden}</h5>
+                <small class="text-muted d-block">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Esta acción no se puede deshacer
+                </small>
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fas fa-trash me-2"></i>Sí, eliminar',
+        cancelButtonText: '<i class="fas fa-times me-2"></i>Cancelar',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/panel/ordenes-produccion/${ordenId}/eliminar/`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Eliminado!',
+                        text: data.message,
+                        confirmButtonColor: '#28a745'
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error || 'Error al eliminar',
+                        confirmButtonColor: '#dc3545'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error de conexión al eliminar',
+                    confirmButtonColor: '#dc3545'
+                });
+            });
+        }
+    });
+}
+</script>
+{% endblock %}

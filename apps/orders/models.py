@@ -698,7 +698,14 @@ class OrdenGenerada(models.Model):
         blank=True, null=True,
         help_text='PDF subido manualmente después de validar'
     )
-    
+    orden_produccion = models.ForeignKey(
+        'OrdenProduccion',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='ordenes_generadas_produccion',  # Diferente related_name
+        verbose_name='Orden de Producción'
+    )
     # Estado
     estado = models.CharField('Estado', max_length=20, choices=ESTADO_CHOICES, default='borrador')
     datos_generacion = models.JSONField('Datos de Generación', default=dict)
@@ -872,20 +879,149 @@ class OrdenGenerada(models.Model):
             import traceback
             print(f'📋 Traceback: {traceback.format_exc()}')
             return False
+    def generar_orden_produccion_pdf(self):
+        """Genera el PDF de la orden de producción - VERSIÓN PARA PRODUCCIÓN"""
+        try:
+            from docxtpl import DocxTemplate
+            from io import BytesIO
+            import os
+            import subprocess
+            from django.core.files.base import ContentFile
+            import tempfile
 
+            if not self.plantilla_usada or not self.plantilla_usada.archivo_plantilla:
+                raise ValueError("No hay plantilla asignada o la plantilla no tiene archivo")
+
+            # Verificar que el archivo de plantilla existe
+            if not os.path.exists(self.plantilla_usada.archivo_plantilla.path):
+                raise ValueError("El archivo de plantilla no existe en la ruta especificada")
+
+            print(f"📄 Usando plantilla para producción: {self.plantilla_usada.archivo_plantilla.path}")
+
+            # Cargar plantilla
+            doc = DocxTemplate(self.plantilla_usada.archivo_plantilla.path)
+            orden_produccion = self.orden_produccion
+
+            # Preparar contexto específico para producción
+            context = {
+                'NUMERO_ORDEN': self.numero_orden,
+                'CODIGO_PRODUCCION': orden_produccion.codigo,
+                'CODIGO_TOMA': orden_produccion.orden_toma.codigo,
+                'NOMBRE_CLIENTE': orden_produccion.nombre_cliente or '',
+                'RUC_DNI': orden_produccion.ruc_dni_cliente or '',
+                'EMPRESA_CLIENTE': orden_produccion.empresa_cliente or '',
+                'PROYECTO_CAMPANIA': orden_produccion.proyecto_campania or '',
+                'TITULO_MATERIAL': orden_produccion.titulo_material or '',
+                'DESCRIPCION_BREVE': orden_produccion.descripcion_breve or '',
+                'TIPO_PRODUCCION': orden_produccion.get_tipo_produccion_display(),
+                'ESPECIFICACIONES_TECNICAS': orden_produccion.especificaciones_tecnicas or '',
+                'FECHA_INICIO_PLANEADA': orden_produccion.fecha_inicio_planeada.strftime('%d de %B del %Y') if orden_produccion.fecha_inicio_planeada else '',
+                'FECHA_FIN_PLANEADA': orden_produccion.fecha_fin_planeada.strftime('%d de %B del %Y') if orden_produccion.fecha_fin_planeada else '',
+                'FECHA_INICIO_REAL': orden_produccion.fecha_inicio_real.strftime('%d de %B del %Y') if orden_produccion.fecha_inicio_real else '',
+                'FECHA_FIN_REAL': orden_produccion.fecha_fin_real.strftime('%d de %B del %Y') if orden_produccion.fecha_fin_real else '',
+                'EQUIPO_ASIGNADO': orden_produccion.equipo_asignado or '',
+                'RECURSOS_NECESARIOS': orden_produccion.recursos_necesarios or '',
+                'ARCHIVOS_ENTREGABLES': orden_produccion.archivos_entregables or '',
+                'OBSERVACIONES_PRODUCCION': orden_produccion.observaciones_produccion or '',
+                'PRIORIDAD': orden_produccion.get_prioridad_display(),
+                'ESTADO': orden_produccion.get_estado_display(),
+                'PRODUCTOR_ASIGNADO': orden_produccion.productor_asignado.get_full_name() if orden_produccion.productor_asignado else '',
+                'FECHA_ACTUAL': timezone.now().strftime('%d de %B del %Y'),
+            }
+
+            print(f"📋 Contexto preparado para orden producción {self.numero_orden}")
+
+            # Guardar datos de generación
+            self.datos_generacion = context
+            self.save()
+
+            # Renderizar documento
+            doc.render(context)
+            
+            # Guardar temporalmente el documento Word
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp_docx:
+                doc.save(tmp_docx.name)
+                temp_docx_path = tmp_docx.name
+
+            print(f"💾 DOCX guardado en: {temp_docx_path}")
+
+            # Convertir a PDF usando LibreOffice
+            temp_pdf_path = temp_docx_path.replace('.docx', '.pdf')
+            
+            try:
+                # Intentar conversión con LibreOffice
+                cmd = [
+                    'libreoffice', '--headless', '--convert-to', 'pdf',
+                    '--outdir', os.path.dirname(temp_docx_path),
+                    temp_docx_path
+                ]
+                
+                print(f"🔄 Ejecutando: {' '.join(cmd)}")
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                
+                if result.returncode != 0:
+                    print(f"❌ Error en LibreOffice: {result.stderr}")
+                    raise Exception(f"Error en conversión PDF: {result.stderr}")
+                    
+                print(f"✅ PDF generado en: {temp_pdf_path}")
+
+            except Exception as e:
+                print(f"❌ Error en conversión: {e}")
+                # Fallback: si no hay LibreOffice, guardar el DOCX directamente
+                temp_pdf_path = temp_docx_path
+                print("⚠️ Usando DOCX como fallback")
+
+            # Leer el archivo generado y guardarlo en el modelo
+            with open(temp_pdf_path, 'rb') as pdf_file:
+                pdf_content = pdf_file.read()
+                pdf_filename = f"orden_produccion_{self.numero_orden}.pdf"
+                self.archivo_orden_pdf.save(pdf_filename, ContentFile(pdf_content), save=False)
+
+            # Limpiar archivos temporales
+            try:
+                if os.path.exists(temp_docx_path):
+                    os.remove(temp_docx_path)
+                if temp_pdf_path != temp_docx_path and os.path.exists(temp_pdf_path):
+                    os.remove(temp_pdf_path)
+            except Exception as e:
+                print(f"⚠️ Error limpiando temporales: {e}")
+
+            self.estado = 'generada'
+            self.save()
+            
+            print(f"✅ Orden PDF de producción generada exitosamente: {self.archivo_orden_pdf.url}")
+            return True
+
+        except Exception as e:
+            print(f'❌ Error generando orden PDF de producción: {str(e)}')
+            import traceback
+            print(f'📋 Traceback: {traceback.format_exc()}')
+            return False
+            
     def marcar_como_impresa(self, user):
         self.estado = 'impresa'
         self.impreso_por = user
         self.fecha_impresion = timezone.now()
         self.save()
 
+       
     def marcar_como_validada(self, user, archivo_validado=None):
+        """Marca la orden como validada - VERSIÓN COMPLETA"""
         self.estado = 'validada'
         self.validado_por = user
         self.fecha_validacion = timezone.now()
+        
         if archivo_validado:
             self.archivo_orden_validada = archivo_validado
+        
         self.save()
+        
+        # ✅ ACTUALIZAR TAMBIÉN EL ESTADO DE LA ORDEN DE TOMA RELACIONADA
+        if self.orden_toma and self.orden_toma.estado != 'validado':
+            self.orden_toma.estado = 'validado'
+            self.orden_toma.validado_por = user
+            self.orden_toma.fecha_validacion = timezone.now()
+            self.orden_toma.save()
 
     @property
     def puede_regenerar(self):
@@ -934,3 +1070,388 @@ def numero_a_letras(numero):
             
     except:
         return "CANTIDAD EN NÚMEROS"
+
+# ==================== MODELOS DE ORDENES DE PRODUCCIÓN ====================
+
+class OrdenProduccion(models.Model):
+    """
+    Orden de producción generada automáticamente al validar una orden de toma
+    """
+    
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('en_produccion', 'En Producción'),
+        ('completado', 'Completado'),
+        ('validado', 'Validado'),
+        ('cancelado', 'Cancelado'),
+    ]
+    
+    PRIORIDAD_CHOICES = [
+        ('baja', 'Baja'),
+        ('normal', 'Normal'),
+        ('alta', 'Alta'),
+        ('urgente', 'Urgente'),
+    ]
+    
+    # Código único
+    codigo = models.CharField(
+        'Código',
+        max_length=20,
+        unique=True,
+        help_text='Código único de la orden de producción (generado automáticamente)'
+    )
+    
+    # Relación con orden de toma
+    orden_toma = models.ForeignKey(
+        OrdenToma,
+        on_delete=models.CASCADE,
+        related_name='ordenes_produccion',
+        verbose_name='Orden de Toma'
+    )
+    
+    # Información copiada de la orden de toma
+    nombre_cliente = models.CharField('Nombre del Cliente', max_length=255)
+    ruc_dni_cliente = models.CharField('RUC/DNI del Cliente', max_length=20)
+    empresa_cliente = models.CharField('Empresa', max_length=200, blank=True, null=True)
+    
+    # Detalles específicos de producción
+    proyecto_campania = models.CharField(
+        'Proyecto/Campaña',
+        max_length=255,
+        help_text='Nombre del proyecto o campaña'
+    )
+    
+    titulo_material = models.CharField(
+        'Título del Material',
+        max_length=255,
+        help_text='Título del material a producir'
+    )
+    
+    descripcion_breve = models.TextField(
+        'Descripción Breve',
+        help_text='Descripción breve del trabajo a realizar'
+    )
+    
+    tipo_produccion = models.CharField(
+        'Tipo de Producción',
+        max_length=50,
+        choices=[
+            ('video', 'Video'),
+            ('audio', 'Audio'),
+            ('edicion', 'Edición'),
+            ('animacion', 'Animación'),
+            ('mixto', 'Mixto'),
+        ],
+        default='video'
+    )
+    
+    especificaciones_tecnicas = models.TextField(
+        'Especificaciones Técnicas',
+        blank=True,
+        null=True,
+        help_text='Formatos, resoluciones, codecs, etc.'
+    )
+    
+    # Fechas de producción
+    fecha_inicio_planeada = models.DateField('Fecha Inicio Planeada')
+    fecha_fin_planeada = models.DateField('Fecha Fin Planeada')
+    fecha_inicio_real = models.DateField('Fecha Inicio Real', null=True, blank=True)
+    fecha_fin_real = models.DateField('Fecha Fin Real', null=True, blank=True)
+    
+    # Equipo y recursos
+    equipo_asignado = models.TextField(
+        'Equipo Asignado',
+        help_text='Equipo técnico asignado para la producción'
+    )
+    
+    recursos_necesarios = models.TextField(
+        'Recursos Necesarios',
+        blank=True,
+        null=True,
+        help_text='Recursos adicionales necesarios'
+    )
+    
+    # Estado y prioridad
+    estado = models.CharField(
+        'Estado',
+        max_length=20,
+        choices=ESTADO_CHOICES,
+        default='pendiente'
+    )
+    
+    prioridad = models.CharField(
+        'Prioridad',
+        max_length=10,
+        choices=PRIORIDAD_CHOICES,
+        default='normal'
+    )
+     # NUEVOS CAMPOS PARA GESTIÓN DE DOCUMENTOS (igual que OrdenToma)
+    plantilla_orden = models.ForeignKey(
+        'PlantillaOrden',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name='Plantilla de Orden de Producción',
+        help_text='Plantilla Word para generar la orden de producción'
+    )
+    
+    archivo_orden_firmada = models.FileField(
+        'Orden Firmada',
+        upload_to='ordenes_produccion_firmadas/',
+        null=True,
+        blank=True,
+        help_text='PDF de la orden de producción firmada por el cliente'
+    )
+    
+    fecha_subida_firmada = models.DateTimeField(
+        'Fecha Subida Firmada',
+        null=True,
+        blank=True
+    )
+    
+    # Archivos y entregables
+    archivos_entregables = models.TextField(
+        'Archivos Entregables',
+        blank=True,
+        null=True,
+        help_text='Lista de archivos a entregar'
+    )
+    
+    observaciones_produccion = models.TextField(
+        'Observaciones de Producción',
+        blank=True,
+        null=True
+    )
+    
+    # Responsables
+    productor_asignado = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        limit_choices_to={'rol': 'productor'},
+        related_name='ordenes_producidas',
+        verbose_name='Productor Asignado'
+    )
+    
+    # Fechas
+    fecha_creacion = models.DateTimeField('Fecha de Creación', default=timezone.now)
+    fecha_validacion = models.DateTimeField('Fecha de Validación', null=True, blank=True)
+    fecha_completado = models.DateTimeField('Fecha de Completado', null=True, blank=True)
+    
+    # Usuarios
+    validado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='ordenes_produccion_validadas',
+        verbose_name='Validado por'
+    )
+    
+    completado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='ordenes_produccion_completadas',
+        verbose_name='Completado por'
+    )
+    
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='ordenes_produccion_creadas',
+        verbose_name='Creada por'
+    )
+    
+    created_at = models.DateTimeField('Creada', auto_now_add=True)
+    updated_at = models.DateTimeField('Actualizada', auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Orden de Producción'
+        verbose_name_plural = 'Órdenes de Producción'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['estado', 'fecha_creacion']),
+            models.Index(fields=['orden_toma', 'estado']),
+            models.Index(fields=['codigo']),
+        ]
+    
+    def __str__(self):
+        return f"{self.codigo} - {self.nombre_cliente}"
+    
+    def save(self, *args, **kwargs):
+        """Método save para generar código y copiar datos"""
+        if not self.pk and not self.codigo:
+            self.codigo = self.generar_codigo()
+        
+        # Copiar datos de la orden de toma si no existen
+        if self.orden_toma and (not self.nombre_cliente or not self.proyecto_campania):
+            self.copiar_datos_orden_toma()
+        
+        super().save(*args, **kwargs)
+    
+    def generar_codigo(self):
+        """Genera código único para orden de producción"""
+        try:
+            ultima_orden = OrdenProduccion.objects.order_by('-id').first()
+            if ultima_orden:
+                siguiente_numero = ultima_orden.id + 1
+            else:
+                siguiente_numero = 1
+            
+            return f"OP{siguiente_numero:06d}"
+        except Exception:
+            import time
+            return f"OP{int(time.time())}"
+    
+    def copiar_datos_orden_toma(self):
+        """Copia datos de la orden de toma relacionada"""
+        if self.orden_toma:
+            self.nombre_cliente = self.orden_toma.nombre_cliente
+            self.ruc_dni_cliente = self.orden_toma.ruc_dni_cliente
+            self.empresa_cliente = self.orden_toma.empresa_cliente
+            self.proyecto_campania = self.orden_toma.proyecto_campania
+            self.titulo_material = self.orden_toma.titulo_material
+            self.descripcion_breve = self.orden_toma.descripcion_breve
+            self.equipo_asignado = self.orden_toma.equipo_asignado
+            self.recursos_necesarios = self.orden_toma.recursos_necesarios
+            self.fecha_inicio_planeada = self.orden_toma.fecha_produccion_inicio
+            self.fecha_fin_planeada = self.orden_toma.fecha_produccion_fin
+    
+    def iniciar_produccion(self):
+        """Cambia el estado a en producción"""
+        if self.estado == 'pendiente':
+            self.estado = 'en_produccion'
+            self.fecha_inicio_real = timezone.now().date()
+            self.save()
+    
+    def completar(self, user):
+        """Completa la orden de producción"""
+        self.estado = 'completado'
+        self.completado_por = user
+        self.fecha_completado = timezone.now()
+        self.fecha_fin_real = timezone.now().date()
+        self.save()
+    
+    def validar(self, user):
+        """Valida la orden de producción"""
+        self.estado = 'validado'
+        self.validado_por = user
+        self.fecha_validacion = timezone.now()
+        self.save()
+    
+    def cancelar(self):
+        """Cancela la orden de producción"""
+        self.estado = 'cancelado'
+        self.save()
+    
+    def get_absolute_url(self):
+        return reverse('custom_admin:orden_produccion_detail_api', kwargs={'order_id': self.pk})
+    
+    @property
+    def dias_retraso(self):
+        """Calcula días de retraso"""
+        if self.fecha_fin_planeada and self.estado != 'completado':
+            hoy = timezone.now().date()
+            if hoy > self.fecha_fin_planeada:
+                return (hoy - self.fecha_fin_planeada).days
+        return 0
+    def generar_orden_desde_plantilla(self, plantilla_id=None, user=None):
+        """Genera una orden para imprimilar similar a OrdenToma"""
+        # Obtener plantilla
+        if plantilla_id:
+            plantilla = PlantillaOrden.objects.get(id=plantilla_id)
+        else:
+            plantilla = PlantillaOrden.objects.filter(
+                is_default=True, is_active=True
+            ).first()
+            if not plantilla:
+                plantilla = PlantillaOrden.objects.filter(is_active=True).first()
+        
+        if not plantilla:
+            raise ValueError("No hay plantillas de orden disponibles")
+        
+        # Crear orden generada
+        orden_generada = OrdenGenerada.objects.create(
+            orden_produccion=self,  # Nuevo campo para relacionar con producción
+            plantilla_usada=plantilla,
+            generado_por=user or self.created_by,
+            estado='borrador'
+        )
+        
+        # Generar el PDF
+        if orden_generada.generar_orden_produccion_pdf():
+            return orden_generada
+        else:
+            orden_generada.delete()
+            raise ValueError("Error al generar la orden PDF")
+    
+    def subir_orden_firmada(self, archivo_firmado, usuario):
+        """Procesa la orden firmada subida - igual que OrdenToma"""
+        try:
+            # Guardar archivo
+            self.archivo_orden_firmada = archivo_firmado
+            self.fecha_subida_firmada = timezone.now()
+            
+            # Cambiar estado a validado
+            self.estado = 'validado'
+            self.validado_por = usuario
+            self.fecha_validacion = timezone.now()
+            
+            self.save()
+            
+            # Registrar en historial
+            HistorialOrdenProduccion.objects.create(
+                orden_produccion=self,
+                accion='validada',
+                usuario=usuario,
+                descripcion=f'Orden de producción firmada subida. Archivo: {archivo_firmado.name}'
+            )
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error subiendo orden firmada: {e}")
+            return False
+
+
+class HistorialOrdenProduccion(models.Model):
+    """
+    Historial de cambios de las órdenes de producción
+    """
+    
+    ACCION_CHOICES = [
+        ('creada', 'Creada'),
+        ('editada', 'Editada'),
+        ('iniciada', 'Producción Iniciada'),
+        ('completada', 'Completada'),
+        ('validada', 'Validada'),
+        ('cancelada', 'Cancelada'),
+    ]
+    
+    orden_produccion = models.ForeignKey(
+        OrdenProduccion,
+        on_delete=models.CASCADE,
+        related_name='historial',
+        verbose_name='Orden de Producción'
+    )
+    
+    accion = models.CharField('Acción', max_length=20, choices=ACCION_CHOICES)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    descripcion = models.TextField('Descripción')
+    
+    datos_anteriores = models.JSONField('Datos Anteriores', null=True, blank=True)
+    datos_nuevos = models.JSONField('Datos Nuevos', null=True, blank=True)
+    
+    fecha = models.DateTimeField('Fecha', auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'Historial de Orden de Producción'
+        verbose_name_plural = 'Historial de Órdenes de Producción'
+        ordering = ['-fecha']
+    
+    def __str__(self):
+        return f"{self.orden_produccion.codigo} - {self.get_accion_display()} - {self.fecha.strftime('%d/%m/%Y %H:%M')}"

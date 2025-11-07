@@ -2676,6 +2676,7 @@ def cliente_create_api(request):
         traceback.print_exc()
         messages.error(request, f'Error al crear el cliente: {str(e)}')
         return redirect('custom_admin:clientes_list')
+        
 @login_required
 def cliente_update_api(request, cliente_id):
     """API para actualizar un cliente existente"""
@@ -3598,12 +3599,11 @@ def orden_completar_y_generar_api(request, orden_toma_id):
         import traceback
         print(traceback.format_exc())
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
-
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["POST"])
 def orden_subir_validada_api(request, orden_generada_id):
-    """API para subir orden validada"""
+    """API para subir orden validada - CORREGIDA para crear orden de producción"""
     try:
         orden_generada = get_object_or_404(OrdenGenerada, pk=orden_generada_id)
         
@@ -3621,17 +3621,67 @@ def orden_subir_validada_api(request, orden_generada_id):
                 'error': 'El archivo debe ser un PDF'
             }, status=400)
         
-        # Marcar como validada
+        # ✅ Obtener la orden de toma relacionada
+        orden_toma = orden_generada.orden_toma
+        
+        # ✅ Marcar como validada
         orden_generada.marcar_como_validada(request.user, archivo)
+        
+        # ✅ CREAR ORDEN DE PRODUCCIÓN AUTOMÁTICAMENTE
+        from apps.orders.models import OrdenProduccion, HistorialOrdenProduccion
+        
+        orden_produccion_creada = False
+        
+        # Verificar si ya existe una orden de producción para esta orden de toma
+        if not OrdenProduccion.objects.filter(orden_toma=orden_toma).exists():
+            try:
+                orden_produccion = OrdenProduccion.objects.create(
+                    orden_toma=orden_toma,
+                    created_by=request.user,
+                    estado='pendiente',
+                    # Copiar datos automáticamente desde la orden de toma
+                    nombre_cliente=orden_toma.nombre_cliente,
+                    ruc_dni_cliente=orden_toma.ruc_dni_cliente,
+                    empresa_cliente=orden_toma.empresa_cliente,
+                    proyecto_campania=orden_toma.proyecto_campania or 'Proyecto por definir',
+                    titulo_material=orden_toma.titulo_material or 'Material por definir',
+                    descripcion_breve=orden_toma.descripcion_breve or 'Descripción por completar',
+                    equipo_asignado=orden_toma.equipo_asignado or 'Equipo por asignar',
+                    recursos_necesarios=orden_toma.recursos_necesarios or '',
+                    fecha_inicio_planeada=orden_toma.fecha_produccion_inicio or timezone.now().date(),
+                    fecha_fin_planeada=orden_toma.fecha_produccion_fin or (timezone.now() + timezone.timedelta(days=7)).date(),
+                    tipo_produccion='video'  # Valor por defecto
+                )
+                
+                print(f"✅ Orden de producción creada automáticamente: {orden_produccion.codigo}")
+                
+                # Crear entrada en el historial
+                HistorialOrdenProduccion.objects.create(
+                    orden_produccion=orden_produccion,
+                    accion='creada',
+                    usuario=request.user,
+                    descripcion=f'Orden de producción creada automáticamente al validar orden de toma {orden_toma.codigo}'
+                )
+                
+                orden_produccion_creada = True
+                
+            except Exception as e:
+                print(f"❌ Error al crear orden de producción automática: {e}")
         
         return JsonResponse({
             'success': True,
-            'message': 'Orden validada exitosamente'
+            'message': 'Orden validada exitosamente' + (' y orden de producción creada' if orden_produccion_creada else ''),
+            'orden_produccion_creada': orden_produccion_creada
         })
         
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
-
+        import traceback
+        print("❌ ERROR en orden_subir_validada_api:")
+        print(traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al subir el archivo: {str(e)}'
+        }, status=500)
 @login_required
 @user_passes_test(is_admin)
 def orden_descargar_api(request, orden_generada_id):
@@ -3883,3 +3933,499 @@ def actualizar_datos_clientes_ordenes():
             orden.copiar_datos_cliente()
             orden.save()
     print("✅ Todas las órdenes actualizadas")    
+# ==================== VISTAS PARA ÓRDENES DE PRODUCCIÓN ====================
+@login_required
+@user_passes_test(is_admin)
+def ordenes_produccion_list(request):
+    """Lista de órdenes de producción"""
+    from apps.orders.models import OrdenProduccion
+    
+    search = request.GET.get('search', '')
+    estado_filter = request.GET.get('estado', '')
+    tipo_filter = request.GET.get('tipo', '')
+    prioridad_filter = request.GET.get('prioridad', '')
+
+    ordenes = OrdenProduccion.objects.select_related(
+        'orden_toma', 'productor_asignado', 'created_by'
+    ).all()
+    
+    if search:
+        ordenes = ordenes.filter(
+            Q(codigo__icontains=search) |
+            Q(orden_toma__codigo__icontains=search) |
+            Q(nombre_cliente__icontains=search) |
+            Q(proyecto_campania__icontains=search)
+        )
+    
+    if estado_filter:
+        ordenes = ordenes.filter(estado=estado_filter)
+    
+    if tipo_filter:
+        ordenes = ordenes.filter(tipo_produccion=tipo_filter)
+    
+    if prioridad_filter:
+        ordenes = ordenes.filter(prioridad=prioridad_filter)
+
+    # Precalcular el valor absoluto para cada orden
+    ordenes_con_abs = []
+    for orden in ordenes:
+        # Calcular valor absoluto para días de retraso negativos
+        if orden.dias_retraso < 0:
+            orden.dias_retraso_abs = abs(orden.dias_retraso)
+        else:
+            orden.dias_retraso_abs = orden.dias_retraso
+        ordenes_con_abs.append(orden)
+
+    # Estadísticas
+    total_ordenes = OrdenProduccion.objects.count()
+    ordenes_pendientes = OrdenProduccion.objects.filter(estado='pendiente').count()
+    ordenes_en_produccion = OrdenProduccion.objects.filter(estado='en_produccion').count()
+    ordenes_completadas = OrdenProduccion.objects.filter(estado='completado').count()
+    ordenes_validadas = OrdenProduccion.objects.filter(estado='validado').count()
+
+    # Paginación
+    paginator = Paginator(ordenes_con_abs, 20)
+    page = request.GET.get('page', 1)
+    
+    try:
+        ordenes_paginadas = paginator.page(page)
+    except:
+        ordenes_paginadas = paginator.page(1)
+
+    # Obtener productores para filtros
+    productores = CustomUser.objects.filter(rol='productor', is_active=True).order_by('first_name', 'last_name')
+
+    context = {
+        'ordenes': ordenes_paginadas,
+        'total_ordenes': total_ordenes,
+        'ordenes_pendientes': ordenes_pendientes,
+        'ordenes_en_produccion': ordenes_en_produccion,
+        'ordenes_completadas': ordenes_completadas,
+        'ordenes_validadas': ordenes_validadas,
+        'search': search,
+        'estado_filter': estado_filter,
+        'tipo_filter': tipo_filter,
+        'prioridad_filter': prioridad_filter,
+        'productores': productores,
+        'tipos_produccion': OrdenProduccion._meta.get_field('tipo_produccion').choices,
+    }
+    return render(request, 'custom_admin/ordenes_produccion/list.html', context)
+@login_required
+@user_passes_test(is_admin)
+def orden_produccion_detail_api(request, order_id):
+    """API para obtener detalle de orden de producción"""
+    try:
+        from apps.orders.models import OrdenProduccion
+        
+        orden = get_object_or_404(OrdenProduccion, pk=order_id)
+        
+        # Calcular valor absoluto para días de retraso
+        dias_retraso_abs = abs(orden.dias_retraso) if orden.dias_retraso else 0
+        
+        return JsonResponse({
+            'success': True,
+            'orden': {
+                'id': orden.id,
+                'codigo': orden.codigo,
+                'orden_toma_id': orden.orden_toma.id,
+                'orden_toma_codigo': orden.orden_toma.codigo,
+                'nombre_cliente': orden.nombre_cliente,
+                'ruc_dni_cliente': orden.ruc_dni_cliente,
+                'empresa_cliente': orden.empresa_cliente,
+                'proyecto_campania': orden.proyecto_campania,
+                'titulo_material': orden.titulo_material,
+                'descripcion_breve': orden.descripcion_breve,
+                'tipo_produccion': orden.tipo_produccion,
+                'especificaciones_tecnicas': orden.especificaciones_tecnicas,
+                'fecha_inicio_planeada': orden.fecha_inicio_planeada.strftime('%Y-%m-%d') if orden.fecha_inicio_planeada else None,
+                'fecha_fin_planeada': orden.fecha_fin_planeada.strftime('%Y-%m-%d') if orden.fecha_fin_planeada else None,
+                'fecha_inicio_real': orden.fecha_inicio_real.strftime('%Y-%m-%d') if orden.fecha_inicio_real else None,
+                'fecha_fin_real': orden.fecha_fin_real.strftime('%Y-%m-%d') if orden.fecha_fin_real else None,
+                'equipo_asignado': orden.equipo_asignado,
+                'recursos_necesarios': orden.recursos_necesarios,
+                'archivos_entregables': orden.archivos_entregables,
+                'observaciones_produccion': orden.observaciones_produccion,
+                'estado': orden.estado,
+                'prioridad': orden.prioridad,
+                'productor_asignado_id': orden.productor_asignado.id if orden.productor_asignado else None,
+                'productor_asignado_nombre': orden.productor_asignado.get_full_name() if orden.productor_asignado else None,
+                'dias_retraso': orden.dias_retraso,
+                'dias_retraso_abs': dias_retraso_abs,  # Nuevo campo
+                'fecha_creacion': orden.fecha_creacion.strftime('%d/%m/%Y %H:%M'),
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def orden_produccion_create_api(request):
+    """API para crear orden de producción manualmente"""
+    try:
+        from apps.orders.models import OrdenProduccion, OrdenToma
+        
+        data = json.loads(request.body)
+        
+        orden_toma_id = data.get('orden_toma_id')
+        if not orden_toma_id:
+            return JsonResponse({'success': False, 'error': 'Orden de toma requerida'}, status=400)
+        
+        orden_toma = get_object_or_404(OrdenToma, pk=orden_toma_id)
+        
+        # Verificar si ya existe una orden de producción para esta orden de toma
+        if OrdenProduccion.objects.filter(orden_toma=orden_toma).exists():
+            return JsonResponse({
+                'success': False, 
+                'error': 'Ya existe una orden de producción para esta orden de toma'
+            }, status=400)
+        
+        orden = OrdenProduccion.objects.create(
+            orden_toma=orden_toma,
+            prioridad=data.get('prioridad', 'normal'),
+            tipo_produccion=data.get('tipo_produccion', 'video'),
+            productor_asignado_id=data.get('productor_asignado_id'),
+            created_by=request.user,
+        )
+        
+        # Registrar en LogEntry
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(orden).pk,
+            object_id=orden.pk,
+            object_repr=orden.codigo,
+            action_flag=ADDITION,
+            change_message=f'Orden de producción creada manualmente desde orden de toma {orden_toma.codigo}'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Orden de producción creada exitosamente',
+            'orden_id': orden.id,
+            'codigo': orden.codigo
+        })
+        
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["PUT", "POST"])
+def orden_produccion_update_api(request, order_id):
+    """API para actualizar orden de producción"""
+    try:
+        from apps.orders.models import OrdenProduccion
+        from datetime import datetime
+        
+        orden = get_object_or_404(OrdenProduccion, pk=order_id)
+        data = json.loads(request.body)
+        
+        # Actualizar campos
+        orden.tipo_produccion = data.get('tipo_produccion', orden.tipo_produccion)
+        orden.especificaciones_tecnicas = data.get('especificaciones_tecnicas', orden.especificaciones_tecnicas)
+        orden.archivos_entregables = data.get('archivos_entregables', orden.archivos_entregables)
+        orden.observaciones_produccion = data.get('observaciones_produccion', orden.observaciones_produccion)
+        orden.prioridad = data.get('prioridad', orden.prioridad)
+        
+        # Fechas
+        if data.get('fecha_inicio_planeada'):
+            orden.fecha_inicio_planeada = datetime.strptime(data.get('fecha_inicio_planeada'), '%Y-%m-%d').date()
+        if data.get('fecha_fin_planeada'):
+            orden.fecha_fin_planeada = datetime.strptime(data.get('fecha_fin_planeada'), '%Y-%m-%d').date()
+        
+        # Productor asignado
+        if data.get('productor_asignado_id'):
+            try:
+                productor = CustomUser.objects.get(pk=data['productor_asignado_id'], rol='productor')
+                orden.productor_asignado = productor
+            except CustomUser.DoesNotExist:
+                pass
+        
+        orden.save()
+        
+        # Registrar en LogEntry
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(orden).pk,
+            object_id=orden.pk,
+            object_repr=orden.codigo,
+            action_flag=CHANGE,
+            change_message=f'Orden de producción actualizada'
+        )
+        
+        return JsonResponse({'success': True, 'message': 'Orden de producción actualizada exitosamente'})
+        
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["DELETE", "POST"])
+def orden_produccion_delete_api(request, order_id):
+    """API para eliminar orden de producción"""
+    try:
+        from apps.orders.models import OrdenProduccion
+        
+        orden = get_object_or_404(OrdenProduccion, pk=order_id)
+        codigo = orden.codigo
+        
+        # Registrar en LogEntry antes de eliminar
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(orden).pk,
+            object_id=orden.pk,
+            object_repr=codigo,
+            action_flag=DELETION,
+            change_message=f'Orden de producción eliminada'
+        )
+        
+        orden.delete()
+        
+        return JsonResponse({'success': True, 'message': f'Orden de producción {codigo} eliminada exitosamente'})
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def orden_produccion_iniciar_api(request, order_id):
+    """API para iniciar producción"""
+    try:
+        from apps.orders.models import OrdenProduccion
+        
+        orden = get_object_or_404(OrdenProduccion, pk=order_id)
+        
+        if orden.estado != 'pendiente':
+            return JsonResponse({
+                'success': False, 
+                'error': 'Solo se pueden iniciar órdenes en estado pendiente'
+            }, status=400)
+        
+        orden.iniciar_produccion()
+        
+        return JsonResponse({
+            'success': True, 
+            'message': 'Producción iniciada exitosamente',
+            'nuevo_estado': orden.estado
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def orden_produccion_completar_api(request, order_id):
+    """API para completar producción"""
+    try:
+        from apps.orders.models import OrdenProduccion
+        
+        orden = get_object_or_404(OrdenProduccion, pk=order_id)
+        
+        if orden.estado != 'en_produccion':
+            return JsonResponse({
+                'success': False, 
+                'error': 'Solo se pueden completar órdenes en estado de producción'
+            }, status=400)
+        
+        orden.completar(request.user)
+        
+        return JsonResponse({
+            'success': True, 
+            'message': 'Producción completada exitosamente',
+            'nuevo_estado': orden.estado
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def orden_produccion_validar_api(request, order_id):
+    """API para validar orden de producción"""
+    try:
+        from apps.orders.models import OrdenProduccion
+        
+        orden = get_object_or_404(OrdenProduccion, pk=order_id)
+        
+        if orden.estado != 'completado':
+            return JsonResponse({
+                'success': False, 
+                'error': 'Solo se pueden validar órdenes completadas'
+            }, status=400)
+        
+        orden.validar(request.user)
+        
+        return JsonResponse({
+            'success': True, 
+            'message': 'Orden de producción validada exitosamente',
+            'nuevo_estado': orden.estado
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+# Añade estas APIs en views.py
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def orden_produccion_generar_api(request, order_id):
+    """API para generar orden de producción desde plantilla"""
+    try:
+        from apps.orders.models import OrdenProduccion, OrdenGenerada
+        
+        orden = get_object_or_404(OrdenProduccion, pk=order_id)
+        data = json.loads(request.body)
+        
+        plantilla_id = data.get('plantilla_id')
+        
+        if not plantilla_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Plantilla requerida'
+            }, status=400)
+        
+        # Generar la orden
+        orden_generada = orden.generar_orden_desde_plantilla(
+            plantilla_id=plantilla_id,
+            user=request.user
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Orden de producción generada exitosamente',
+            'orden_generada_id': orden_generada.id,
+            'numero_orden': orden_generada.numero_orden,
+            'archivo_url': orden_generada.archivo_orden_pdf.url if orden_generada.archivo_orden_pdf else None
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def orden_produccion_subir_firmada_api(request, order_id):
+    """API para subir orden de producción firmada"""
+    try:
+        from apps.orders.models import OrdenProduccion
+        
+        orden = get_object_or_404(OrdenProduccion, pk=order_id)
+        
+        if 'archivo' not in request.FILES:
+            return JsonResponse({
+                'success': False,
+                'error': 'Debe seleccionar un archivo PDF'
+            }, status=400)
+        
+        archivo = request.FILES['archivo']
+        
+        if not archivo.name.endswith('.pdf'):
+            return JsonResponse({
+                'success': False,
+                'error': 'El archivo debe ser un PDF'
+            }, status=400)
+        
+        # Procesar la orden firmada
+        if orden.subir_orden_firmada(archivo, request.user):
+            return JsonResponse({
+                'success': True,
+                'message': 'Orden de producción validada exitosamente',
+                'nuevo_estado': orden.estado
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'Error al procesar la orden firmada'
+            }, status=500)
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+def orden_produccion_descargar_plantilla_api(request, order_id):
+    """API para descargar la orden generada desde plantilla"""
+    try:
+        from apps.orders.models import OrdenProduccion
+        from django.http import FileResponse
+        import os
+        
+        orden = get_object_or_404(OrdenProduccion, pk=order_id)
+        
+        # Buscar si ya existe una orden generada
+        orden_generada = orden.ordenes_generadas_produccion.filter(
+            estado='generada'
+        ).first()
+        
+        if orden_generada and orden_generada.archivo_orden_pdf:
+            # Si ya existe PDF generado, descargarlo
+            file_name = f"Orden_Produccion_{orden.codigo}.pdf"
+            response = FileResponse(
+                orden_generada.archivo_orden_pdf.open('rb'),
+                content_type='application/pdf'
+            )
+            response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+            return response
+        else:
+            # Si no existe, generar una nueva
+            if not orden.plantilla_orden:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'No hay plantilla asignada para esta orden'
+                }, status=400)
+            
+            # Generar orden desde plantilla
+            temp_file_path = orden.generar_orden_desde_plantilla().archivo_orden_pdf.path
+            
+            # Crear respuesta de descarga
+            file_name = f"Orden_Produccion_{orden.codigo}.pdf"
+            response = FileResponse(
+                open(temp_file_path, 'rb'),
+                content_type='application/pdf'
+            )
+            response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+            
+            return response
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+def orden_produccion_obtener_plantillas_api(request, order_id):
+    """API para obtener plantillas disponibles para orden de producción"""
+    try:
+        from apps.orders.models import OrdenProduccion
+        
+        orden = get_object_or_404(OrdenProduccion, pk=order_id)
+        
+        # Obtener plantillas activas del tipo adecuado para producción
+        plantillas = PlantillaOrden.objects.filter(
+            is_active=True,
+            tipo_orden__in=['produccion_audio', 'edicion_video', 'produccion_completa', 'otro']
+        ).order_by('-is_default', 'nombre')
+        
+        data = []
+        for plantilla in plantillas:
+            data.append({
+                'id': plantilla.id,
+                'nombre': plantilla.nombre,
+                'tipo_orden': plantilla.tipo_orden,
+                'tipo_orden_display': plantilla.get_tipo_orden_display(),
+                'version': plantilla.version,
+                'is_default': plantilla.is_default,
+                'descripcion': plantilla.descripcion or '',
+                'archivo_url': plantilla.archivo_plantilla.url if plantilla.archivo_plantilla else None
+            })
+        
+        return JsonResponse({'success': True, 'plantillas': data})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

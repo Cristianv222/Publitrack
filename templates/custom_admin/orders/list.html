@@ -276,14 +276,22 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if orden.estado == 'pendiente' or orden.estado == 'validado' %}
+                                {% if orden.estado == 'pendiente' %}
                                     <button class="btn btn-sm btn-success btn-action-completar" 
                                             onclick="completarToma({{ orden.id }})"
                                             title="Completar Toma">
                                         <i class="fas fa-check-circle me-1"></i>Completar Toma
                                     </button>
+                                {% elif orden.estado == 'validado' %}
+                                    <span class="text-muted">Validado </span>
                                 {% elif orden.estado == 'no_validado' %}
                                     <span class="text-muted">Esperando validación</span>
+                                {% elif orden.estado == 'en_produccion' %}
+                                    <span class="text-muted">En producción</span>
+                                {% elif orden.estado == 'completado' %}
+                                    <span class="text-muted">Completado</span>
+                                {% elif orden.estado == 'cancelado' %}
+                                    <span class="text-muted">Cancelado</span>
                                 {% else %}
                                     <span class="text-muted">Finalizada</span>
                                 {% endif %}
@@ -305,11 +313,13 @@
                                                 title="Descargar PDF">
                                             <i class="fas fa-download"></i>
                                         </button>
-                                        <button class="btn btn-subir btn-action" 
-                                                onclick="subirOrdenValidada({{ orden.id }}, '{{ orden.codigo|escapejs }}')"
-                                                title="Subir Orden Validada">
-                                            <i class="fas fa-upload"></i>
-                                        </button>
+                                        {% for og in orden.ordenes_generadas.all %}
+    <button class="btn btn-subir btn-action" 
+            onclick="subirOrdenValidada({{ og.id }}, '{{ orden.codigo|escapejs }}')"
+            title="Subir Orden Validada">
+        <i class="fas fa-upload"></i>
+    </button>
+{% endfor %}
                                     {% elif orden.estado == 'validado' %}
                                         <!-- Orden validada -->
                                         <button class="btn btn-descargar btn-action" 
@@ -696,176 +706,212 @@ function guardarOrden() {
 }
 
 function completarToma(ordenId) {
-    // Primero cargar plantillas disponibles
-    fetch('/panel/plantillas-orden/api/')
+    // Primero verificar el estado actual
+    fetch(`/panel/orders/${ordenId}/detalle/`)
         .then(response => response.json())
-        .then(plantillasData => {
-            if (!plantillasData.success || !plantillasData.plantillas || plantillasData.plantillas.length === 0) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'No hay plantillas disponibles. Contacte al administrador.',
-                    confirmButtonColor: '#3085d6'
-                });
-                return;
-            }
+        .then(ordenData => {
+            if (ordenData.success) {
+                const orden = ordenData.orden;
+                
+                if (orden.estado !== 'pendiente') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Acción no permitida',
+                        text: `No se puede completar una orden en estado "${orden.estado}". Solo se pueden completar órdenes en estado "Pendiente".`,
+                        confirmButtonColor: '#3085d6'
+                    });
+                    return;
+                }
+                
+                // Continuar con el proceso normal si está en estado pendiente
+                // Primero cargar plantillas disponibles
+                fetch('/panel/plantillas-orden/api/')
+                    .then(response => response.json())
+                    .then(plantillasData => {
+                        if (!plantillasData.success || !plantillasData.plantillas || plantillasData.plantillas.length === 0) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'No hay plantillas disponibles. Contacte al administrador.',
+                                confirmButtonColor: '#3085d6'
+                            });
+                            return;
+                        }
 
-            // Luego cargar datos de la orden
-            return fetch(`/panel/orders/${ordenId}/detalle/`)
-                .then(response => response.json())
-                .then(ordenData => {
-                    if (ordenData.success) {
-                        const orden = ordenData.orden;
-                        
-                        // Generar opciones de plantillas
-                        let plantillasOptions = '';
-                        plantillasData.plantillas.forEach(plantilla => {
-                            plantillasOptions += `
-                                <option value="${plantilla.id}" ${plantilla.is_default ? 'selected' : ''}>
-                                    ${plantilla.nombre} (${plantilla.tipo_orden_display}) - v${plantilla.version}
-                                    ${plantilla.is_default ? ' ★' : ''}
-                                </option>
-                            `;
-                        });
+                        // Luego cargar datos de la orden
+                        return fetch(`/panel/orders/${ordenId}/detalle/`)
+                            .then(response => response.json())
+                            .then(ordenData => {
+                                if (ordenData.success) {
+                                    const orden = ordenData.orden;
+                                    
+                                    // Generar opciones de plantillas
+                                    let plantillasOptions = '';
+                                    plantillasData.plantillas.forEach(plantilla => {
+                                        plantillasOptions += `
+                                            <option value="${plantilla.id}" ${plantilla.is_default ? 'selected' : ''}>
+                                                ${plantilla.nombre} (${plantilla.tipo_orden_display}) - v${plantilla.version}
+                                                ${plantilla.is_default ? ' ★' : ''}
+                                            </option>
+                                        `;
+                                    });
 
-                        const modalHtml = `
-                            <div class="modal fade" id="modalCompletarToma" tabindex="-1">
-                                <div class="modal-dialog modal-lg">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">Completar Toma - ${orden.codigo}</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    const modalHtml = `
+                                        <div class="modal fade" id="modalCompletarToma" tabindex="-1">
+                                            <div class="modal-dialog modal-lg">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Completar Toma - ${orden.codigo}</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <form id="formCompletarToma">
+                                                            {% csrf_token %}
+                                                            <input type="hidden" name="orden_id" value="${ordenId}">
+                                                            
+                                                            <!-- Selección de Plantilla -->
+                                                            <h6 class="mb-3 text-primary">Seleccionar Plantilla</h6>
+                                                            <div class="row g-3 mb-4">
+                                                                <div class="col-12">
+                                                                    <label class="form-label">Plantilla para la orden <span class="text-danger">*</span></label>
+                                                                    <select class="form-select" name="plantilla_id" id="plantilla_id" required>
+                                                                        <option value="">Seleccionar plantilla...</option>
+                                                                        ${plantillasOptions}
+                                                                    </select>
+                                                                    <small class="text-muted">Selecciona la plantilla que se usará para generar el PDF de la orden</small>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <h6 class="mb-3 text-primary">Información de la Producción</h6>
+                                                            <div class="row g-3 mb-3">
+                                                                <div class="col-md-6">
+                                                                    <label class="form-label">Proyecto/Campaña <span class="text-danger">*</span></label>
+                                                                    <input type="text" class="form-control" name="proyecto_campania" required
+                                                                           value="${orden.proyecto_campania || ''}" placeholder="Nombre del proyecto o campaña">
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <label class="form-label">Título del Material <span class="text-danger">*</span></label>
+                                                                    <input type="text" class="form-control" name="titulo_material" required
+                                                                           value="${orden.titulo_material || ''}" placeholder="Título del material a producir">
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div class="row g-3 mb-3">
+                                                                <div class="col-md-12">
+                                                                    <label class="form-label">Descripción Breve <span class="text-danger">*</span></label>
+                                                                    <textarea class="form-control" name="descripcion_breve" rows="2" required placeholder="Descripción breve del trabajo a realizar">${orden.descripcion_breve || ''}</textarea>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div class="row g-3 mb-3">
+                                                                <div class="col-md-12">
+                                                                    <label class="form-label">Locaciones <span class="text-danger">*</span></label>
+                                                                    <input type="text" class="form-control" name="locaciones" required
+                                                                           value="${orden.locaciones || ''}" placeholder="Locaciones donde se realizará la toma">
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <h6 class="mb-3 text-primary">Fechas y Horarios</h6>
+                                                            <div class="row g-3 mb-3">
+                                                                <div class="col-md-6">
+                                                                    <label class="form-label">Fecha Inicio Producción <span class="text-danger">*</span></label>
+                                                                    <input type="date" class="form-control" name="fecha_produccion_inicio" required
+                                                                           value="${orden.fecha_produccion_inicio || ''}">
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <label class="form-label">Fecha Fin Producción <span class="text-danger">*</span></label>
+                                                                    <input type="date" class="form-control" name="fecha_produccion_fin" required
+                                                                           value="${orden.fecha_produccion_fin || ''}">
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div class="row g-3 mb-3">
+                                                                <div class="col-md-6">
+                                                                    <label class="form-label">Hora Inicio <span class="text-danger">*</span></label>
+                                                                    <input type="time" class="form-control" name="hora_inicio" required
+                                                                           value="${orden.hora_inicio || ''}">
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <label class="form-label">Hora Fin <span class="text-danger">*</span></label>
+                                                                    <input type="time" class="form-control" name="hora_fin" required
+                                                                           value="${orden.hora_fin || ''}">
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <h6 class="mb-3 text-primary">Recursos y Equipos</h6>
+                                                            <div class="row g-3 mb-3">
+                                                                <div class="col-md-12">
+                                                                    <label class="form-label">Equipo Asignado <span class="text-danger">*</span></label>
+                                                                    <input type="text" class="form-control" name="equipo_asignado" required
+                                                                           value="${orden.equipo_asignado || ''}" placeholder="Equipo técnico asignado">
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div class="row g-3 mb-3">
+                                                                <div class="col-md-12">
+                                                                    <label class="form-label">Recursos Necesarios</label>
+                                                                    <textarea class="form-control" name="recursos_necesarios" rows="2" placeholder="Recursos adicionales necesarios">${orden.recursos_necesarios || ''}</textarea>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div class="row g-3 mb-3">
+                                                                <div class="col-md-12">
+                                                                    <label class="form-label">Observaciones de Completado</label>
+                                                                    <textarea class="form-control" name="observaciones_completado" rows="2" placeholder="Observaciones al completar la toma">${orden.observaciones_completado || ''}</textarea>
+                                                                </div>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                            <i class="fas fa-times me-2"></i>Cancelar
+                                                        </button>
+                                                        <button type="button" class="btn btn-success" onclick="guardarCompletarToma()">
+                                                            <i class="fas fa-check-circle me-2"></i>Completar Toma y Generar PDF
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="modal-body">
-                                            <form id="formCompletarToma">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="orden_id" value="${ordenId}">
-                                                
-                                                <!-- Selección de Plantilla -->
-                                                <h6 class="mb-3 text-primary">Seleccionar Plantilla</h6>
-                                                <div class="row g-3 mb-4">
-                                                    <div class="col-12">
-                                                        <label class="form-label">Plantilla para la orden <span class="text-danger">*</span></label>
-                                                        <select class="form-select" name="plantilla_id" id="plantilla_id" required>
-                                                            <option value="">Seleccionar plantilla...</option>
-                                                            ${plantillasOptions}
-                                                        </select>
-                                                        <small class="text-muted">Selecciona la plantilla que se usará para generar el PDF de la orden</small>
-                                                    </div>
-                                                </div>
-                                                
-                                                <h6 class="mb-3 text-primary">Información de la Producción</h6>
-                                                <div class="row g-3 mb-3">
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Proyecto/Campaña <span class="text-danger">*</span></label>
-                                                        <input type="text" class="form-control" name="proyecto_campania" required
-                                                               value="${orden.proyecto_campania || ''}" placeholder="Nombre del proyecto o campaña">
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Título del Material <span class="text-danger">*</span></label>
-                                                        <input type="text" class="form-control" name="titulo_material" required
-                                                               value="${orden.titulo_material || ''}" placeholder="Título del material a producir">
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="row g-3 mb-3">
-                                                    <div class="col-md-12">
-                                                        <label class="form-label">Descripción Breve <span class="text-danger">*</span></label>
-                                                        <textarea class="form-control" name="descripcion_breve" rows="2" required placeholder="Descripción breve del trabajo a realizar">${orden.descripcion_breve || ''}</textarea>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="row g-3 mb-3">
-                                                    <div class="col-md-12">
-                                                        <label class="form-label">Locaciones <span class="text-danger">*</span></label>
-                                                        <input type="text" class="form-control" name="locaciones" required
-                                                               value="${orden.locaciones || ''}" placeholder="Locaciones donde se realizará la toma">
-                                                    </div>
-                                                </div>
-                                                
-                                                <h6 class="mb-3 text-primary">Fechas y Horarios</h6>
-                                                <div class="row g-3 mb-3">
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Fecha Inicio Producción <span class="text-danger">*</span></label>
-                                                        <input type="date" class="form-control" name="fecha_produccion_inicio" required
-                                                               value="${orden.fecha_produccion_inicio || ''}">
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Fecha Fin Producción <span class="text-danger">*</span></label>
-                                                        <input type="date" class="form-control" name="fecha_produccion_fin" required
-                                                               value="${orden.fecha_produccion_fin || ''}">
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="row g-3 mb-3">
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Hora Inicio <span class="text-danger">*</span></label>
-                                                        <input type="time" class="form-control" name="hora_inicio" required
-                                                               value="${orden.hora_inicio || ''}">
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Hora Fin <span class="text-danger">*</span></label>
-                                                        <input type="time" class="form-control" name="hora_fin" required
-                                                               value="${orden.hora_fin || ''}">
-                                                    </div>
-                                                </div>
-                                                
-                                                <h6 class="mb-3 text-primary">Recursos y Equipos</h6>
-                                                <div class="row g-3 mb-3">
-                                                    <div class="col-md-12">
-                                                        <label class="form-label">Equipo Asignado <span class="text-danger">*</span></label>
-                                                        <input type="text" class="form-control" name="equipo_asignado" required
-                                                               value="${orden.equipo_asignado || ''}" placeholder="Equipo técnico asignado">
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="row g-3 mb-3">
-                                                    <div class="col-md-12">
-                                                        <label class="form-label">Recursos Necesarios</label>
-                                                        <textarea class="form-control" name="recursos_necesarios" rows="2" placeholder="Recursos adicionales necesarios">${orden.recursos_necesarios || ''}</textarea>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="row g-3 mb-3">
-                                                    <div class="col-md-12">
-                                                        <label class="form-label">Observaciones de Completado</label>
-                                                        <textarea class="form-control" name="observaciones_completado" rows="2" placeholder="Observaciones al completar la toma">${orden.observaciones_completado || ''}</textarea>
-                                                    </div>
-                                                </div>
-                                            </form>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                                <i class="fas fa-times me-2"></i>Cancelar
-                                            </button>
-                                            <button type="button" class="btn btn-success" onclick="guardarCompletarToma()">
-                                                <i class="fas fa-check-circle me-2"></i>Completar Toma y Generar PDF
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                        
-                        // Añadir el modal al DOM
-                        document.body.insertAdjacentHTML('beforeend', modalHtml);
-                        const modal = new bootstrap.Modal(document.getElementById('modalCompletarToma'));
-                        modal.show();
-                        
-                        // Limpiar el modal cuando se cierre
-                        document.getElementById('modalCompletarToma').addEventListener('hidden.bs.modal', function() {
-                            this.remove();
-                        });
-                        
-                    } else {
+                                    `;
+                                    
+                                    // Añadir el modal al DOM
+                                    document.body.insertAdjacentHTML('beforeend', modalHtml);
+                                    const modal = new bootstrap.Modal(document.getElementById('modalCompletarToma'));
+                                    modal.show();
+                                    
+                                    // Limpiar el modal cuando se cierre
+                                    document.getElementById('modalCompletarToma').addEventListener('hidden.bs.modal', function() {
+                                        this.remove();
+                                    });
+                                    
+                                } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Error',
+                                        text: ordenData.error || 'Error al cargar los datos',
+                                        confirmButtonColor: '#3085d6'
+                                    });
+                                }
+                            });
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
-                            text: ordenData.error || 'Error al cargar los datos',
+                            text: 'Error al cargar los datos',
                             confirmButtonColor: '#3085d6'
                         });
-                    }
+                    });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: ordenData.error || 'Error al cargar los datos',
+                    confirmButtonColor: '#3085d6'
                 });
+            }
         })
         .catch(error => {
             console.error('Error:', error);
@@ -1326,7 +1372,6 @@ function subirOrdenValidada(ordenId, codigoOrden) {
     
     modalSubirOrden.show();
 }
-
 function subirOrdenValidadaConfirmar() {
     const form = document.getElementById('formSubirOrden');
     const ordenId = document.getElementById('subir_orden_id').value;
@@ -1373,7 +1418,7 @@ function subirOrdenValidadaConfirmar() {
                 <div class="spinner-border text-success mb-3" style="width: 3rem; height: 3rem;" role="status">
                     <span class="visually-hidden">Subiendo...</span>
                 </div>
-                <p class="text-muted mb-0">Procesando archivo y actualizando estado...</p>
+                <p class="text-muted mb-0">Procesando archivo, validando orden y creando orden de producción...</p>
             </div>
         `,
         allowOutsideClick: false,
@@ -1390,16 +1435,36 @@ function subirOrdenValidadaConfirmar() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            let mensajeHtml = `
+                <p>La orden ha sido validada correctamente.</p>
+                <p class="text-muted">Estado: <strong>Validado</strong></p>
+            `;
+            
+            if (data.orden_produccion_creada) {
+                mensajeHtml += `
+                    <div class="alert alert-success mt-3">
+                        <i class="fas fa-cogs me-2"></i>
+                        <strong>¡Orden de producción creada automáticamente!</strong>
+                        <p class="mb-0 mt-1">Se ha generado una nueva orden de producción con todos los datos de esta toma.</p>
+                    </div>
+                `;
+            }
+            
             Swal.fire({
                 icon: 'success',
                 title: '¡Orden Validada!',
-                html: `
-                    <p>La orden ha sido validada correctamente.</p>
-                    <p class="text-muted">Estado: <strong>Validado</strong></p>
-                `,
-                confirmButtonColor: '#28a745'
-            }).then(() => {
-                window.location.reload();
+                html: mensajeHtml,
+                confirmButtonColor: '#28a745',
+                showCancelButton: true,
+                cancelButtonText: 'Cerrar',
+                confirmButtonText: data.orden_produccion_creada ? 'Ver Órdenes Producción' : 'Aceptar'
+            }).then((result) => {
+                if (result.isConfirmed && data.orden_produccion_creada) {
+                    // Redirigir a órdenes de producción
+                    window.location.href = '/panel/ordenes-produccion/';
+                } else {
+                    window.location.reload();
+                }
             });
         } else {
             Swal.fire({

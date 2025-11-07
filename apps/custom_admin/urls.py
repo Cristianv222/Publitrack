@@ -127,4 +127,17 @@ path('orders/generadas/<int:orden_generada_id>/verificar/', views.orden_verifica
 path('orders/generadas/<int:orden_generada_id>/subir-validada/', views.orden_subir_validada_api, name='orden_subir_validada_api'),
 path('orders/<int:orden_toma_id>/generar/', views.orden_generar_api, name='orden_generar_api'),
 path('plantillas-orden/api/', views.api_plantillas_orden, name='api_plantillas_orden'),
+# ==================== URLs PARA ÓRDENES DE PRODUCCIÓN ====================
+path('ordenes-produccion/', views.ordenes_produccion_list, name='ordenes_produccion_list'),
+path('ordenes-produccion/<int:order_id>/detalle/', views.orden_produccion_detail_api, name='orden_produccion_detail_api'),
+path('ordenes-produccion/crear/', views.orden_produccion_create_api, name='orden_produccion_create_api'),
+path('ordenes-produccion/<int:order_id>/editar/', views.orden_produccion_update_api, name='orden_produccion_update_api'),
+path('ordenes-produccion/<int:order_id>/eliminar/', views.orden_produccion_delete_api, name='orden_produccion_delete_api'),
+path('ordenes-produccion/<int:order_id>/iniciar/', views.orden_produccion_iniciar_api, name='orden_produccion_iniciar_api'),
+path('ordenes-produccion/<int:order_id>/completar/', views.orden_produccion_completar_api, name='orden_produccion_completar_api'),
+path('ordenes-produccion/<int:order_id>/validar/', views.orden_produccion_validar_api, name='orden_produccion_validar_api'),
+path('ordenes-produccion/<int:order_id>/generar/', views.orden_produccion_generar_api, name='orden_produccion_generar_api'),
+path('ordenes-produccion/<int:order_id>/subir-firmada/', views.orden_produccion_subir_firmada_api, name='orden_produccion_subir_firmada_api'),
+path('ordenes-produccion/<int:order_id>/descargar-plantilla/', views.orden_produccion_descargar_plantilla_api, name='orden_produccion_descargar_plantilla_api'),
+path('ordenes-produccion/<int:order_id>/plantillas/', views.orden_produccion_obtener_plantillas_api, name='orden_produccion_obtener_plantillas_api'),
 ]
