@@ -1096,18 +1096,24 @@ class PlantillaContrato(models.Model):
                 'DURACION_SPOT': 'Duración del spot en segundos',
                 'FECHA_ACTUAL': 'Fecha actual de generación',
                 'NUMERO_CONTRATO': 'Número único del contrato',
+                'NOMBRE_CONTACTO': 'Nombre del contacto principal',
+            
+            # ✅ NUEVAS VARIABLES AGREGADAS
+                'CARGO_CLIENTE': 'Cargo del cliente en la empresa',
+                'PROFESION_CLIENTE': 'Profesión del cliente',
+                'CARGO': 'Alias de CARGO_CLIENTE',
+                'PROFESION': 'Alias de PROFESION_CLIENTE',
             }
-        
-        # Si se marca como default, desmarcar las demás
+    
+    # Si se marca como default, desmarcar las demás
         if self.is_default:
             PlantillaContrato.objects.filter(
                 tipo_contrato=self.tipo_contrato,
                 is_default=True
             ).exclude(pk=self.pk).update(is_default=False)
-        
-        super().save(*args, **kwargs)
     
-    def get_absolute_url(self):
+        super().save(*args, **kwargs)
+def get_absolute_url(self):
         return reverse('content:plantilla_contrato_detail', kwargs={'pk': self.pk})
 def str_to_date(s):
     try:
@@ -1218,7 +1224,6 @@ class ContratoGenerado(models.Model):
         raise Exception("No se pudo generar un número de contrato único")
 
     def generar_contrato(self):
-    
         try:
             from docxtpl import DocxTemplate
             from io import BytesIO
@@ -1231,7 +1236,7 @@ class ContratoGenerado(models.Model):
                 raise ValueError("No hay plantilla asignada")
 
             doc = DocxTemplate(self.plantilla_usada.archivo_plantilla.path)
-            cliente = self.cliente   # <--- ESTE CAMBIO!
+            cliente = self.cliente
             datos_gen = self.datos_generacion
 
             valor_sin_iva = self.valor_sin_iva
@@ -1252,6 +1257,17 @@ class ContratoGenerado(models.Model):
             else:
                 duracion_dias = 30
             duracion_meses = round(duracion_dias / 30, 1)
+
+        # ✅ NUEVO: Obtener cargo y profesión del cliente
+            cargo_cliente = getattr(cliente, 'cargo_empresa', '') or ''
+            profesion_cliente = getattr(cliente, 'profesion', '') or ''
+        
+        # ✅ NUEVO: Obtener nombre completo del contacto
+            nombre_contacto = (
+                getattr(cliente, 'nombre_contacto', None) or
+                getattr(cliente, 'contacto_nombre', None) or
+                (cliente.get_full_name() if hasattr(cliente, 'get_full_name') else self.nombre_cliente)
+            )
 
             context = {
                 'NOMBRE_CLIENTE': self.nombre_cliente,
@@ -1274,13 +1290,15 @@ class ContratoGenerado(models.Model):
                 'SPOTS_DIA': str(datos_gen.get('SPOTS_DIA', '1')),
                 'DURACION_SPOT': str(datos_gen.get('DURACION_SPOT', '30')),
                 'NUMERO_CONTRATO': self.numero_contrato,
-                'NOMBRE_CONTACTO': (
-                                    getattr(cliente, 'nombre_contacto', None)
-                                    or getattr(cliente, 'contacto_nombre', None)
-                                    or (cliente.get_full_name() if hasattr(cliente, 'get_full_name') else self.nombre_cliente)
-)
-
+                'NOMBRE_CONTACTO': nombre_contacto,
+            
+            # ✅ NUEVOS CAMPOS AGREGADOS
+                'CARGO_CLIENTE': cargo_cliente,
+                'PROFESION_CLIENTE': profesion_cliente,
+                'CARGO': cargo_cliente,  # Alias por si usan diferentes nombres
+                'PROFESION': profesion_cliente,  # Alias por si usan diferentes nombres
             }
+
             self.datos_generacion = {**datos_gen, **context}
             self.valor_iva = valor_iva
             self.valor_total = valor_total
@@ -1318,18 +1336,17 @@ class ContratoGenerado(models.Model):
         except Exception as e:
             print(f'Error generando contrato: {e}')
             return False
-            from datetime import datetime
-
-
 
     def validar_y_crear_cuna(self, user=None):
-    
         from apps.content_management.models import CuñaPublicitaria
         from django.utils import timezone
         try:
             if self.cuña:
                 return {'success': False, 'error': 'Este contrato ya tiene una cuña asociada'}
+        
             datos = self.datos_generacion or {}
+        
+            # ✅ CAMBIO CLAVE: Cambiar estado de 'activa' a 'pendiente_revision'
             cuna = CuñaPublicitaria.objects.create(
                 codigo=f"CÑ-{self.numero_contrato}",
                 titulo=datos.get('TITULO_CUÑA', f"Cuña {self.nombre_cliente}"),
@@ -1341,18 +1358,21 @@ class ContratoGenerado(models.Model):
                 fecha_fin=str_to_date(self.datos_generacion.get('FECHA_FIN_RAW')),
                 precio_total=self.valor_total,
                 precio_por_segundo=self.valor_total / int(datos.get('DURACION_SPOT', 30)),
-                estado='activa',
-                observaciones=self.observaciones
+                estado='pendiente_revision',  # ✅ CAMBIO AQUÍ: de 'activa' a 'pendiente_revision'
+                observaciones=self.observaciones,
+                created_by=user  # ✅ Añadir usuario que crea la cuña
             )
+        
             self.cuña = cuna
             self.estado = 'validado'
             self.fecha_validacion = timezone.now()
             self.validado_por = user
             self.save()
-            return {'success': True, 'cuna_id': cuna.id, 'message': 'Cuña creada exitosamente'}
+        
+            return {'success': True, 'cuna_id': cuna.id, 'message': 'Cuña creada exitosamente en estado pendiente'}
+    
         except Exception as e:
             return {'success': False, 'error': str(e)}
-
 
     def marcar_como_enviado(self):
         self.estado = 'enviado'

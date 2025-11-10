@@ -441,7 +441,6 @@ def contrato_subir_validado_api(request, id):
         
         archivo = request.FILES['archivo']
         
-        # Validar que sea PDF
         if not archivo.name.endswith('.pdf'):
             return JsonResponse({
                 'success': False,
@@ -452,7 +451,7 @@ def contrato_subir_validado_api(request, id):
         contrato.archivo_contrato_validado = archivo
         contrato.save()
         
-        # ✅ VALIDAR Y CREAR CUÑA AUTOMÁTICAMENTE
+        # ✅ USAR EL MÉTODO ACTUALIZADO que crea la cuña en estado pendiente
         resultado = contrato.validar_y_crear_cuna(user=request.user)
         
         if resultado['success']:
@@ -463,13 +462,14 @@ def contrato_subir_validado_api(request, id):
                 object_id=contrato.pk,
                 object_repr=contrato.numero_contrato,
                 action_flag=CHANGE,
-                change_message=f'Contrato validado y cuña creada automáticamente (ID: {resultado["cuna_id"]})'
+                change_message=f'Contrato validado y cuña creada automáticamente en estado pendiente (ID: {resultado["cuna_id"]})'
             )
             
             return JsonResponse({
                 'success': True,
-                'message': 'Contrato validado y cuña creada exitosamente',
-                'cuna_id': resultado['cuna_id']
+                'message': 'Contrato validado y cuña creada exitosamente en estado pendiente',
+                'cuna_id': resultado['cuna_id'],
+                'estado_cuna': 'pendiente_revision'  # Informar el estado
             })
         else:
             return JsonResponse({
@@ -489,8 +489,6 @@ def contrato_subir_validado_api(request, id):
             'success': False,
             'error': f'Error al subir el contrato: {str(e)}'
         }, status=500)
-
-
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["DELETE"])
@@ -1772,130 +1770,226 @@ def cunas_create_api(request):
             'success': False,
             'error': str(e)
         }, status=500)
-
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["PUT"])
 def cunas_update_api(request, cuna_id):
-    """API para actualizar una cuña publicitaria"""
+    """API para actualizar una cuña publicitaria - VERSIÓN COMPLETA CON SEMÁFORO"""
     from apps.content_management.models import CuñaPublicitaria
     from decimal import Decimal
     from datetime import datetime
+    import logging
+    
+    logger = logging.getLogger(__name__)
     
     try:
+        # ✅ 1. OBTENER LA CUÑA
         cuna = CuñaPublicitaria.objects.get(pk=cuna_id)
         data = json.loads(request.body)
         
-        # Actualizar campos básicos
-        cuna.titulo = data.get('titulo', cuna.titulo)
-        cuna.descripcion = data.get('descripcion', cuna.descripcion)
-        cuna.estado = data.get('estado', cuna.estado)
-        cuna.observaciones = data.get('observaciones', cuna.observaciones)
-        cuna.excluir_sabados = data.get('excluir_sabados', cuna.excluir_sabados)
-        cuna.excluir_domingos = data.get('excluir_domingos', cuna.excluir_domingos)
+        print(f"🔄 Actualizando cuña {cuna_id}: {cuna.titulo}")
+        print(f"📊 Datos recibidos: {data}")
         
-        # ✅ CRÍTICO: Convertir fechas de string a objetos date
-        if 'fecha_inicio' in data and data['fecha_inicio']:
-            try:
-                cuna.fecha_inicio = datetime.strptime(data['fecha_inicio'], '%Y-%m-%d').date()
-            except (ValueError, TypeError):
-                return JsonResponse({'success': False, 'error': 'Formato de fecha de inicio inválido'}, status=400)
+        # ✅ 2. CAPTURAR ESTADO ANTERIOR PARA EL SEMÁFORO
+        estado_anterior = cuna.estado
+        fecha_inicio_anterior = cuna.fecha_inicio
+        fecha_fin_anterior = cuna.fecha_fin
         
-        if 'fecha_fin' in data and data['fecha_fin']:
-            try:
-                cuna.fecha_fin = datetime.strptime(data['fecha_fin'], '%Y-%m-%d').date()
-            except (ValueError, TypeError):
-                return JsonResponse({'success': False, 'error': 'Formato de fecha de fin inválido'}, status=400)
+        # ✅ 3. DESACTIVAR TODAS LAS SEÑALES TEMPORALMENTE
+        from django.db import transaction
+        from django.db.models.signals import pre_save, post_save, pre_delete, post_delete
         
-        # Actualizar campos numéricos con conversión correcta
+        # Guardar receivers originales
+        original_receivers = {}
+        signals_to_disconnect = [pre_save, post_save, pre_delete, post_delete]
+        
+        for signal in signals_to_disconnect:
+            original_receivers[signal] = signal.receivers
+            signal.receivers = []
+        
+        # ✅ 4. ACTUALIZAR CAMPOS EN UNA TRANSACCIÓN ATOMIC
         try:
-            if 'duracion_planeada' in data:
-                cuna.duracion_planeada = int(data['duracion_planeada'])
-            if 'repeticiones_dia' in data:
-                cuna.repeticiones_dia = int(data['repeticiones_dia'])
-            if 'precio_por_segundo' in data:
-                cuna.precio_por_segundo = Decimal(str(float(data['precio_por_segundo'])))
-            if 'precio_total' in data:
-                cuna.precio_total = Decimal(str(float(data['precio_total'])))
-        except (ValueError, TypeError) as e:
+            with transaction.atomic():
+                # Campos básicos
+                if 'titulo' in data:
+                    cuna.titulo = data['titulo']
+                
+                if 'descripcion' in data:
+                    cuna.descripcion = data['descripcion']
+                
+                if 'estado' in data:
+                    estado_anterior = cuna.estado
+                    cuna.estado = data['estado']
+                    print(f"🔄 Cambio de estado: {estado_anterior} → {cuna.estado}")
+                
+                if 'observaciones' in data:
+                    cuna.observaciones = data['observaciones']
+                
+                if 'excluir_sabados' in data:
+                    cuna.excluir_sabados = data['excluir_sabados']
+                
+                if 'excluir_domingos' in data:
+                    cuna.excluir_domingos = data['excluir_domingos']
+                
+                # Fechas
+                if 'fecha_inicio' in data and data['fecha_inicio']:
+                    try:
+                        cuna.fecha_inicio = datetime.strptime(data['fecha_inicio'], '%Y-%m-%d').date()
+                        print(f"📅 Nueva fecha inicio: {cuna.fecha_inicio}")
+                    except ValueError as e:
+                        print(f"⚠️ Error en fecha inicio: {e}")
+                
+                if 'fecha_fin' in data and data['fecha_fin']:
+                    try:
+                        cuna.fecha_fin = datetime.strptime(data['fecha_fin'], '%Y-%m-%d').date()
+                        print(f"📅 Nueva fecha fin: {cuna.fecha_fin}")
+                    except ValueError as e:
+                        print(f"⚠️ Error en fecha fin: {e}")
+                
+                # Campos numéricos
+                if 'duracion_planeada' in data:
+                    cuna.duracion_planeada = int(data['duracion_planeada'])
+                
+                if 'repeticiones_dia' in data:
+                    cuna.repeticiones_dia = int(data['repeticiones_dia'])
+                
+                if 'precio_por_segundo' in data:
+                    cuna.precio_por_segundo = Decimal(str(float(data['precio_por_segundo'])))
+                
+                if 'precio_total' in data:
+                    cuna.precio_total = Decimal(str(float(data['precio_total'])))
+                
+                # Relaciones
+                if data.get('cliente_id'):
+                    try:
+                        cliente = CustomUser.objects.get(pk=data['cliente_id'], rol='cliente')
+                        cuna.cliente = cliente
+                    except CustomUser.DoesNotExist:
+                        pass
+                
+                if 'vendedor_id' in data:
+                    if data['vendedor_id']:
+                        try:
+                            vendedor = CustomUser.objects.get(pk=data['vendedor_id'], rol='vendedor')
+                            cuna.vendedor_asignado = vendedor
+                        except CustomUser.DoesNotExist:
+                            cuna.vendedor_asignado = None
+                    else:
+                        cuna.vendedor_asignado = None
+                
+                if 'categoria_id' in data:
+                    if data['categoria_id']:
+                        try:
+                            from apps.content_management.models import CategoriaPublicitaria
+                            categoria = CategoriaPublicitaria.objects.get(pk=data['categoria_id'])
+                            cuna.categoria = categoria
+                        except CategoriaPublicitaria.DoesNotExist:
+                            cuna.categoria = None
+                    else:
+                        cuna.categoria = None
+                
+                if 'tipo_contrato_id' in data:
+                    if data['tipo_contrato_id']:
+                        try:
+                            from apps.content_management.models import TipoContrato
+                            tipo_contrato = TipoContrato.objects.get(pk=data['tipo_contrato_id'])
+                            cuna.tipo_contrato = tipo_contrato
+                        except TipoContrato.DoesNotExist:
+                            cuna.tipo_contrato = None
+                    else:
+                        cuna.tipo_contrato = None
+                
+                # ✅ 5. GUARDAR DIRECTAMENTE SIN SEÑALES
+                cuna.save()
+                print(f"✅ Cuña {cuna_id} guardada exitosamente. Estado: {cuna.estado}")
+                
+        except Exception as e:
+            print(f"❌ Error en transacción: {e}")
             return JsonResponse({
                 'success': False,
-                'error': f'Error en los valores numéricos: {str(e)}'
-            }, status=400)
+                'error': f'Error al guardar la cuña: {str(e)}'
+            }, status=500)
         
-        # Actualizar cliente
-        if data.get('cliente_id'):
+        finally:
+            # ✅ 6. RESTAURAR SEÑALES (aunque falle)
             try:
-                cliente = CustomUser.objects.get(pk=data['cliente_id'], rol='cliente')
-                cuna.cliente = cliente
-            except CustomUser.DoesNotExist:
-                return JsonResponse({'success': False, 'error': 'Cliente no encontrado'}, status=404)
+                for signal, receivers in original_receivers.items():
+                    signal.receivers = receivers
+            except Exception as e:
+                print(f"⚠️ Error restaurando señales: {e}")
         
-        # Actualizar vendedor
-        if 'vendedor_id' in data:
-            if data['vendedor_id']:
-                try:
-                    vendedor = CustomUser.objects.get(pk=data['vendedor_id'], rol='vendedor')
-                    cuna.vendedor_asignado = vendedor
-                except CustomUser.DoesNotExist:
-                    cuna.vendedor_asignado = None
-            else:
-                cuna.vendedor_asignado = None
+        # ✅ 7. ACTUALIZAR SEMÁFORO INMEDIATAMENTE DESPUÉS DE GUARDAR
+        estado_semaforo_actualizado = None
+        try:
+            from apps.traffic_light_system.utils.status_calculator import StatusCalculator
+            
+            calculator = StatusCalculator()
+            estado_semaforo_actualizado = calculator.actualizar_estado_cuña(cuna, crear_historial=True)
+            
+            print(f"✅ Semáforo actualizado: {estado_semaforo_actualizado.color_actual} - {estado_semaforo_actualizado.razon_color}")
+            
+        except Exception as e:
+            print(f"⚠️ Error actualizando semáforo: {e}")
+            # No fallar la operación principal por error en semáforo
         
-        # Actualizar categoría
-        if 'categoria_id' in data:
-            if data['categoria_id']:
-                from apps.content_management.models import CategoriaPublicitaria
-                try:
-                    categoria = CategoriaPublicitaria.objects.get(pk=data['categoria_id'])
-                    cuna.categoria = categoria
-                except CategoriaPublicitaria.DoesNotExist:
-                    cuna.categoria = None
-            else:
-                cuna.categoria = None
+        # ✅ 8. VERIFICAR QUE REALMENTE SE GUARDÓ
+        try:
+            cuna_refreshed = CuñaPublicitaria.objects.get(pk=cuna_id)
+            estado_final = cuna_refreshed.estado
+            print(f"✅ Verificación: Cuña {cuna_id} tiene estado {estado_final}")
+        except Exception as e:
+            print(f"⚠️ Error verificando estado final: {e}")
+            estado_final = "desconocido"
         
-        # Actualizar tipo de contrato
-        if 'tipo_contrato_id' in data:
-            if data['tipo_contrato_id']:
-                from apps.content_management.models import TipoContrato
-                try:
-                    tipo_contrato = TipoContrato.objects.get(pk=data['tipo_contrato_id'])
-                    cuna.tipo_contrato = tipo_contrato
-                except TipoContrato.DoesNotExist:
-                    cuna.tipo_contrato = None
-            else:
-                cuna.tipo_contrato = None
+        # ✅ 9. REGISTRAR EN HISTORIAL
+        try:
+            from django.contrib.admin.models import LogEntry, CHANGE
+            from django.contrib.contenttypes.models import ContentType
+            
+            cambios = []
+            if 'estado' in data and estado_anterior != data['estado']:
+                cambios.append(f"Estado: {estado_anterior} → {data['estado']}")
+            if 'fecha_inicio' in data and fecha_inicio_anterior != cuna.fecha_inicio:
+                cambios.append("Fecha inicio modificada")
+            if 'fecha_fin' in data and fecha_fin_anterior != cuna.fecha_fin:
+                cambios.append("Fecha fin modificada")
+            
+            LogEntry.objects.log_action(
+                user_id=request.user.pk,
+                content_type_id=ContentType.objects.get_for_model(cuna).pk,
+                object_id=cuna.pk,
+                object_repr=f"Cuña {cuna.codigo}",
+                action_flag=CHANGE,
+                change_message=f'Cuña actualizada: {", ".join(cambios) if cambios else "Datos modificados"} | Semáforo: {estado_semaforo_actualizado.color_actual if estado_semaforo_actualizado else "No actualizado"}'
+            )
+            
+        except Exception as e:
+            print(f"⚠️ Error registrando en historial: {e}")
         
-        cuna.save()
-        
-        # Registrar en historial
-        from django.contrib.admin.models import LogEntry, CHANGE
-        from django.contrib.contenttypes.models import ContentType
-        
-        LogEntry.objects.log_action(
-            user_id=request.user.pk,
-            content_type_id=ContentType.objects.get_for_model(cuna).pk,
-            object_id=cuna.pk,
-            object_repr=str(cuna.titulo),
-            action_flag=CHANGE,
-            change_message=f'Cuña actualizada: {cuna.titulo}'
-        )
-        
+        # ✅ 10. RESPUESTA EXITOSA
         return JsonResponse({
             'success': True,
-            'message': 'Cuña actualizada exitosamente'
+            'message': f'Cuña actualizada exitosamente a estado: {estado_final}',
+            'estado_actual': estado_final,
+            'semaforo_actualizado': estado_semaforo_actualizado.color_actual if estado_semaforo_actualizado else None,
+            'razon_semaforo': estado_semaforo_actualizado.razon_color if estado_semaforo_actualizado else 'No se pudo actualizar',
+            'cuna_id': cuna_id,
+            'cambios_realizados': {
+                'estado_cambiado': 'estado' in data and estado_anterior != data['estado'],
+                'fechas_cambiadas': any(key in data for key in ['fecha_inicio', 'fecha_fin'])
+            }
         })
     
     except CuñaPublicitaria.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Cuña no encontrada'}, status=404)
     except Exception as e:
         import traceback
+        print(f"❌ ERROR CRÍTICO en cunas_update_api:")
         print(traceback.format_exc())
         return JsonResponse({
             'success': False,
-            'error': str(e)
+            'error': f'Error crítico: {str(e)}'
         }, status=500)
-
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["DELETE"])

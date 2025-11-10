@@ -137,22 +137,40 @@ class StatusCalculator:
                 return Decimal(str(round(porcentaje, 2)))
         except Exception:
             return None
+    # En apps/traffic_light_system/utils/status_calculator.py
+
+def _calcular_por_estado(self, cuña) -> Tuple[str, str]:
+    """Calcula color basado únicamente en el estado de la cuña"""
+    estado = cuña.estado
     
-    def _calcular_por_estado(self, cuña) -> Tuple[str, str]:
-        """Calcula color basado únicamente en el estado de la cuña"""
-        estado = cuña.estado
-        
-        if estado in self.configuracion.estados_verde:
-            return 'verde', f'Estado "{estado}" clasificado como verde'
-        elif estado in self.configuracion.estados_amarillo:
-            return 'amarillo', f'Estado "{estado}" clasificado como amarillo'
-        elif estado in self.configuracion.estados_rojo:
-            return 'rojo', f'Estado "{estado}" clasificado como rojo'
-        elif estado in self.configuracion.estados_gris:
-            return 'gris', f'Estado "{estado}" clasificado como gris'
-        else:
-            return 'amarillo', f'Estado "{estado}" no clasificado, por defecto amarillo'
+    # Estados que siempre muestran verde (activos)
+    if estado in ['activa', 'aprobada']:
+        # Verificar si está en fecha válida
+        if cuña.fecha_inicio and cuña.fecha_fin:
+            hoy = timezone.now().date()
+            if cuña.fecha_inicio <= hoy <= cuña.fecha_fin:
+                return 'verde', f'Estado "{estado}" y dentro del periodo activo'
+            elif hoy < cuña.fecha_inicio:
+                return 'amarillo', f'Estado "{estado}" pero campaña no ha iniciado'
+            else:
+                return 'rojo', f'Estado "{estado}" pero campaña ha finalizado'
+        return 'verde', f'Estado "{estado}" - Sin verificación de fechas'
     
+    # Estados que muestran amarillo (en proceso)
+    elif estado in ['pendiente_revision', 'en_produccion', 'pausada']:
+        return 'amarillo', f'Estado "{estado}" - Requiere atención'
+    
+    # Estados que muestran rojo (problemas)
+    elif estado in ['borrador', 'cancelada']:
+        return 'rojo', f'Estado "{estado}" - Acción requerida'
+    
+    # Estados que muestran gris (finalizados)
+    elif estado in ['finalizada']:
+        return 'gris', f'Estado "{estado}" - Finalizada'
+    
+    # Estado por defecto
+    else:
+        return 'amarillo', f'Estado "{estado}" no clasificado, por defecto amarillo'
     def _calcular_por_dias_restantes(self, cuña, dias_restantes) -> Tuple[str, str]:
         """Calcula color basado en días restantes"""
         if dias_restantes is None:

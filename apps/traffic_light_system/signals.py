@@ -50,6 +50,7 @@ def actualizar_estado_semaforo_cuña(sender, instance, created, **kwargs):
     except Exception as e:
         logger.error(f"Error actualizando estado de semáforo para cuña {instance.codigo}: {str(e)}")
 
+# En apps/traffic_light_system/signals.py
 
 @receiver(pre_save, sender=CuñaPublicitaria)
 def capturar_estado_anterior_cuña(sender, instance, **kwargs):
@@ -58,13 +59,57 @@ def capturar_estado_anterior_cuña(sender, instance, **kwargs):
     """
     if instance.pk:
         try:
-            instance._estado_anterior_semaforo = CuñaPublicitaria.objects.get(pk=instance.pk)
+            instance._estado_anterior = CuñaPublicitaria.objects.get(pk=instance.pk).estado
+            instance._fecha_inicio_anterior = CuñaPublicitaria.objects.get(pk=instance.pk).fecha_inicio
+            instance._fecha_fin_anterior = CuñaPublicitaria.objects.get(pk=instance.pk).fecha_fin
         except CuñaPublicitaria.DoesNotExist:
-            instance._estado_anterior_semaforo = None
+            instance._estado_anterior = None
+            instance._fecha_inicio_anterior = None
+            instance._fecha_fin_anterior = None
     else:
-        instance._estado_anterior_semaforo = None
+        instance._estado_anterior = None
+        instance._fecha_inicio_anterior = None
+        instance._fecha_fin_anterior = None
 
-
+@receiver(post_save, sender=CuñaPublicitaria)
+def actualizar_semaforo_por_cambio_estado(sender, instance, created, **kwargs):
+    """
+    Actualiza el semáforo cuando cambia el estado de la cuña
+    """
+    if created:
+        return  # Ya se maneja en otra señal
+    
+    try:
+        estado_anterior = getattr(instance, '_estado_anterior', None)
+        fecha_inicio_anterior = getattr(instance, '_fecha_inicio_anterior', None)
+        fecha_fin_anterior = getattr(instance, '_fecha_fin_anterior', None)
+        
+        # Verificar si hubo cambios que afecten al semáforo
+        cambios_relevantes = False
+        
+        if estado_anterior and estado_anterior != instance.estado:
+            cambios_relevantes = True
+            logger.info(f"Cambio de estado detectado: {estado_anterior} -> {instance.estado} para cuña {instance.codigo}")
+        
+        if fecha_inicio_anterior and fecha_inicio_anterior != instance.fecha_inicio:
+            cambios_relevantes = True
+            logger.info(f"Cambio de fecha inicio detectado para cuña {instance.codigo}")
+            
+        if fecha_fin_anterior and fecha_fin_anterior != instance.fecha_fin:
+            cambios_relevantes = True
+            logger.info(f"Cambio de fecha fin detectado para cuña {instance.codigo}")
+        
+        # Si hay cambios relevantes, recalcular el semáforo
+        if cambios_relevantes:
+            from .utils.status_calculator import StatusCalculator
+            
+            calculator = StatusCalculator()
+            estado_actualizado = calculator.actualizar_estado_cuña(instance, crear_historial=True)
+            
+            logger.info(f"Semáforo actualizado para cuña {instance.codigo} por cambio de estado: {estado_actualizado.color_actual}")
+            
+    except Exception as e:
+        logger.error(f"Error actualizando semáforo por cambio de estado para cuña {instance.codigo}: {str(e)}")
 @receiver(post_save, sender=CuñaPublicitaria)
 def detectar_cambios_relevantes_cuña(sender, instance, created, **kwargs):
     """

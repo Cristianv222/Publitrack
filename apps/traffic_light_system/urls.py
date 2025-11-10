@@ -52,6 +52,7 @@ api_patterns = [
     
     # Exportación
     path('api/exportar/estados/', views.exportar_reporte_estados, name='api_exportar_estados'),
+    path('api/actualizar-semaforo/<int:cuna_id>/', views.actualizar_semaforo_manual, name='actualizar_semaforo_manual'),
 ]
 
 # Agregar las URLs de API al patrón principal

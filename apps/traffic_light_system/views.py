@@ -480,7 +480,28 @@ def api_estadisticas_dashboard(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-
+@login_required
+@require_http_methods(["POST"])
+def actualizar_semaforo_manual(request, cuna_id):
+    """API para forzar actualización manual del semáforo"""
+    try:
+        from apps.content_management.models import CuñaPublicitaria
+        from .utils.status_calculator import StatusCalculator
+        
+        cuna = CuñaPublicitaria.objects.get(pk=cuna_id)
+        calculator = StatusCalculator()
+        estado_semaforo = calculator.actualizar_estado_cuña(cuna, crear_historial=True)
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Semáforo actualizado manualmente para {cuna.codigo}',
+            'color_actual': estado_semaforo.color_actual,
+            'razon': estado_semaforo.razon_color,
+            'prioridad': estado_semaforo.prioridad
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 @login_required
 def api_cuñas_por_estado(request, color):
     """API para obtener cuñas filtradas por color de estado"""

@@ -800,10 +800,7 @@ function editarCuna(id) {
             confirmButtonColor: '#3085d6'
         });
     });
-}
-
-// FUNCIÓN GUARDAR - CON NOTIFICACIONES IDÉNTICAS
-function guardarCuna() {
+}function guardarCuna() {
     const form = document.getElementById('cunaForm');
     if (!form.checkValidity()) {
         form.reportValidity();
@@ -811,30 +808,29 @@ function guardarCuna() {
     }
     
     const id = document.getElementById('cunaId').value;
-    const precioTotal = document.getElementById('precio_total').value || 
-                        document.getElementById('precio_total_calculado').value.replace('S/. ', '');
+    const nuevoEstado = document.getElementById('estado').value;
     
-    // Cerrar modal
-    modalCuna.hide();
+    // Cerrar modal inmediatamente
+    if (window.modalCuna) {
+        window.modalCuna.hide();
+    }
     
-    // Mostrar loading IDÉNTICO A USUARIOS Y CLIENTES
+    // Mostrar loading específico
     Swal.fire({
-        title: id ? 'Actualizando...' : 'Guardando...',
+        title: `Cambiando a ${nuevoEstado}...`,
         html: `
             <div class="text-center py-3">
                 <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
-                    <span class="visually-hidden">Guardando...</span>
+                    <span class="visually-hidden">Actualizando...</span>
                 </div>
-                <p class="text-muted mb-0">Por favor espere un momento</p>
+                <p class="text-muted mb-0">Actualizando estado de la cuña</p>
+                <small class="text-muted">Ignorando errores secundarios...</small>
             </div>
         `,
         allowOutsideClick: false,
         showConfirmButton: false,
         customClass: {
             popup: 'animated-modal'
-        },
-        showClass: {
-            popup: 'animate__animated animate__fadeIn animate__faster'
         }
     });
     
@@ -849,19 +845,18 @@ function guardarCuna() {
         fecha_inicio: document.getElementById('fecha_inicio').value,
         fecha_fin: document.getElementById('fecha_fin').value,
         precio_por_segundo: document.getElementById('precio_por_segundo').value,
-        precio_total: precioTotal,
+        precio_total: document.getElementById('precio_total').value || '0',
         excluir_sabados: document.getElementById('excluir_sabados').checked,
         excluir_domingos: document.getElementById('excluir_domingos').checked,
         tipo_contrato_id: document.getElementById('tipo_contrato').value || null,
-        estado: document.getElementById('estado').value,
+        estado: nuevoEstado,
         observaciones: document.getElementById('observaciones').value
     };
     
-    const url = id ? `/panel/cunas/api/${id}/actualizar/` : `/panel/cunas/api/crear/`;
-    const method = id ? 'PUT' : 'POST';
+    const url = `/panel/cunas/api/${id}/actualizar/`;
     
     fetch(url, {
-        method: method,
+        method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': '{{ csrf_token }}'
@@ -870,6 +865,8 @@ function guardarCuna() {
     })
     .then(response => response.json())
     .then(data => {
+        console.log('Respuesta del servidor:', data);
+        
         if (data.success) {
             Swal.fire({
                 icon: 'success',
@@ -877,21 +874,17 @@ function guardarCuna() {
                 html: `
                     <div class="text-center">
                         <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                        <p class="mb-0">Cuña ${id ? 'actualizada' : 'creada'} correctamente</p>
+                        <p class="mb-2"><strong>${data.message}</strong></p>
+                        <p class="mb-0">Estado actual: <span class="badge bg-success">${data.estado_actual}</span></p>
                     </div>
                 `,
                 timer: 2000,
                 showConfirmButton: false,
                 customClass: {
                     popup: 'animated-modal'
-                },
-                showClass: {
-                    popup: 'animate__animated animate__bounceIn'
-                },
-                hideClass: {
-                    popup: 'animate__animated animate__fadeOut animate__faster'
                 }
             }).then(() => {
+                // Recargar la página para ver los cambios
                 location.reload();
             });
         } else {
@@ -899,6 +892,7 @@ function guardarCuna() {
         }
     })
     .catch(error => {
+        console.error('Error:', error);
         Swal.fire({
             icon: 'error',
             title: 'Error',
@@ -919,7 +913,6 @@ function guardarCuna() {
         });
     });
 }
-
 // FUNCIÓN ELIMINAR - IDÉNTICA A USUARIOS Y CLIENTES
 function eliminarCuna(id, titulo) {
     Swal.fire({
