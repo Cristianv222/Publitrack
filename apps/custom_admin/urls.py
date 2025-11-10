@@ -93,12 +93,7 @@ urlpatterns = [
     # Configuración
     path('configuracion/', views.configuracion, name='configuracion'),
     # ==================== NUEVAS URLs PARA PARTE MORTORIOS ====================
-    path('parte-mortorios/', views.parte_mortorios_list, name='parte_mortorios_list'),
-    path('parte-mortorios/<int:parte_id>/detalle/', views.parte_mortorio_detail_api, name='parte_mortorio_detail_api'),
-    path('parte-mortorios/crear/', views.parte_mortorio_create_api, name='parte_mortorio_create_api'),
-    path('parte-mortorios/<int:parte_id>/editar/', views.parte_mortorio_update_api, name='parte_mortorio_update_api'),
-    path('parte-mortorios/<int:parte_id>/eliminar/', views.parte_mortorio_delete_api, name='parte_mortorio_delete_api'),
-   # ==================== ÓRDENES DE TOMA ====================
+    # ==================== ÓRDENES DE TOMA ====================
 path('orders/', views.orders_list, name='orders_list'),
 path('orders/<int:order_id>/detalle/', views.order_detail_api, name='order_detail_api'),
 path('orders/crear/', views.order_create_api, name='order_create_api'),
@@ -140,4 +135,12 @@ path('ordenes-produccion/<int:order_id>/generar/', views.orden_produccion_genera
 path('ordenes-produccion/<int:order_id>/subir-firmada/', views.orden_produccion_subir_firmada_api, name='orden_produccion_subir_firmada_api'),
 path('ordenes-produccion/<int:order_id>/descargar-plantilla/', views.orden_produccion_descargar_plantilla_api, name='orden_produccion_descargar_plantilla_api'),
 path('ordenes-produccion/<int:order_id>/plantillas/', views.orden_produccion_obtener_plantillas_api, name='orden_produccion_obtener_plantillas_api'),
-]
+# ==================== URLs PARA PARTE MORTORIOS ====================
+path('parte-mortorios/', views.parte_mortorios_list, name='parte_mortorios_list'),
+path('parte-mortorios/<int:parte_id>/detalle/', views.parte_mortorio_detail_api, name='parte_mortorio_detail_api'),
+path('parte-mortorios/crear/', views.parte_mortorio_create_api, name='parte_mortorio_create_api'),
+path('parte-mortorios/<int:parte_id>/editar/', views.parte_mortorio_update_api, name='parte_mortorio_update_api'),
+path('parte-mortorios/<int:parte_id>/eliminar/', views.parte_mortorio_delete_api, name='parte_mortorio_delete_api'),
+path('parte-mortorios/<int:parte_id>/programar/', views.parte_mortorio_programar_api, name='parte_mortorio_programar_api'),
+path('parte-mortorios/<int:parte_id>/marcar-transmitido/', views.parte_mortorio_marcar_transmitido_api, name='parte_mortorio_marcar_transmitido_api'),
+path('parte-mortorios/<int:parte_id>/cancelar/', views.parte_mortorio_cancelar_api, name='parte_mortorio_cancelar_api'),]

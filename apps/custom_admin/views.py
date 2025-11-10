@@ -19,7 +19,7 @@ from apps.authentication.models import CustomUser
 from apps.content_management.models import PlantillaContrato
 from apps.orders.models import PlantillaOrden, OrdenGenerada
 from apps.orders.models import OrdenToma 
-
+from apps.parte_mortorios.models import ParteMortorio
 # Obtener el modelo de usuario correcto
 User = get_user_model()
 
@@ -74,7 +74,15 @@ except ImportError as e:
     PlantillaOrden = None
     OrdenGenerada = None
     OrdenToma = None
-
+# IMPORTS CONDICIONALES PARA PARTE MORTORIOS
+try:
+    from apps.parte_mortorios.models import ParteMortorio, HistorialParteMortorio
+    PARTE_MORTORIO_MODELS_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Error importando modelos de parte_mortorios: {e}")
+    PARTE_MORTORIO_MODELS_AVAILABLE = False
+    ParteMortorio = None
+    HistorialParteMortorio = None
 def is_admin(user):
     """Verifica si el usuario es administrador"""
     return user.is_superuser or user.is_staff or getattr(user, 'rol', None) == 'admin'
@@ -3232,233 +3240,7 @@ def order_delete_api(request, order_id):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
-# ==================== VISTAS PARA PARTE MORTORIOS ====================
 
-@login_required
-@user_passes_test(is_admin)
-def parte_mortorios_list(request):
-    """Lista de partes mortorios del sistema"""
-    
-    # Filtros
-    search = request.GET.get('search', '')
-    estado_filter = request.GET.get('estado', '')
-    urgencia_filter = request.GET.get('urgencia', '')
-    fecha_filter = request.GET.get('fecha', '')
-    
-    # Datos de ejemplo - reemplazar con tu modelo real
-    partes = [
-        {
-            'id': 1,
-            'numero_parte': 'PM-001',
-            'nombre_fallecido': 'Juan Pérez García',
-            'edad_fallecido': 75,
-            'fecha_registro': timezone.now().date(),
-            'lugar_fallecimiento': 'Hospital Regional de Lima',
-            'causa_fallecimiento': 'Paro cardíaco',
-            'urgencia': 'normal',
-            'estado': 'registrado',
-            'registrado_por': request.user
-        },
-        {
-            'id': 2,
-            'numero_parte': 'PM-002',
-            'nombre_fallecido': 'María López Martínez',
-            'edad_fallecido': 82,
-            'fecha_registro': timezone.now().date() - timedelta(days=1),
-            'lugar_fallecimiento': 'Domicilio particular - Av. Principal 123',
-            'causa_fallecimiento': 'Insuficiencia respiratoria',
-            'urgencia': 'urgente',
-            'estado': 'verificado',
-            'registrado_por': request.user
-        }
-    ]
-    
-    # Aplicar filtros
-    if search:
-        partes = [p for p in partes if search.lower() in p['numero_parte'].lower() or 
-                 search.lower() in p['nombre_fallecido'].lower()]
-    
-    if estado_filter:
-        partes = [p for p in partes if p['estado'] == estado_filter]
-    
-    if urgencia_filter:
-        partes = [p for p in partes if p['urgencia'] == urgencia_filter]
-    
-    # Estadísticas
-    total_partes = len(partes)
-    partes_registrados = len([p for p in partes if p['estado'] == 'registrado'])
-    partes_verificados = len([p for p in partes if p['estado'] == 'verificado'])
-    partes_completados = len([p for p in partes if p['estado'] == 'completado'])
-    
-    context = {
-        'partes': partes,
-        'total_partes': total_partes,
-        'partes_registrados': partes_registrados,
-        'partes_verificados': partes_verificados,
-        'partes_completados': partes_completados,
-        'search': search,
-        'estado_filter': estado_filter,
-        'urgencia_filter': urgencia_filter,
-        'fecha_filter': fecha_filter,
-    }
-    
-    return render(request, 'custom_admin/parte_mortorios/list.html', context)
-
-@login_required
-@user_passes_test(is_admin)
-def parte_mortorio_detail_api(request, parte_id):
-    """API para obtener detalles de un parte mortorio"""
-    try:
-        # Datos de ejemplo - reemplazar con tu modelo real
-        partes_data = {
-            1: {
-                'id': 1,
-                'numero_parte': 'PM-001',
-                'nombre_fallecido': 'Juan Pérez García',
-                'edad_fallecido': 75,
-                'dni_fallecido': '12345678',
-                'urgencia': 'normal',
-                'fecha_fallecimiento': '2024-01-15',
-                'hora_fallecimiento': '14:30',
-                'lugar_fallecimiento': 'Hospital Regional de Lima',
-                'causa_fallecimiento': 'Paro cardíaco',
-                'estado': 'registrado',
-                'observaciones': 'Fallecimiento natural',
-                'registrado_por_nombre': request.user.get_full_name(),
-                'fecha_registro': timezone.now().strftime('%d/%m/%Y %H:%M'),
-                'fecha_actualizacion': timezone.now().strftime('%d/%m/%Y %H:%M')
-            },
-            2: {
-                'id': 2,
-                'numero_parte': 'PM-002',
-                'nombre_fallecido': 'María López Martínez', 
-                'edad_fallecido': 82,
-                'dni_fallecido': '87654321',
-                'urgencia': 'urgente',
-                'fecha_fallecimiento': '2024-01-14',
-                'hora_fallecimiento': '09:15',
-                'lugar_fallecimiento': 'Domicilio particular - Av. Principal 123',
-                'causa_fallecimiento': 'Insuficiencia respiratoria',
-                'estado': 'verificado',
-                'observaciones': 'Requiere traslado urgente',
-                'registrado_por_nombre': request.user.get_full_name(),
-                'fecha_registro': (timezone.now() - timedelta(days=1)).strftime('%d/%m/%Y %H:%M'),
-                'fecha_actualizacion': timezone.now().strftime('%d/%m/%Y %H:%M')
-            }
-        }
-        
-        parte = partes_data.get(parte_id)
-        if not parte:
-            return JsonResponse({'error': 'Parte mortorio no encontrado'}, status=404)
-        
-        return JsonResponse(parte)
-    
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-
-@login_required
-@user_passes_test(is_admin)
-@require_http_methods(["POST"])
-def parte_mortorio_create_api(request):
-    """API para crear un nuevo parte mortorio"""
-    try:
-        data = json.loads(request.body)
-        
-        # Validar campos requeridos
-        required_fields = ['numero_parte', 'nombre_fallecido', 'fecha_fallecimiento', 'lugar_fallecimiento']
-        for field in required_fields:
-            if not data.get(field):
-                return JsonResponse({
-                    'success': False,
-                    'error': f'El campo {field} es obligatorio'
-                }, status=400)
-        
-        # Aquí iría la lógica para crear el parte mortorio en la base de datos
-        # Por ahora simulamos la creación
-        
-        # Registrar en historial
-        LogEntry.objects.log_action(
-            user_id=request.user.pk,
-            content_type_id=ContentType.objects.get_for_model(CustomUser).pk,  # Temporal
-            object_id=request.user.pk,
-            object_repr=f"Parte mortorio creado: {data['numero_parte']}",
-            action_flag=ADDITION,
-            change_message=f'Parte mortorio creado: {data["numero_parte"]} - Fallecido: {data["nombre_fallecido"]}'
-        )
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'Parte mortorio creado exitosamente',
-            'parte_id': 3  # ID simulado
-        })
-        
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': f'Error al crear el parte mortorio: {str(e)}'
-        }, status=500)
-
-@login_required
-@user_passes_test(is_admin)
-@require_http_methods(["POST"])
-def parte_mortorio_update_api(request, parte_id):
-    """API para actualizar un parte mortorio existente"""
-    try:
-        data = json.loads(request.body)
-        
-        # Validar que el parte mortorio existe
-        # Aquí iría la lógica para buscar y actualizar el parte mortorio en la base de datos
-        
-        # Registrar en historial
-        LogEntry.objects.log_action(
-            user_id=request.user.pk,
-            content_type_id=ContentType.objects.get_for_model(CustomUser).pk,  # Temporal
-            object_id=request.user.pk,
-            object_repr=f"Parte mortorio actualizado: {data.get('numero_parte', 'N/A')}",
-            action_flag=CHANGE,
-            change_message=f'Parte mortorio {parte_id} actualizado'
-        )
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'Parte mortorio actualizado exitosamente'
-        })
-        
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': f'Error al actualizar el parte mortorio: {str(e)}'
-        }, status=500)
-
-@login_required
-@user_passes_test(is_admin)
-@require_http_methods(["POST"])
-def parte_mortorio_delete_api(request, parte_id):
-    """API para eliminar un parte mortorio"""
-    try:
-        # Validar que el parte mortorio existe
-        # Aquí iría la lógica para eliminar el parte mortorio de la base de datos
-        
-        # Registrar en historial
-        LogEntry.objects.log_action(
-            user_id=request.user.pk,
-            content_type_id=ContentType.objects.get_for_model(CustomUser).pk,  # Temporal
-            object_id=request.user.pk,
-            object_repr=f"Parte mortorio eliminado: {parte_id}",
-            action_flag=DELETION,
-            change_message=f'Parte mortorio {parte_id} eliminado'
-        )
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'Parte mortorio eliminado exitosamente'
-        })
-        
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': f'Error al eliminar el parte mortorio: {str(e)}'
-        }, status=500)
 # ==================== VISTAS PARA PLANTILLAS DE ORDEN ====================
 
 @login_required
@@ -4510,3 +4292,508 @@ def orden_produccion_obtener_plantillas_api(request, order_id):
     except Exception as e:
         print(f"❌ ERROR en orden_produccion_obtener_plantillas_api: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+# ==================== VISTAS PARA PARTE MORTORIOS ====================
+
+@login_required
+@user_passes_test(is_admin)
+def parte_mortorios_list(request):
+    """Lista de partes mortorios del sistema"""
+    
+    # ✅ Verificar disponibilidad del módulo
+    if not PARTE_MORTORIO_MODELS_AVAILABLE:
+        context = {'mensaje': 'Módulo de Parte Mortorios no disponible'}
+        return render(request, 'custom_admin/en_desarrollo.html', context)
+    
+    try:
+        # Filtros
+        search = request.GET.get('search', '')
+        estado_filter = request.GET.get('estado', '')
+        urgencia_filter = request.GET.get('urgencia', '')
+        cliente_filter = request.GET.get('cliente', '')
+        fecha_filter = request.GET.get('fecha', '')
+        
+        partes = ParteMortorio.objects.select_related(
+            'cliente', 'creado_por'
+        ).all().order_by('-fecha_solicitud')
+        
+        if search:
+            partes = partes.filter(
+                Q(codigo__icontains=search) |
+                Q(nombre_fallecido__icontains=search) |
+                Q(dni_fallecido__icontains=search) |
+                Q(nombre_esposa__icontains=search) |
+                Q(nombres_hijos__icontains=search) |
+                Q(familiares_adicionales__icontains=search)
+            )
+        
+        if estado_filter:
+            partes = partes.filter(estado=estado_filter)
+        
+        if urgencia_filter:
+            partes = partes.filter(urgencia=urgencia_filter)
+            
+        if cliente_filter:
+            partes = partes.filter(cliente_id=cliente_filter)
+            
+        if fecha_filter:
+            try:
+                fecha = datetime.strptime(fecha_filter, '%Y-%m-%d').date()
+                partes = partes.filter(fecha_fallecimiento=fecha)
+            except ValueError:
+                # Si la fecha no es válida, ignorar el filtro
+                pass
+        
+        # Estadísticas
+        total_partes = partes.count()
+        partes_solicitados = partes.filter(estado='solicitado').count()
+        partes_programados = partes.filter(estado='programado').count()
+        partes_transmitidos = partes.filter(estado='transmitido').count()
+        partes_cancelados = partes.filter(estado='cancelado').count()
+        
+        # Obtener clientes para filtro
+        clientes = CustomUser.objects.filter(
+            rol='cliente',
+            is_active=True
+        ).order_by('first_name', 'last_name')
+        
+        # Paginación
+        paginator = Paginator(partes, 20)
+        page = request.GET.get('page', 1)
+        
+        try:
+            partes_paginadas = paginator.page(page)
+        except PageNotAnInteger:
+            partes_paginadas = paginator.page(1)
+        except EmptyPage:
+            partes_paginadas = paginator.page(paginator.num_pages)
+        
+        context = {
+            'partes': partes_paginadas,
+            'total_partes': total_partes,
+            'partes_solicitados': partes_solicitados,
+            'partes_programados': partes_programados,
+            'partes_transmitidos': partes_transmitidos,
+            'partes_cancelados': partes_cancelados,
+            'search': search,
+            'estado_filter': estado_filter,
+            'urgencia_filter': urgencia_filter,
+            'cliente_filter': cliente_filter,
+            'fecha_filter': fecha_filter,
+            'clientes': clientes,
+            'estados': ParteMortorio.ESTADO_CHOICES,
+            'urgencias': ParteMortorio.URGENCIA_CHOICES,
+        }
+        
+        return render(request, 'custom_admin/parte_mortorios/list.html', context)
+        
+    except Exception as e:
+        print(f"❌ ERROR en parte_mortorios_list: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        # Fallback a datos de ejemplo si hay error
+        context = {
+            'partes': [],
+            'total_partes': 0,
+            'partes_solicitados': 0,
+            'partes_programados': 0,
+            'partes_transmitidos': 0,
+            'partes_cancelados': 0,
+            'search': search if 'search' in locals() else '',
+            'estado_filter': estado_filter if 'estado_filter' in locals() else '',
+            'urgencia_filter': urgencia_filter if 'urgencia_filter' in locals() else '',
+            'cliente_filter': cliente_filter if 'cliente_filter' in locals() else '',
+            'fecha_filter': fecha_filter if 'fecha_filter' in locals() else '',
+            'clientes': CustomUser.objects.filter(rol='cliente', is_active=True).order_by('first_name', 'last_name')[:10],
+            'estados': [
+                ('solicitado', 'Solicitado'),
+                ('programado', 'Programado'),
+                ('transmitido', 'Transmitido'),
+                ('cancelado', 'Cancelado'),
+            ],
+            'urgencias': [
+                ('normal', 'Normal'),
+                ('urgente', 'Urgente'),
+                ('muy_urgente', 'Muy Urgente'),
+            ],
+        }
+        return render(request, 'custom_admin/parte_mortorios/list.html', context)
+@login_required
+@user_passes_test(is_admin)
+def parte_mortorio_detail_api(request, parte_id):
+    """API para obtener detalles de un parte mortorio"""
+    
+    if not PARTE_MORTORIO_MODELS_AVAILABLE:
+        return JsonResponse({'error': 'Módulo de Parte Mortorios no disponible'}, status=503)
+    
+    try:
+        parte = get_object_or_404(ParteMortorio, pk=parte_id)
+        
+        data = {
+            'id': parte.id,
+            'codigo': parte.codigo,
+            'cliente_id': parte.cliente.id,
+            'cliente_nombre': parte.cliente.get_full_name(),
+            'nombre_fallecido': parte.nombre_fallecido,
+            'edad_fallecido': parte.edad_fallecido,
+            'dni_fallecido': parte.dni_fallecido,
+            'fecha_nacimiento': parte.fecha_nacimiento.strftime('%Y-%m-%d') if parte.fecha_nacimiento else None,
+            'fecha_fallecimiento': parte.fecha_fallecimiento.strftime('%Y-%m-%d') if parte.fecha_fallecimiento else None,
+            # Información familiar
+            'nombre_esposa': parte.nombre_esposa,
+            'cantidad_hijos': parte.cantidad_hijos,
+            'hijos_vivos': parte.hijos_vivos,
+            'hijos_fallecidos': parte.hijos_fallecidos,
+            'nombres_hijos': parte.nombres_hijos,
+            'familiares_adicionales': parte.familiares_adicionales,
+            # Información de ceremonia
+            'tipo_ceremonia': parte.tipo_ceremonia,
+            'fecha_misa': parte.fecha_misa.strftime('%Y-%m-%d') if parte.fecha_misa else None,
+            'hora_misa': parte.hora_misa.strftime('%H:%M') if parte.hora_misa else None,
+            'lugar_misa': parte.lugar_misa,
+            # Información de transmisión
+            'fecha_inicio_transmision': parte.fecha_inicio_transmision.strftime('%Y-%m-%d') if parte.fecha_inicio_transmision else None,
+            'fecha_fin_transmision': parte.fecha_fin_transmision.strftime('%Y-%m-%d') if parte.fecha_fin_transmision else None,
+            'hora_transmision': parte.hora_transmision.strftime('%H:%M') if parte.hora_transmision else None,
+            'duracion_transmision': parte.duracion_transmision,
+            'repeticiones_dia': parte.repeticiones_dia,
+            'precio_por_segundo': str(parte.precio_por_segundo),
+            'precio_total': str(parte.precio_total),
+            # Configuración
+            'estado': parte.estado,
+            'urgencia': parte.urgencia,
+            'observaciones': parte.observaciones,
+            'mensaje_personalizado': parte.mensaje_personalizado,
+            'fecha_solicitud': parte.fecha_solicitud.strftime('%d/%m/%Y %H:%M'),
+            'creado_por_nombre': parte.creado_por.get_full_name() if parte.creado_por else '',
+        }
+        
+        return JsonResponse(data)
+        
+    except Exception as e:
+        print(f"❌ ERROR en parte_mortorio_detail_api: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def parte_mortorio_create_api(request):
+    """API para crear un nuevo parte mortorio con los nuevos campos - VERSIÓN CORREGIDA"""
+    try:
+        # ✅ IMPORTACIÓN CORRECTA
+        from apps.parte_mortorios.models import ParteMortorio
+        from datetime import datetime
+        from decimal import Decimal
+        
+        data = json.loads(request.body)
+        
+        # Validar campos requeridos
+        required_fields = ['cliente_id', 'nombre_fallecido', 'fecha_fallecimiento']
+        for field in required_fields:
+            if not data.get(field):
+                return JsonResponse({
+                    'success': False,
+                    'error': f'El campo {field} es obligatorio'
+                }, status=400)
+        
+        # Obtener cliente
+        try:
+            cliente = CustomUser.objects.get(pk=data['cliente_id'], rol='cliente')
+        except CustomUser.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Cliente no encontrado'
+            }, status=404)
+        
+        # Crear el parte mortorio
+        parte = ParteMortorio.objects.create(
+            cliente=cliente,
+            nombre_fallecido=data['nombre_fallecido'],
+            edad_fallecido=data.get('edad_fallecido'),
+            dni_fallecido=data.get('dni_fallecido'),
+            fecha_fallecimiento=datetime.strptime(data['fecha_fallecimiento'], '%Y-%m-%d').date(),
+            # Nuevos campos familiares
+            nombre_esposa=data.get('nombre_esposa'),
+            cantidad_hijos=int(data.get('cantidad_hijos', 0)),
+            hijos_vivos=int(data.get('hijos_vivos', 0)),
+            hijos_fallecidos=int(data.get('hijos_fallecidos', 0)),
+            nombres_hijos=data.get('nombres_hijos'),
+            familiares_adicionales=data.get('familiares_adicionales'),
+            # Información de ceremonia
+            tipo_ceremonia=data.get('tipo_ceremonia', 'misa'),
+            # Información de transmisión
+            duracion_transmision=int(data.get('duracion_transmision', 1)),
+            repeticiones_dia=int(data.get('repeticiones_dia', 1)),
+            precio_por_segundo=Decimal(data.get('precio_por_segundo', '0.20')),
+            # Configuración
+            urgencia=data.get('urgencia', 'normal'),
+            observaciones=data.get('observaciones'),
+            mensaje_personalizado=data.get('mensaje_personalizado'),
+            creado_por=request.user
+        )
+        
+        # Manejar campos opcionales de fecha
+        if data.get('fecha_nacimiento'):
+            parte.fecha_nacimiento = datetime.strptime(data['fecha_nacimiento'], '%Y-%m-%d').date()
+        
+        if data.get('fecha_misa'):
+            parte.fecha_misa = datetime.strptime(data['fecha_misa'], '%Y-%m-%d').date()
+        
+        if data.get('hora_misa'):
+            parte.hora_misa = datetime.strptime(data['hora_misa'], '%H:%M').time()
+            
+        if data.get('hora_transmision'):
+            parte.hora_transmision = datetime.strptime(data['hora_transmision'], '%H:%M').time()
+        
+        if data.get('fecha_inicio_transmision'):
+            parte.fecha_inicio_transmision = datetime.strptime(data['fecha_inicio_transmision'], '%Y-%m-%d').date()
+        
+        if data.get('fecha_fin_transmision'):
+            parte.fecha_fin_transmision = datetime.strptime(data['fecha_fin_transmision'], '%Y-%m-%d').date()
+        
+        parte.lugar_misa = data.get('lugar_misa')
+        parte.save()
+        
+        # Registrar en historial
+        from django.contrib.admin.models import LogEntry, ADDITION
+        from django.contrib.contenttypes.models import ContentType
+        
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(parte).pk,
+            object_id=parte.pk,
+            object_repr=f"Parte mortorio creado: {parte.codigo}",
+            action_flag=ADDITION,
+            change_message=f'Parte mortorio creado: {parte.codigo} - Fallecido: {parte.nombre_fallecido}'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Parte mortorio creado exitosamente',
+            'parte_id': parte.id,
+            'codigo': parte.codigo,
+            'precio_total': str(parte.precio_total)
+        })
+        
+    except Exception as e:
+        import traceback
+        print("❌ ERROR en parte_mortorio_create_api:")
+        print(traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al crear el parte mortorio: {str(e)}'
+        }, status=500)
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["PUT", "POST"])
+def parte_mortorio_update_api(request, parte_id):
+    """API para actualizar un parte mortorio existente"""
+    try:
+        from .models import ParteMortorio
+        from datetime import datetime
+        
+        parte = get_object_or_404(ParteMortorio, pk=parte_id)
+        
+        if request.method == 'PUT':
+            data = json.loads(request.body)
+        else:
+            data = request.POST.dict()
+        
+        # Actualizar campos básicos
+        if 'nombre_fallecido' in data:
+            parte.nombre_fallecido = data['nombre_fallecido']
+        
+        if 'edad_fallecido' in data:
+            parte.edad_fallecido = int(data['edad_fallecido']) if data['edad_fallecido'] else None
+        
+        if 'dni_fallecido' in data:
+            parte.dni_fallecido = data['dni_fallecido']
+        
+        if 'fecha_fallecimiento' in data and data['fecha_fallecimiento']:
+            parte.fecha_fallecimiento = datetime.strptime(data['fecha_fallecimiento'], '%Y-%m-%d').date()
+        
+        if 'hora_fallecimiento' in data and data['hora_fallecimiento']:
+            parte.hora_fallecimiento = datetime.strptime(data['hora_fallecimiento'], '%H:%M').time()
+        
+        if 'lugar_fallecimiento' in data:
+            parte.lugar_fallecimiento = data['lugar_fallecimiento']
+        
+        if 'causa_fallecimiento' in data:
+            parte.causa_fallecimiento = data['causa_fallecimiento']
+        
+        if 'tipo_ceremonia' in data:
+            parte.tipo_ceremonia = data['tipo_ceremonia']
+        
+        if 'fecha_misa' in data and data['fecha_misa']:
+            parte.fecha_misa = datetime.strptime(data['fecha_misa'], '%Y-%m-%d').date()
+        
+        if 'hora_misa' in data and data['hora_misa']:
+            parte.hora_misa = datetime.strptime(data['hora_misa'], '%H:%M').time()
+        
+        if 'lugar_misa' in data:
+            parte.lugar_misa = data['lugar_misa']
+        
+        if 'fecha_transmision' in data and data['fecha_transmision']:
+            parte.fecha_transmision = datetime.strptime(data['fecha_transmision'], '%Y-%m-%d').date()
+        
+        if 'hora_transmision' in data and data['hora_transmision']:
+            parte.hora_transmision = datetime.strptime(data['hora_transmision'], '%H:%M').time()
+        
+        if 'duracion_transmision' in data:
+            parte.duracion_transmision = int(data['duracion_transmision'])
+        
+        if 'repeticiones_dia' in data:
+            parte.repeticiones_dia = int(data['repeticiones_dia'])
+        
+        if 'dias_transmision' in data:
+            parte.dias_transmision = int(data['dias_transmision'])
+        
+        if 'estado' in data:
+            parte.estado = data['estado']
+        
+        if 'urgencia' in data:
+            parte.urgencia = data['urgencia']
+        
+        if 'observaciones' in data:
+            parte.observaciones = data['observaciones']
+        
+        if 'mensaje_personalizado' in data:
+            parte.mensaje_personalizado = data['mensaje_personalizado']
+        
+        if 'precio' in data:
+            parte.precio = Decimal(data['precio'])
+        
+        # Actualizar cliente si se proporciona
+        if 'cliente_id' in data and data['cliente_id']:
+            try:
+                cliente = CustomUser.objects.get(pk=data['cliente_id'], rol='cliente')
+                parte.cliente = cliente
+            except CustomUser.DoesNotExist:
+                pass
+        
+        parte.save()
+        
+        # Registrar en historial
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(parte).pk,
+            object_id=parte.pk,
+            object_repr=f"Parte mortorio actualizado: {parte.codigo}",
+            action_flag=CHANGE,
+            change_message=f'Parte mortorio {parte.codigo} actualizado'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Parte mortorio actualizado exitosamente'
+        })
+        
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al actualizar el parte mortorio: {str(e)}'
+        }, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["DELETE", "POST"])
+def parte_mortorio_delete_api(request, parte_id):
+    """API para eliminar un parte mortorio"""
+    try:
+        from .models import ParteMortorio
+        
+        parte = get_object_or_404(ParteMortorio, pk=parte_id)
+        codigo = parte.codigo
+        
+        # Registrar en historial antes de eliminar
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(parte).pk,
+            object_id=parte.pk,
+            object_repr=f"Parte mortorio eliminado: {codigo}",
+            action_flag=DELETION,
+            change_message=f'Parte mortorio {codigo} eliminado'
+        )
+        
+        parte.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Parte mortorio eliminado exitosamente'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al eliminar el parte mortorio: {str(e)}'
+        }, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def parte_mortorio_programar_api(request, parte_id):
+    """API para programar un parte mortorio"""
+    try:
+        from .models import ParteMortorio
+        
+        parte = get_object_or_404(ParteMortorio, pk=parte_id)
+        parte.programar(request.user)
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Parte mortorio programado exitosamente',
+            'nuevo_estado': parte.estado
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al programar el parte mortorio: {str(e)}'
+        }, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def parte_mortorio_marcar_transmitido_api(request, parte_id):
+    """API para marcar un parte mortorio como transmitido"""
+    try:
+        from .models import ParteMortorio
+        
+        parte = get_object_or_404(ParteMortorio, pk=parte_id)
+        parte.marcar_transmitido(request.user)
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Parte mortorio marcado como transmitido',
+            'nuevo_estado': parte.estado
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al marcar como transmitido: {str(e)}'
+        }, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def parte_mortorio_cancelar_api(request, parte_id):
+    """API para cancelar un parte mortorio"""
+    try:
+        from .models import ParteMortorio
+        
+        parte = get_object_or_404(ParteMortorio, pk=parte_id)
+        parte.cancelar(request.user)
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Parte mortorio cancelado',
+            'nuevo_estado': parte.estado
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al cancelar el parte mortorio: {str(e)}'
+        }, status=500)
