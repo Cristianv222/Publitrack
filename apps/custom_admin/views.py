@@ -2537,7 +2537,7 @@ def cliente_detail_api(request, cliente_id):
         return JsonResponse({'error': str(e)}, status=500)
 @login_required
 def cliente_create_api(request):
-    """API para crear un nuevo cliente - VERSIÓN CON DEBUG"""
+    """API para crear un nuevo cliente - VERSIÓN SIN ORDEN AUTOMÁTICA"""
     if not request.user.es_admin and not request.user.es_vendedor:
         messages.error(request, 'No tienes permisos para crear clientes')
         return redirect('custom_admin:clientes_list')
@@ -2617,41 +2617,13 @@ def cliente_create_api(request):
                 except CustomUser.DoesNotExist:
                     pass
 
-        # ✅ GUARDAR PRIMERO EL CLIENTE
+        # ✅ GUARDAR EL CLIENTE SIN CREAR ORDEN
         print("🟡 Guardando cliente en BD...")
         cliente.save()
         print(f"✅ CLIENTE GUARDADO - ID: {cliente.id}")
 
-        # ✅ CREAR ORDEN AUTOMÁTICA
-        print("🟡 Intentando crear orden automática...")
-        from apps.orders.models import OrdenToma
-        from decimal import Decimal
-        
-        try:
-            orden = OrdenToma.objects.create(
-                cliente=cliente,
-                detalle_productos=f'Orden de toma automática para {cliente.get_full_name()}',
-                cantidad=1,
-                total=Decimal('0.00'),
-                created_by=request.user,
-                estado='pendiente'
-            )
-            
-            print(f"✅ ORDEN CREADA - Código: {orden.codigo}")
-            
-            # ✅ FORZAR COPIAR DATOS
-            print("🟡 Copiando datos del cliente a la orden...")
-            orden.copiar_datos_cliente()
-            orden.save()
-            print("✅ DATOS COPIADOS Y ORDEN GUARDADA")
-            
-            orden_creada = True
-            
-        except Exception as e:
-            print(f"❌ ERROR creando orden: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            orden_creada = False
+        # ❌ ELIMINADO: Creación automática de orden de toma
+        print("🟡 Cliente creado exitosamente - SIN orden automática")
 
         # Registrar en historial
         from django.contrib.admin.models import LogEntry, ADDITION
@@ -2663,7 +2635,7 @@ def cliente_create_api(request):
             object_id=cliente.pk,
             object_repr=str(cliente.empresa or cliente.username),
             action_flag=ADDITION,
-            change_message=f'Cliente creado: {cliente.empresa} ({cliente.ruc_dni}) - Orden: {"Sí" if orden_creada else "No"}'
+            change_message=f'Cliente creado: {cliente.empresa} ({cliente.ruc_dni}) - Sin orden automática'
         )
 
         messages.success(request, f'✓ Cliente "{cliente.empresa}" creado exitosamente')
@@ -2676,7 +2648,6 @@ def cliente_create_api(request):
         traceback.print_exc()
         messages.error(request, f'Error al crear el cliente: {str(e)}')
         return redirect('custom_admin:clientes_list')
-        
 @login_required
 def cliente_update_api(request, cliente_id):
     """API para actualizar un cliente existente"""
@@ -4323,6 +4294,7 @@ def orden_produccion_generar_api(request, order_id):
         import traceback
         traceback.print_exc()
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+        
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["POST"])

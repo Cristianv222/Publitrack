@@ -261,16 +261,14 @@ class OrdenToma(models.Model):
         # Si es nuevo y no tiene código, generar uno
         if not self.pk and not self.codigo:
             self.codigo = self.generar_codigo()
-        
+    
         # ✅ CORREGIDO: Siempre copiar datos del cliente si hay un cliente asignado
         # y la orden es nueva (no tiene PK) o no tiene datos del cliente
         if self.cliente and (not self.pk or not self.nombre_cliente or self.nombre_cliente.strip() == ''):
             self.copiar_datos_cliente()
-        
+    
         # Llamar al save original una sola vez
         super().save(*args, **kwargs)
-
-
     
     def generar_codigo(self):
         """Genera código único basado en el próximo ID"""
