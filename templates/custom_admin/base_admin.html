@@ -762,13 +762,15 @@
 </div>
 
             <!-- PARTE MORTORIOS (nueva sección) -->
+
+
 <div class="menu-section">
-    <div class="menu-section-title">PARTE MORTORIOS</div>
-    <a href="{% url 'custom_admin:parte_mortorios_list' %}" class="submenu-link {% if 'parte_mortorios' in request.resolver_match.url_name %}active{% endif %}">
-        <i class="fas fa-monument menu-icon"></i>
-        <span>Gestión de Parte Mortorios</span>
-    </a>
-</div>
+                <div class="menu-section-title">PARTE MORTORIOS</div>
+                <a href="{% url 'custom_admin:parte_mortorios_list' %}" class="menu-link {% if 'clientes' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-monument menu-icon"></i>
+                    <span>Gestión de parte mortorios</span>
+                </a>
+            </div>
             <!-- CONTENIDO PUBLICITARIO -->
             <div class="menu-section">
                 <div class="menu-section-title">CONTENIDO PUBLICITARIO</div>

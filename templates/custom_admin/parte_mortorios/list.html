@@ -12,6 +12,16 @@
         background: white;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+    .stats-card h3 {
+        font-size: 2rem;
+        margin: 0;
+        color: #333;
+    }
+    .stats-card p {
+        margin: 5px 0 0 0;
+        color: #666;
+        font-size: 0.9rem;
+    }
     .badge-estado {
         padding: 5px 12px;
         border-radius: 20px;
@@ -35,21 +45,22 @@
         color: #721c24;
     }
     .badge-urgencia {
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-size: 0.75rem;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
     }
     .badge-normal {
-        background-color: #28a745;
-        color: white;
+        background-color: #d4edda;
+        color: #155724;
     }
     .badge-urgente {
-        background-color: #ffc107;
-        color: #000;
+        background-color: #fff3cd;
+        color: #856404;
     }
     .badge-muy_urgente {
-        background-color: #dc3545;
-        color: white;
+        background-color: #f8d7da;
+        color: #721c24;
     }
     .parte-number {
         font-weight: 600;
@@ -70,8 +81,46 @@
     .info-value {
         color: #6c757d;
     }
-    .btn-estado {
-        margin: 2px;
+    .btn-action {
+        padding: 5px 10px;
+        font-size: 0.875rem;
+    }
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
+        cursor: pointer;
+    }
+    
+    /* Estilos para modales animados */
+    .animated-modal {
+        border-radius: 15px !important;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2) !important;
+    }
+    .animated-modal .swal2-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+    }
+    .animated-modal .swal2-html-container {
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+    .swal2-popup.animated-modal .btn {
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    .swal2-popup.animated-modal .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    /* Estilos para información familiar */
+    .info-familiar {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 10px;
     }
 </style>
 {% endblock %}
@@ -151,10 +200,10 @@
                             <td>
                                 <div class="familia-info">
                                     {% if parte.nombre_esposa %}
-                                    <div>💍 {{ parte.nombre_esposa }}</div>
+                                    <div><i class="fas fa-ring me-1"></i> {{ parte.nombre_esposa }}</div>
                                     {% endif %}
                                     {% if parte.cantidad_hijos > 0 %}
-                                    <div>👨‍👩‍👧‍👦 {{ parte.cantidad_hijos }} hijos</div>
+                                    <div><i class="fas fa-child me-1"></i> {{ parte.cantidad_hijos }} hijos</div>
                                     {% endif %}
                                 </div>
                             </td>
@@ -175,7 +224,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <span class="precio-total">S/ {{ parte.precio_total|floatformat:2 }}</span>
+                                <span class="precio-total">$ {{ parte.precio_total|floatformat:2 }}</span>
                             </td>
                             <td>
                                 <span class="badge-urgencia badge-{{ parte.urgencia }}">
@@ -188,43 +237,41 @@
                                 </span>
                             </td>
                             <td>
-                                <div class="btn-group-vertical btn-group-sm">
-                                    <button class="btn btn-info btn-sm mb-1" 
-                                            onclick="verDetalleModal({{ parte.id }})"
-                                            title="Ver detalles">
-                                        <i class="fas fa-eye"></i> Ver
-                                    </button>
-                                    <button class="btn btn-warning btn-sm mb-1" 
-                                            onclick="editarParte({{ parte.id }})"
-                                            title="Editar">
-                                        <i class="fas fa-edit"></i> Editar
-                                    </button>
-                                    
-                                    <!-- Botones para cambiar estado -->
-                                    {% if parte.estado == 'pendiente' %}
-                                    <button class="btn btn-success btn-sm mb-1 btn-estado" 
-                                            onclick="cambiarEstado({{ parte.id }}, 'al_aire')"
-                                            title="Enviar al Aire">
-                                        <i class="fas fa-broadcast-tower"></i> Al Aire
-                                    </button>
-                                    {% endif %}
-                                    
-                                    {% if parte.estado == 'al_aire' %}
-                                    <button class="btn btn-primary btn-sm mb-1 btn-estado" 
-                                            onclick="cambiarEstado({{ parte.id }}, 'finalizado')"
-                                            title="Marcar como Finalizado">
-                                        <i class="fas fa-check-circle"></i> Finalizar
-                                    </button>
-                                    {% endif %}
-                                    
-                                    {% if parte.estado != 'finalizado' %}
-                                    <button class="btn btn-secondary btn-sm mb-1 btn-estado" 
-                                            onclick="cambiarEstado({{ parte.id }}, 'pendiente')"
-                                            title="Volver a Pendiente">
-                                        <i class="fas fa-clock"></i> Pendiente
-                                    </button>
-                                    {% endif %}
-                                </div>
+                                <button class="btn btn-sm btn-info btn-action" 
+                                        onclick="verDetalleParte({{ parte.id }})"
+                                        title="Ver detalles">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning btn-action" 
+                                        onclick="editarParte({{ parte.id }})"
+                                        title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                
+                                <!-- Botones para cambiar estado -->
+                                {% if parte.estado == 'pendiente' %}
+                                <button class="btn btn-sm btn-success btn-action" 
+                                        onclick="cambiarEstado({{ parte.id }}, 'al_aire')"
+                                        title="Enviar al Aire">
+                                    <i class="fas fa-broadcast-tower"></i>
+                                </button>
+                                {% endif %}
+                                
+                                {% if parte.estado == 'al_aire' %}
+                                <button class="btn btn-sm btn-primary btn-action" 
+                                        onclick="cambiarEstado({{ parte.id }}, 'finalizado')"
+                                        title="Marcar como Finalizado">
+                                    <i class="fas fa-check-circle"></i>
+                                </button>
+                                {% endif %}
+                                
+                                {% if parte.estado != 'finalizado' %}
+                                <button class="btn btn-sm btn-secondary btn-action" 
+                                        onclick="cambiarEstado({{ parte.id }}, 'pendiente')"
+                                        title="Volver a Pendiente">
+                                    <i class="fas fa-clock"></i>
+                                </button>
+                                {% endif %}
                             </td>
                         </tr>
                         {% empty %}
@@ -258,7 +305,9 @@
                 <!-- Contenido se carga dinámicamente -->
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cerrar
+                </button>
             </div>
         </div>
     </div>
@@ -275,69 +324,70 @@
             <div class="modal-body">
                 <form id="formParteMortorio">
                     {% csrf_token %}
+                    <input type="hidden" id="parte_id" name="parte_id">
                     
                     <!-- Información del Fallecido -->
-                    <h6 class="mb-3 text-primary">📋 Información del Fallecido</h6>
+                    <h6 class="mb-3 text-primary"><i class="fas fa-user-alt me-2"></i>Información del Fallecido</h6>
                     <div class="row g-3 mb-4">
                         <div class="col-12">
-                            <label class="form-label">Nombre del Fallecido *</label>
-                            <input type="text" class="form-control" name="nombre_fallecido" required>
+                            <label class="form-label">Nombre del Fallecido <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="nombre_fallecido" id="nombre_fallecido" required>
                         </div>
                     </div>
                     
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label">Fecha de Nacimiento</label>
-                            <input type="date" class="form-control" name="fecha_nacimiento">
+                            <input type="date" class="form-control" name="fecha_nacimiento" id="fecha_nacimiento">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Fecha de Fallecimiento *</label>
-                            <input type="date" class="form-control" name="fecha_fallecimiento" required>
+                            <label class="form-label">Fecha de Fallecimiento <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" name="fecha_fallecimiento" id="fecha_fallecimiento" required>
                         </div>
                     </div>
                     
                     <!-- Información Familiar -->
-                    <h6 class="mb-3 text-primary">👨‍👩‍👧‍👦 Información Familiar</h6>
+                    <h6 class="mb-3 text-primary"><i class="fas fa-users me-2"></i>Información Familiar</h6>
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label">Nombre de la Esposa/Esposo</label>
-                            <input type="text" class="form-control" name="nombre_esposa" placeholder="Nombre del cónyuge">
+                            <input type="text" class="form-control" name="nombre_esposa" id="nombre_esposa" placeholder="Nombre del cónyuge">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Cantidad de Hijos</label>
-                            <input type="number" class="form-control" name="cantidad_hijos" value="0" min="0">
+                            <input type="number" class="form-control" name="cantidad_hijos" id="cantidad_hijos" value="0" min="0">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Hijos Vivos</label>
-                            <input type="number" class="form-control" name="hijos_vivos" value="0" min="0">
+                            <input type="number" class="form-control" name="hijos_vivos" id="hijos_vivos" value="0" min="0">
                         </div>
                     </div>
                     
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label">Hijos Fallecidos</label>
-                            <input type="number" class="form-control" name="hijos_fallecidos" value="0" min="0">
+                            <input type="number" class="form-control" name="hijos_fallecidos" id="hijos_fallecidos" value="0" min="0">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Nombres de los Hijos</label>
-                            <input type="text" class="form-control" name="nombres_hijos" placeholder="Separados por comas">
+                            <input type="text" class="form-control" name="nombres_hijos" id="nombres_hijos" placeholder="Separados por comas">
                         </div>
                     </div>
                     
                     <div class="row g-3 mb-4">
                         <div class="col-12">
                             <label class="form-label">Familiares Adicionales</label>
-                            <textarea class="form-control" name="familiares_adicionales" rows="2" 
+                            <textarea class="form-control" name="familiares_adicionales" id="familiares_adicionales" rows="2" 
                                       placeholder="Otros familiares importantes (hermanos, padres, etc.)"></textarea>
                         </div>
                     </div>
                     
                     <!-- Información de la Ceremonia -->
-                    <h6 class="mb-3 text-primary">⛪ Información de la Ceremonia</h6>
+                    <h6 class="mb-3 text-primary"><i class="fas fa-church me-2"></i>Información de la Ceremonia</h6>
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label">Tipo de Ceremonia</label>
-                            <select class="form-select" name="tipo_ceremonia">
+                            <select class="form-select" name="tipo_ceremonia" id="tipo_ceremonia">
                                 <option value="misa">Misa</option>
                                 <option value="velatorio">Velatorio</option>
                                 <option value="ambos">Misa y Velatorio</option>
@@ -345,8 +395,8 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Cliente/Familiar *</label>
-                            <select class="form-select" name="cliente_id" required>
+                            <label class="form-label">Cliente/Familiar <span class="text-danger">*</span></label>
+                            <select class="form-select" name="cliente_id" id="cliente_id" required>
                                 <option value="">Seleccionar cliente...</option>
                                 <!-- Se cargarán dinámicamente -->
                             </select>
@@ -356,68 +406,68 @@
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label">Fecha de Misa/Velatorio</label>
-                            <input type="date" class="form-control" name="fecha_misa">
+                            <input type="date" class="form-control" name="fecha_misa" id="fecha_misa">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Hora de Misa/Velatorio</label>
-                            <input type="time" class="form-control" name="hora_misa">
+                            <input type="time" class="form-control" name="hora_misa" id="hora_misa">
                         </div>
                     </div>
                     
                     <div class="row g-3 mb-4">
                         <div class="col-12">
                             <label class="form-label">Lugar de Misa/Velatorio</label>
-                            <input type="text" class="form-control" name="lugar_misa" placeholder="Dirección del lugar de la ceremonia">
+                            <input type="text" class="form-control" name="lugar_misa" id="lugar_misa" placeholder="Dirección del lugar de la ceremonia">
                         </div>
                     </div>
                     
                     <!-- Información de Transmisión -->
-                    <h6 class="mb-3 text-primary">📺 Información de Transmisión</h6>
+                    <h6 class="mb-3 text-primary"><i class="fas fa-broadcast-tower me-2"></i>Información de Transmisión</h6>
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label">Fecha de Inicio Transmisión</label>
-                            <input type="date" class="form-control" name="fecha_inicio_transmision">
+                            <input type="date" class="form-control" name="fecha_inicio_transmision" id="fecha_inicio_transmision">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Fecha de Fin Transmisión</label>
-                            <input type="date" class="form-control" name="fecha_fin_transmision">
+                            <input type="date" class="form-control" name="fecha_fin_transmision" id="fecha_fin_transmision">
                         </div>
                     </div>
                     
                     <div class="row g-3 mb-4">
                         <div class="col-md-4">
                             <label class="form-label">Hora de Transmisión</label>
-                            <input type="time" class="form-control" name="hora_transmision">
+                            <input type="time" class="form-control" name="hora_transmision" id="hora_transmision">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Duración (minutos)</label>
-                            <input type="number" class="form-control" name="duracion_transmision" value="1" min="1">
+                            <input type="number" class="form-control" name="duracion_transmision" id="duracion_transmision" value="1" min="1">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Repeticiones por día</label>
-                            <input type="number" class="form-control" name="repeticiones_dia" value="1" min="1">
+                            <input type="number" class="form-control" name="repeticiones_dia" id="repeticiones_dia" value="1" min="1">
                         </div>
                     </div>
                     
                     <!-- Precio Total -->
-                    <h6 class="mb-3 text-primary">💰 Precio Total</h6>
+                    <h6 class="mb-3 text-primary"><i class="fas fa-dollar-sign me-2"></i>Precio Total</h6>
                     <div class="row g-3 mb-4">
                         <div class="col-12">
-                            <label class="form-label">Precio Total (S/) *</label>
+                            <label class="form-label">Precio Total ($) <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <span class="input-group-text">S/</span>
-                                <input type="number" class="form-control" name="precio_total" step="0.01" min="0" value="0.00" required>
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" name="precio_total" id="precio_total" step="0.01" min="0" value="0.00" required>
                             </div>
                             <small class="text-muted">Ingrese el precio total a cobrar por este parte mortorio</small>
                         </div>
                     </div>
                     
                     <!-- Configuración -->
-                    <h6 class="mb-3 text-primary">⚙️ Configuración</h6>
+                    <h6 class="mb-3 text-primary"><i class="fas fa-cog me-2"></i>Configuración</h6>
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label">Urgencia</label>
-                            <select class="form-select" name="urgencia">
+                            <select class="form-select" name="urgencia" id="urgencia">
                                 <option value="normal">Normal</option>
                                 <option value="urgente">Urgente</option>
                                 <option value="muy_urgente">Muy Urgente</option>
@@ -425,7 +475,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Estado</label>
-                            <select class="form-select" name="estado">
+                            <select class="form-select" name="estado" id="estado">
                                 <option value="pendiente">Pendiente</option>
                                 <option value="al_aire">Al Aire</option>
                                 <option value="finalizado">Finalizado</option>
@@ -436,7 +486,7 @@
                     <div class="row g-3 mb-4">
                         <div class="col-12">
                             <label class="form-label">Mensaje Personalizado</label>
-                            <textarea class="form-control" name="mensaje_personalizado" rows="3" 
+                            <textarea class="form-control" name="mensaje_personalizado" id="mensaje_personalizado" rows="3" 
                                       placeholder="Mensaje especial para la transmisión..."></textarea>
                         </div>
                     </div>
@@ -444,14 +494,18 @@
                     <div class="row g-3 mb-4">
                         <div class="col-12">
                             <label class="form-label">Observaciones</label>
-                            <textarea class="form-control" name="observaciones" rows="2"></textarea>
+                            <textarea class="form-control" name="observaciones" id="observaciones" rows="2"></textarea>
                         </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="guardarParteMortorio()">Guardar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="guardarParteMortorio()">
+                    <i class="fas fa-save me-2"></i>Guardar Parte Mortorio
+                </button>
             </div>
         </div>
     </div>
@@ -460,25 +514,28 @@
 
 {% block extra_js %}
 <script>
-// Variables globales
-let parteEditando = null;
+let modalParteMortorio;
+let modalDetalleParte;
+
+document.addEventListener('DOMContentLoaded', function() {
+    modalParteMortorio = new bootstrap.Modal(document.getElementById('modalParteMortorio'));
+    modalDetalleParte = new bootstrap.Modal(document.getElementById('modalDetalleParte'));
+});
 
 function abrirModalCrear() {
     document.getElementById('modalParteTitulo').textContent = 'Nuevo Parte Mortorio';
     document.getElementById('formParteMortorio').reset();
-    parteEditando = null;
+    document.getElementById('parte_id').value = '';
     
     cargarClientes();
-    
-    const modal = new bootstrap.Modal(document.getElementById('modalParteMortorio'));
-    modal.show();
+    modalParteMortorio.show();
 }
 
 function cargarClientes() {
     fetch('/panel/api/clientes-activos/')
         .then(response => response.json())
         .then(data => {
-            const selectCliente = document.querySelector('select[name="cliente_id"]');
+            const selectCliente = document.getElementById('cliente_id');
             selectCliente.innerHTML = '<option value="">Seleccionar cliente...</option>';
             
             if (data.success && data.clientes) {
@@ -496,157 +553,223 @@ function cargarClientes() {
 }
 
 function guardarParteMortorio() {
+    const parteId = document.getElementById('parte_id').value;
     const form = document.getElementById('formParteMortorio');
-    const formData = new FormData(form);
     
-    // Convertir FormData a objeto JSON
-    const data = {};
-    for (let [key, value] of formData.entries()) {
-        data[key] = value;
-    }
-    
-    // Validaciones básicas
-    if (!data.nombre_fallecido || !data.fecha_fallecimiento || !data.cliente_id || !data.precio_total) {
-        alert('Por favor complete los campos obligatorios (*)');
+    // Validación básica antes de enviar
+    if (!form.checkValidity()) {
+        form.reportValidity();
         return;
     }
     
-    const url = parteEditando 
-        ? `/panel/parte-mortorios/${parteEditando}/editar/`
-        : '/panel/parte-mortorios/crear/';
+    // Cerrar modal
+    modalParteMortorio.hide();
     
-    const method = parteEditando ? 'PUT' : 'POST';
-    
-    fetch(url, {
-        method: method,
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    // Mostrar loading
+    Swal.fire({
+        title: parteId ? 'Actualizando...' : 'Guardando...',
+        html: `
+            <div class="text-center py-3">
+                <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Guardando...</span>
+                </div>
+                <p class="text-muted mb-0">Por favor espere un momento</p>
+            </div>
+        `,
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        customClass: {
+            popup: 'animated-modal'
         },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message);
-            location.reload();
-        } else {
-            alert('Error: ' + data.error);
+        showClass: {
+            popup: 'animate__animated animate__fadeIn animate__faster'
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error al guardar el parte mortorio');
     });
+    
+    // Enviar el formulario normalmente
+    form.action = parteId 
+        ? `/panel/parte-mortorios/${parteId}/editar/`
+        : '/panel/parte-mortorios/crear/';
+    form.method = 'POST';
+    form.submit();
 }
 
-function verDetalleModal(parteId) {
+function verDetalleParte(parteId) {
+    // Mostrar loading
+    const loadingHtml = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
+    `;
+    document.getElementById('detalleParteContent').innerHTML = loadingHtml;
+    modalDetalleParte.show();
+    
     fetch(`/panel/parte-mortorios/${parteId}/detalle/`)
         .then(response => response.json())
         .then(data => {
-            const content = document.getElementById('detalleParteContent');
-            content.innerHTML = `
+            // Construir HTML para información familiar
+            let infoFamiliarHtml = '';
+            if (data.nombre_esposa || data.cantidad_hijos > 0) {
+                infoFamiliarHtml = `
+                    <div class="info-familiar">
+                        <h6 class="mb-3">Información Familiar</h6>
+                        <div class="row">
+                            ${data.nombre_esposa ? `
+                            <div class="col-md-6">
+                                <strong>Esposa/Esposo:</strong><br>
+                                <span class="info-value">${data.nombre_esposa}</span>
+                            </div>
+                            ` : ''}
+                            ${data.cantidad_hijos > 0 ? `
+                            <div class="col-md-6">
+                                <strong>Hijos:</strong><br>
+                                <span class="info-value">${data.cantidad_hijos} total (${data.hijos_vivos} vivos, ${data.hijos_fallecidos} fallecidos)</span>
+                            </div>
+                            ` : ''}
+                            ${data.nombres_hijos ? `
+                            <div class="col-12 mt-2">
+                                <strong>Nombres de hijos:</strong><br>
+                                <span class="info-value">${data.nombres_hijos}</span>
+                            </div>
+                            ` : ''}
+                            ${data.familiares_adicionales ? `
+                            <div class="col-12 mt-2">
+                                <strong>Familiares adicionales:</strong><br>
+                                <span class="info-value">${data.familiares_adicionales}</span>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            const html = `
                 <div class="row">
-                    <div class="col-md-6">
-                        <h6 class="text-primary mb-3">📋 Información del Fallecido</h6>
-                        <p><span class="info-label">Nombre:</span> <span class="info-value">${data.nombre_fallecido}</span></p>
-                        ${data.fecha_nacimiento ? `<p><span class="info-label">Fecha Nacimiento:</span> <span class="info-value">${data.fecha_nacimiento}</span></p>` : ''}
-                        <p><span class="info-label">Fecha Fallecimiento:</span> <span class="info-value">${data.fecha_fallecimiento}</span></p>
+                    <div class="col-md-6 mb-3">
+                        <strong>Nombre del Fallecido:</strong><br>
+                        ${data.nombre_fallecido}
                     </div>
-                    <div class="col-md-6">
-                        <h6 class="text-primary mb-3">👨‍👩‍👧‍👦 Información Familiar</h6>
-                        ${data.nombre_esposa ? `<p><span class="info-label">Esposa/Esposo:</span> <span class="info-value">${data.nombre_esposa}</span></p>` : ''}
-                        ${data.cantidad_hijos > 0 ? `
-                            <p><span class="info-label">Hijos:</span> <span class="info-value">${data.cantidad_hijos} total (${data.hijos_vivos} vivos, ${data.hijos_fallecidos} fallecidos)</span></p>
-                            ${data.nombres_hijos ? `<p><span class="info-label">Nombres:</span> <span class="info-value">${data.nombres_hijos}</span></p>` : ''}
-                        ` : ''}
-                        ${data.familiares_adicionales ? `<p><span class="info-label">Familiares:</span> <span class="info-value">${data.familiares_adicionales}</span></p>` : ''}
+                    <div class="col-md-6 mb-3">
+                        <strong>Código:</strong><br>
+                        <span class="parte-number">${data.codigo}</span>
                     </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Fecha de Fallecimiento:</strong><br>
+                        ${data.fecha_fallecimiento}
+                    </div>
+                    ${data.fecha_nacimiento ? `
+                    <div class="col-md-6 mb-3">
+                        <strong>Fecha de Nacimiento:</strong><br>
+                        ${data.fecha_nacimiento}
+                    </div>
+                    ` : ''}
+                    <div class="col-md-6 mb-3">
+                        <strong>Cliente:</strong><br>
+                        ${data.cliente_nombre}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Tipo de Ceremonia:</strong><br>
+                        ${data.tipo_ceremonia}
+                    </div>
+                    ${data.fecha_misa ? `
+                    <div class="col-md-6 mb-3">
+                        <strong>Fecha Ceremonia:</strong><br>
+                        ${data.fecha_misa} ${data.hora_misa ? 'a las ' + data.hora_misa : ''}
+                    </div>
+                    ` : ''}
+                    ${data.lugar_misa ? `
+                    <div class="col-md-6 mb-3">
+                        <strong>Lugar Ceremonia:</strong><br>
+                        ${data.lugar_misa}
+                    </div>
+                    ` : ''}
+                    <div class="col-md-6 mb-3">
+                        <strong>Precio Total:</strong><br>
+                        <span class="precio-total">$ ${data.precio_total}</span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Estado:</strong><br>
+                        <span class="badge-estado badge-${data.estado}">${data.estado_display}</span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Urgencia:</strong><br>
+                        <span class="badge-urgencia badge-${data.urgencia}">${data.urgencia_display}</span>
+                    </div>
+                    ${data.fecha_inicio_transmision ? `
+                    <div class="col-md-6 mb-3">
+                        <strong>Transmisión:</strong><br>
+                        ${data.fecha_inicio_transmision} al ${data.fecha_fin_transmision}<br>
+                        <small>${data.hora_transmision} - ${data.duracion_transmision} min × ${data.repeticiones_dia} rep/día</small>
+                    </div>
+                    ` : ''}
                 </div>
-                
-                <div class="row mt-4">
-                    <div class="col-md-6">
-                        <h6 class="text-primary mb-3">⛪ Información de la Ceremonia</h6>
-                        <p><span class="info-label">Tipo:</span> <span class="info-value">${data.tipo_ceremonia}</span></p>
-                        ${data.fecha_misa ? `<p><span class="info-label">Fecha:</span> <span class="info-value">${data.fecha_misa} ${data.hora_misa ? 'a las ' + data.hora_misa : ''}</span></p>` : ''}
-                        ${data.lugar_misa ? `<p><span class="info-label">Lugar:</span> <span class="info-value">${data.lugar_misa}</span></p>` : ''}
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="text-primary mb-3">📺 Información de Transmisión</h6>
-                        ${data.fecha_inicio_transmision ? `
-                            <p><span class="info-label">Período:</span> <span class="info-value">${data.fecha_inicio_transmision} al ${data.fecha_fin_transmision}</span></p>
-                            <p><span class="info-label">Hora:</span> <span class="info-value">${data.hora_transmision}</span></p>
-                            <p><span class="info-label">Duración:</span> <span class="info-value">${data.duracion_transmision} min × ${data.repeticiones_dia} rep/día</span></p>
-                        ` : '<p class="text-muted">No programado</p>'}
-                    </div>
-                </div>
-                
-                <div class="row mt-4">
-                    <div class="col-md-6">
-                        <h6 class="text-primary mb-3">💰 Información de Precio</h6>
-                        <p><span class="info-label">Precio total:</span> <span class="info-value precio-total">S/ ${data.precio_total}</span></p>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="text-primary mb-3">⚙️ Configuración</h6>
-                        <p><span class="info-label">Estado:</span> <span class="badge-estado badge-${data.estado}">${data.estado}</span></p>
-                        <p><span class="info-label">Urgencia:</span> <span class="badge-urgencia badge-${data.urgencia}">${data.urgencia}</span></p>
-                        <p><span class="info-label">Cliente:</span> <span class="info-value">${data.cliente_nombre}</span></p>
-                    </div>
-                </div>
-                
+                ${infoFamiliarHtml}
                 ${data.mensaje_personalizado ? `
                 <div class="row mt-4">
                     <div class="col-12">
-                        <h6 class="text-primary mb-3">💬 Mensaje Personalizado</h6>
+                        <h6 class="text-primary mb-3">Mensaje Personalizado</h6>
                         <div class="alert alert-info">
                             ${data.mensaje_personalizado}
                         </div>
                     </div>
                 </div>
                 ` : ''}
-                
                 ${data.observaciones ? `
                 <div class="row mt-4">
                     <div class="col-12">
-                        <h6 class="text-primary mb-3">📝 Observaciones</h6>
+                        <h6 class="text-primary mb-3">Observaciones</h6>
                         <p class="info-value">${data.observaciones}</p>
                     </div>
                 </div>
                 ` : ''}
             `;
-            
-            const modal = new bootstrap.Modal(document.getElementById('modalDetalleParte'));
-            modal.show();
+            document.getElementById('detalleParteContent').innerHTML = html;
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Error al cargar los detalles del parte mortorio');
+            document.getElementById('detalleParteContent').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Error al cargar los detalles del parte mortorio
+                </div>
+            `;
         });
 }
 
 function editarParte(parteId) {
+    document.getElementById('modalParteTitulo').textContent = 'Editar Parte Mortorio';
+    document.getElementById('parte_id').value = parteId;
+    
+    // Cargar datos del parte mortorio
     fetch(`/panel/parte-mortorios/${parteId}/detalle/`)
         .then(response => response.json())
         .then(data => {
-            parteEditando = parteId;
-            document.getElementById('modalParteTitulo').textContent = 'Editar Parte Mortorio';
-            
             // Llenar el formulario con los datos existentes
             Object.keys(data).forEach(key => {
-                const input = document.querySelector(`[name="${key}"]`);
+                const input = document.getElementById(key);
                 if (input) {
-                    input.value = data[key] || '';
+                    if (input.type === 'checkbox') {
+                        input.checked = data[key];
+                    } else {
+                        input.value = data[key] || '';
+                    }
                 }
             });
             
             cargarClientes();
             
-            const modal = new bootstrap.Modal(document.getElementById('modalParteMortorio'));
-            modal.show();
+            modalParteMortorio.show();
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Error al cargar los datos del parte mortorio');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error al cargar los datos del parte mortorio',
+                confirmButtonColor: '#3085d6'
+            });
         });
 }
 
@@ -657,31 +780,81 @@ function cambiarEstado(parteId, nuevoEstado) {
         'finalizado': 'Finalizado'
     };
     
-    if (confirm(`¿Estás seguro de cambiar el estado a "${estados[nuevoEstado]}"?`)) {
-        fetch(`/panel/parte-mortorios/${parteId}/cambiar-estado/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            },
-            body: JSON.stringify({
-                estado: nuevoEstado
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert(data.message);
-                location.reload();
-            } else {
-                alert('Error: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error al cambiar el estado');
-        });
-    }
+    Swal.fire({
+        title: '¿Cambiar estado?',
+        html: `
+            <div class="text-center mb-3">
+                <i class="fas fa-exchange-alt fa-3x text-primary mb-3"></i>
+                <p class="mb-2">¿Estás seguro de cambiar el estado a:</p>
+                <h5 class="text-primary mb-2">${estados[nuevoEstado]}</h5>
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fas fa-check me-2"></i>Sí, cambiar',
+        cancelButtonText: '<i class="fas fa-times me-2"></i>Cancelar',
+        reverseButtons: true,
+        customClass: {
+            popup: 'animated-modal',
+            confirmButton: 'btn btn-lg px-4',
+            cancelButton: 'btn btn-lg px-4'
+        },
+        buttonsStyling: false,
+        showClass: {
+            popup: 'animate__animated animate__zoomIn animate__faster'
+        },
+        hideClass: {
+            popup: 'animate__animated animate__zoomOut animate__faster'
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Mostrar loading
+            Swal.fire({
+                title: 'Cambiando estado...',
+                html: `
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                            <span class="visually-hidden">Cambiando...</span>
+                        </div>
+                        <p class="text-muted mb-0">Por favor espere un momento</p>
+                    </div>
+                `,
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                customClass: {
+                    popup: 'animated-modal'
+                },
+                showClass: {
+                    popup: 'animate__animated animate__fadeIn animate__faster'
+                }
+            });
+            
+            // Crear un formulario temporal para hacer el POST
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/panel/parte-mortorios/${parteId}/cambiar-estado/`;
+            
+            // Agregar CSRF token
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            form.appendChild(csrfInput);
+            
+            // Agregar campo de estado
+            const estadoInput = document.createElement('input');
+            estadoInput.type = 'hidden';
+            estadoInput.name = 'estado';
+            estadoInput.value = nuevoEstado;
+            form.appendChild(estadoInput);
+            
+            // Agregar al body y enviar
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
 }
 </script>
 {% endblock %}

@@ -173,20 +173,13 @@ class ParteMortorio(models.Model):
         help_text='Número de veces que se transmitirá por día'
     )
     
-    precio_por_segundo = models.DecimalField(
-        'Precio por Segundo',
-        max_digits=10,
-        decimal_places=4,
-        default=Decimal('0.20'),
-        help_text='Precio por segundo de transmisión'
-    )
-    
+    # QUITAMOS precio_por_segundo y dejamos solo precio_total
     precio_total = models.DecimalField(
         'Precio Total',
         max_digits=10,
         decimal_places=2,
         default=Decimal('0.00'),
-        help_text='Precio total calculado automáticamente'
+        help_text='Precio total del parte mortorio'
     )
     
     # ==================== ESTADO Y PRIORIDAD ====================
@@ -263,12 +256,12 @@ class ParteMortorio(models.Model):
         return f"{self.codigo} - {self.nombre_fallecido}"
     
     def save(self, *args, **kwargs):
-        """Genera código automáticamente si no existe y calcula precio"""
+        """Genera código automáticamente si no existe"""
         if not self.codigo:
             self.codigo = self.generar_codigo()
         
-        # Calcular precio total automáticamente
-        self.calcular_precio_total()
+        # Ya no calculamos automáticamente el precio
+        # El precio total se ingresa manualmente ahora
         
         super().save(*args, **kwargs)
     
@@ -285,24 +278,6 @@ class ParteMortorio(models.Model):
         except Exception:
             import time
             return f"PM{int(time.time())}"
-    
-    def calcular_precio_total(self):
-        """Calcula el precio total basado en duración, repeticiones y días"""
-        if (self.fecha_inicio_transmision and self.fecha_fin_transmision and 
-            self.duracion_transmision and self.repeticiones_dia and self.precio_por_segundo):
-            
-            # Calcular días de transmisión
-            dias_transmision = (self.fecha_fin_transmision - self.fecha_inicio_transmision).days + 1
-            
-            # Calcular segundos totales
-            segundos_por_transmision = self.duracion_transmision * 60
-            transmisiones_totales = self.repeticiones_dia * dias_transmision
-            segundos_totales = segundos_por_transmision * transmisiones_totales
-            
-            # Calcular precio total
-            self.precio_total = Decimal(str(segundos_totales)) * self.precio_por_segundo
-        else:
-            self.precio_total = Decimal('0.00')
     
     def get_absolute_url(self):
         return reverse('parte_mortorios:detalle', kwargs={'pk': self.pk})
@@ -349,7 +324,29 @@ class ParteMortorio(models.Model):
             resumen.append(f"Esposa/o: {self.nombre_esposa}")
         if self.cantidad_hijos > 0:
             resumen.append(f"Hijos: {self.cantidad_hijos} ({self.hijos_vivos} vivos, {self.hijos_fallecidos} fallecidos)")
-        return ", ".join(resumen)
+        if self.nombres_hijos:
+            resumen.append(f"Nombres hijos: {self.nombres_hijos}")
+        if self.familiares_adicionales:
+            resumen.append(f"Familiares adicionales: {self.familiares_adicionales}")
+        return ", ".join(resumen) if resumen else "Sin información familiar adicional"
+
+    def clean(self):
+        """Validaciones adicionales del modelo"""
+        errors = {}
+        
+        # Validar que fecha_fin_transmision no sea anterior a fecha_inicio_transmision
+        if self.fecha_inicio_transmision and self.fecha_fin_transmision:
+            if self.fecha_fin_transmision < self.fecha_inicio_transmision:
+                errors['fecha_fin_transmision'] = 'La fecha de fin no puede ser anterior a la fecha de inicio'
+        
+        # Validar que hijos vivos + fallecidos no superen la cantidad total
+        if self.hijos_vivos + self.hijos_fallecidos > self.cantidad_hijos:
+            errors['cantidad_hijos'] = 'La suma de hijos vivos y fallecidos no puede ser mayor a la cantidad total de hijos'
+        
+        if errors:
+            raise ValidationError(errors)
+
+
 class HistorialParteMortorio(models.Model):
     """
     Historial de cambios de los partes mortorios
@@ -411,3 +408,17 @@ class HistorialParteMortorio(models.Model):
     
     def __str__(self):
         return f"{self.parte_mortorio.codigo} - {self.get_accion_display()} - {self.fecha.strftime('%d/%m/%Y %H:%M')}"
+
+    @classmethod
+    def registrar_cambio(cls, parte_mortorio, usuario, accion, descripcion, datos_anteriores=None, datos_nuevos=None):
+        """
+        Método helper para registrar cambios en el historial
+        """
+        return cls.objects.create(
+            parte_mortorio=parte_mortorio,
+            usuario=usuario,
+            accion=accion,
+            descripcion=descripcion,
+            datos_anteriores=datos_anteriores,
+            datos_nuevos=datos_nuevos
+        )

@@ -1,43 +1,51 @@
 from django.contrib import admin
+from django.utils.html import format_html
 from .models import ParteMortorio, HistorialParteMortorio
 
 @admin.register(ParteMortorio)
 class ParteMortorioAdmin(admin.ModelAdmin):
-    # Campos a mostrar en la lista
+    # Campos a mostrar en la lista - ACTUALIZADO CON TODOS LOS CAMPOS NUEVOS
     list_display = [
         'codigo', 
         'nombre_fallecido',
-        'edad_fallecido',
         'cliente',
         'fecha_fallecimiento',
-        'nombre_esposa',
-        'cantidad_hijos',
+        'nombre_esposa_display',
+        'cantidad_hijos_display',
+        'hijos_info_display',  # NUEVO: Info de hijos vivos/fallecidos
+        'familiares_adicionales_display',  # NUEVO
+        'tipo_ceremonia',
+        'fecha_misa_display',  # NUEVO
+        'transmision_info_display',  # NUEVO
         'estado',
         'urgencia',
-        'precio_total',
+        'precio_total_display',
         'fecha_solicitud'
     ]
     
-    # Filtros disponibles en el sidebar
+    # Filtros disponibles en el sidebar - ACTUALIZADO
     list_filter = [
         'estado', 
         'urgencia', 
         'fecha_solicitud',
         'tipo_ceremonia',
-        'fecha_fallecimiento'
+        'fecha_fallecimiento',
+        'fecha_inicio_transmision'
     ]
     
-    # Campos de búsqueda
+    # Campos de búsqueda - ACTUALIZADO
     search_fields = [
         'codigo', 
         'nombre_fallecido', 
         'dni_fallecido',
         'nombre_esposa',
         'nombres_hijos',
+        'familiares_adicionales',
+        'lugar_misa',
+        'mensaje_personalizado',
         'cliente__username',
         'cliente__first_name', 
-        'cliente__last_name',
-        'cliente__empresa'
+        'cliente__last_name'
     ]
     
     # Campos de solo lectura
@@ -48,7 +56,11 @@ class ParteMortorioAdmin(admin.ModelAdmin):
         'fecha_transmision_completada',
         'precio_total',
         'created_at',
-        'updated_at'
+        'updated_at',
+        'dias_desde_solicitud',
+        'necesita_atencion',
+        'dias_transmision',
+        'resumen_familia'
     ]
     
     # Campos para edición rápida desde la lista
@@ -60,7 +72,7 @@ class ParteMortorioAdmin(admin.ModelAdmin):
     # Ordenamiento por defecto
     ordering = ['-fecha_solicitud']
     
-    # Agrupar campos en el formulario de edición
+    # Agrupar campos en el formulario de edición - CON TODOS LOS CAMPOS
     fieldsets = (
         ('INFORMACIÓN BÁSICA', {
             'fields': (
@@ -68,13 +80,13 @@ class ParteMortorioAdmin(admin.ModelAdmin):
                 'cliente',
                 'fecha_solicitud',
                 'estado',
-                'urgencia'
+                'urgencia',
+                'creado_por'
             )
         }),
         ('INFORMACIÓN DEL FALLECIDO', {
             'fields': (
                 'nombre_fallecido',
-                'edad_fallecido',
                 'dni_fallecido',
                 'fecha_nacimiento',
                 'fecha_fallecimiento',
@@ -88,6 +100,7 @@ class ParteMortorioAdmin(admin.ModelAdmin):
                 'hijos_fallecidos',
                 'nombres_hijos',
                 'familiares_adicionales',
+                'resumen_familia'
             )
         }),
         ('INFORMACIÓN DE LA CEREMONIA', {
@@ -105,7 +118,6 @@ class ParteMortorioAdmin(admin.ModelAdmin):
                 'hora_transmision',
                 'duracion_transmision',
                 'repeticiones_dia',
-                'precio_por_segundo',
                 'precio_total',
             )
         }),
@@ -117,16 +129,67 @@ class ParteMortorioAdmin(admin.ModelAdmin):
         }),
         ('INFORMACIÓN DEL SISTEMA', {
             'fields': (
-                'creado_por',
+                'necesita_atencion',
+                'dias_desde_solicitud',
+                'dias_transmision',
                 'fecha_programacion',
                 'fecha_transmision_completada',
                 'created_at',
                 'updated_at'
             ),
-            'classes': ('collapse',)  # Se puede colapsar
+            'classes': ('collapse',)
         }),
     )
     
+    # ========== MÉTODOS PERSONALIZADOS PARA LA LISTA ==========
+    
+    def precio_total_display(self, obj):
+        return f"${obj.precio_total:.2f}"
+    precio_total_display.short_description = 'Precio Total'
+    
+    def nombre_esposa_display(self, obj):
+        return obj.nombre_esposa if obj.nombre_esposa else "—"
+    nombre_esposa_display.short_description = 'Esposa/Esposo'
+    
+    def cantidad_hijos_display(self, obj):
+        return obj.cantidad_hijos if obj.cantidad_hijos > 0 else "0"
+    cantidad_hijos_display.short_description = 'Hijos'
+    
+    def hijos_info_display(self, obj):
+        if obj.cantidad_hijos > 0:
+            return f"V:{obj.hijos_vivos} F:{obj.hijos_fallecidos}"
+        return "—"
+    hijos_info_display.short_description = 'Hijos V/F'
+    
+    def familiares_adicionales_display(self, obj):
+        if obj.familiares_adicionales:
+            # Mostrar solo los primeros 30 caracteres
+            if len(obj.familiares_adicionales) > 30:
+                return obj.familiares_adicionales[:30] + '...'
+            return obj.familiares_adicionales
+        return "—"
+    familiares_adicionales_display.short_description = 'Familiares Adicionales'
+    
+    def fecha_misa_display(self, obj):
+        if obj.fecha_misa:
+            return obj.fecha_misa.strftime('%d/%m/%Y')
+        return "—"
+    fecha_misa_display.short_description = 'Fecha Misa'
+    
+    def transmision_info_display(self, obj):
+        if obj.fecha_inicio_transmision:
+            return f"{obj.duracion_transmision}min × {obj.repeticiones_dia}/día"
+        return "No prog."
+    transmision_info_display.short_description = 'Transmisión'
+    
+    def nombres_hijos_display(self, obj):
+        if obj.nombres_hijos:
+            if len(obj.nombres_hijos) > 50:
+                return obj.nombres_hijos[:50] + '...'
+            return obj.nombres_hijos
+        return "—"
+    nombres_hijos_display.short_description = 'Nombres Hijos'
+
     # Autocompletar el campo 'creado_por' con el usuario actual
     def save_model(self, request, obj, form, change):
         if not obj.creado_por:
@@ -136,24 +199,9 @@ class ParteMortorioAdmin(admin.ModelAdmin):
     # Mostrar información adicional en la lista
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('cliente', 'creado_por')
-    
-    # Personalizar cómo se muestran algunos campos en la lista
-    def precio_total_display(self, obj):
-        return f"S/ {obj.precio_total:.2f}"
-    precio_total_display.short_description = 'Precio Total'
-    
-    def familia_info(self, obj):
-        info = []
-        if obj.nombre_esposa:
-            info.append(f"💍 {obj.nombre_esposa}")
-        if obj.cantidad_hijos > 0:
-            info.append(f"👨‍👩‍👧‍👦 {obj.cantidad_hijos} hijos")
-        return " | ".join(info) if info else "—"
-    familia_info.short_description = 'Información Familiar'
 
 @admin.register(HistorialParteMortorio)
 class HistorialParteMortorioAdmin(admin.ModelAdmin):
-    # Campos a mostrar en la lista
     list_display = [
         'parte_mortorio', 
         'accion', 
@@ -162,14 +210,12 @@ class HistorialParteMortorioAdmin(admin.ModelAdmin):
         'descripcion_corta'
     ]
     
-    # Filtros disponibles
     list_filter = [
         'accion', 
         'fecha',
         'usuario'
     ]
     
-    # Campos de búsqueda
     search_fields = [
         'parte_mortorio__codigo',
         'parte_mortorio__nombre_fallecido',
@@ -179,7 +225,6 @@ class HistorialParteMortorioAdmin(admin.ModelAdmin):
         'descripcion'
     ]
     
-    # Campos de solo lectura
     readonly_fields = [
         'parte_mortorio',
         'accion',
@@ -190,32 +235,25 @@ class HistorialParteMortorioAdmin(admin.ModelAdmin):
         'fecha'
     ]
     
-    # Paginación
     list_per_page = 20
-    
-    # Ordenamiento por defecto
     ordering = ['-fecha']
     
-    # Método personalizado para descripción corta
     def descripcion_corta(self, obj):
         if obj.descripcion and len(obj.descripcion) > 50:
             return obj.descripcion[:50] + '...'
         return obj.descripcion or '—'
     descripcion_corta.short_description = 'Descripción'
     
-    # Evitar que se puedan crear historiales manualmente
     def has_add_permission(self, request):
         return False
     
-    # Evitar que se puedan editar historiales manualmente
     def has_change_permission(self, request, obj=None):
         return False
     
-    # Permitir solo la eliminación (si es necesario)
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser
 
-# También puedes registrar acciones personalizadas para el admin
+# Acciones personalizadas
 def marcar_como_programado(modeladmin, request, queryset):
     for parte in queryset:
         parte.programar(request.user)

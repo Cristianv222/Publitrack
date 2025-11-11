@@ -4421,7 +4421,7 @@ def parte_mortorios_list(request):
 @login_required
 @user_passes_test(is_admin)
 def parte_mortorio_detail_api(request, parte_id):
-    """API para obtener detalles de un parte mortorio"""
+    """API para obtener detalles de un parte mortorio - VERSIÓN CORREGIDA"""
     
     if not PARTE_MORTORIO_MODELS_AVAILABLE:
         return JsonResponse({'error': 'Módulo de Parte Mortorios no disponible'}, status=503)
@@ -4448,6 +4448,7 @@ def parte_mortorio_detail_api(request, parte_id):
             'familiares_adicionales': parte.familiares_adicionales,
             # Información de ceremonia
             'tipo_ceremonia': parte.tipo_ceremonia,
+            'tipo_ceremonia_display': parte.get_tipo_ceremonia_display(),
             'fecha_misa': parte.fecha_misa.strftime('%Y-%m-%d') if parte.fecha_misa else None,
             'hora_misa': parte.hora_misa.strftime('%H:%M') if parte.hora_misa else None,
             'lugar_misa': parte.lugar_misa,
@@ -4457,11 +4458,13 @@ def parte_mortorio_detail_api(request, parte_id):
             'hora_transmision': parte.hora_transmision.strftime('%H:%M') if parte.hora_transmision else None,
             'duracion_transmision': parte.duracion_transmision,
             'repeticiones_dia': parte.repeticiones_dia,
-            'precio_por_segundo': str(parte.precio_por_segundo),
+            # ✅ SOLO PRECIO TOTAL - SIN precio_por_segundo
             'precio_total': str(parte.precio_total),
             # Configuración
             'estado': parte.estado,
+            'estado_display': parte.get_estado_display(),
             'urgencia': parte.urgencia,
+            'urgencia_display': parte.get_urgencia_display(),
             'observaciones': parte.observaciones,
             'mensaje_personalizado': parte.mensaje_personalizado,
             'fecha_solicitud': parte.fecha_solicitud.strftime('%d/%m/%Y %H:%M'),
@@ -4477,7 +4480,7 @@ def parte_mortorio_detail_api(request, parte_id):
 @user_passes_test(is_admin)
 @require_http_methods(["POST"])
 def parte_mortorio_create_api(request):
-    """API para crear un nuevo parte mortorio con los nuevos campos - VERSIÓN CORREGIDA"""
+    """API para crear un nuevo parte mortorio - VERSIÓN CORREGIDA SIN precio_por_segundo"""
     try:
         # ✅ IMPORTACIÓN CORRECTA
         from apps.parte_mortorios.models import ParteMortorio
@@ -4487,7 +4490,7 @@ def parte_mortorio_create_api(request):
         data = json.loads(request.body)
         
         # Validar campos requeridos
-        required_fields = ['cliente_id', 'nombre_fallecido', 'fecha_fallecimiento']
+        required_fields = ['cliente_id', 'nombre_fallecido', 'fecha_fallecimiento', 'precio_total']
         for field in required_fields:
             if not data.get(field):
                 return JsonResponse({
@@ -4511,6 +4514,8 @@ def parte_mortorio_create_api(request):
             edad_fallecido=data.get('edad_fallecido'),
             dni_fallecido=data.get('dni_fallecido'),
             fecha_fallecimiento=datetime.strptime(data['fecha_fallecimiento'], '%Y-%m-%d').date(),
+            # ✅ PRECIO TOTAL MANUAL - SIN precio_por_segundo
+            precio_total=Decimal(data['precio_total']),
             # Nuevos campos familiares
             nombre_esposa=data.get('nombre_esposa'),
             cantidad_hijos=int(data.get('cantidad_hijos', 0)),
@@ -4523,8 +4528,8 @@ def parte_mortorio_create_api(request):
             # Información de transmisión
             duracion_transmision=int(data.get('duracion_transmision', 1)),
             repeticiones_dia=int(data.get('repeticiones_dia', 1)),
-            precio_por_segundo=Decimal(data.get('precio_por_segundo', '0.20')),
             # Configuración
+            estado=data.get('estado', 'solicitado'),
             urgencia=data.get('urgencia', 'normal'),
             observaciones=data.get('observaciones'),
             mensaje_personalizado=data.get('mensaje_personalizado'),
@@ -4563,7 +4568,7 @@ def parte_mortorio_create_api(request):
             object_id=parte.pk,
             object_repr=f"Parte mortorio creado: {parte.codigo}",
             action_flag=ADDITION,
-            change_message=f'Parte mortorio creado: {parte.codigo} - Fallecido: {parte.nombre_fallecido}'
+            change_message=f'Parte mortorio creado: {parte.codigo} - Fallecido: {parte.nombre_fallecido} - Precio: ${parte.precio_total}'
         )
         
         return JsonResponse({
@@ -4586,10 +4591,11 @@ def parte_mortorio_create_api(request):
 @user_passes_test(is_admin)
 @require_http_methods(["PUT", "POST"])
 def parte_mortorio_update_api(request, parte_id):
-    """API para actualizar un parte mortorio existente"""
+    """API para actualizar un parte mortorio existente - VERSIÓN CORREGIDA"""
     try:
-        from .models import ParteMortorio
+        from apps.parte_mortorios.models import ParteMortorio
         from datetime import datetime
+        from decimal import Decimal
         
         parte = get_object_or_404(ParteMortorio, pk=parte_id)
         
@@ -4611,15 +4617,30 @@ def parte_mortorio_update_api(request, parte_id):
         if 'fecha_fallecimiento' in data and data['fecha_fallecimiento']:
             parte.fecha_fallecimiento = datetime.strptime(data['fecha_fallecimiento'], '%Y-%m-%d').date()
         
-        if 'hora_fallecimiento' in data and data['hora_fallecimiento']:
-            parte.hora_fallecimiento = datetime.strptime(data['hora_fallecimiento'], '%H:%M').time()
+        # ✅ ACTUALIZAR PRECIO TOTAL (sin precio_por_segundo)
+        if 'precio_total' in data:
+            parte.precio_total = Decimal(data['precio_total'])
         
-        if 'lugar_fallecimiento' in data:
-            parte.lugar_fallecimiento = data['lugar_fallecimiento']
+        # Información familiar
+        if 'nombre_esposa' in data:
+            parte.nombre_esposa = data['nombre_esposa']
         
-        if 'causa_fallecimiento' in data:
-            parte.causa_fallecimiento = data['causa_fallecimiento']
+        if 'cantidad_hijos' in data:
+            parte.cantidad_hijos = int(data['cantidad_hijos']) if data['cantidad_hijos'] else 0
         
+        if 'hijos_vivos' in data:
+            parte.hijos_vivos = int(data['hijos_vivos']) if data['hijos_vivos'] else 0
+        
+        if 'hijos_fallecidos' in data:
+            parte.hijos_fallecidos = int(data['hijos_fallecidos']) if data['hijos_fallecidos'] else 0
+        
+        if 'nombres_hijos' in data:
+            parte.nombres_hijos = data['nombres_hijos']
+        
+        if 'familiares_adicionales' in data:
+            parte.familiares_adicionales = data['familiares_adicionales']
+        
+        # Información de ceremonia
         if 'tipo_ceremonia' in data:
             parte.tipo_ceremonia = data['tipo_ceremonia']
         
@@ -4632,8 +4653,12 @@ def parte_mortorio_update_api(request, parte_id):
         if 'lugar_misa' in data:
             parte.lugar_misa = data['lugar_misa']
         
-        if 'fecha_transmision' in data and data['fecha_transmision']:
-            parte.fecha_transmision = datetime.strptime(data['fecha_transmision'], '%Y-%m-%d').date()
+        # Información de transmisión
+        if 'fecha_inicio_transmision' in data and data['fecha_inicio_transmision']:
+            parte.fecha_inicio_transmision = datetime.strptime(data['fecha_inicio_transmision'], '%Y-%m-%d').date()
+        
+        if 'fecha_fin_transmision' in data and data['fecha_fin_transmision']:
+            parte.fecha_fin_transmision = datetime.strptime(data['fecha_fin_transmision'], '%Y-%m-%d').date()
         
         if 'hora_transmision' in data and data['hora_transmision']:
             parte.hora_transmision = datetime.strptime(data['hora_transmision'], '%H:%M').time()
@@ -4644,9 +4669,7 @@ def parte_mortorio_update_api(request, parte_id):
         if 'repeticiones_dia' in data:
             parte.repeticiones_dia = int(data['repeticiones_dia'])
         
-        if 'dias_transmision' in data:
-            parte.dias_transmision = int(data['dias_transmision'])
-        
+        # Configuración
         if 'estado' in data:
             parte.estado = data['estado']
         
@@ -4658,9 +4681,6 @@ def parte_mortorio_update_api(request, parte_id):
         
         if 'mensaje_personalizado' in data:
             parte.mensaje_personalizado = data['mensaje_personalizado']
-        
-        if 'precio' in data:
-            parte.precio = Decimal(data['precio'])
         
         # Actualizar cliente si se proporciona
         if 'cliente_id' in data and data['cliente_id']:
@@ -4679,7 +4699,7 @@ def parte_mortorio_update_api(request, parte_id):
             object_id=parte.pk,
             object_repr=f"Parte mortorio actualizado: {parte.codigo}",
             action_flag=CHANGE,
-            change_message=f'Parte mortorio {parte.codigo} actualizado'
+            change_message=f'Parte mortorio {parte.codigo} actualizado - Precio: ${parte.precio_total}'
         )
         
         return JsonResponse({
@@ -4694,7 +4714,6 @@ def parte_mortorio_update_api(request, parte_id):
             'success': False,
             'error': f'Error al actualizar el parte mortorio: {str(e)}'
         }, status=500)
-
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["DELETE", "POST"])
