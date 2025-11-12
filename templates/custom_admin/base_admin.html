@@ -852,18 +852,21 @@
             </div>
             
             <!-- REPORTES -->
-            <div class="menu-section">
-                <div class="menu-section-title">REPORTES</div>
-                <a href="{% url 'custom_admin:reportes_dashboard' %}" class="menu-link {% if 'reportes' in request.resolver_match.url_name %}active{% endif %}">
-                    <i class="fas fa-chart-bar menu-icon"></i>
-                    <span>Dashboard Reportes</span>
-                </a>
-                <a href="#" class="menu-link">
-                    <i class="fas fa-file-invoice-dollar menu-icon"></i>
-                    <span>Reportes Financieros</span>
-                </a>
-            </div>
-            
+<div class="menu-section">
+    <div class="menu-section-title">REPORTES</div>
+    
+    <!-- Dashboard Principal -->
+    <a href="{% url 'custom_admin:reportes_dashboard' %}" class="menu-link {% if 'reportes_dashboard' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="fas fa-chart-bar menu-icon"></i>
+        <span>Dashboard Principal</span>
+    </a>
+    
+    <!-- Reportes de Contratos - Directo al list -->
+    <a href="{% url 'custom_admin:reports_dashboard_contratos' %}" class="menu-link {% if 'reports_dashboard_contratos' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="fas fa-file-contract menu-icon"></i>
+        <span>Contratos</span>
+    </a>
+</div>
             <!-- CONFIGURACIÓN -->
             <div class="menu-section">
                 <div class="menu-section-title">SISTEMA</div>

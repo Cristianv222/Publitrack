@@ -58,7 +58,7 @@ def numero_a_letras(numero):
     Convierte un número decimal a su representación en letras (español)
     Ejemplo: 180.50 -> "CIENTO OCHENTA CON 50/100 DÓLARES AMERICANOS"
     """
-    UNIDADES = ['', 'UNO', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE']
+    UNIDADES = ['', 'UNO', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHENTA', 'NUEVE']
     DECENAS = ['', 'DIEZ', 'VEINTE', 'TREINTA', 'CUARENTA', 'CINCUENTA', 
                'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA']
     ESPECIALES = ['DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE',
@@ -1292,7 +1292,7 @@ class ContratoGenerado(models.Model):
                 'NUMERO_CONTRATO': self.numero_contrato,
                 'NOMBRE_CONTACTO': nombre_contacto,
             
-            # ✅ NUEVOS CAMPOS AGREGADOS
+            # ✅ NUEVOS CAMPOS AGREGADAS
                 'CARGO_CLIENTE': cargo_cliente,
                 'PROFESION_CLIENTE': profesion_cliente,
                 'CARGO': cargo_cliente,  # Alias por si usan diferentes nombres
@@ -1399,6 +1399,67 @@ class ContratoGenerado(models.Model):
     @property
     def esta_activo(self):
         return self.estado == 'activo' and self.cuña.esta_activa
+
+    # ✅ NUEVA PROPIEDAD PARA EL MODAL
+    @property
+    def json_data(self):
+        """Retorna los datos del contrato en formato JSON para el frontend"""
+        import json
+        from django.utils.html import format_html
+        
+        # Estado badge HTML
+        estado_badge = ""
+        if self.estado == 'generado':
+            estado_badge = '<span class="badge bg-success">Generado</span>'
+        elif self.estado == 'validado':
+            estado_badge = '<span class="badge bg-primary">Validado</span>'
+        elif self.estado == 'borrador':
+            estado_badge = '<span class="badge bg-warning">Borrador</span>'
+        else:
+            estado_badge = f'<span class="badge bg-secondary">{self.get_estado_display()}</span>'
+        
+        # Cuña badge HTML
+        cuña_estado_badge = ""
+        if self.cuña:
+            if self.cuña.estado == 'activa':
+                cuña_estado_badge = '<span class="badge bg-success">Activa</span>'
+            elif self.cuña.estado == 'pendiente_revision':
+                cuña_estado_badge = '<span class="badge bg-warning">Pendiente Revisión</span>'
+            else:
+                cuña_estado_badge = f'<span class="badge bg-secondary">{self.cuña.get_estado_display()}</span>'
+        
+        data = {
+            'numero_contrato': self.numero_contrato,
+            'estado': self.get_estado_display(),
+            'estado_badge': estado_badge,
+            'fecha_generacion': self.fecha_generacion.strftime('%d/%m/%Y %H:%M'),
+            'plantilla': self.plantilla_usada.nombre if self.plantilla_usada else 'N/A',
+            'valor_sin_iva': f"S/ {self.valor_sin_iva}",
+            'valor_iva': f"S/ {self.valor_iva}",
+            'valor_total': f"S/ {self.valor_total}",
+            # Información del cliente
+            'cliente_ruc': self.ruc_dni_cliente,
+            'cliente_profesion': getattr(self.cliente, 'profesion', '') or 'No especificada',
+            'cliente_cargo': getattr(self.cliente, 'cargo_empresa', '') or 'No especificado',
+            'cliente_email': getattr(self.cliente, 'email', '') or 'N/A',
+            'cliente_telefono': getattr(self.cliente, 'telefono', '') or 'N/A',
+            # Información de archivos
+            'archivo_url': self.archivo_contrato_pdf.url if self.archivo_contrato_pdf else None,
+            # Información de la cuña
+            'tiene_cuña': bool(self.cuña),
+            'cuña_codigo': self.cuña.codigo if self.cuña else None,
+            'cuña_titulo': self.cuña.titulo if self.cuña else None,
+            'cuña_estado': self.cuña.get_estado_display() if self.cuña else None,
+            'cuña_estado_badge': cuña_estado_badge,
+            'cuña_fecha_inicio': self.cuña.fecha_inicio.strftime('%d/%m/%Y') if self.cuña and self.cuña.fecha_inicio else None,
+            'cuña_fecha_fin': self.cuña.fecha_fin.strftime('%d/%m/%Y') if self.cuña and self.cuña.fecha_fin else None,
+            'cuña_duracion': f"{self.cuña.duracion_planeada} segundos" if self.cuña else None,
+            'cuña_repeticiones': self.cuña.repeticiones_dia if self.cuña else None,
+            # Datos de generación
+            'datos_generacion': self.datos_generacion or {},
+        }
+        
+        return json.dumps(data, ensure_ascii=False)
 
 
 # ==================== SEÑALES ====================

@@ -102,12 +102,34 @@
         font-size: 0.75rem;
         font-weight: 600;
     }
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.775rem;
+    }
+    .calculation-display {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        padding: 0.75rem;
+        font-size: 0.875rem;
+    }
+    .calculation-formula {
+        color: #6c757d;
+        font-size: 0.8rem;
+    }
+    /* Nuevos estilos para estadísticas */
+    .stat-card.active {
+        border-left: 4px solid #10b981;
+    }
+    .stat-card.pending {
+        border-left: 4px solid #f59e0b;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="row mb-4">
-    <!-- Estadísticas -->
+    <!-- Estadísticas MEJORADAS -->
     <div class="col-md-3">
         <div class="stat-card info">
             <div class="stat-icon">
@@ -118,21 +140,23 @@
         </div>
     </div>
     <div class="col-md-3">
-        <div class="stat-card success">
+        <div class="stat-card success active">
             <div class="stat-icon">
                 <i class="fas fa-check-circle"></i>
             </div>
-            <div class="stat-label">Generados Hoy</div>
-            <div class="stat-value">{{ contratos_hoy|default:0 }}</div>
+            <div class="stat-label">Contratos Activos (Validados)</div>
+            <div class="stat-value">{{ contratos_activos|default:0 }}</div>
+            <small class="stat-desc">Con cuñas en radio</small>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="stat-card warning">
+        <div class="stat-card warning pending">
             <div class="stat-icon">
                 <i class="fas fa-clock"></i>
             </div>
-            <div class="stat-label">Este Mes</div>
-            <div class="stat-value">{{ contratos_mes|default:0 }}</div>
+            <div class="stat-label">Pendientes de Validar</div>
+            <div class="stat-value">{{ contratos_pendientes|default:0 }}</div>
+            <small class="stat-desc">Esperando firma</small>
         </div>
     </div>
     <div class="col-md-3">
@@ -170,7 +194,7 @@
             </div>
             <div class="step" id="step3">
                 <div class="step-number">3</div>
-                <div class="step-label">Generar Contrato</div>
+                <div class="step-label">Configurar Contrato</div>
             </div>
         </div>
         
@@ -297,52 +321,68 @@
                 </div>
             </div>
             
-            <!-- Paso 3: Datos Adicionales del Contrato -->
+            <!-- Paso 3: Configuración del Contrato -->
             <div id="datosAdicionalesSection" class="d-none">
                 <hr class="my-4">
                 <h6 class="mb-3">
                     <i class="fas fa-edit text-primary me-2"></i>
-                    3. Datos Adicionales del Contrato
+                    3. Configuración del Contrato
                 </h6>
                 
                 <div class="row">
                     <div class="col-md-4">
                         <div class="mb-3">
-                            <label class="form-label">Fecha de Inicio</label>
+                            <label class="form-label">Fecha de Inicio *</label>
                             <input type="date" class="form-control" id="fechaInicio" required>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="mb-3">
-                            <label class="form-label">Fecha de Fin</label>
+                            <label class="form-label">Fecha de Fin *</label>
                             <input type="date" class="form-control" id="fechaFin" required>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="mb-3">
-                            <label class="form-label">Valor del Contrato (S/)</label>
-                            <input type="number" class="form-control" id="valorContrato" 
-                                   step="0.01" min="0" placeholder="0.00" required>
+                            <label class="form-label">Valor por Segundo (S/) *</label>
+                            <input type="number" class="form-control" id="valorPorSegundo" 
+                                   step="0.01" min="0" placeholder="0.14" required>
+                            <small class="text-muted">Ejemplo: 0.14 para 14 céntimos por segundo</small>
                         </div>
                     </div>
                 </div>
                 
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="mb-3">
-                            <label class="form-label">Spots por Día</label>
+                            <label class="form-label">Spots por Día *</label>
                             <input type="number" class="form-control" id="spotsDia" 
-                                   min="1" value="1" placeholder="Número de spots diarios">
+                                   min="1" value="1" placeholder="Número de spots diarios" required>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="mb-3">
-                            <label class="form-label">Duración del Spot (segundos)</label>
+                            <label class="form-label">Duración del Spot (segundos) *</label>
                             <input type="number" class="form-control" id="duracionSpot" 
-                                   min="1" value="30" placeholder="Duración en segundos">
+                                   min="1" value="30" placeholder="Duración en segundos" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Total Calculado</label>
+                            <div class="calculation-display" id="totalCalculado">
+                                <strong>S/ 0.00</strong>
+                                <div class="calculation-formula mt-1">
+                                    Esperando datos...
+                                </div>
+                            </div>
+                            <small class="text-muted">Se calcula automáticamente</small>
                         </div>
                     </div>
                 </div>
+                
+                <!-- Campo oculto para enviar el valor total -->
+                <input type="hidden" id="valorTotal" name="valorTotal">
                 
                 <div class="mb-3">
                     <label class="form-label">Observaciones (Opcional)</label>
@@ -378,9 +418,20 @@
             <i class="fas fa-history"></i>
             Contratos Generados Recientemente
         </h5>
-        <button class="btn btn-light btn-sm" onclick="location.reload()">
-            <i class="fas fa-sync-alt"></i>
-        </button>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" onclick="filtrarContratos('todos')">
+                <i class="fas fa-list"></i> Todos
+            </button>
+            <button class="btn btn-outline-success btn-sm" onclick="filtrarContratos('validados')">
+                <i class="fas fa-check-circle"></i> Validados
+            </button>
+            <button class="btn btn-outline-warning btn-sm" onclick="filtrarContratos('generados')">
+                <i class="fas fa-clock"></i> Pendientes
+            </button>
+            <button class="btn btn-light btn-sm" onclick="location.reload()">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
     </div>
     
     <div class="admin-card-body">
@@ -390,67 +441,84 @@
                     <tr>
                         <th>Número</th>
                         <th>Cliente</th>
-                        <th>Información Profesional</th>
                         <th>Plantilla</th>
                         <th>Fecha Generación</th>
                         <th>Valor</th>
                         <th>Estado</th>
+                        <th>Cuña</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="tablaContratos">
                     {% for contrato in contratos_recientes %}
-                    <tr>
-                        <td><strong>#{{ contrato.numero_contrato }}</strong></td>
-                        <td>
+                    <tr data-contrato-id="{{ contrato.id }}" 
+                        data-contrato-info="{{ contrato.json_data|default:'{}' }}"
+                        data-estado="{{ contrato.estado }}"
+                        data-tiene-cuna="{% if contrato.cuña %}si{% else %}no{% endif %}">
+                        <td class="numero-contrato"><strong>#{{ contrato.numero_contrato }}</strong></td>
+                        <td class="nombre-cliente">
                             {{ contrato.nombre_cliente }}
                             {% if contrato.cliente.cargo_empresa %}
                             <br><small class="text-muted">{{ contrato.cliente.cargo_empresa }}</small>
                             {% endif %}
                         </td>
-                        <td>
-                            {% if contrato.cliente.profesion_display %}
-                            <span class="profesion-badge">{{ contrato.cliente.profesion_display }}</span>
-                            {% if contrato.cliente.abreviatura_profesion %}
-                            <br><small class="text-muted">Abrev: {{ contrato.cliente.abreviatura_profesion }}</small>
-                            {% endif %}
-                            {% else %}
-                            <span class="text-muted">Sin profesión</span>
-                            {% endif %}
-                        </td>
                         <td>{{ contrato.plantilla_usada.nombre }}</td>
                         <td>{{ contrato.fecha_generacion|date:"d/m/Y H:i" }}</td>
-                        <td>S/ {{ contrato.valor_total }}</td>
+                        <td class="valor-total">S/ {{ contrato.valor_total }}</td>
                         <td>
                             {% if contrato.estado == 'generado' %}
-                                <span class="badge bg-success">Generado</span>
+                                <span class="badge bg-warning">Pendiente</span>
                             {% elif contrato.estado == 'validado' %}
-                                <span class="badge bg-primary">Validado</span>
+                                <span class="badge bg-success">Activo</span>
                             {% elif contrato.estado == 'borrador' %}
-                                <span class="badge bg-warning">Borrador</span>
+                                <span class="badge bg-secondary">Borrador</span>
                             {% else %}
                                 <span class="badge bg-secondary">{{ contrato.get_estado_display }}</span>
                             {% endif %}
                         </td>
                         <td>
-                            <!-- Botón Descargar -->
-                            {% if contrato.archivo_contrato_pdf %}
-                                <a href="{{ contrato.archivo_contrato_pdf.url }}" class="btn btn-sm btn-primary" target="_blank" title="Descargar">
+                            {% if contrato.cuña %}
+                                <span class="badge bg-success">Sí</span>
+                                <br><small>{{ contrato.cuña.codigo }}</small>
+                            {% else %}
+                                <span class="badge bg-secondary">No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <!-- Botón Ver Detalle -->
+                                <button class="btn btn-info" 
+                                        onclick="verDetalleContrato({{ contrato.id }})" 
+                                        title="Ver detalle del contrato">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                
+                                <!-- Botón Descargar -->
+                                {% if contrato.archivo_contrato_pdf %}
+                                <a href="{{ contrato.archivo_contrato_pdf.url }}" 
+                                   class="btn btn-primary" 
+                                   target="_blank" 
+                                   title="Descargar">
                                     <i class="fas fa-download"></i>
                                 </a>
-                            {% endif %}
-                            
-                            <!-- ✅ Botón Subir (solo si está en estado 'generado' y no tiene cuña) -->
-                            {% if contrato.estado == 'generado' and not contrato.cuña %}
-                                <button class="btn btn-sm btn-success" onclick="subirContratoValidado({{ contrato.id }})" title="Subir contrato validado">
+                                {% endif %}
+                                
+                                <!-- ✅ Botón Subir (solo si está en estado 'generado' y no tiene cuña) -->
+                                {% if contrato.estado == 'generado' and not contrato.cuña %}
+                                <button class="btn btn-success" 
+                                        onclick="subirContratoValidado({{ contrato.id }})" 
+                                        title="Subir contrato validado">
                                     <i class="fas fa-upload"></i>
                                 </button>
-                            {% endif %}
-                            
-                            <!-- Botón Eliminar -->
-                            <button class="btn btn-sm btn-danger" onclick="eliminarContrato({{ contrato.id }})" title="Eliminar">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                                {% endif %}
+                                
+                                <!-- Botón Eliminar -->
+                                <button class="btn btn-danger" 
+                                        onclick="eliminarContrato({{ contrato.id }})" 
+                                        title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
@@ -467,6 +535,163 @@
     </div>
 </div>
 
+<!-- Modal para Detalle del Contrato -->
+<div class="modal fade" id="detalleContratoModal" tabindex="-1" aria-labelledby="detalleContratoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detalleContratoModalLabel">
+                    <i class="fas fa-file-contract me-2"></i>
+                    Detalle del Contrato <span id="modalNumeroContrato"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header bg-primary text-white">
+                                <i class="fas fa-info-circle me-2"></i>Información del Contrato
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <th width="40%">Número:</th>
+                                        <td id="modalNumero"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Estado:</th>
+                                        <td id="modalEstado"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Fecha Generación:</th>
+                                        <td id="modalFechaGeneracion"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Plantilla:</th>
+                                        <td id="modalPlantilla"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Valor sin IVA:</th>
+                                        <td id="modalValorSinIva"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>IVA:</th>
+                                        <td id="modalIva"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Valor Total:</th>
+                                        <td id="modalValorTotal"></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header bg-success text-white">
+                                <i class="fas fa-user-tie me-2"></i>Información del Cliente
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <th width="40%">Nombre:</th>
+                                        <td id="modalClienteNombre"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>RUC/DNI:</th>
+                                        <td id="modalClienteRuc"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Profesión:</th>
+                                        <td id="modalClienteProfesion"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Cargo:</th>
+                                        <td id="modalClienteCargo"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Email:</th>
+                                        <td id="modalClienteEmail"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Teléfono:</th>
+                                        <td id="modalClienteTelefono"></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Información de la Cuña -->
+                <div class="row" id="modalCuñaSection" style="display: none;">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <i class="fas fa-broadcast-tower me-2"></i>Cuña Publicitaria Asociada
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <th width="20%">Código:</th>
+                                        <td id="modalCuñaCodigo"></td>
+                                        <th width="20%">Estado:</th>
+                                        <td id="modalCuñaEstado"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Título:</th>
+                                        <td id="modalCuñaTitulo"></td>
+                                        <th>Duración:</th>
+                                        <td id="modalCuñaDuracion"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Fecha Inicio:</th>
+                                        <td id="modalCuñaFechaInicio"></td>
+                                        <th>Fecha Fin:</th>
+                                        <td id="modalCuñaFechaFin"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Repeticiones/día:</th>
+                                        <td id="modalCuñaRepeticiones"></td>
+                                        <th></th>
+                                        <td></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Datos de Generación -->
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-secondary text-white">
+                                <i class="fas fa-cogs me-2"></i>Datos de Generación
+                            </div>
+                            <div class="card-body">
+                                <div id="modalDatosGeneracion" class="small">
+                                    <!-- Los datos se cargarán aquí dinámicamente -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cerrar
+                </button>
+                <button type="button" class="btn btn-primary" id="modalDescargarBtn" style="display: none;">
+                    <i class="fas fa-download me-2"></i>Descargar PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -474,6 +699,7 @@
 // Variables globales
 let plantillaSeleccionada = null;
 let clienteSeleccionado = null;
+let filtroActual = 'todos';
 
 // Cargar plantillas al iniciar
 document.addEventListener('DOMContentLoaded', function() {
@@ -481,7 +707,188 @@ document.addEventListener('DOMContentLoaded', function() {
     cargarClientes();
 });
 
-// ✅ NUEVA FUNCIÓN: Subir contrato validado
+// Función para filtrar contratos
+function filtrarContratos(filtro) {
+    filtroActual = filtro;
+    const filas = document.querySelectorAll('#tablaContratos tr[data-estado]');
+    
+    filas.forEach(fila => {
+        const estado = fila.getAttribute('data-estado');
+        const tieneCuña = fila.getAttribute('data-tiene-cuna');
+        
+        let mostrar = false;
+        
+        switch(filtro) {
+            case 'todos':
+                mostrar = true;
+                break;
+            case 'validados':
+                mostrar = (estado === 'validado' && tieneCuña === 'si');
+                break;
+            case 'generados':
+                mostrar = (estado === 'generado' && tieneCuña === 'no');
+                break;
+        }
+        
+        fila.style.display = mostrar ? '' : 'none';
+    });
+    
+    // Actualizar botones activos
+    document.querySelectorAll('.btn-outline-primary, .btn-outline-success, .btn-outline-warning').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+}
+
+// Función para calcular días entre dos fechas
+function calcularDiasContrato(fechaInicio, fechaFin) {
+    const inicio = new Date(fechaInicio);
+    const fin = new Date(fechaFin);
+    const diferencia = fin.getTime() - inicio.getTime();
+    return Math.ceil(diferencia / (1000 * 3600 * 24)) + 1; // +1 para incluir ambos días
+}
+
+// Función para calcular el total automáticamente
+function calcularTotalContrato() {
+    const valorPorSegundo = parseFloat(document.getElementById('valorPorSegundo').value) || 0;
+    const duracionSpot = parseInt(document.getElementById('duracionSpot').value) || 0;
+    const spotsDia = parseInt(document.getElementById('spotsDia').value) || 0;
+    const fechaInicio = document.getElementById('fechaInicio').value;
+    const fechaFin = document.getElementById('fechaFin').value;
+    
+    let total = 0;
+    
+    if (fechaInicio && fechaFin) {
+        const diasContrato = calcularDiasContrato(fechaInicio, fechaFin);
+        
+        // Fórmula: (valor por segundo × duración spot × spots por día × días contrato)
+        total = valorPorSegundo * duracionSpot * spotsDia * diasContrato;
+        
+        // Mostrar el cálculo detallado
+        const totalElement = document.getElementById('totalCalculado');
+        totalElement.innerHTML = `
+            <strong>S/ ${total.toFixed(2)}</strong>
+            <br>
+            <small class="text-muted">
+                ${valorPorSegundo.toFixed(2)} × ${duracionSpot}s × ${spotsDia} spots × ${diasContrato} días
+            </small>
+        `;
+        
+        // Actualizar campo oculto
+        document.getElementById('valorTotal').value = total.toFixed(2);
+    } else {
+        document.getElementById('totalCalculado').textContent = 'S/ 0.00';
+        document.getElementById('valorTotal').value = '0.00';
+    }
+    
+    return total;
+}
+
+// Event listeners para cálculos automáticos
+document.getElementById('valorPorSegundo').addEventListener('input', calcularTotalContrato);
+document.getElementById('duracionSpot').addEventListener('input', calcularTotalContrato);
+document.getElementById('spotsDia').addEventListener('input', calcularTotalContrato);
+document.getElementById('fechaInicio').addEventListener('change', calcularTotalContrato);
+document.getElementById('fechaFin').addEventListener('change', calcularTotalContrato);
+
+// ✅ FUNCIÓN: Ver detalle del contrato
+function verDetalleContrato(contratoId) {
+    console.log("Cargando detalle del contrato:", contratoId);
+    
+    // Mostrar loading
+    Swal.fire({
+        title: 'Cargando detalles...',
+        text: 'Por favor espere',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    
+    // Obtener los datos del contrato desde la fila de la tabla
+    const fila = document.querySelector(`tr[data-contrato-id="${contratoId}"]`);
+    if (!fila) {
+        Swal.fire('Error', 'No se encontró la información del contrato', 'error');
+        return;
+    }
+    
+    try {
+        // Obtener datos del atributo data
+        const contratoData = JSON.parse(fila.getAttribute('data-contrato-info') || '{}');
+        
+        console.log("Datos del contrato:", contratoData);
+        
+        // Llenar el modal con los datos
+        document.getElementById('modalNumeroContrato').textContent = contratoData.numero_contrato || 'N/A';
+        document.getElementById('modalNumero').textContent = contratoData.numero_contrato || 'N/A';
+        document.getElementById('modalEstado').innerHTML = contratoData.estado_badge || '<span class="badge bg-secondary">N/A</span>';
+        document.getElementById('modalFechaGeneracion').textContent = contratoData.fecha_generacion || 'N/A';
+        document.getElementById('modalPlantilla').textContent = contratoData.plantilla || 'N/A';
+        document.getElementById('modalValorSinIva').textContent = contratoData.valor_sin_iva || 'N/A';
+        document.getElementById('modalIva').textContent = contratoData.valor_iva || 'N/A';
+        document.getElementById('modalValorTotal').textContent = contratoData.valor_total || 'N/A';
+        
+        // Información del cliente
+        document.getElementById('modalClienteNombre').textContent = contratoData.nombre_cliente || 'N/A';
+        document.getElementById('modalClienteRuc').textContent = contratoData.cliente_ruc || 'N/A';
+        document.getElementById('modalClienteProfesion').textContent = contratoData.cliente_profesion || 'No especificada';
+        document.getElementById('modalClienteCargo').textContent = contratoData.cliente_cargo || 'No especificado';
+        document.getElementById('modalClienteEmail').textContent = contratoData.cliente_email || 'N/A';
+        document.getElementById('modalClienteTelefono').textContent = contratoData.cliente_telefono || 'N/A';
+        
+        // Información de la cuña (si existe)
+        const cuñaSection = document.getElementById('modalCuñaSection');
+        if (contratoData.tiene_cuña) {
+            cuñaSection.style.display = 'block';
+            document.getElementById('modalCuñaCodigo').textContent = contratoData.cuña_codigo || 'N/A';
+            document.getElementById('modalCuñaTitulo').textContent = contratoData.cuña_titulo || 'N/A';
+            document.getElementById('modalCuñaEstado').innerHTML = contratoData.cuña_estado_badge || '<span class="badge bg-secondary">N/A</span>';
+            document.getElementById('modalCuñaFechaInicio').textContent = contratoData.cuña_fecha_inicio || 'N/A';
+            document.getElementById('modalCuñaFechaFin').textContent = contratoData.cuña_fecha_fin || 'N/A';
+            document.getElementById('modalCuñaDuracion').textContent = contratoData.cuña_duracion || 'N/A';
+            document.getElementById('modalCuñaRepeticiones').textContent = contratoData.cuña_repeticiones || 'N/A';
+        } else {
+            cuñaSection.style.display = 'none';
+        }
+        
+        // Datos de generación
+        const datosGeneracionDiv = document.getElementById('modalDatosGeneracion');
+        if (contratoData.datos_generacion && Object.keys(contratoData.datos_generacion).length > 0) {
+            let html = '<table class="table table-sm table-borderless">';
+            for (const [key, value] of Object.entries(contratoData.datos_generacion)) {
+                if (value && !key.includes('_RAW')) {
+                    html += `<tr><td width="30%"><strong>${key.replace(/_/g, ' ').toUpperCase()}:</strong></td><td>${value}</td></tr>`;
+                }
+            }
+            html += '</table>';
+            datosGeneracionDiv.innerHTML = html;
+        } else {
+            datosGeneracionDiv.innerHTML = '<p class="text-muted">No hay datos adicionales de generación.</p>';
+        }
+        
+        // Botón de descarga
+        const descargarBtn = document.getElementById('modalDescargarBtn');
+        if (contratoData.archivo_url) {
+            descargarBtn.style.display = 'inline-block';
+            descargarBtn.onclick = () => {
+                window.open(contratoData.archivo_url, '_blank');
+            };
+        } else {
+            descargarBtn.style.display = 'none';
+        }
+        
+        // Cerrar loading y mostrar modal
+        Swal.close();
+        const modal = new bootstrap.Modal(document.getElementById('detalleContratoModal'));
+        modal.show();
+        
+    } catch (error) {
+        console.error('Error al cargar detalles:', error);
+        Swal.fire('Error', 'No se pudieron cargar los detalles del contrato', 'error');
+    }
+}
+
+// ✅ FUNCIÓN: Subir contrato validado
 function subirContratoValidado(id) {
     Swal.fire({
         title: 'Subir Contrato Validado',
@@ -711,6 +1118,9 @@ document.getElementById('clienteSelect').addEventListener('change', function() {
         // Establecer fecha de inicio como hoy
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('fechaInicio').value = today;
+        
+        // Calcular total inicial
+        setTimeout(calcularTotalContrato, 100);
     } else {
         document.getElementById('clientePreview').classList.add('d-none');
         document.getElementById('datosAdicionalesSection').classList.add('d-none');
@@ -733,12 +1143,14 @@ document.getElementById('contratoForm').addEventListener('submit', function(e) {
         return;
     }
     
-    // Validar fechas
+    // Validar campos requeridos
     const fechaInicio = document.getElementById('fechaInicio').value;
     const fechaFin = document.getElementById('fechaFin').value;
-    const valorContrato = document.getElementById('valorContrato').value;
+    const valorPorSegundo = document.getElementById('valorPorSegundo').value;
+    const spotsDia = document.getElementById('spotsDia').value;
+    const duracionSpot = document.getElementById('duracionSpot').value;
     
-    if (!fechaInicio || !fechaFin || !valorContrato) {
+    if (!fechaInicio || !fechaFin || !valorPorSegundo || !spotsDia || !duracionSpot) {
         Swal.fire({
             icon: 'warning',
             title: 'Datos Incompletos',
@@ -756,22 +1168,42 @@ document.getElementById('contratoForm').addEventListener('submit', function(e) {
         return;
     }
     
-    // Preparar datos
+    // Calcular total final
+    const totalCalculado = calcularTotalContrato();
+    if (totalCalculado <= 0) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error en Cálculo',
+            text: 'El valor total debe ser mayor a cero'
+        });
+        return;
+    }
+    
+    // Preparar datos para enviar
     const formData = {
         plantilla_id: plantillaSeleccionada,
         cliente_id: clienteSeleccionado,
         fecha_inicio: fechaInicio,
         fecha_fin: fechaFin,
-        valor_contrato: valorContrato,
-        spots_dia: document.getElementById('spotsDia').value || 1,
-        duracion_spot: document.getElementById('duracionSpot').value || 30,
+        valor_por_segundo: parseFloat(valorPorSegundo),
+        valor_total: totalCalculado, // Usamos el valor calculado
+        spots_dia: parseInt(spotsDia),
+        duracion_spot: parseInt(duracionSpot),
         observaciones: document.getElementById('observaciones').value || ''
     };
+    
+    console.log('Datos a enviar:', formData);
     
     // Mostrar loading
     Swal.fire({
         title: 'Generando Contrato',
-        html: 'Por favor espere...<br><small>Incluyendo información profesional del cliente</small>',
+        html: `Calculando contrato...<br>
+               <small>
+               Valor: S/ ${valorPorSegundo} por segundo<br>
+               Duración: ${duracionSpot} segundos<br>
+               Spots/día: ${spotsDia}<br>
+               Total: S/ ${totalCalculado.toFixed(2)}
+               </small>`,
         allowOutsideClick: false,
         didOpen: () => {
             Swal.showLoading();
@@ -795,8 +1227,14 @@ document.getElementById('contratoForm').addEventListener('submit', function(e) {
                 title: '¡Contrato Generado!',
                 html: `
                     <p>El contrato se ha generado correctamente</p>
-                    <p><strong>Incluye información profesional del cliente</strong></p>
-                    <small>Número: ${data.numero_contrato}</small>
+                    <p><strong>Detalles del cálculo:</strong></p>
+                    <small>
+                    Valor por segundo: S/ ${valorPorSegundo}<br>
+                    Duración spot: ${duracionSpot} segundos<br>
+                    Spots por día: ${spotsDia}<br>
+                    Días contrato: ${calcularDiasContrato(fechaInicio, fechaFin)}<br>
+                    <strong>Total: S/ ${totalCalculado.toFixed(2)}</strong>
+                    </small>
                 `,
                 showCancelButton: true,
                 confirmButtonText: 'Descargar Ahora',
@@ -843,6 +1281,10 @@ function resetearFormulario() {
     document.getElementById('step1').classList.remove('completed');
     document.getElementById('step2').classList.remove('active', 'completed');
     document.getElementById('step3').classList.remove('active');
+    
+    // Limpiar cálculo
+    document.getElementById('totalCalculado').textContent = 'S/ 0.00';
+    document.getElementById('valorTotal').value = '0.00';
 }
 
 function eliminarContrato(id) {

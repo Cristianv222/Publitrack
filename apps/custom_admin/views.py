@@ -20,6 +20,10 @@ from apps.content_management.models import PlantillaContrato
 from apps.orders.models import PlantillaOrden, OrdenGenerada
 from apps.orders.models import OrdenToma 
 from apps.parte_mortorios.models import ParteMortorio
+import csv
+import xlwt
+from django.http import HttpResponse
+from datetime import datetime
 
 # Obtener el modelo de usuario correcto
 User = get_user_model()
@@ -84,6 +88,7 @@ try:
         ParteMortorioGenerado
     )
     PARTE_MORTORIO_MODELS_AVAILABLE = True
+
 except ImportError as e:
     print(f"⚠️ Error importando modelos de parte_mortorios: {e}")
     PARTE_MORTORIO_MODELS_AVAILABLE = False
@@ -91,6 +96,24 @@ except ImportError as e:
     HistorialParteMortorio = None
     PlantillaParteMortorio = None
     ParteMortorioGenerado = None
+# ==================== IMPORTS PARA REPORTES ====================
+try:
+    from apps.content_management.models import ContratoGenerado, CuñaPublicitaria
+    CONTENT_MODELS_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Error importando modelos de content_management: {e}")
+    CONTENT_MODELS_AVAILABLE = False
+    ContratoGenerado = None
+    CuñaPublicitaria = None
+
+try:
+    from apps.reports_analytics.models import ReporteContratos, DashboardContratos
+    REPORTS_MODELS_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Error importando modelos de reports_analytics: {e}")
+    REPORTS_MODELS_AVAILABLE = False
+    ReporteContratos = None
+    DashboardContratos = None
 def is_admin(user):
     """Verifica si el usuario es administrador"""
     return user.is_superuser or user.is_staff or getattr(user, 'rol', None) == 'admin'
@@ -275,6 +298,8 @@ def contratos_generados_list(request):
     total_contratos = 0
     contratos_hoy = 0
     contratos_mes = 0
+    contratos_activos = 0  # ✅ NUEVA VARIABLE
+    contratos_pendientes = 0  # ✅ NUEVA VARIABLE
     
     # Verificar disponibilidad del modelo
     print(f"\n📊 CONTENT_MODELS_AVAILABLE: {CONTENT_MODELS_AVAILABLE}")
@@ -294,7 +319,7 @@ def contratos_generados_list(request):
                 if all_contratos.exists():
                     print("\n📋 Primeros 3 contratos (RAW):")
                     for idx, c in enumerate(all_contratos[:3], 1):
-                        print(f"   {idx}. ID:{c.id} | Num:{c.numero_contrato} | Cliente:{c.nombre_cliente}")
+                        print(f"   {idx}. ID:{c.id} | Num:{c.numero_contrato} | Cliente:{c.nombre_cliente} | Estado:{c.estado}")
                 
                 # Obtener contratos recientes con select_related
                 contratos_recientes = list(
@@ -314,14 +339,25 @@ def contratos_generados_list(request):
                     fecha_generacion__gte=timezone.now() - timedelta(days=30)
                 ).count()
                 
+                # ✅ NUEVAS ESTADÍSTICAS: Contratos activos y pendientes
+                contratos_activos = ContratoGenerado.objects.filter(
+                    estado='validado'
+                ).count()
+                
+                contratos_pendientes = ContratoGenerado.objects.filter(
+                    estado='generado'
+                ).count()
+                
                 print(f"✅ Contratos hoy: {contratos_hoy}")
                 print(f"✅ Contratos último mes: {contratos_mes}")
+                print(f"✅ Contratos activos (validados): {contratos_activos}")  # ✅ NUEVO
+                print(f"✅ Contratos pendientes (generados): {contratos_pendientes}")  # ✅ NUEVO
                 
                 # Detalles de cada contrato reciente
                 if contratos_recientes:
                     print("\n📋 Detalles de contratos recientes:")
                     for idx, c in enumerate(contratos_recientes, 1):
-                        print(f"   {idx}. {c.numero_contrato} | {c.nombre_cliente} | {c.fecha_generacion}")
+                        print(f"   {idx}. {c.numero_contrato} | {c.nombre_cliente} | {c.estado} | {c.fecha_generacion}")
                         print(f"      - Cliente ID: {c.cliente_id if hasattr(c, 'cliente_id') else 'N/A'}")
                         print(f"      - Plantilla: {c.plantilla_usada.nombre if c.plantilla_usada else 'N/A'}")
                         if idx >= 3:  # Solo mostrar 3 para no llenar los logs
@@ -348,6 +384,8 @@ def contratos_generados_list(request):
         'total_contratos': total_contratos,
         'contratos_hoy': contratos_hoy,
         'contratos_mes': contratos_mes,
+        'contratos_activos': contratos_activos,  # ✅ NUEVA VARIABLE
+        'contratos_pendientes': contratos_pendientes,  # ✅ NUEVA VARIABLE
         'plantillas_activas': plantillas_activas,
     }
     
@@ -358,11 +396,12 @@ def contratos_generados_list(request):
     print(f"   - total_contratos: {context['total_contratos']}")
     print(f"   - contratos_hoy: {context['contratos_hoy']}")
     print(f"   - contratos_mes: {context['contratos_mes']}")
+    print(f"   - contratos_activos: {context['contratos_activos']}")  # ✅ NUEVO
+    print(f"   - contratos_pendientes: {context['contratos_pendientes']}")  # ✅ NUEVO
     print(f"   - plantillas_activas: {context['plantillas_activas']}")
     print("="*80 + "\n")
     
     return render(request, 'custom_admin/contratos/list.html', context)
-
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["POST"])
@@ -385,15 +424,15 @@ def contrato_generar_api(request):
                 'error': 'La plantilla no tiene un archivo asociado'
             }, status=400)
         
-        # ✅ CREAR CONTRATO SIN CUÑA TEMPORAL
+        # ✅ CREAR CONTRATO CON EL NUEVO CÁLCULO
         contrato = ContratoGenerado.objects.create(
             plantilla_usada=plantilla,
             cliente=cliente,
             nombre_cliente=cliente.empresa or cliente.get_full_name(),
             ruc_dni_cliente=cliente.ruc_dni or '',
-            valor_sin_iva=Decimal(str(data['valor_contrato'])),
+            valor_sin_iva=Decimal(str(data['valor_total'])),  # Usamos el valor total calculado
             generado_por=request.user,
-            estado='borrador'  # Inicia en borrador
+            estado='borrador'
         )
         
         # ✅ GUARDAR DATOS PARA USAR DESPUÉS AL CREAR LA CUÑA
@@ -402,6 +441,7 @@ def contrato_generar_api(request):
             'FECHA_FIN_RAW': data['fecha_fin'],
             'SPOTS_DIA': data.get('spots_dia', 1),
             'DURACION_SPOT': data.get('duracion_spot', 30),
+            'VALOR_POR_SEGUNDO': data.get('valor_por_segundo', 0),  # Nuevo campo
             'OBSERVACIONES': data.get('observaciones', '')
         }
         contrato.save()
@@ -436,7 +476,53 @@ def contrato_generar_api(request):
             'error': f'Error al generar el contrato: {str(e)}'
         }, status=500)
 
-
+@login_required
+@user_passes_test(is_admin)
+def contrato_detalle(request, contrato_id):
+    """Vista para ver el detalle completo de un contrato"""
+    try:
+        from apps.content_management.models import ContratoGenerado
+        
+        contrato = get_object_or_404(ContratoGenerado.objects.select_related(
+            'cliente', 'plantilla_usada', 'generado_por', 'cuña'
+        ), pk=contrato_id)
+        
+        # Obtener información adicional del cliente
+        cliente_info = {
+            'telefono': contrato.cliente.telefono if contrato.cliente else '',
+            'email': contrato.cliente.email if contrato.cliente else '',
+            'direccion': contrato.cliente.direccion_exacta if contrato.cliente else '',
+            'ciudad': contrato.cliente.ciudad if contrato.cliente else '',
+            'cargo_empresa': contrato.cliente.cargo_empresa if contrato.cliente else '',
+            'profesion': contrato.cliente.profesion if contrato.cliente else '',
+        }
+        
+        # Obtener información de la cuña si existe
+        cuña_info = {}
+        if contrato.cuña:
+            cuña_info = {
+                'codigo': contrato.cuña.codigo,
+                'titulo': contrato.cuña.titulo,
+                'estado': contrato.cuña.estado,
+                'fecha_inicio': contrato.cuña.fecha_inicio,
+                'fecha_fin': contrato.cuña.fecha_fin,
+                'duracion_planeada': contrato.cuña.duracion_planeada,
+                'repeticiones_dia': contrato.cuña.repeticiones_dia,
+            }
+        
+        context = {
+            'contrato': contrato,
+            'cliente_info': cliente_info,
+            'cuña_info': cuña_info,
+            'datos_generacion': contrato.datos_generacion or {},
+        }
+        
+        return render(request, 'custom_admin/contratos/detalle.html', context)
+        
+    except Exception as e:
+        print(f"❌ ERROR en contrato_detalle: {str(e)}")
+        messages.error(request, f'Error al cargar el detalle del contrato: {str(e)}')
+        return redirect('custom_admin:contratos_generados_list')
 # ✅ NUEVA API: Subir contrato validado
 @login_required
 @user_passes_test(is_admin)
@@ -5331,3 +5417,967 @@ def parte_mortorio_descargar_api(request, parte_generado_id):
     except Exception as e:
         messages.error(request, f'Error al descargar el parte: {str(e)}')
         return redirect('custom_admin:parte_mortorios_list')
+# ==================== VISTAS DE REPORTES DE CONTRATOS ====================
+@login_required
+@user_passes_test(is_admin)
+def reports_dashboard_contratos(request):
+    """Dashboard principal de contratos - ACTUALIZADO con estadísticas correctas"""
+    
+    # Verificar disponibilidad de modelos
+    if not CONTENT_MODELS_AVAILABLE:
+        context = {
+            'error': 'Módulo de Contratos no disponible',
+            'mensaje': 'No se pueden cargar los reportes en este momento.',
+            'models_available': False,
+            'total_contratos': 0,
+            'contratos_activos': 0,
+            'contratos_pendientes': 0,
+            'contratos_por_vencer': 0,
+            'contratos_vencidos': 0,
+            'contratos_cancelados': 0,
+            'ingresos_totales': Decimal('0.00'),
+            'ingresos_activos': Decimal('0.00'),
+            'contratos_recientes': [],
+        }
+        return render(request, 'custom_admin/reports/contratos/list.html', context)
+    
+    try:
+        hoy = timezone.now().date()
+        
+        # Contratos por estado con manejo de errores
+        try:
+            total_contratos = ContratoGenerado.objects.count()
+        except Exception as e:
+            print(f"❌ Error contando contratos: {e}")
+            total_contratos = 0
+        
+        # ✅ CORREGIDO: Contratos "activos" son los que tienen estado 'validado' (con cuñas)
+        try:
+            contratos_activos = ContratoGenerado.objects.filter(estado='validado').count()
+        except Exception as e:
+            print(f"❌ Error contando contratos activos: {e}")
+            contratos_activos = 0
+        
+        # ✅ CORREGIDO: Contratos pendientes son los que tienen estado 'generado'
+        try:
+            contratos_pendientes = ContratoGenerado.objects.filter(estado='generado').count()
+        except Exception as e:
+            print(f"❌ Error contando contratos pendientes: {e}")
+            contratos_pendientes = 0
+        
+        # ✅ CORREGIDO: Contratos por vencer (validados que están cerca de vencer)
+        try:
+            fecha_limite_vencimiento = hoy + timedelta(days=30)
+            contratos_por_vencer = ContratoGenerado.objects.filter(
+                estado='validado',  # Solo los validados pueden vencer
+                cuña__fecha_fin__lte=fecha_limite_vencimiento,
+                cuña__fecha_fin__gte=hoy
+            ).count()
+        except Exception as e:
+            print(f"❌ Error contando contratos por vencer: {e}")
+            contratos_por_vencer = 0
+        
+        # ✅ CORREGIDO: Contratos vencidos (validados cuya fecha fin ya pasó)
+        try:
+            contratos_vencidos = ContratoGenerado.objects.filter(
+                estado='validado',  # Solo los validados pueden estar vencidos
+                cuña__fecha_fin__lt=hoy
+            ).count()
+        except Exception as e:
+            print(f"❌ Error contando contratos vencidos: {e}")
+            contratos_vencidos = 0
+        
+        # ✅ CORREGIDO: Contratos cancelados
+        try:
+            contratos_cancelados = ContratoGenerado.objects.filter(estado='cancelado').count()
+        except Exception as e:
+            print(f"❌ Error contando contratos cancelados: {e}")
+            contratos_cancelados = 0
+        
+        # Ingresos con manejo de errores
+        try:
+            ingresos_totales_result = ContratoGenerado.objects.aggregate(
+                total=Sum('valor_total')
+            )
+            ingresos_totales = ingresos_totales_result['total'] or Decimal('0.00')
+        except Exception as e:
+            print(f"❌ Error calculando ingresos totales: {e}")
+            ingresos_totales = Decimal('0.00')
+        
+        # ✅ CORREGIDO: Ingresos de contratos validados (activos)
+        try:
+            ingresos_activos_result = ContratoGenerado.objects.filter(estado='validado').aggregate(
+                total=Sum('valor_total')
+            )
+            ingresos_activos = ingresos_activos_result['total'] or Decimal('0.00')
+        except Exception as e:
+            print(f"❌ Error calculando ingresos activos: {e}")
+            ingresos_activos = Decimal('0.00')
+        
+        # ✅ CORREGIDO: Ingresos de contratos pendientes
+        try:
+            ingresos_pendientes_result = ContratoGenerado.objects.filter(estado='generado').aggregate(
+                total=Sum('valor_total')
+            )
+            ingresos_pendientes = ingresos_pendientes_result['total'] or Decimal('0.00')
+        except Exception as e:
+            print(f"❌ Error calculando ingresos pendientes: {e}")
+            ingresos_pendientes = Decimal('0.00')
+        
+        # Contratos recientes
+        try:
+            contratos_recientes = ContratoGenerado.objects.select_related(
+                'cliente', 'cuña', 'plantilla_usada'
+            ).order_by('-fecha_generacion')[:10]
+            
+            # Asegurarnos de que cada contrato tenga el método get_estado_display
+            for contrato in contratos_recientes:
+                if not hasattr(contrato, 'get_estado_display'):
+                    contrato.get_estado_display = lambda: dict(ContratoGenerado.ESTADO_CHOICES).get(contrato.estado, contrato.estado)
+                    
+        except Exception as e:
+            print(f"❌ Error obteniendo contratos recientes: {e}")
+            contratos_recientes = []
+        
+        # Evolución mensual con manejo de errores
+        meses_data = []
+        try:
+            for i in range(5, -1, -1):
+                mes_fecha = hoy - timedelta(days=30*i)
+                mes_str = mes_fecha.strftime('%Y-%m')
+                mes_nombre = mes_fecha.strftime('%b %Y')
+                
+                contrato_mes = ContratoGenerado.objects.filter(
+                    fecha_generacion__year=mes_fecha.year,
+                    fecha_generacion__month=mes_fecha.month
+                ).count()
+                
+                meses_data.append({
+                    'mes': mes_nombre,
+                    'total': contrato_mes
+                })
+        except Exception as e:
+            print(f"❌ Error calculando evolución mensual: {e}")
+            # Datos de ejemplo en caso de error
+            for i in range(6):
+                meses_data.append({
+                    'mes': f'Mes {i+1}',
+                    'total': 0
+                })
+        
+        context = {
+            'total_contratos': total_contratos,
+            'contratos_activos': contratos_activos,
+            'contratos_pendientes': contratos_pendientes,
+            'contratos_por_vencer': contratos_por_vencer,
+            'contratos_vencidos': contratos_vencidos,
+            'contratos_cancelados': contratos_cancelados,
+            'ingresos_totales': ingresos_totales,
+            'ingresos_activos': ingresos_activos,
+            'ingresos_pendientes': ingresos_pendientes,
+            'contratos_recientes': contratos_recientes,
+            'meses_data': meses_data,
+            'models_available': True,
+        }
+        
+        print(f"✅ Dashboard de Reportes cargado exitosamente:")
+        print(f"   - Total contratos: {total_contratos}")
+        print(f"   - Activos (validados): {contratos_activos}")
+        print(f"   - Pendientes (generados): {contratos_pendientes}")
+        print(f"   - Por vencer: {contratos_por_vencer}")
+        print(f"   - Vencidos: {contratos_vencidos}")
+        print(f"   - Cancelados: {contratos_cancelados}")
+        print(f"   - Ingresos totales: {ingresos_totales}")
+        print(f"   - Ingresos activos: {ingresos_activos}")
+        print(f"   - Ingresos pendientes: {ingresos_pendientes}")
+        print(f"   - Contratos recientes: {len(contratos_recientes)}")
+        
+        return render(request, 'custom_admin/reports/contratos/list.html', context)
+        
+    except Exception as e:
+        print(f"❌ ERROR CRÍTICO en reports_dashboard_contratos: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        context = {
+            'error': 'Error al cargar el dashboard',
+            'mensaje': str(e),
+            'models_available': False,
+            'total_contratos': 0,
+            'contratos_activos': 0,
+            'contratos_pendientes': 0,
+            'contratos_por_vencer': 0,
+            'contratos_vencidos': 0,
+            'contratos_cancelados': 0,
+            'ingresos_totales': Decimal('0.00'),
+            'ingresos_activos': Decimal('0.00'),
+            'ingresos_pendientes': Decimal('0.00'),
+            'contratos_recientes': [],
+        }
+        return render(request, 'custom_admin/reports/contratos/list.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def reports_api_estadisticas_contratos(request):
+    """API para obtener estadísticas de contratos (AJAX) - VERSIÓN CORREGIDA"""
+    
+    if not CONTENT_MODELS_AVAILABLE:
+        return JsonResponse({
+            'success': False,
+            'error': 'Módulo no disponible',
+            'contratos_por_estado': [],
+            'ingresos_mensuales': []
+        })
+    
+    try:
+        hoy = timezone.now().date()
+        
+        # ✅ CORREGIDO: Datos para gráfico de pastel - contratos por estado
+        try:
+            # Agrupar contratos por estado con valores por defecto para todos los estados
+            estados_posibles = ['borrador', 'generado', 'enviado', 'firmado', 'validado', 'vencido', 'cancelado']
+            contratos_por_estado = []
+            
+            for estado in estados_posibles:
+                count = ContratoGenerado.objects.filter(estado=estado).count()
+                # Calcular valor total para este estado
+                valor_total = ContratoGenerado.objects.filter(estado=estado).aggregate(
+                    total=Sum('valor_total')
+                )['total'] or Decimal('0.00')
+                
+                contratos_por_estado.append({
+                    'estado': estado,
+                    'total': count,
+                    'valor_total': float(valor_total)
+                })
+            
+            print(f"📊 Contratos por estado: {contratos_por_estado}")  # Debug
+            
+        except Exception as e:
+            print(f"❌ Error en contratos_por_estado: {e}")
+            contratos_por_estado = []
+
+        # ✅ CORREGIDO: Ingresos por mes (últimos 6 meses)
+        ingresos_mensuales = []
+        try:
+            for i in range(5, -1, -1):
+                mes_fecha = hoy - timedelta(days=30*i)
+                mes_nombre = mes_fecha.strftime('%b %Y')
+                mes_key = mes_fecha.strftime('%Y-%m')
+                
+                # Obtener contratos de este mes
+                contratos_mes = ContratoGenerado.objects.filter(
+                    fecha_generacion__year=mes_fecha.year,
+                    fecha_generacion__month=mes_fecha.month
+                )
+                
+                ingreso_mes = contratos_mes.aggregate(
+                    total=Sum('valor_total')
+                )['total'] or Decimal('0.00')
+                
+                ingresos_mensuales.append({
+                    'mes': mes_nombre,
+                    'mes_key': mes_key,
+                    'ingresos': float(ingreso_mes),
+                    'contratos_count': contratos_mes.count()
+                })
+            
+            print(f"💰 Ingresos mensuales: {ingresos_mensuales}")  # Debug
+            
+        except Exception as e:
+            print(f"❌ Error en ingresos_mensuales: {e}")
+            # Datos de ejemplo para debugging
+            for i in range(6):
+                mes_fecha = hoy - timedelta(days=30*i)
+                ingresos_mensuales.append({
+                    'mes': mes_fecha.strftime('%b %Y'),
+                    'mes_key': mes_fecha.strftime('%Y-%m'),
+                    'ingresos': 0.0,
+                    'contratos_count': 0
+                })
+
+        return JsonResponse({
+            'success': True,
+            'contratos_por_estado': contratos_por_estado,
+            'ingresos_mensuales': ingresos_mensuales,
+        })
+        
+    except Exception as e:
+        print(f"❌ ERROR en reports_api_estadisticas_contratos: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'error': str(e),
+            'contratos_por_estado': [],
+            'ingresos_mensuales': []
+        })
+
+@login_required
+@user_passes_test(is_admin)
+def reports_vencimiento_contratos(request):
+    """Genera reporte de contratos por vencimiento - CON MANEJO DE ERRORES"""
+    
+    if not CONTENT_MODELS_AVAILABLE:
+        messages.error(request, 'Módulo de Contratos no disponible')
+        return redirect('custom_admin:reports_dashboard_contratos')
+    
+    try:
+        hoy = timezone.now().date()
+        dias_aviso = int(request.GET.get('dias_aviso', 30))
+        formato = request.GET.get('formato', 'html')
+        
+        fecha_limite = hoy + timedelta(days=dias_aviso)
+        
+        # Contratos por vencer
+        try:
+            contratos_por_vencer = ContratoGenerado.objects.filter(
+                estado='activo',
+                cuña__fecha_fin__lte=fecha_limite,
+                cuña__fecha_fin__gte=hoy
+            ).select_related('cliente', 'cuña').order_by('cuña__fecha_fin')
+        except Exception as e:
+            print(f"❌ Error obteniendo contratos por vencer: {e}")
+            contratos_por_vencer = []
+        
+        # Contratos vencidos
+        try:
+            contratos_vencidos = ContratoGenerado.objects.filter(
+                estado='activo',
+                cuña__fecha_fin__lt=hoy
+            ).select_related('cliente', 'cuña').order_by('cuña__fecha_fin')
+        except Exception as e:
+            print(f"❌ Error obteniendo contratos vencidos: {e}")
+            contratos_vencidos = []
+        
+        # Contratos con buena vigencia
+        try:
+            contratos_vigentes = ContratoGenerado.objects.filter(
+                estado='activo',
+                cuña__fecha_fin__gt=fecha_limite
+            ).select_related('cliente', 'cuña').order_by('cuña__fecha_fin')
+        except Exception as e:
+            print(f"❌ Error obteniendo contratos vigentes: {e}")
+            contratos_vigentes = []
+        
+        # Exportar si se solicita
+        if formato == 'csv':
+            return _generar_reporte_csv_vencimiento(contratos_por_vencer, contratos_vencidos, contratos_vigentes)
+        elif formato == 'excel':
+            return _generar_reporte_excel_vencimiento(contratos_por_vencer, contratos_vencidos, contratos_vigentes)
+        
+        context = {
+            'contratos_por_vencer': contratos_por_vencer,
+            'contratos_vencidos': contratos_vencidos,
+            'contratos_vigentes': contratos_vigentes,
+            'dias_aviso': dias_aviso,
+            'fecha_limite': fecha_limite,
+            'fecha_reporte': timezone.now().strftime('%d/%m/%Y %H:%M'),
+        }
+        
+        return render(request, 'custom_admin/reports/vencimiento_contratos.html', context)
+        
+    except Exception as e:
+        print(f"❌ ERROR en reports_vencimiento_contratos: {e}")
+        messages.error(request, f'Error al generar el reporte: {str(e)}')
+        return redirect('custom_admin:reports_dashboard_contratos')
+
+@login_required
+@user_passes_test(is_admin)
+def reports_ingresos_contratos(request):
+    """Genera reporte de ingresos por contratos - CON MANEJO DE ERRORES"""
+    
+    if not CONTENT_MODELS_AVAILABLE:
+        messages.error(request, 'Módulo de Contratos no disponible')
+        return redirect('custom_admin:reports_dashboard_contratos')
+    
+    try:
+        # Parámetros
+        fecha_inicio = request.GET.get('fecha_inicio')
+        fecha_fin = request.GET.get('fecha_fin')
+        agrupar_por = request.GET.get('agrupar_por', 'mes')
+        formato = request.GET.get('formato', 'html')
+        
+        # Base query
+        contratos = ContratoGenerado.objects.select_related('cliente', 'cuña').all()
+        
+        if fecha_inicio:
+            contratos = contratos.filter(fecha_generacion__date__gte=fecha_inicio)
+        if fecha_fin:
+            contratos = contratos.filter(fecha_generacion__date__lte=fecha_fin)
+        
+        # Agrupar datos
+        ingresos_data = []
+        try:
+            if agrupar_por == 'mes':
+                # Para PostgreSQL
+                ingresos_data = contratos.extra(
+                    select={'periodo': "TO_CHAR(fecha_generacion, 'YYYY-MM')"}
+                ).values('periodo').annotate(
+                    total_contratos=Count('id'),
+                    ingresos_totales=Sum('valor_total'),
+                    promedio_contrato=Avg('valor_total')
+                ).order_by('periodo')
+            elif agrupar_por == 'estado':
+                ingresos_data = contratos.values('estado').annotate(
+                    total_contratos=Count('id'),
+                    ingresos_totales=Sum('valor_total'),
+                    promedio_contrato=Avg('valor_total')
+                ).order_by('estado')
+            elif agrupar_por == 'cliente':
+                ingresos_data = contratos.values('cliente__empresa', 'cliente__ruc_dni').annotate(
+                    total_contratos=Count('id'),
+                    ingresos_totales=Sum('valor_total'),
+                    promedio_contrato=Avg('valor_total')
+                ).order_by('-ingresos_totales')
+        except Exception as e:
+            print(f"❌ Error agrupando datos: {e}")
+            # Datos vacíos en caso de error
+            ingresos_data = []
+        
+        # Exportar si se solicita
+        if formato == 'csv':
+            return _generar_reporte_csv_ingresos(ingresos_data, agrupar_por)
+        elif formato == 'excel':
+            return _generar_reporte_excel_ingresos(ingresos_data, agrupar_por)
+        
+        context = {
+            'ingresos_data': ingresos_data,
+            'agrupar_por': agrupar_por,
+            'fecha_inicio': fecha_inicio,
+            'fecha_fin': fecha_fin,
+            'total_ingresos': contratos.aggregate(total=Sum('valor_total'))['total'] or Decimal('0.00'),
+            'fecha_reporte': timezone.now().strftime('%d/%m/%Y %H:%M'),
+        }
+        
+        return render(request, 'custom_admin/reports/ingresos_contratos.html', context)
+        
+    except Exception as e:
+        print(f"❌ ERROR en reports_ingresos_contratos: {e}")
+        messages.error(request, f'Error al generar el reporte: {str(e)}')
+        return redirect('custom_admin:reports_dashboard_contratos')
+
+# ==================== FUNCIONES AUXILIARES PARA EXPORTACIÓN ====================
+
+def _generar_reporte_csv_estado(contratos_por_estado, detalle_estados):
+    """Genera reporte CSV para estado de contratos"""
+    try:
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="reporte_estado_contratos.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow(['Reporte de Contratos por Estado', datetime.now().strftime('%d/%m/%Y %H:%M')])
+        writer.writerow([])
+        writer.writerow(['Estado', 'Cantidad', 'Valor Total'])
+        
+        for item in contratos_por_estado:
+            writer.writerow([
+                dict(ContratoGenerado.ESTADO_CHOICES).get(item['estado'], item['estado']),
+                item['total'],
+                item['valor_total']
+            ])
+        
+        return response
+    except Exception as e:
+        print(f"❌ Error generando CSV: {e}")
+        return HttpResponse("Error al generar el archivo CSV")
+
+def _generar_reporte_csv_vencimiento(por_vencer, vencidos, vigentes):
+    """Genera reporte CSV para vencimiento de contratos"""
+    try:
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="reporte_vencimiento_contratos.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow(['Reporte de Contratos por Vencimiento', datetime.now().strftime('%d/%m/%Y %H:%M')])
+        writer.writerow([])
+        
+        # Contratos por vencer
+        writer.writerow(['CONTRATOS POR VENCER'])
+        writer.writerow(['Código', 'Cliente', 'Fecha Fin', 'Días Restantes', 'Valor'])
+        for contrato in por_vencer:
+            dias_restantes = (contrato.cuña.fecha_fin - timezone.now().date()).days
+            writer.writerow([
+                contrato.numero_contrato,
+                contrato.nombre_cliente,
+                contrato.cuña.fecha_fin.strftime('%d/%m/%Y'),
+                dias_restantes,
+                contrato.valor_total
+            ])
+        
+        writer.writerow([])
+        
+        # Contratos vencidos
+        writer.writerow(['CONTRATOS VENCIDOS'])
+        writer.writerow(['Código', 'Cliente', 'Fecha Fin', 'Días Vencidos', 'Valor'])
+        for contrato in vencidos:
+            dias_vencidos = (timezone.now().date() - contrato.cuña.fecha_fin).days
+            writer.writerow([
+                contrato.numero_contrato,
+                contrato.nombre_cliente,
+                contrato.cuña.fecha_fin.strftime('%d/%m/%Y'),
+                dias_vencidos,
+                contrato.valor_total
+            ])
+        
+        return response
+    except Exception as e:
+        print(f"❌ Error generando CSV vencimiento: {e}")
+        return HttpResponse("Error al generar el archivo CSV")
+# ==================== REPORTES DE CONTRATOS - FUNCIONES FALTANTES ====================
+
+@login_required
+@user_passes_test(is_admin)
+def reports_estado_contratos(request):
+    """Genera reporte de contratos por estado - CON MANEJO DE ERRORES"""
+    
+    if not CONTENT_MODELS_AVAILABLE:
+        messages.error(request, 'Módulo de Contratos no disponible')
+        return redirect('custom_admin:reports_dashboard_contratos')
+    
+    try:
+        # Parámetros del reporte
+        fecha_inicio = request.GET.get('fecha_inicio')
+        fecha_fin = request.GET.get('fecha_fin')
+        formato = request.GET.get('formato', 'html')
+        
+        # Filtrar contratos
+        contratos = ContratoGenerado.objects.select_related(
+            'cliente', 'cuña', 'plantilla_usada'
+        ).all()
+        
+        if fecha_inicio:
+            contratos = contratos.filter(fecha_generacion__date__gte=fecha_inicio)
+        if fecha_fin:
+            contratos = contratos.filter(fecha_generacion__date__lte=fecha_fin)
+        
+        # Agrupar por estado
+        try:
+            contratos_por_estado = contratos.values('estado').annotate(
+                total=Count('id'),
+                valor_total=Sum('valor_total')
+            ).order_by('estado')
+        except Exception as e:
+            print(f"❌ Error agrupando por estado: {e}")
+            contratos_por_estado = []
+        
+        # Detalle por estado
+        detalle_estados = {}
+        estados = ['borrador', 'generado', 'enviado', 'firmado', 'validado', 'vencido', 'cancelado']
+        
+        for estado in estados:
+            try:
+                detalle_estados[estado] = list(contratos.filter(estado=estado))
+            except Exception as e:
+                print(f"❌ Error obteniendo detalle para estado {estado}: {e}")
+                detalle_estados[estado] = []
+        
+        # Exportar si se solicita
+        if formato == 'csv':
+            return _generar_reporte_csv_estado(contratos_por_estado, detalle_estados)
+        elif formato == 'excel':
+            return _generar_reporte_excel_estado(contratos_por_estado, detalle_estados)
+        
+        context = {
+            'contratos_por_estado': contratos_por_estado,
+            'detalle_estados': detalle_estados,
+            'fecha_inicio': fecha_inicio,
+            'fecha_fin': fecha_fin,
+            'total_contratos': contratos.count(),
+            'fecha_reporte': timezone.now().strftime('%d/%m/%Y %H:%M'),
+        }
+        
+        return render(request, 'custom_admin/reports/contratos/estado.html', context)
+        
+    except Exception as e:
+        print(f"❌ ERROR en reports_estado_contratos: {e}")
+        messages.error(request, f'Error al generar el reporte: {str(e)}')
+        return redirect('custom_admin:reports_dashboard_contratos')
+
+@login_required
+@user_passes_test(is_admin)
+def reports_vencimiento_contratos(request):
+    """Genera reporte de contratos por vencimiento - CON MANEJO DE ERRORES"""
+    
+    if not CONTENT_MODELS_AVAILABLE:
+        messages.error(request, 'Módulo de Contratos no disponible')
+        return redirect('custom_admin:reports_dashboard_contratos')
+    
+    try:
+        hoy = timezone.now().date()
+        dias_aviso = int(request.GET.get('dias_aviso', 30))
+        formato = request.GET.get('formato', 'html')
+        
+        fecha_limite = hoy + timedelta(days=dias_aviso)
+        
+        # Contratos por vencer (solo los validados pueden vencer)
+        try:
+            contratos_por_vencer = ContratoGenerado.objects.filter(
+                estado='validado',  # Solo contratos validados pueden vencer
+                cuña__fecha_fin__lte=fecha_limite,
+                cuña__fecha_fin__gte=hoy
+            ).select_related('cliente', 'cuña').order_by('cuña__fecha_fin')
+        except Exception as e:
+            print(f"❌ Error obteniendo contratos por vencer: {e}")
+            contratos_por_vencer = []
+        
+        # Contratos vencidos (solo los validados pueden estar vencidos)
+        try:
+            contratos_vencidos = ContratoGenerado.objects.filter(
+                estado='validado',  # Solo contratos validados pueden estar vencidos
+                cuña__fecha_fin__lt=hoy
+            ).select_related('cliente', 'cuña').order_by('cuña__fecha_fin')
+        except Exception as e:
+            print(f"❌ Error obteniendo contratos vencidos: {e}")
+            contratos_vencidos = []
+        
+        # Contratos con buena vigencia
+        try:
+            contratos_vigentes = ContratoGenerado.objects.filter(
+                estado='validado',  # Solo contratos validados están vigentes
+                cuña__fecha_fin__gt=fecha_limite
+            ).select_related('cliente', 'cuña').order_by('cuña__fecha_fin')
+        except Exception as e:
+            print(f"❌ Error obteniendo contratos vigentes: {e}")
+            contratos_vigentes = []
+        
+        # Exportar si se solicita
+        if formato == 'csv':
+            return _generar_reporte_csv_vencimiento(contratos_por_vencer, contratos_vencidos, contratos_vigentes)
+        elif formato == 'excel':
+            return _generar_reporte_excel_vencimiento(contratos_por_vencer, contratos_vencidos, contratos_vigentes)
+        
+        context = {
+            'contratos_por_vencer': contratos_por_vencer,
+            'contratos_vencidos': contratos_vencidos,
+            'contratos_vigentes': contratos_vigentes,
+            'dias_aviso': dias_aviso,
+            'fecha_limite': fecha_limite,
+            'fecha_reporte': timezone.now().strftime('%d/%m/%Y %H:%M'),
+        }
+        
+        return render(request, 'custom_admin/reports/contratos/vencimiento.html', context)
+        
+    except Exception as e:
+        print(f"❌ ERROR en reports_vencimiento_contratos: {e}")
+        messages.error(request, f'Error al generar el reporte: {str(e)}')
+        return redirect('custom_admin:reports_dashboard_contratos')
+
+@login_required
+@user_passes_test(is_admin)
+def reports_ingresos_contratos(request):
+    """Genera reporte de ingresos por contratos - CON MANEJO DE ERRORES"""
+    
+    if not CONTENT_MODELS_AVAILABLE:
+        messages.error(request, 'Módulo de Contratos no disponible')
+        return redirect('custom_admin:reports_dashboard_contratos')
+    
+    try:
+        # Parámetros
+        fecha_inicio = request.GET.get('fecha_inicio')
+        fecha_fin = request.GET.get('fecha_fin')
+        agrupar_por = request.GET.get('agrupar_por', 'mes')
+        formato = request.GET.get('formato', 'html')
+        
+        # Base query
+        contratos = ContratoGenerado.objects.select_related('cliente', 'cuña').all()
+        
+        if fecha_inicio:
+            contratos = contratos.filter(fecha_generacion__date__gte=fecha_inicio)
+        if fecha_fin:
+            contratos = contratos.filter(fecha_generacion__date__lte=fecha_fin)
+        
+        # Agrupar datos
+        ingresos_data = []
+        try:
+            if agrupar_por == 'mes':
+                # Agrupar por mes usando annotate
+                from django.db.models.functions import TruncMonth
+                ingresos_data = contratos.annotate(
+                    mes=TruncMonth('fecha_generacion')
+                ).values('mes').annotate(
+                    total_contratos=Count('id'),
+                    ingresos_totales=Sum('valor_total'),
+                    promedio_contrato=Avg('valor_total')
+                ).order_by('mes')
+                
+                # Formatear meses
+                for item in ingresos_data:
+                    item['periodo'] = item['mes'].strftime('%Y-%m')
+                    
+            elif agrupar_por == 'estado':
+                ingresos_data = contratos.values('estado').annotate(
+                    total_contratos=Count('id'),
+                    ingresos_totales=Sum('valor_total'),
+                    promedio_contrato=Avg('valor_total')
+                ).order_by('estado')
+            elif agrupar_por == 'cliente':
+                ingresos_data = contratos.values('cliente__empresa', 'cliente__ruc_dni').annotate(
+                    total_contratos=Count('id'),
+                    ingresos_totales=Sum('valor_total'),
+                    promedio_contrato=Avg('valor_total')
+                ).order_by('-ingresos_totales')
+        except Exception as e:
+            print(f"❌ Error agrupando datos: {e}")
+            # Datos vacíos en caso de error
+            ingresos_data = []
+        
+        # Exportar si se solicita
+        if formato == 'csv':
+            return _generar_reporte_csv_ingresos(ingresos_data, agrupar_por)
+        elif formato == 'excel':
+            return _generar_reporte_excel_ingresos(ingresos_data, agrupar_por)
+        
+        context = {
+            'ingresos_data': ingresos_data,
+            'agrupar_por': agrupar_por,
+            'fecha_inicio': fecha_inicio,
+            'fecha_fin': fecha_fin,
+            'total_ingresos': contratos.aggregate(total=Sum('valor_total'))['total'] or Decimal('0.00'),
+            'fecha_reporte': timezone.now().strftime('%d/%m/%Y %H:%M'),
+        }
+        
+        return render(request, 'custom_admin/reports/contratos/ingresos.html', context)
+        
+    except Exception as e:
+        print(f"❌ ERROR en reports_ingresos_contratos: {e}")
+        messages.error(request, f'Error al generar el reporte: {str(e)}')
+        return redirect('custom_admin:reports_dashboard_contratos')
+def _generar_reporte_csv_ingresos(ingresos_data, agrupar_por):
+    """Genera reporte CSV para ingresos de contratos"""
+    try:
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="reporte_ingresos_contratos.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow(['Reporte de Ingresos por Contratos', datetime.now().strftime('%d/%m/%Y %H:%M')])
+        writer.writerow(['Agrupado por:', agrupar_por])
+        writer.writerow([])
+        
+        if agrupar_por == 'mes':
+            writer.writerow(['Periodo', 'Total Contratos', 'Ingresos Totales', 'Promedio por Contrato'])
+            for item in ingresos_data:
+                writer.writerow([
+                    item['periodo'],
+                    item['total_contratos'],
+                    item['ingresos_totales'],
+                    item['promedio_contrato']
+                ])
+        elif agrupar_por == 'estado':
+            writer.writerow(['Estado', 'Total Contratos', 'Ingresos Totales', 'Promedio por Contrato'])
+            for item in ingresos_data:
+                writer.writerow([
+                    dict(ContratoGenerado.ESTADO_CHOICES).get(item['estado'], item['estado']),
+                    item['total_contratos'],
+                    item['ingresos_totales'],
+                    item['promedio_contrato']
+                ])
+        elif agrupar_por == 'cliente':
+            writer.writerow(['Cliente', 'RUC/DNI', 'Total Contratos', 'Ingresos Totales', 'Promedio por Contrato'])
+            for item in ingresos_data:
+                writer.writerow([
+                    item['cliente__empresa'] or 'N/A',
+                    item['cliente__ruc_dni'] or 'N/A',
+                    item['total_contratos'],
+                    item['ingresos_totales'],
+                    item['promedio_contrato']
+                ])
+        
+        return response
+    except Exception as e:
+        print(f"❌ Error generando CSV ingresos: {e}")
+        return HttpResponse("Error al generar el archivo CSV")
+
+def _generar_reporte_excel_estado(contratos_por_estado, detalle_estados):
+    """Genera reporte Excel para estado de contratos"""
+    try:
+        response = HttpResponse(content_type='application/ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="reporte_estado_contratos.xls"'
+        
+        wb = xlwt.Workbook(encoding='utf-8')
+        ws = wb.add_sheet('Contratos por Estado')
+        
+        # Estilos
+        style_heading = xlwt.easyxf('font: bold on')
+        style_bold = xlwt.easyxf('font: bold on')
+        
+        # Encabezados
+        ws.write(0, 0, 'Reporte de Contratos por Estado', style_heading)
+        ws.write(1, 0, f"Generado el: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+        
+        row = 3
+        ws.write(row, 0, 'Estado', style_bold)
+        ws.write(row, 1, 'Cantidad', style_bold)
+        ws.write(row, 2, 'Valor Total', style_bold)
+        
+        for item in contratos_por_estado:
+            row += 1
+            ws.write(row, 0, dict(ContratoGenerado.ESTADO_CHOICES).get(item['estado'], item['estado']))
+            ws.write(row, 1, item['total'])
+            ws.write(row, 2, float(item['valor_total']))
+        
+        wb.save(response)
+        return response
+    except Exception as e:
+        print(f"❌ Error generando Excel: {e}")
+        return HttpResponse("Error al generar el archivo Excel")
+
+def _generar_reporte_csv_estado(contratos_por_estado, detalle_estados):
+    """Genera reporte CSV para estado de contratos"""
+    try:
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = 'attachment; filename="reporte_estado_contratos.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow(['Reporte de Contratos por Estado', datetime.now().strftime('%d/%m/%Y %H:%M')])
+        writer.writerow([])
+        writer.writerow(['Estado', 'Cantidad', 'Valor Total'])
+        
+        for item in contratos_por_estado:
+            estado_display = dict(ContratoGenerado.ESTADO_CHOICES).get(item['estado'], item['estado'])
+            writer.writerow([
+                estado_display,
+                item['total'],
+                f"${item['valor_total']:.2f}" if item['valor_total'] else "$0.00"
+            ])
+        
+        return response
+    except Exception as e:
+        print(f"❌ Error generando CSV: {e}")
+        return HttpResponse("Error al generar el archivo CSV")
+
+def _generar_reporte_csv_vencimiento(por_vencer, vencidos, vigentes):
+    """Genera reporte CSV para vencimiento de contratos"""
+    try:
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = 'attachment; filename="reporte_vencimiento_contratos.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow(['Reporte de Contratos por Vencimiento', datetime.now().strftime('%d/%m/%Y %H:%M')])
+        writer.writerow([])
+        
+        # Contratos por vencer
+        writer.writerow(['CONTRATOS POR VENCER'])
+        writer.writerow(['Código', 'Cliente', 'Fecha Fin', 'Días Restantes', 'Valor'])
+        for contrato in por_vencer:
+            if contrato.cuña and contrato.cuña.fecha_fin:
+                dias_restantes = (contrato.cuña.fecha_fin - timezone.now().date()).days
+                fecha_fin = contrato.cuña.fecha_fin.strftime('%d/%m/%Y')
+            else:
+                dias_restantes = 'N/A'
+                fecha_fin = 'N/A'
+                
+            writer.writerow([
+                contrato.numero_contrato,
+                contrato.nombre_cliente,
+                fecha_fin,
+                dias_restantes,
+                f"${contrato.valor_total:.2f}" if contrato.valor_total else "$0.00"
+            ])
+        
+        writer.writerow([])
+        
+        # Contratos vencidos
+        writer.writerow(['CONTRATOS VENCIDOS'])
+        writer.writerow(['Código', 'Cliente', 'Fecha Fin', 'Días Vencidos', 'Valor'])
+        for contrato in vencidos:
+            if contrato.cuña and contrato.cuña.fecha_fin:
+                dias_vencidos = (timezone.now().date() - contrato.cuña.fecha_fin).days
+                fecha_fin = contrato.cuña.fecha_fin.strftime('%d/%m/%Y')
+            else:
+                dias_vencidos = 'N/A'
+                fecha_fin = 'N/A'
+                
+            writer.writerow([
+                contrato.numero_contrato,
+                contrato.nombre_cliente,
+                fecha_fin,
+                dias_vencidos,
+                f"${contrato.valor_total:.2f}" if contrato.valor_total else "$0.00"
+            ])
+        
+        return response
+    except Exception as e:
+        print(f"❌ Error generando CSV vencimiento: {e}")
+        return HttpResponse("Error al generar el archivo CSV")
+
+def _generar_reporte_csv_ingresos(ingresos_data, agrupar_por):
+    """Genera reporte CSV para ingresos de contratos"""
+    try:
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = 'attachment; filename="reporte_ingresos_contratos.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow(['Reporte de Ingresos por Contratos', datetime.now().strftime('%d/%m/%Y %H:%M')])
+        writer.writerow(['Agrupado por:', agrupar_por])
+        writer.writerow([])
+        
+        if agrupar_por == 'mes':
+            writer.writerow(['Periodo', 'Total Contratos', 'Ingresos Totales', 'Promedio por Contrato'])
+            for item in ingresos_data:
+                writer.writerow([
+                    item.get('periodo', 'N/A'),
+                    item['total_contratos'],
+                    f"${item['ingresos_totales']:.2f}" if item['ingresos_totales'] else "$0.00",
+                    f"${item['promedio_contrato']:.2f}" if item['promedio_contrato'] else "$0.00"
+                ])
+        elif agrupar_por == 'estado':
+            writer.writerow(['Estado', 'Total Contratos', 'Ingresos Totales', 'Promedio por Contrato'])
+            for item in ingresos_data:
+                estado_display = dict(ContratoGenerado.ESTADO_CHOICES).get(item['estado'], item['estado'])
+                writer.writerow([
+                    estado_display,
+                    item['total_contratos'],
+                    f"${item['ingresos_totales']:.2f}" if item['ingresos_totales'] else "$0.00",
+                    f"${item['promedio_contrato']:.2f}" if item['promedio_contrato'] else "$0.00"
+                ])
+        elif agrupar_por == 'cliente':
+            writer.writerow(['Cliente', 'RUC/DNI', 'Total Contratos', 'Ingresos Totales', 'Promedio por Contrato'])
+            for item in ingresos_data:
+                writer.writerow([
+                    item.get('cliente__empresa', 'N/A'),
+                    item.get('cliente__ruc_dni', 'N/A'),
+                    item['total_contratos'],
+                    f"${item['ingresos_totales']:.2f}" if item['ingresos_totales'] else "$0.00",
+                    f"${item['promedio_contrato']:.2f}" if item['promedio_contrato'] else "$0.00"
+                ])
+        
+        return response
+    except Exception as e:
+        print(f"❌ Error generando CSV ingresos: {e}")
+        return HttpResponse("Error al generar el archivo CSV")
+
+def _generar_reporte_excel_estado(contratos_por_estado, detalle_estados):
+    """Genera reporte Excel para estado de contratos"""
+    try:
+        response = HttpResponse(content_type='application/ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="reporte_estado_contratos.xls"'
+        
+        wb = xlwt.Workbook(encoding='utf-8')
+        ws = wb.add_sheet('Contratos por Estado')
+        
+        # Estilos
+        style_heading = xlwt.easyxf('font: bold on')
+        style_bold = xlwt.easyxf('font: bold on')
+        
+        # Encabezados
+        ws.write(0, 0, 'Reporte de Contratos por Estado', style_heading)
+        ws.write(1, 0, f"Generado el: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+        
+        row = 3
+        ws.write(row, 0, 'Estado', style_bold)
+        ws.write(row, 1, 'Cantidad', style_bold)
+        ws.write(row, 2, 'Valor Total', style_bold)
+        
+        for item in contratos_por_estado:
+            row += 1
+            estado_display = dict(ContratoGenerado.ESTADO_CHOICES).get(item['estado'], item['estado'])
+            ws.write(row, 0, estado_display)
+            ws.write(row, 1, item['total'])
+            ws.write(row, 2, float(item['valor_total']) if item['valor_total'] else 0.0)
+        
+        wb.save(response)
+        return response
+    except Exception as e:
+        print(f"❌ Error generando Excel: {e}")
+        return HttpResponse("Error al generar el archivo Excel")

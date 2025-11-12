@@ -1,0 +1,966 @@
+<!-- templates/custom_admin/reports/contratos/list.html -->
+{% extends "custom_admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Reportes de Contratos{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-chart-bar fa-fw"></i> 
+                Reportes de Contratos
+            </h1>
+            <p class="mb-0">Dashboard y reportes de la salud comercial de la empresa</p>
+        </div>
+        <div class="d-flex gap-2">
+            <!-- Botones de acción -->
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalFiltros">
+                <i class="fas fa-filter fa-fw"></i> Filtros
+            </button>
+            <button class="btn btn-success" onclick="exportarReporte()">
+                <i class="fas fa-file-export fa-fw"></i> Exportar
+            </button>
+        </div>
+    </div>
+
+    {% if error %}
+    <!-- Alertas de error -->
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong><i class="fas fa-exclamation-triangle fa-fw"></i> Error:</strong> {{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <!-- Estadísticas principales - ACTUALIZADAS -->
+    <div class="row mb-4">
+        <!-- Total Contratos -->
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Contratos
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_contratos }}</div>
+                            <small class="text-muted">${{ ingresos_totales }}</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-file-contract fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Validados (Activos) -->
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Validados
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ contratos_activos }}</div>
+                            <small class="text-muted">${{ ingresos_activos }}</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pendientes (Generados) -->
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Pendientes
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ contratos_pendientes }}</div>
+                            <small class="text-muted">Por validar</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Por Vencer -->
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Por Vencer
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ contratos_por_vencer }}</div>
+                            <small class="text-muted">Próximos 30 días</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-hourglass-half fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vencidos -->
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Vencidos
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ contratos_vencidos }}</div>
+                            <small class="text-muted">Requieren atención</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cancelados -->
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="card border-left-secondary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                                Cancelados
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ contratos_cancelados }}</div>
+                            <small class="text-muted">Contratos anulados</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-ban fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos y Tablas -->
+    <div class="row">
+        <!-- Gráfico de Estados -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-pie fa-fw"></i> Contratos por Estado
+                    </h6>
+                    <button class="btn btn-sm btn-outline-primary" onclick="cargarGraficoEstados()">
+                        <i class="fas fa-sync-alt fa-fw"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="chart-pie pt-4 pb-2">
+                        <canvas id="chartEstados" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Ingresos -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-line fa-fw"></i> Ingresos Mensuales
+                    </h6>
+                    <button class="btn btn-sm btn-outline-primary" onclick="cargarGraficoIngresos()">
+                        <i class="fas fa-sync-alt fa-fw"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="chartIngresos" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Contratos Recientes -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-list fa-fw"></i> Contratos Recientes
+                    </h6>
+                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalReporteCompleto">
+                        <i class="fas fa-expand fa-fw"></i> Ver Reporte Completo
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="dataTable" width="100%" cellspacing="0">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Número</th>
+                                    <th>Cliente</th>
+                                    <th>Estado</th>
+                                    <th>Valor</th>
+                                    <th>Fecha Generación</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for contrato in contratos_recientes %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ contrato.numero_contrato }}</strong>
+                                    </td>
+                                    <td>{{ contrato.nombre_cliente }}</td>
+                                    <td>
+                                        {% if contrato.estado == 'validado' %}
+                                            <span class="badge badge-validado">Validado</span>
+                                        {% elif contrato.estado == 'generado' %}
+                                            <span class="badge badge-generado">Pendiente</span>
+                                        {% elif contrato.estado == 'borrador' %}
+                                            <span class="badge badge-borrador">Borrador</span>
+                                        {% elif contrato.estado == 'enviado' %}
+                                            <span class="badge badge-enviado">Enviado</span>
+                                        {% elif contrato.estado == 'firmado' %}
+                                            <span class="badge badge-firmado">Firmado</span>
+                                        {% elif contrato.estado == 'vencido' %}
+                                            <span class="badge badge-vencido">Vencido</span>
+                                        {% elif contrato.estado == 'cancelado' %}
+                                            <span class="badge badge-cancelado">Cancelado</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">{{ contrato.estado }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>${{ contrato.valor_total }}</td>
+                                    <td>{{ contrato.fecha_generacion|date:"d/m/Y" }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-info" 
+                                                onclick="verDetalleContrato({{ contrato.id }})">
+                                            <i class="fas fa-eye fa-fw"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4">
+                                        <i class="fas fa-inbox fa-2x mb-2"></i><br>
+                                        No hay contratos recientes
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Filtros -->
+<div class="modal fade" id="modalFiltros" tabindex="-1" aria-labelledby="modalFiltrosLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalFiltrosLabel">
+                    <i class="fas fa-filter fa-fw"></i> Filtros de Reporte
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formFiltros">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="fechaInicio" class="form-label">Fecha Inicio</label>
+                            <input type="date" class="form-control" id="fechaInicio" name="fecha_inicio">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="fechaFin" class="form-label">Fecha Fin</label>
+                            <input type="date" class="form-control" id="fechaFin" name="fecha_fin">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="tipoReporte" class="form-label">Tipo de Reporte</label>
+                            <select class="form-select" id="tipoReporte" name="tipo_reporte">
+                                <option value="estado">Estado de Contratos</option>
+                                <option value="vencimiento">Vencimiento</option>
+                                <option value="ingresos">Ingresos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="formato" class="form-label">Formato de Exportación</label>
+                            <select class="form-select" id="formato" name="formato">
+                                <option value="html">Vista Web</option>
+                                <option value="csv">CSV</option>
+                                <option value="excel">Excel</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row" id="opcionesVencimiento" style="display: none;">
+                        <div class="col-12 mb-3">
+                            <label for="diasAviso" class="form-label">Días para Aviso de Vencimiento</label>
+                            <input type="number" class="form-control" id="diasAviso" name="dias_aviso" value="30" min="1" max="365">
+                        </div>
+                    </div>
+
+                    <div class="row" id="opcionesIngresos" style="display: none;">
+                        <div class="col-12 mb-3">
+                            <label for="agruparPor" class="form-label">Agrupar Por</label>
+                            <select class="form-select" id="agruparPor" name="agrupar_por">
+                                <option value="mes">Mes</option>
+                                <option value="estado">Estado</option>
+                                <option value="cliente">Cliente</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="aplicarFiltros()">
+                    <i class="fas fa-check fa-fw"></i> Aplicar Filtros
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Detalle Contrato -->
+<div class="modal fade" id="modalDetalleContrato" tabindex="-1" aria-labelledby="modalDetalleContratoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalDetalleContratoLabel">
+                    <i class="fas fa-file-contract fa-fw"></i> Detalle del Contrato
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="detalleContratoContent">
+                <!-- Contenido cargado via AJAX -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Reporte Completo -->
+<div class="modal fade" id="modalReporteCompleto" tabindex="-1" aria-labelledby="modalReporteCompletoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalReporteCompletoLabel">
+                    <i class="fas fa-chart-bar fa-fw"></i> Reporte Completo de Contratos
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Estado</th>
+                                <th>Cantidad</th>
+                                <th>Valor Total</th>
+                                <th>Porcentaje</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaReporteCompleto">
+                            <!-- Cargado via AJAX -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-success" onclick="exportarReporteCompleto()">
+                    <i class="fas fa-download fa-fw"></i> Exportar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extrajs %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Variables globales
+let chartEstados, chartIngresos;
+
+// Inicialización
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔄 Inicializando gráficos...');
+    cargarGraficos();
+    configurarEventos();
+});
+
+// Configurar eventos
+function configurarEventos() {
+    // Mostrar/ocultar opciones según tipo de reporte
+    $('#tipoReporte').change(function() {
+        const tipo = $(this).val();
+        $('#opcionesVencimiento').hide();
+        $('#opcionesIngresos').hide();
+        
+        if (tipo === 'vencimiento') {
+            $('#opcionesVencimiento').show();
+        } else if (tipo === 'ingresos') {
+            $('#opcionesIngresos').show();
+        }
+    });
+}
+
+// Cargar gráficos
+function cargarGraficos() {
+    console.log('📈 Cargando gráficos...');
+    cargarGraficoEstados();
+    cargarGraficoIngresos();
+    cargarReporteCompleto();
+}
+
+// Gráfico de estados - CORREGIDO
+function cargarGraficoEstados() {
+    console.log('🔄 Cargando gráfico de estados...');
+    
+    fetch("{% url 'custom_admin:reports_api_estadisticas_contratos' %}")
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error en la respuesta del servidor');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('📊 Datos recibidos para gráfico de estados:', data);
+            
+            if (!data.success) {
+                throw new Error(data.error || 'Error en los datos');
+            }
+
+            const ctx = document.getElementById('chartEstados').getContext('2d');
+            
+            // Destruir gráfico anterior si existe
+            if (chartEstados) {
+                chartEstados.destroy();
+            }
+            
+            // Preparar datos para el gráfico
+            const estadosData = data.contratos_por_estado || [];
+            const labels = estadosData.map(item => {
+                const estados = {
+                    'borrador': 'Borrador',
+                    'generado': 'Generado', 
+                    'enviado': 'Enviado',
+                    'firmado': 'Firmado',
+                    'validado': 'Validado',
+                    'vencido': 'Vencido',
+                    'cancelado': 'Cancelado'
+                };
+                return estados[item.estado] || item.estado;
+            });
+            
+            const valores = estadosData.map(item => item.total || 0);
+            
+            // Colores para cada estado
+            const colores = [
+                '#6c757d', // borrador - gris
+                '#17a2b8', // generado - azul claro
+                '#ffc107', // enviado - amarillo
+                '#007bff', // firmado - azul
+                '#28a745', // validado - verde
+                '#dc3545', // vencido - rojo
+                '#343a40'  // cancelado - negro
+            ];
+            
+            // Verificar si hay datos
+            const total = valores.reduce((sum, value) => sum + value, 0);
+            if (total === 0) {
+                // Mostrar mensaje de no datos
+                ctx.fillStyle = '#6c757d';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('No hay datos disponibles', 200, 100);
+                return;
+            }
+            
+            // Crear gráfico
+            chartEstados = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: valores,
+                        backgroundColor: colores.slice(0, labels.length),
+                        borderColor: '#ffffff',
+                        borderWidth: 2,
+                        hoverOffset: 15
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        animateScale: true,
+                        animateRotate: true
+                    }
+                }
+            });
+            
+            console.log('✅ Gráfico de estados creado exitosamente');
+        })
+        .catch(error => {
+            console.error('❌ Error cargando gráfico de estados:', error);
+            // Mostrar mensaje de error en el canvas
+            const ctx = document.getElementById('chartEstados').getContext('2d');
+            ctx.fillStyle = '#dc3545';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Error cargando datos: ' + error.message, 200, 100);
+        });
+}
+
+// Gráfico de ingresos - CORREGIDO
+function cargarGraficoIngresos() {
+    console.log('🔄 Cargando gráfico de ingresos...');
+    
+    fetch("{% url 'custom_admin:reports_api_estadisticas_contratos' %}")
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error en la respuesta del servidor');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('💰 Datos recibidos para gráfico de ingresos:', data);
+            
+            if (!data.success) {
+                throw new Error(data.error || 'Error en los datos');
+            }
+
+            const ctx = document.getElementById('chartIngresos').getContext('2d');
+            
+            // Destruir gráfico anterior si existe
+            if (chartIngresos) {
+                chartIngresos.destroy();
+            }
+            
+            // Preparar datos para el gráfico
+            const ingresosData = data.ingresos_mensuales || [];
+            const labels = ingresosData.map(item => item.mes);
+            const valores = ingresosData.map(item => item.ingresos || 0);
+            
+            // Verificar si hay datos
+            const total = valores.reduce((sum, value) => sum + value, 0);
+            if (total === 0) {
+                // Mostrar mensaje de no datos
+                ctx.fillStyle = '#6c757d';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('No hay datos de ingresos disponibles', 300, 100);
+                return;
+            }
+            
+            // Crear gráfico
+            chartIngresos = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Ingresos ($)',
+                        data: valores,
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#28a745',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString('es-ES', {
+                                        minimumFractionDigits: 0,
+                                        maximumFractionDigits: 0
+                                    });
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Ingresos: $${context.raw.toLocaleString('es-ES', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                    })}`;
+                                }
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    animation: {
+                        duration: 1000
+                    }
+                }
+            });
+            
+            console.log('✅ Gráfico de ingresos creado exitosamente');
+        })
+        .catch(error => {
+            console.error('❌ Error cargando gráfico de ingresos:', error);
+            // Mostrar mensaje de error en el canvas
+            const ctx = document.getElementById('chartIngresos').getContext('2d');
+            ctx.fillStyle = '#dc3545';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Error cargando datos: ' + error.message, 300, 100);
+        });
+}
+
+// Cargar reporte completo - CORREGIDO
+function cargarReporteCompleto() {
+    console.log('🔄 Cargando reporte completo...');
+    
+    fetch("{% url 'custom_admin:reports_api_estadisticas_contratos' %}")
+        .then(response => response.json())
+        .then(data => {
+            console.log('📋 Datos para reporte completo:', data);
+            
+            const tbody = document.getElementById('tablaReporteCompleto');
+            let html = '';
+            
+            if (data.success && data.contratos_por_estado) {
+                let totalContratos = data.contratos_por_estado.reduce((sum, item) => sum + (item.total || 0), 0);
+                
+                data.contratos_por_estado.forEach(item => {
+                    const porcentaje = totalContratos > 0 ? ((item.total / totalContratos) * 100).toFixed(1) : 0;
+                    const estados = {
+                        'borrador': 'Borrador',
+                        'generado': 'Generado', 
+                        'enviado': 'Enviado',
+                        'firmado': 'Firmado',
+                        'validado': 'Validado',
+                        'vencido': 'Vencido',
+                        'cancelado': 'Cancelado'
+                    };
+                    
+                    const estadoDisplay = estados[item.estado] || item.estado;
+                    const valorTotal = item.valor_total ? `$${item.valor_total.toLocaleString('es-ES', {minimumFractionDigits: 2})}` : '$0.00';
+                    
+                    html += `
+                        <tr>
+                            <td>${estadoDisplay}</td>
+                            <td>${item.total || 0}</td>
+                            <td>${valorTotal}</td>
+                            <td>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar" role="progressbar" 
+                                         style="width: ${porcentaje}%; background-color: ${getColorForEstado(item.estado)}">
+                                        ${porcentaje}%
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } else {
+                html = `
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            No hay datos disponibles para el reporte
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            tbody.innerHTML = html;
+            console.log('✅ Reporte completo cargado');
+        })
+        .catch(error => {
+            console.error('❌ Error cargando reporte completo:', error);
+            document.getElementById('tablaReporteCompleto').innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center text-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Error cargando datos: ${error.message}
+                    </td>
+                </tr>
+            `;
+        });
+}
+
+// Función auxiliar para obtener colores por estado
+function getColorForEstado(estado) {
+    const colores = {
+        'borrador': '#6c757d',
+        'generado': '#17a2b8',
+        'enviado': '#ffc107', 
+        'firmado': '#007bff',
+        'validado': '#28a745',
+        'vencido': '#dc3545',
+        'cancelado': '#343a40'
+    };
+    return colores[estado] || '#6c757d';
+}
+
+// Función para recargar todos los gráficos
+function recargarGraficos() {
+    console.log('🔄 Recargando todos los gráficos...');
+    if (chartEstados) chartEstados.destroy();
+    if (chartIngresos) chartIngresos.destroy();
+    cargarGraficos();
+}
+
+// Ver detalle de contrato
+function verDetalleContrato(contratoId) {
+    // Simular carga de datos (en producción sería una llamada AJAX real)
+    const contenido = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2">Cargando detalles del contrato...</p>
+        </div>
+    `;
+    
+    document.getElementById('detalleContratoContent').innerHTML = contenido;
+    
+    // Simular AJAX call
+    setTimeout(() => {
+        const detalle = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Información del Contrato</h6>
+                    <p><strong>Número:</strong> CTR2024120001</p>
+                    <p><strong>Cliente:</strong> Empresa Ejemplo S.A.</p>
+                    <p><strong>Valor:</strong> $1,500.00</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>Estado y Fechas</h6>
+                    <p><strong>Estado:</strong> <span class="badge badge-validado">Validado</span></p>
+                    <p><strong>Generado:</strong> 15/12/2024</p>
+                    <p><strong>Vence:</strong> 15/01/2025</p>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-12">
+                    <h6>Detalles Adicionales</h6>
+                    <p>Contrato de publicidad para campaña navideña 2024.</p>
+                </div>
+            </div>
+        `;
+        document.getElementById('detalleContratoContent').innerHTML = detalle;
+    }, 1000);
+    
+    $('#modalDetalleContrato').modal('show');
+}
+
+// Aplicar filtros
+function aplicarFiltros() {
+    const formData = new FormData(document.getElementById('formFiltros'));
+    const params = new URLSearchParams(formData);
+    
+    // Redirigir según el tipo de reporte
+    const tipoReporte = document.getElementById('tipoReporte').value;
+    const formato = document.getElementById('formato').value;
+    
+    let url = '';
+    switch(tipoReporte) {
+        case 'estado':
+            url = "{% url 'custom_admin:reports_estado_contratos' %}";
+            break;
+        case 'vencimiento':
+            url = "{% url 'custom_admin:reports_vencimiento_contratos' %}";
+            break;
+        case 'ingresos':
+            url = "{% url 'custom_admin:reports_ingresos_contratos' %}";
+            break;
+    }
+    
+    url += `?${params.toString()}`;
+    
+    if (formato === 'html') {
+        // Abrir en nueva pestaña
+        window.open(url, '_blank');
+    } else {
+        // Descargar archivo
+        window.location.href = url;
+    }
+    
+    $('#modalFiltros').modal('hide');
+}
+
+// Exportar reporte
+function exportarReporte() {
+    const formato = document.getElementById('formato').value;
+    const tipoReporte = document.getElementById('tipoReporte').value;
+    
+    let url = '';
+    switch(tipoReporte) {
+        case 'estado':
+            url = "{% url 'custom_admin:reports_estado_contratos' %}";
+            break;
+        case 'vencimiento':
+            url = "{% url 'custom_admin:reports_vencimiento_contratos' %}";
+            break;
+        case 'ingresos':
+            url = "{% url 'custom_admin:reports_ingresos_contratos' %}";
+            break;
+    }
+    
+    window.location.href = `${url}?formato=${formato}`;
+}
+
+// Exportar reporte completo
+function exportarReporteCompleto() {
+    window.location.href = "{% url 'custom_admin:reports_estado_contratos' %}?formato=excel";
+}
+
+// Agregar botón de recarga en el header de los gráficos
+document.addEventListener('DOMContentLoaded', function() {
+    // Agregar funcionalidad de recarga a los botones existentes
+    document.querySelectorAll('.btn-outline-primary').forEach(btn => {
+        if (btn.innerHTML.includes('fa-sync-alt')) {
+            btn.onclick = recargarGraficos;
+        }
+    });
+});
+</script>
+<style>
+.badge-borrador { background-color: #6c757d; color: white; }
+.badge-generado { background-color: #17a2b8; color: white; }
+.badge-enviado { background-color: #ffc107; color: black; }
+.badge-firmado { background-color: #007bff; color: white; }
+.badge-validado { background-color: #28a745; color: white; }
+.badge-vencido { background-color: #dc3545; color: white; }
+.badge-cancelado { background-color: #343a40; color: white; }
+
+.card {
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    background-color: #f8f9fc;
+}
+
+.chart-area, .chart-pie {
+    position: relative;
+    height: 300px; /* Aumentado para mejor visualización */
+    width: 100%;
+}
+
+.progress {
+    height: 20px;
+    background-color: #e9ecef;
+    border-radius: 0.375rem;
+}
+
+.progress-bar {
+    font-size: 0.75rem;
+    line-height: 20px;
+    font-weight: 600;
+}
+
+/* Mejoras para los gráficos */
+.card-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+}
+
+.btn-outline-primary:hover {
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+}
+
+/* Animaciones de carga */
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .chart-area, .chart-pie {
+        height: 250px;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+}
+</style>
+{% endblock %}

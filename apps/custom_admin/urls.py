@@ -159,4 +159,10 @@ path('parte-mortorios/<int:parte_id>/generar/', views.parte_mortorio_generar_api
 path('parte-mortorios/generados/<int:parte_generado_id>/verificar/', views.parte_mortorio_verificar_api, name='parte_mortorio_verificar_api'),
 path('parte-mortorios/generados/<int:parte_generado_id>/descargar/', views.parte_mortorio_descargar_api, name='parte_mortorio_descargar_api'),
 path('parte-mortorios/<int:parte_id>/cambiar-estado/', views.parte_mortorio_cambiar_estado_api, name='parte_mortorio_cambiar_estado'),
+# ==================== REPORTES DE CONTRATOS ====================
+    path('reports/contratos/dashboard/', views.reports_dashboard_contratos, name='reports_dashboard_contratos'),
+    path('reports/contratos/api/estadisticas/', views.reports_api_estadisticas_contratos, name='reports_api_estadisticas_contratos'),
+    path('reports/contratos/estado/', views.reports_estado_contratos, name='reports_estado_contratos'),
+    path('reports/contratos/vencimiento/', views.reports_vencimiento_contratos, name='reports_vencimiento_contratos'),
+    path('reports/contratos/ingresos/', views.reports_ingresos_contratos, name='reports_ingresos_contratos'),
 ]
