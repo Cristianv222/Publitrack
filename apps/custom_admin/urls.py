@@ -143,4 +143,20 @@ path('parte-mortorios/<int:parte_id>/editar/', views.parte_mortorio_update_api, 
 path('parte-mortorios/<int:parte_id>/eliminar/', views.parte_mortorio_delete_api, name='parte_mortorio_delete_api'),
 path('parte-mortorios/<int:parte_id>/programar/', views.parte_mortorio_programar_api, name='parte_mortorio_programar_api'),
 path('parte-mortorios/<int:parte_id>/marcar-transmitido/', views.parte_mortorio_marcar_transmitido_api, name='parte_mortorio_marcar_transmitido_api'),
-path('parte-mortorios/<int:parte_id>/cancelar/', views.parte_mortorio_cancelar_api, name='parte_mortorio_cancelar_api'),]
+path('parte-mortorios/<int:parte_id>/cancelar/', views.parte_mortorio_cancelar_api, name='parte_mortorio_cancelar_api'),
+# ==================== URLs PARA PLANTILLAS DE PARTE MORTORIO ====================
+path('parte-mortorios/plantillas/', views.plantillas_parte_mortorio_list, name='plantillas_parte_mortorio_list'),
+path('parte-mortorios/plantillas/api/crear/', views.plantilla_parte_mortorio_crear_api, name='plantilla_parte_mortorio_crear_api'),
+path('parte-mortorios/plantillas/api/<int:id>/', views.plantilla_parte_mortorio_detalle_api, name='plantilla_parte_mortorio_detalle_api'),
+path('parte-mortorios/plantillas/api/<int:id>/actualizar/', views.plantilla_parte_mortorio_actualizar_api, name='plantilla_parte_mortorio_actualizar_api'),
+path('parte-mortorios/plantillas/api/<int:id>/eliminar/', views.plantilla_parte_mortorio_eliminar_api, name='plantilla_parte_mortorio_eliminar_api'),
+path('parte-mortorios/plantillas/api/<int:id>/marcar-default/', views.plantilla_parte_mortorio_marcar_default_api, name='plantilla_parte_mortorio_marcar_default_api'),
+path('parte-mortorios/plantillas/api/<int:id>/descargar/', views.plantilla_parte_mortorio_descargar_api, name='plantilla_parte_mortorio_descargar_api'),
+
+# ==================== URLs PARA GENERAR PARTES MORTORIOS ====================
+path('parte-mortorios/api/plantillas/', views.api_plantillas_parte_mortorio, name='api_plantillas_parte_mortorio'),
+path('parte-mortorios/<int:parte_id>/generar/', views.parte_mortorio_generar_api, name='parte_mortorio_generar_api'),
+path('parte-mortorios/generados/<int:parte_generado_id>/verificar/', views.parte_mortorio_verificar_api, name='parte_mortorio_verificar_api'),
+path('parte-mortorios/generados/<int:parte_generado_id>/descargar/', views.parte_mortorio_descargar_api, name='parte_mortorio_descargar_api'),
+path('parte-mortorios/<int:parte_id>/cambiar-estado/', views.parte_mortorio_cambiar_estado_api, name='parte_mortorio_cambiar_estado'),
+]

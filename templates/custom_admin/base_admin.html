@@ -761,16 +761,31 @@
     </div>
 </div>
 
-            <!-- PARTE MORTORIOS (nueva sección) -->
-
-
+            <!-- PARTE MORTORIOS (sección corregida) -->
 <div class="menu-section">
-                <div class="menu-section-title">PARTE MORTORIOS</div>
-                <a href="{% url 'custom_admin:parte_mortorios_list' %}" class="menu-link {% if 'clientes' in request.resolver_match.url_name %}active{% endif %}">
+    <div class="menu-section-title">PARTE MORTORIOS</div>
+    <div class="accordion menu-accordion" id="parteMortorioAccordion">
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#parteMortorioCollapse">
                     <i class="fas fa-monument menu-icon"></i>
-                    <span>Gestión de parte mortorios</span>
-                </a>
+                    <span>Gestión de Parte Mortorios</span>
+                </button>
+            </h2>
+            <div id="parteMortorioCollapse" class="accordion-collapse collapse" data-bs-parent="#parteMortorioAccordion">
+                <div class="accordion-body">
+                    <a href="{% url 'custom_admin:parte_mortorios_list' %}" class="submenu-link {% if 'parte_mortorios' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fas fa-list"></i>Lista de Parte Mortorios
+                    </a>
+                    <!-- NUEVO: Plantillas de Parte Mortorio -->
+                    <a href="{% url 'custom_admin:plantillas_parte_mortorio_list' %}" class="submenu-link {% if 'plantillas_parte_mortorio' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fas fa-file-contract"></i>Plantillas de Parte Mortorio
+                    </a>
+                </div>
             </div>
+        </div>
+    </div>
+</div>
             <!-- CONTENIDO PUBLICITARIO -->
             <div class="menu-section">
                 <div class="menu-section-title">CONTENIDO PUBLICITARIO</div>

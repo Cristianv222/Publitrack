@@ -1,0 +1,1082 @@
+{% extends 'custom_admin/base_admin.html' %}
+
+{% block title %}Plantillas de Parte Mortorio - PublicTrack Admin{% endblock %}
+
+{% block header_title %}Gestión de Plantillas de Parte Mortorio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .plantilla-card {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+    }
+    .plantilla-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    .plantilla-card.default {
+        border-left-color: #ffc107;
+        background: linear-gradient(to right, rgba(245, 158, 11, 0.05) 0%, transparent 100%);
+    }
+    .plantilla-card.active {
+        border-left-color: #10b981;
+    }
+    .plantilla-card.inactive {
+        border-left-color: #dc3545;
+        opacity: 0.7;
+    }
+    .badge-default {
+        background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+    .variable-tag {
+        font-family: 'Courier New', monospace;
+        background: #f8f9fa;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        border: 1px solid #dee2e6;
+        margin: 2px;
+        display: inline-block;
+    }
+    .file-upload-zone {
+        border: 2px dashed #cbd5e0;
+        border-radius: 8px;
+        padding: 30px;
+        text-align: center;
+        background: #f8f9fa;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    .file-upload-zone:hover {
+        border-color: #3b82f6;
+        background: #eff6ff;
+    }
+    .file-upload-zone.dragover {
+        border-color: #10b981;
+        background: #d1fae5;
+    }
+    .preview-plantilla {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 15px;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    .version-badge {
+        background: #6366f1;
+        color: white;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .tipo-badge {
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    .variable-category {
+        margin-bottom: 15px;
+    }
+    .variable-category h6 {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #6b7280;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #e5e7eb;
+        padding-bottom: 5px;
+    }
+    .stats-card {
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .stats-card h3 {
+        font-size: 2rem;
+        margin: 0;
+        color: #333;
+    }
+    .stats-card p {
+        margin: 5px 0 0 0;
+        color: #666;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <!-- Estadísticas rápidas -->
+    <div class="col-md-3">
+        <div class="stats-card">
+            <h3 class="text-primary">{{ total_plantillas }}</h3>
+            <p>Total Plantillas</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <h3 class="text-success">{{ plantillas_activas }}</h3>
+            <p>Activas</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <h3 class="text-warning">{{ plantillas_default }}</h3>
+            <p>Predeterminadas</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <h3 class="text-info">{{ total_partes_generados }}</h3>
+            <p>Partes Generados</p>
+        </div>
+    </div>
+</div>
+
+<div class="admin-card">
+    <div class="admin-card-header d-flex justify-content-between align-items-center">
+        <h5 class="admin-card-title">
+            <i class="fas fa-file-contract"></i>
+            Plantillas de Parte Mortorio
+        </h5>
+        <div>
+            <button class="btn btn-light me-2" onclick="location.reload()">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <button class="btn btn-admin-primary" onclick="nuevaPlantilla()">
+                <i class="fas fa-plus me-2"></i>Nueva Plantilla
+            </button>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="admin-card-body border-bottom">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <input type="text" class="form-control" id="searchPlantilla" 
+                       placeholder="Buscar por nombre, tipo o versión...">
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="filterTipo">
+                    <option value="">Todos los tipos</option>
+                    <option value="transmision_simple">Transmisión Simple</option>
+                    <option value="transmision_completa">Transmisión Completa</option>
+                    <option value="anuncio_especial">Anuncio Especial</option>
+                    <option value="recordatorio">Recordatorio</option>
+                    <option value="otro">Otro</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="filterEstado">
+                    <option value="">Todos los estados</option>
+                    <option value="activa">Activas</option>
+                    <option value="inactiva">Inactivas</option>
+                    <option value="default">Predeterminadas</option>
+                </select>
+            </div>
+            <div class="col-md-2 text-end">
+                <span class="badge bg-info">
+                    Total: <span id="totalPlantillas">{{ plantillas.paginator.count }}</span>
+                </span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="admin-card-body">
+        <div class="row" id="plantillasGrid">
+            {% for plantilla in plantillas %}
+            <div class="col-lg-6 col-xl-4 mb-4 plantilla-item" 
+                 data-nombre="{{ plantilla.nombre|lower }}"
+                 data-tipo="{{ plantilla.tipo_parte }}"
+                 data-estado="{% if plantilla.is_active %}activa{% else %}inactiva{% endif %}{% if plantilla.is_default %} default{% endif %}">
+                <div class="card plantilla-card h-100 {% if plantilla.is_default %}default{% elif plantilla.is_active %}active{% else %}inactive{% endif %}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="flex-grow-1">
+                                <h5 class="card-title mb-2">
+                                    {{ plantilla.nombre }}
+                                    {% if plantilla.is_default %}
+                                    <span class="badge-default ms-2">
+                                        <i class="fas fa-star"></i> Default
+                                    </span>
+                                    {% endif %}
+                                </h5>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <span class="tipo-badge bg-primary">
+                                        <i class="fas fa-tag me-1"></i>
+                                        {{ plantilla.get_tipo_parte_display }}
+                                    </span>
+                                    <span class="version-badge">
+                                        v{{ plantilla.version }}
+                                    </span>
+                                    <span class="badge {% if plantilla.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                                        {% if plantilla.is_active %}Activa{% else %}Inactiva{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-light" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="verDetallePlantilla({{ plantilla.id }})">
+                                            <i class="fas fa-eye me-2"></i>Ver Detalle
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="editarPlantilla({{ plantilla.id }})">
+                                            <i class="fas fa-edit me-2"></i>Editar
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="descargarPlantilla({{ plantilla.id }})">
+                                            <i class="fas fa-download me-2"></i>Descargar
+                                        </a>
+                                    </li>
+                                    {% if not plantilla.is_default %}
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="marcarDefault({{ plantilla.id }})">
+                                            <i class="fas fa-star me-2"></i>Marcar como Default
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item {% if not plantilla.partes_generados.count %}text-danger{% else %}text-muted disabled{% endif %}" 
+                                           href="#" onclick="{% if not plantilla.partes_generados.count %}eliminarPlantilla({{ plantilla.id }}, '{{ plantilla.nombre|escapejs }}'){% else %}return false;{% endif %}">
+                                            <i class="fas fa-trash me-2"></i>Eliminar
+                                            {% if plantilla.partes_generados.count %}
+                                            <small class="d-block text-muted">Tiene partes generados</small>
+                                            {% endif %}
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        {% if plantilla.descripcion %}
+                        <p class="text-muted small mb-3">
+                            {{ plantilla.descripcion|truncatewords:20 }}
+                        </p>
+                        {% endif %}
+                        
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-file-word text-primary me-2"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Archivo</small>
+                                        <strong class="small">
+                                            {% if plantilla.archivo_plantilla %}
+                                            <i class="fas fa-check text-success"></i> Cargado
+                                            {% else %}
+                                            <i class="fas fa-times text-danger"></i> Sin archivo
+                                            {% endif %}
+                                        </strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-calendar text-info me-2"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Creada</small>
+                                        <strong class="small">
+                                            {{ plantilla.created_at|date:"d/m/Y" }}
+                                        </strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <small class="text-muted d-block mb-1">
+                                <i class="fas fa-code me-1"></i>Variables disponibles:
+                            </small>
+                            <div class="d-flex flex-wrap">
+                                {% for var, desc in plantilla.variables_disponibles.items|slice:":5" %}
+                                <span class="variable-tag">&#123;&#123;{{ var }}&#125;&#125;</span>
+                                {% endfor %}
+                                {% if plantilla.variables_disponibles.items|length > 5 %}
+                                <span class="variable-tag">+{{ plantilla.variables_disponibles.items|length|add:"-5" }} más</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                            <div>
+                                <small class="text-muted">
+                                    <i class="fas fa-user me-1"></i>
+                                    {{ plantilla.created_by.username|default:"Sistema" }}
+                                </small>
+                            </div>
+                            <div>
+                                <span class="badge bg-info">
+                                    <i class="fas fa-file-contract me-1"></i>
+                                    {{ plantilla.partes_generados.count }} partes
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No hay plantillas de parte mortorio registradas.
+                    <a href="#" onclick="nuevaPlantilla()">Crear la primera plantilla</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Paginación -->
+        {% if plantillas.has_other_pages %}
+        <nav aria-label="Paginación">
+            <ul class="pagination justify-content-center">
+                {% if plantillas.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ plantillas.previous_page_number }}">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">
+                        Página {{ plantillas.number }} de {{ plantillas.paginator.num_pages }}
+                    </span>
+                </li>
+                
+                {% if plantillas.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ plantillas.next_page_number }}">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ plantillas.paginator.num_pages }}">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Crear/Editar Plantilla -->
+<div class="modal fade" id="plantillaModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="plantillaModalTitle">
+                    <i class="fas fa-file-contract me-2"></i>Nueva Plantilla de Parte Mortorio
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="plantillaForm" enctype="multipart/form-data">
+                    <input type="hidden" id="plantillaId" value="">
+                    
+                    <div class="row">
+                        <!-- Información Básica -->
+                        <div class="col-md-8">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-info-circle me-2"></i>Información Básica
+                            </h6>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Nombre de la Plantilla *</label>
+                                <input type="text" class="form-control" id="nombre" 
+                                       placeholder="Ej: Parte Mortorio Completo 2025" required>
+                                <small class="text-muted">Nombre descriptivo para identificar la plantilla</small>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Tipo de Parte *</label>
+                                        <select class="form-select" id="tipo_parte" required>
+                                            <option value="">Seleccione...</option>
+                                            <option value="transmision_simple">Transmisión Simple</option>
+                                            <option value="transmision_completa">Transmisión Completa</option>
+                                            <option value="anuncio_especial">Anuncio Especial</option>
+                                            <option value="recordatorio">Recordatorio</option>
+                                            <option value="otro">Otro</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Versión</label>
+                                        <input type="text" class="form-control" id="version" 
+                                               placeholder="1.0" value="1.0">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Descripción</label>
+                                <textarea class="form-control" id="descripcion" rows="3" 
+                                          placeholder="Descripción de cuándo usar esta plantilla..."></textarea>
+                            </div>
+                            
+                            <!-- Estado -->
+                            <h6 class="border-bottom pb-2 mb-3 mt-4">
+                                <i class="fas fa-cog me-2"></i>Configuración
+                            </h6>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="is_active" checked>
+                                        <label class="form-check-label" for="is_active">
+                                            Plantilla Activa
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="is_default">
+                                        <label class="form-check-label" for="is_default">
+                                            Marcar como Predeterminada
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Instrucciones de Uso</label>
+                                <textarea class="form-control" id="instrucciones" rows="3" 
+                                          placeholder="Instrucciones sobre cómo usar esta plantilla..."></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- Archivo y Variables -->
+                        <div class="col-md-4">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-upload me-2"></i>Archivo de Plantilla
+                            </h6>
+                            
+                            <div class="file-upload-zone" id="fileUploadZone">
+                                <input type="file" class="d-none" id="archivo_plantilla" 
+                                       accept=".docx" onchange="handleFileSelect(event)">
+                                <div id="uploadPrompt">
+                                    <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                    <p class="mb-2">
+                                        <strong>Click para seleccionar</strong> o arrastrar archivo
+                                    </p>
+                                    <small class="text-muted">Solo archivos .docx (máx. 10MB)</small>
+                                </div>
+                                <div id="fileInfo" class="d-none">
+                                    <i class="fas fa-file-word fa-3x text-primary mb-3"></i>
+                                    <p class="mb-1"><strong id="fileName"></strong></p>
+                                    <small class="text-muted" id="fileSize"></small>
+                                    <button type="button" class="btn btn-sm btn-outline-danger mt-2" 
+                                            onclick="removeFile()">
+                                        <i class="fas fa-times me-1"></i>Quitar
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-info mt-3">
+                                <small>
+                                    <strong><i class="fas fa-info-circle me-1"></i>Formato del archivo:</strong><br>
+                                    Use variables en formato <code>&#123;&#123;VARIABLE&#125;&#125;</code> en el documento Word
+                                </small>
+                            </div>
+                            
+                            <h6 class="border-bottom pb-2 mb-3 mt-4">
+                                <i class="fas fa-code me-2"></i>Variables Disponibles
+                            </h6>
+                            
+                            <div class="preview-plantilla">
+                                <!-- Variables de Parte Mortorio -->
+                                <div class="variable-category">
+                                    <h6>Información del Fallecido</h6>
+                                    <span class="variable-tag">&#123;&#123;NOMBRE_FALLECIDO&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;EDAD_FALLECIDO&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;DNI_FALLECIDO&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;FECHA_NACIMIENTO&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;FECHA_FALLECIMIENTO&#125;&#125;</span>
+                                </div>
+                                
+                                <!-- Variables Familiares -->
+                                <div class="variable-category">
+                                    <h6>Información Familiar</h6>
+                                    <span class="variable-tag">&#123;&#123;NOMBRE_ESPOSA&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;CANTIDAD_HIJOS&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;HIJOS_VIVOS&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;HIJOS_FALLECIDOS&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;NOMBRES_HIJOS&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;FAMILIARES_ADICIONALES&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;RESUMEN_FAMILIA&#125;&#125;</span>
+                                </div>
+                                
+                                <!-- Variables de Ceremonia -->
+                                <div class="variable-category">
+                                    <h6>Información de Ceremonia</h6>
+                                    <span class="variable-tag">&#123;&#123;TIPO_CEREMONIA&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;FECHA_MISA&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;HORA_MISA&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;LUGAR_MISA&#125;&#125;</span>
+                                </div>
+                                
+                                <!-- Variables de Transmisión -->
+                                <div class="variable-category">
+                                    <h6>Información de Transmisión</h6>
+                                    <span class="variable-tag">&#123;&#123;FECHA_INICIO_TRANSMISION&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;FECHA_FIN_TRANSMISION&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;HORA_TRANSMISION&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;DURACION_TRANSMISION&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;REPETICIONES_DIA&#125;&#125;</span>
+                                </div>
+                                
+                                <!-- Variables de Precio y Estado -->
+                                <div class="variable-category">
+                                    <h6>Precio y Estado</h6>
+                                    <span class="variable-tag">&#123;&#123;PRECIO_TOTAL&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;PRECIO_TOTAL_LETRAS&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;URGENCIA&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;ESTADO&#125;&#125;</span>
+                                </div>
+                                
+                                <!-- Variables de Cliente -->
+                                <div class="variable-category">
+                                    <h6>Información del Cliente</h6>
+                                    <span class="variable-tag">&#123;&#123;NOMBRE_CLIENTE&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;RUC_DNI_CLIENTE&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;EMPRESA_CLIENTE&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;TELEFONO_CLIENTE&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;EMAIL_CLIENTE&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;DIRECCION_CLIENTE&#125;&#125;</span>
+                                </div>
+                                
+                                <!-- Variables de Sistema -->
+                                <div class="variable-category">
+                                    <h6>Información del Sistema</h6>
+                                    <span class="variable-tag">&#123;&#123;NUMERO_PARTE&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;CODIGO_PARTE&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;FECHA_SOLICITUD&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;FECHA_ACTUAL&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;MENSAJE_PERSONALIZADO&#125;&#125;</span>
+                                    <span class="variable-tag">&#123;&#123;OBSERVACIONES&#125;&#125;</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Vista Previa -->
+                    <div class="alert alert-light border mt-4">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-eye me-2"></i>Vista Previa
+                        </h6>
+                        <div class="d-flex align-items-start">
+                            <i class="fas fa-file-contract fa-2x text-primary me-3 mt-1"></i>
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center mb-2">
+                                    <strong id="previewNombre" class="me-3">Nueva Plantilla</strong>
+                                    <span class="tipo-badge bg-primary" id="previewTipo">Sin tipo</span>
+                                    <span class="version-badge ms-2" id="previewVersion">v1.0</span>
+                                    <span class="badge bg-success ms-2" id="previewEstado">Activa</span>
+                                    <span class="badge-default ms-2 d-none" id="previewDefault">
+                                        <i class="fas fa-star"></i> Default
+                                    </span>
+                                </div>
+                                <small class="text-muted d-block" id="previewDescripcion">
+                                    Sin descripción
+                                </small>
+                                <div class="mt-2">
+                                    <span class="badge bg-secondary ms-1" id="previewArchivo">
+                                        <i class="fas fa-times me-1"></i>Sin archivo
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="guardarPlantilla()">
+                    <i class="fas fa-save me-2"></i>Guardar Plantilla
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ver Detalle -->
+<div class="modal fade" id="detalleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-eye me-2"></i>Detalle de la Plantilla
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalleContenido">
+                <!-- Se llena dinámicamente -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Variables globales
+let currentFile = null;
+
+// Búsqueda y filtros en tiempo real
+document.getElementById('searchPlantilla').addEventListener('keyup', filtrarPlantillas);
+document.getElementById('filterTipo').addEventListener('change', filtrarPlantillas);
+document.getElementById('filterEstado').addEventListener('change', filtrarPlantillas);
+
+function filtrarPlantillas() {
+    const searchTerm = document.getElementById('searchPlantilla').value.toLowerCase();
+    const filterTipo = document.getElementById('filterTipo').value;
+    const filterEstado = document.getElementById('filterEstado').value;
+    const items = document.querySelectorAll('.plantilla-item');
+    let visibleCount = 0;
+    
+    items.forEach(item => {
+        const nombre = item.dataset.nombre;
+        const tipo = item.dataset.tipo;
+        const estado = item.dataset.estado;
+        
+        let matchSearch = nombre.includes(searchTerm);
+        let matchTipo = !filterTipo || tipo === filterTipo;
+        let matchEstado = !filterEstado || estado.includes(filterEstado);
+        
+        if (matchSearch && matchTipo && matchEstado) {
+            item.style.display = '';
+            visibleCount++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    
+    document.getElementById('totalPlantillas').textContent = visibleCount;
+}
+
+// Drag and drop para archivo
+const fileUploadZone = document.getElementById('fileUploadZone');
+
+fileUploadZone.addEventListener('click', function() {
+    document.getElementById('archivo_plantilla').click();
+});
+
+fileUploadZone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    this.classList.add('dragover');
+});
+
+fileUploadZone.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    this.classList.remove('dragover');
+});
+
+fileUploadZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    this.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        handleFile(files[0]);
+    }
+});
+
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    handleFile(file);
+}
+
+function handleFile(file) {
+    if (!file.name.endsWith('.docx')) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Archivo inválido',
+            text: 'Solo se permiten archivos .docx'
+        });
+        return;
+    }
+    
+    if (file.size > 10 * 1024 * 1024) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Archivo muy grande',
+            text: 'El archivo no debe superar los 10MB'
+        });
+        return;
+    }
+    
+    currentFile = file;
+    document.getElementById('uploadPrompt').classList.add('d-none');
+    document.getElementById('fileInfo').classList.remove('d-none');
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('fileSize').textContent = formatFileSize(file.size);
+    
+    // Actualizar vista previa
+    document.getElementById('previewArchivo').innerHTML = '<i class="fas fa-check me-1"></i>Archivo cargado';
+    document.getElementById('previewArchivo').className = 'badge bg-success ms-1';
+}
+
+function removeFile() {
+    currentFile = null;
+    document.getElementById('archivo_plantilla').value = '';
+    document.getElementById('uploadPrompt').classList.remove('d-none');
+    document.getElementById('fileInfo').classList.add('d-none');
+    
+    // Actualizar vista previa
+    document.getElementById('previewArchivo').innerHTML = '<i class="fas fa-times me-1"></i>Sin archivo';
+    document.getElementById('previewArchivo').className = 'badge bg-secondary ms-1';
+}
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    else if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+    else return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+}
+
+// Vista previa en tiempo real
+document.getElementById('nombre').addEventListener('input', actualizarVistaPrevia);
+document.getElementById('tipo_parte').addEventListener('change', actualizarVistaPrevia);
+document.getElementById('version').addEventListener('input', actualizarVistaPrevia);
+document.getElementById('descripcion').addEventListener('input', actualizarVistaPrevia);
+document.getElementById('is_active').addEventListener('change', actualizarVistaPrevia);
+document.getElementById('is_default').addEventListener('change', actualizarVistaPrevia);
+
+function actualizarVistaPrevia() {
+    const nombre = document.getElementById('nombre').value || 'Nueva Plantilla';
+    const tipo = document.getElementById('tipo_parte');
+    const tipoText = tipo.options[tipo.selectedIndex]?.text || 'Sin tipo';
+    const version = document.getElementById('version').value || '1.0';
+    const descripcion = document.getElementById('descripcion').value || 'Sin descripción';
+    const is_active = document.getElementById('is_active').checked;
+    const is_default = document.getElementById('is_default').checked;
+    
+    document.getElementById('previewNombre').textContent = nombre;
+    document.getElementById('previewTipo').textContent = tipoText;
+    document.getElementById('previewVersion').textContent = 'v' + version;
+    document.getElementById('previewDescripcion').textContent = descripcion;
+    document.getElementById('previewEstado').textContent = is_active ? 'Activa' : 'Inactiva';
+    document.getElementById('previewEstado').className = is_active ? 'badge bg-success ms-2' : 'badge bg-secondary ms-2';
+    
+    if (is_default) {
+        document.getElementById('previewDefault').classList.remove('d-none');
+    } else {
+        document.getElementById('previewDefault').classList.add('d-none');
+    }
+}
+
+function nuevaPlantilla() {
+    document.getElementById('plantillaModalTitle').innerHTML = '<i class="fas fa-file-contract me-2"></i>Nueva Plantilla de Parte Mortorio';
+    document.getElementById('plantillaForm').reset();
+    document.getElementById('plantillaId').value = '';
+    removeFile();
+    actualizarVistaPrevia();
+    new bootstrap.Modal(document.getElementById('plantillaModal')).show();
+}
+
+function editarPlantilla(id) {
+    fetch(`/panel/parte-mortorios/plantillas/api/${id}/`)
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('plantillaModalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Editar Plantilla de Parte Mortorio';
+        document.getElementById('plantillaId').value = data.id;
+        document.getElementById('nombre').value = data.nombre || '';
+        document.getElementById('tipo_parte').value = data.tipo_parte || '';
+        document.getElementById('version').value = data.version || '1.0';
+        document.getElementById('descripcion').value = data.descripcion || '';
+        document.getElementById('is_active').checked = data.is_active;
+        document.getElementById('is_default').checked = data.is_default;
+        document.getElementById('instrucciones').value = data.instrucciones || '';
+        
+        // Si tiene archivo, mostrar info
+        if (data.archivo_plantilla) {
+            document.getElementById('uploadPrompt').classList.add('d-none');
+            document.getElementById('fileInfo').classList.remove('d-none');
+            document.getElementById('fileName').textContent = data.archivo_plantilla.split('/').pop();
+            document.getElementById('fileSize').textContent = 'Archivo actual';
+            document.getElementById('previewArchivo').innerHTML = '<i class="fas fa-check me-1"></i>Archivo cargado';
+            document.getElementById('previewArchivo').className = 'badge bg-success ms-1';
+        }
+        
+        actualizarVistaPrevia();
+        new bootstrap.Modal(document.getElementById('plantillaModal')).show();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo cargar los datos de la plantilla'
+        });
+    });
+}
+
+function descargarPlantilla(id) {
+    window.open(`/panel/parte-mortorios/plantillas/api/${id}/descargar/`, '_blank');
+}
+
+function verDetallePlantilla(id) {
+    fetch(`/panel/parte-mortorios/plantillas/api/${id}/`)
+    .then(response => response.json())
+    .then(data => {
+        let variablesHtml = '';
+        for (const [key, value] of Object.entries(data.variables_disponibles)) {
+            variablesHtml += `<span class="variable-tag">&#123;&#123;${key}&#125;&#125;</span>`;
+        }
+        
+        const contenido = `
+            <div class="row">
+                <div class="col-md-8">
+                    <h6 class="text-muted mb-3">Información General</h6>
+                    <table class="table table-sm">
+                        <tr><td><strong>Nombre:</strong></td><td>${data.nombre}</td></tr>
+                        <tr><td><strong>Tipo:</strong></td><td>${data.tipo_parte_display}</td></tr>
+                        <tr><td><strong>Versión:</strong></td><td>${data.version}</td></tr>
+                        <tr><td><strong>Estado:</strong></td><td>
+                            <span class="badge ${data.is_active ? 'bg-success' : 'bg-secondary'}">
+                                ${data.is_active ? 'Activa' : 'Inactiva'}
+                            </span>
+                            ${data.is_default ? '<span class="badge-default ms-2"><i class="fas fa-star"></i> Default</span>' : ''}
+                        </td></tr>
+                    </table>
+                    
+                    ${data.descripcion ? `<div class="mb-3"><h6 class="text-muted">Descripción</h6><p>${data.descripcion}</p></div>` : ''}
+                    
+                    ${data.instrucciones ? `<div class="mb-3"><h6 class="text-muted">Instrucciones</h6><p>${data.instrucciones}</p></div>` : ''}
+                    
+                    <h6 class="text-muted mb-3">Información del Sistema</h6>
+                    <table class="table table-sm">
+                        <tr><td><strong>Creada:</strong></td><td>${data.created_at}</td></tr>
+                        <tr><td><strong>Actualizada:</strong></td><td>${data.updated_at}</td></tr>
+                        <tr><td><strong>Creada por:</strong></td><td>${data.created_by || 'N/A'}</td></tr>
+                        <tr><td><strong>Partes generados:</strong></td><td>${data.partes_count}</td></tr>
+                    </table>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="text-muted mb-3">Archivo de Plantilla</h6>
+                    <div class="card">
+                        <div class="card-body text-center">
+                            ${data.archivo_plantilla ? `
+                                <i class="fas fa-file-word fa-3x text-primary mb-3"></i>
+                                <p class="mb-2"><strong>Archivo cargado</strong></p>
+                                <small class="text-muted d-block mb-3">${data.archivo_plantilla.split('/').pop()}</small>
+                                <a href="${data.archivo_plantilla}" class="btn btn-sm btn-primary" target="_blank">
+                                    <i class="fas fa-download me-1"></i>Descargar
+                                </a>
+                            ` : `
+                                <i class="fas fa-times-circle fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">Sin archivo cargado</p>
+                            `}
+                        </div>
+                    </div>
+                    
+                    <h6 class="text-muted mb-3 mt-4">Variables Disponibles</h6>
+                    <div class="preview-plantilla">
+                        ${variablesHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('detalleContenido').innerHTML = contenido;
+        new bootstrap.Modal(document.getElementById('detalleModal')).show();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+// Limpiar modal al cerrarlo
+document.getElementById('plantillaModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('plantillaForm').classList.remove('was-validated');
+    document.getElementById('plantillaForm').reset();
+    document.getElementById('plantillaId').value = '';
+    removeFile();
+});
+</script>
+
+<script>
+// FUNCIONES QUE NECESITAN {{ csrf_token }}
+function guardarPlantilla() {
+    const form = document.getElementById('plantillaForm');
+    if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
+    }
+    
+    const id = document.getElementById('plantillaId').value;
+    const formData = new FormData();
+    
+    formData.append('nombre', document.getElementById('nombre').value);
+    formData.append('tipo_parte', document.getElementById('tipo_parte').value);
+    formData.append('version', document.getElementById('version').value);
+    formData.append('descripcion', document.getElementById('descripcion').value);
+    formData.append('is_active', document.getElementById('is_active').checked);
+    formData.append('is_default', document.getElementById('is_default').checked);
+    formData.append('instrucciones', document.getElementById('instrucciones').value);
+    
+    if (currentFile) {
+        formData.append('archivo_plantilla', currentFile);
+    }
+    
+    const url = id ? 
+        `/panel/parte-mortorios/plantillas/api/${id}/actualizar/` : 
+        `/panel/parte-mortorios/plantillas/api/crear/`;
+    
+    const method = id ? 'PUT' : 'POST';
+    
+    fetch(url, {
+        method: method,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Éxito',
+                text: id ? 'Plantilla actualizada correctamente' : 'Plantilla creada correctamente',
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            throw new Error(data.error || 'Error desconocido');
+        }
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo guardar la plantilla: ' + error.message
+        });
+    });
+}
+
+function marcarDefault(id) {
+    Swal.fire({
+        title: '¿Marcar como predeterminada?',
+        text: 'Esta plantilla se usará por defecto para generar partes mortorio',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3b82f6',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, marcar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/panel/parte-mortorios/plantillas/api/${id}/marcar-default/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Marcada como predeterminada',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    throw new Error(data.error || 'Error desconocido');
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudo marcar como predeterminada: ' + error.message
+                });
+            });
+        }
+    });
+}
+
+function eliminarPlantilla(id, nombre) {
+    Swal.fire({
+        title: '¿Eliminar plantilla?',
+        html: `¿Está seguro de eliminar la plantilla <strong>${nombre}</strong>?<br>
+               <small class="text-muted">Esta acción no se puede deshacer</small>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/panel/parte-mortorios/plantillas/api/${id}/eliminar/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Eliminada',
+                        text: 'La plantilla ha sido eliminada',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    throw new Error(data.error || 'Error al eliminar');
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudo eliminar la plantilla: ' + error.message
+                });
+            });
+        }
+    });
+}
+</script>
+{% endblock %}

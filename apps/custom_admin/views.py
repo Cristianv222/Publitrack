@@ -20,6 +20,7 @@ from apps.content_management.models import PlantillaContrato
 from apps.orders.models import PlantillaOrden, OrdenGenerada
 from apps.orders.models import OrdenToma 
 from apps.parte_mortorios.models import ParteMortorio
+
 # Obtener el modelo de usuario correcto
 User = get_user_model()
 
@@ -76,13 +77,20 @@ except ImportError as e:
     OrdenToma = None
 # IMPORTS CONDICIONALES PARA PARTE MORTORIOS
 try:
-    from apps.parte_mortorios.models import ParteMortorio, HistorialParteMortorio
+    from apps.parte_mortorios.models import (
+        ParteMortorio, 
+        HistorialParteMortorio,
+        PlantillaParteMortorio,
+        ParteMortorioGenerado
+    )
     PARTE_MORTORIO_MODELS_AVAILABLE = True
 except ImportError as e:
     print(f"⚠️ Error importando modelos de parte_mortorios: {e}")
     PARTE_MORTORIO_MODELS_AVAILABLE = False
     ParteMortorio = None
     HistorialParteMortorio = None
+    PlantillaParteMortorio = None
+    ParteMortorioGenerado = None
 def is_admin(user):
     """Verifica si el usuario es administrador"""
     return user.is_superuser or user.is_staff or getattr(user, 'rol', None) == 'admin'
@@ -4793,7 +4801,69 @@ def parte_mortorio_marcar_transmitido_api(request, parte_id):
             'success': False,
             'error': f'Error al marcar como transmitido: {str(e)}'
         }, status=500)
-
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def parte_mortorio_cambiar_estado_api(request, parte_id):
+    """API para cambiar el estado de un parte mortorio - VERSIÓN SIMPLIFICADA"""
+    try:
+        from apps.parte_mortorios.models import ParteMortorio
+        
+        parte = get_object_or_404(ParteMortorio, pk=parte_id)
+        data = json.loads(request.body)
+        
+        nuevo_estado = data.get('estado')
+        estados_permitidos = ['pendiente', 'al_aire', 'pausado', 'finalizado']
+        
+        if nuevo_estado not in estados_permitidos:
+            return JsonResponse({
+                'success': False,
+                'error': f'Estado no válido: {nuevo_estado}'
+            }, status=400)
+        
+        estado_anterior = parte.estado
+        parte.estado = nuevo_estado
+        
+        # Registrar fecha según el estado
+        if nuevo_estado == 'al_aire':
+            parte.fecha_programacion = timezone.now()
+        elif nuevo_estado == 'finalizado':
+            parte.fecha_transmision_completada = timezone.now()
+        
+        parte.save()
+        
+        # Registrar en historial
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(parte).pk,
+            object_id=parte.pk,
+            object_repr=f"Parte {parte.codigo}",
+            action_flag=CHANGE,
+            change_message=f'Estado cambiado: {estado_anterior} → {nuevo_estado}'
+        )
+        
+        mensajes_estado = {
+            'pendiente': '🟡 Parte marcado como Pendiente',
+            'al_aire': '🟢 Parte puesto Al Aire',
+            'pausado': '⏸️ Parte Pausado',
+            'finalizado': '🔴 Parte Finalizado'
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'message': mensajes_estado.get(nuevo_estado, 'Estado actualizado'),
+            'nuevo_estado': nuevo_estado,
+            'estado_display': parte.get_estado_display()
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"❌ ERROR en parte_mortorio_cambiar_estado_api: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al cambiar el estado: {str(e)}'
+        }, status=500)
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["POST"])
@@ -4816,3 +4886,448 @@ def parte_mortorio_cancelar_api(request, parte_id):
             'success': False,
             'error': f'Error al cancelar el parte mortorio: {str(e)}'
         }, status=500)
+# ==================== VISTAS PARA PLANTILLAS DE PARTE MORTORIO ====================
+
+@login_required
+@user_passes_test(is_admin)
+def plantillas_parte_mortorio_list(request):
+    """Lista de plantillas de parte mortorio"""
+    
+    # ✅ Verificar disponibilidad del módulo
+    if not PARTE_MORTORIO_MODELS_AVAILABLE or PlantillaParteMortorio is None:
+        context = {
+            'plantillas': [],
+            'total_plantillas': 0,
+            'plantillas_activas': 0,
+            'plantillas_default': 0,
+            'total_partes_generados': 0,
+            'mensaje_error': 'Módulo de Plantillas de Parte Mortorio no disponible'
+        }
+        return render(request, 'custom_admin/parte_mortorios/plantillas_list.html', context)
+    
+    try:
+        plantillas = PlantillaParteMortorio.objects.all().order_by('-created_at')
+        
+        # Estadísticas
+        total_plantillas = plantillas.count()
+        plantillas_activas = plantillas.filter(is_active=True).count()
+        plantillas_default = plantillas.filter(is_default=True).count()
+        
+        # Contar partes generados si el modelo está disponible
+        total_partes_generados = 0
+        if ParteMortorioGenerado is not None:
+            total_partes_generados = ParteMortorioGenerado.objects.count()
+        
+        context = {
+            'plantillas': plantillas,
+            'total_plantillas': total_plantillas,
+            'plantillas_activas': plantillas_activas,
+            'plantillas_default': plantillas_default,
+            'total_partes_generados': total_partes_generados,
+        }
+        
+        return render(request, 'custom_admin/parte_mortorios/plantillas_list.html', context)
+        
+    except Exception as e:
+        print(f"❌ ERROR en plantillas_parte_mortorio_list: {str(e)}")
+        
+        # Fallback en caso de error
+        context = {
+            'plantillas': [],
+            'total_plantillas': 0,
+            'plantillas_activas': 0,
+            'plantillas_default': 0,
+            'total_partes_generados': 0,
+            'mensaje_error': f'Error al cargar las plantillas: {str(e)}'
+        }
+        return render(request, 'custom_admin/parte_mortorios/plantillas_list.html', context)
+@login_required
+@user_passes_test(is_admin)
+def plantilla_parte_mortorio_detalle_api(request, id):
+    """API para obtener detalles de una plantilla de parte mortorio"""
+    try:
+        plantilla = PlantillaParteMortorio.objects.get(pk=id)
+        
+        data = {
+            'id': plantilla.id,
+            'nombre': plantilla.nombre,
+            'tipo_parte': plantilla.tipo_parte,
+            'tipo_parte_display': plantilla.get_tipo_parte_display(),
+            'version': plantilla.version,
+            'descripcion': plantilla.descripcion or '',
+            'is_active': plantilla.is_active,
+            'is_default': plantilla.is_default,
+            'instrucciones': plantilla.instrucciones or '',
+            'archivo_plantilla': plantilla.archivo_plantilla.url if plantilla.archivo_plantilla else None,
+            'created_by': plantilla.created_by.username if plantilla.created_by else None,
+            'created_at': plantilla.created_at.strftime('%d/%m/%Y %H:%M'),
+            'updated_at': plantilla.updated_at.strftime('%d/%m/%Y %H:%M'),
+            'partes_count': plantilla.partes_generados.count(),
+            'variables_disponibles': plantilla.variables_disponibles
+        }
+        
+        return JsonResponse(data)
+    except PlantillaParteMortorio.DoesNotExist:
+        return JsonResponse({'error': 'Plantilla no encontrada'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def plantilla_parte_mortorio_crear_api(request):
+    """API para crear una plantilla de parte mortorio"""
+    try:
+        nombre = request.POST.get('nombre')
+        tipo_parte = request.POST.get('tipo_parte')
+        version = request.POST.get('version', '1.0')
+        descripcion = request.POST.get('descripcion', '')
+        is_active = request.POST.get('is_active') == 'true'
+        is_default = request.POST.get('is_default') == 'false'
+        instrucciones = request.POST.get('instrucciones', '')
+        archivo_plantilla = request.FILES.get('archivo_plantilla')
+        
+        # Validaciones
+        if not nombre:
+            return JsonResponse({
+                'success': False,
+                'error': 'El nombre es obligatorio'
+            }, status=400)
+        
+        if not tipo_parte:
+            return JsonResponse({
+                'success': False,
+                'error': 'El tipo de parte es obligatorio'
+            }, status=400)
+        
+        if not archivo_plantilla:
+            return JsonResponse({
+                'success': False,
+                'error': 'El archivo de plantilla es obligatorio'
+            }, status=400)
+        
+        # Validar que sea archivo .docx
+        if not archivo_plantilla.name.endswith('.docx'):
+            return JsonResponse({
+                'success': False,
+                'error': 'Solo se permiten archivos .docx'
+            }, status=400)
+        
+        # Validar tamaño (máx 10MB)
+        if archivo_plantilla.size > 10 * 1024 * 1024:
+            return JsonResponse({
+                'success': False,
+                'error': 'El archivo no debe superar los 10MB'
+            }, status=400)
+        
+        # Si se marca como default, desmarcar las demás del mismo tipo
+        if is_default:
+            PlantillaParteMortorio.objects.filter(
+                tipo_parte=tipo_parte,
+                is_default=True
+            ).update(is_default=False)
+        
+        # Crear la plantilla
+        plantilla = PlantillaParteMortorio.objects.create(
+            nombre=nombre,
+            tipo_parte=tipo_parte,
+            version=version,
+            descripcion=descripcion,
+            is_active=is_active,
+            is_default=is_default,
+            instrucciones=instrucciones,
+            archivo_plantilla=archivo_plantilla,
+            created_by=request.user
+        )
+        
+        # Registrar en historial
+        LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(plantilla).pk,
+            object_id=plantilla.pk,
+            object_repr=str(plantilla.nombre),
+            action_flag=ADDITION,
+            change_message=f'Plantilla de parte mortorio creada: {plantilla.nombre} - Tipo: {plantilla.get_tipo_parte_display()}'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Plantilla creada exitosamente',
+            'id': plantilla.id
+        })
+        
+    except Exception as e:
+        import traceback
+        print("ERROR al crear plantilla:", traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al crear la plantilla: {str(e)}'
+        }, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["PUT", "POST"])
+def plantilla_parte_mortorio_actualizar_api(request, id):
+    """API para actualizar una plantilla de parte mortorio"""
+    try:
+        plantilla = PlantillaParteMortorio.objects.get(pk=id)
+        
+        if request.method == 'PUT':
+            data = json.loads(request.body)
+            nombre = data.get('nombre', plantilla.nombre)
+            tipo_parte = data.get('tipo_parte', plantilla.tipo_parte)
+            version = data.get('version', plantilla.version)
+            descripcion = data.get('descripcion', plantilla.descripcion)
+            is_active = data.get('is_active', plantilla.is_active)
+            is_default = data.get('is_default', plantilla.is_default)
+            instrucciones = data.get('instrucciones', plantilla.instrucciones)
+            archivo_plantilla = None
+        else:
+            nombre = request.POST.get('nombre', plantilla.nombre)
+            tipo_parte = request.POST.get('tipo_parte', plantilla.tipo_parte)
+            version = request.POST.get('version', plantilla.version)
+            descripcion = request.POST.get('descripcion', plantilla.descripcion)
+            is_active = request.POST.get('is_active') == 'true'
+            is_default = request.POST.get('is_default') == 'true'
+            instrucciones = request.POST.get('instrucciones', plantilla.instrucciones)
+            archivo_plantilla = request.FILES.get('archivo_plantilla')
+        
+        # Si se marca como default, desmarcar las demás del mismo tipo
+        if is_default and not plantilla.is_default:
+            PlantillaParteMortorio.objects.filter(
+                tipo_parte=plantilla.tipo_parte,
+                is_default=True
+            ).exclude(pk=id).update(is_default=False)
+        
+        plantilla.nombre = nombre
+        plantilla.tipo_parte = tipo_parte
+        plantilla.version = version
+        plantilla.descripcion = descripcion
+        plantilla.is_active = is_active
+        plantilla.is_default = is_default
+        plantilla.instrucciones = instrucciones
+        
+        if archivo_plantilla:
+            plantilla.archivo_plantilla = archivo_plantilla
+        
+        plantilla.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Plantilla actualizada exitosamente'
+        })
+        
+    except PlantillaParteMortorio.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Plantilla no encontrada'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["DELETE"])
+def plantilla_parte_mortorio_eliminar_api(request, id):
+    """API para eliminar una plantilla de parte mortorio"""
+    try:
+        plantilla = PlantillaParteMortorio.objects.get(pk=id)
+        
+        # Verificar si tiene partes generados
+        if plantilla.partes_generados.exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'No se puede eliminar la plantilla porque tiene partes generados asociados'
+            }, status=400)
+        
+        plantilla.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Plantilla eliminada exitosamente'
+        })
+    except PlantillaParteMortorio.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Plantilla no encontrada'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def plantilla_parte_mortorio_marcar_default_api(request, id):
+    """API para marcar una plantilla como predeterminada"""
+    try:
+        plantilla = PlantillaParteMortorio.objects.get(pk=id)
+        
+        # Desmarcar todas las demás plantillas del mismo tipo como default
+        PlantillaParteMortorio.objects.filter(
+            tipo_parte=plantilla.tipo_parte,
+            is_default=True
+        ).exclude(pk=id).update(is_default=False)
+        
+        # Marcar esta plantilla como default
+        plantilla.is_default = True
+        plantilla.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Plantilla "{plantilla.nombre}" marcada como predeterminada'
+        })
+        
+    except PlantillaParteMortorio.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Plantilla no encontrada'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+def plantilla_parte_mortorio_descargar_api(request, id):
+    """API para descargar el archivo de plantilla"""
+    try:
+        from django.http import FileResponse
+        import os
+        
+        plantilla = PlantillaParteMortorio.objects.get(pk=id)
+        
+        if not plantilla.archivo_plantilla:
+            return JsonResponse({
+                'success': False,
+                'error': 'La plantilla no tiene un archivo adjunto'
+            }, status=404)
+        
+        file_name = os.path.basename(plantilla.archivo_plantilla.name)
+        response = FileResponse(
+            plantilla.archivo_plantilla.open('rb'),
+            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+        
+        return response
+        
+    except PlantillaParteMortorio.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Plantilla no encontrada'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+# ==================== APIs PARA GENERAR PARTES MORTORIOS ====================
+
+@login_required
+@user_passes_test(is_admin)
+def api_plantillas_parte_mortorio(request):
+    """API para obtener todas las plantillas de parte mortorio activas"""
+    try:
+        plantillas = PlantillaParteMortorio.objects.filter(is_active=True).order_by('-is_default', 'nombre')
+        
+        data = []
+        for plantilla in plantillas:
+            data.append({
+                'id': plantilla.id,
+                'nombre': plantilla.nombre,
+                'tipo_parte': plantilla.tipo_parte,
+                'tipo_parte_display': plantilla.get_tipo_parte_display(),
+                'version': plantilla.version,
+                'is_default': plantilla.is_default,
+                'descripcion': plantilla.descripcion or '',
+                'archivo_url': plantilla.archivo_plantilla.url if plantilla.archivo_plantilla else None
+            })
+        
+        return JsonResponse({'success': True, 'plantillas': data})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def parte_mortorio_generar_api(request, parte_id):
+    """API para generar parte mortorio desde plantilla"""
+    try:
+        parte_mortorio = get_object_or_404(ParteMortorio, pk=parte_id)
+        data = json.loads(request.body)
+        
+        plantilla_id = data.get('plantilla_id')
+        
+        if not plantilla_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Plantilla requerida'
+            }, status=400)
+        
+        try:
+            plantilla = PlantillaParteMortorio.objects.get(id=plantilla_id, is_active=True)
+        except PlantillaParteMortorio.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Plantilla no encontrada o no activa'
+            }, status=404)
+        
+        # Crear parte generado
+        parte_generado = ParteMortorioGenerado.objects.create(
+            parte_mortorio=parte_mortorio,
+            plantilla_usada=plantilla,
+            generado_por=request.user,
+            estado='borrador'
+        )
+        
+        # Generar el PDF
+        if parte_generado.generar_parte_pdf():
+            return JsonResponse({
+                'success': True,
+                'message': 'Parte mortorio generado exitosamente',
+                'parte_generado_id': parte_generado.id,
+                'numero_parte': parte_generado.numero_parte,
+                'archivo_url': parte_generado.archivo_parte_pdf.url if parte_generado.archivo_parte_pdf else None
+            })
+        else:
+            parte_generado.delete()
+            return JsonResponse({
+                'success': False,
+                'error': 'Error al generar el archivo del parte mortorio'
+            }, status=500)
+        
+    except Exception as e:
+        import traceback
+        print("ERROR al generar parte mortorio:", traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al generar el parte mortorio: {str(e)}'
+        }, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+def parte_mortorio_verificar_api(request, parte_generado_id):
+    """API para verificar si un parte ya fue generado"""
+    try:
+        parte_generado = ParteMortorioGenerado.objects.get(pk=parte_generado_id)
+        
+        return JsonResponse({
+            'success': True,
+            'archivo_url': parte_generado.archivo_parte_pdf.url if parte_generado.archivo_parte_pdf else None,
+            'numero_parte': parte_generado.numero_parte,
+            'estado': parte_generado.estado
+        })
+    
+    except ParteMortorioGenerado.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Parte no generado'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+def parte_mortorio_descargar_api(request, parte_generado_id):
+    """Descargar parte generado"""
+    try:
+        parte_generado = get_object_or_404(ParteMortorioGenerado, pk=parte_generado_id)
+        
+        if not parte_generado.archivo_parte_pdf:
+            messages.error(request, 'El parte no ha sido generado aún.')
+            return redirect('custom_admin:parte_mortorios_list')
+        
+        response = FileResponse(
+            parte_generado.archivo_parte_pdf.open('rb'),
+            content_type='application/pdf'
+        )
+        response['Content-Disposition'] = f'attachment; filename="Parte_Mortorio_{parte_generado.numero_parte}.pdf"'
+        
+        return response
+        
+    except Exception as e:
+        messages.error(request, f'Error al descargar el parte: {str(e)}')
+        return redirect('custom_admin:parte_mortorios_list')
