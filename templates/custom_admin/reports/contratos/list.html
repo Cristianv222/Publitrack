@@ -4,6 +4,11 @@
 
 {% block title %}Reportes de Contratos{% endblock %}
 
+{% block extra_css %}
+<!-- Incluir Plotly.js desde CDN en el head -->
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid px-4">
     <!-- Header -->
@@ -157,41 +162,46 @@
         </div>
     </div>
 
-     <!-- Gráficos y Tablas -->
+    <!-- Gráficos Plotly -->
     <div class="row">
-        <!-- Gráfico de Estados -->
+        <!-- Gráfico de Estados (Pastel) -->
         <div class="col-xl-6 col-lg-6">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                     <h6 class="m-0 font-weight-bold text-primary">
                         <i class="fas fa-chart-pie fa-fw"></i> Contratos por Estado
                     </h6>
-                    <button class="btn btn-sm btn-outline-primary" onclick="recargarGraficos()">
-                        <i class="fas fa-sync-alt fa-fw"></i>
-                    </button>
                 </div>
                 <div class="card-body">
-                    <div class="chart-pie pt-4 pb-2">
-                        <canvas id="chartEstados" width="400" height="200"></canvas>
-                    </div>
+                    {% if grafica_pastel_html %}
+                        {{ grafica_pastel_html|safe }}
+                    {% else %}
+                        <div class="alert alert-warning text-center">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            No se pudo generar la gráfica de estados
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
-        <!-- Gráfico de Ingresos -->
+        
+        <!-- Gráfico de Ingresos (Barras) -->
         <div class="col-xl-6 col-lg-6">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                     <h6 class="m-0 font-weight-bold text-primary">
                         <i class="fas fa-chart-line fa-fw"></i> Ingresos Mensuales
                     </h6>
-                    <button class="btn btn-sm btn-outline-primary" onclick="recargarGraficos()">
-                        <i class="fas fa-sync-alt fa-fw"></i>
-                    </button>
                 </div>
                 <div class="card-body">
-                    <div class="chart-area">
-                        <canvas id="chartIngresos" width="400" height="200"></canvas>
-                    </div>
+                    {% if grafica_barras_html %}
+                        {{ grafica_barras_html|safe }}
+                    {% else %}
+                        <div class="alert alert-warning text-center">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            No se pudo generar la gráfica de ingresos
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -405,223 +415,9 @@
 {% endblock %}
 
 {% block extrajs %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-let chartEstados, chartIngresos;
-
-document.addEventListener('DOMContentLoaded', function() {
-    cargarGraficos();
-});
-
-function recargarGraficos() {
-    if (chartEstados) chartEstados.destroy();
-    if (chartIngresos) chartIngresos.destroy();
-    cargarGraficos();
-}
-
-function cargarGraficos() {
-    cargarGraficoEstados();
-    cargarGraficoIngresos();
-    // cargarReporteCompleto(); // Si usas reportes completos, mantén esta línea
-}
-
-// ===== Gráfico de estados =====
-function cargarGraficoEstados() {
-    fetch("/reports/contratos/api/estadisticas/")
-        .then(response => {
-            if (!response.ok) throw new Error('Error en la respuesta del servidor');
-            return response.json();
-        })
-        .then(data => {
-            if (!data.success) throw new Error(data.error || 'Error en los datos');
-            const ctx = document.getElementById('chartEstados').getContext('2d');
-            if (chartEstados) chartEstados.destroy();
-            const estadosData = data.contratosporestado || [];
-            const labels = estadosData.map(item => item.estado);
-            const valores = estadosData.map(item => item.total || 0);
-            const total = valores.reduce((sum, value) => sum + value, 0);
-            if (total === 0) {
-                ctx.fillStyle = '#6c757d';
-                ctx.font = '16px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('No hay datos disponibles', 200, 100);
-                return;
-            }
-            chartEstados = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: valores,
-                        backgroundColor: [
-                            '#6c757d', '#17a2b8', '#ffc107', '#007bff',
-                            '#28a745', '#dc3545', '#343a40'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { position: 'bottom' } }
-                }
-            });
-        })
-        .catch(error => {
-            console.error("Error gráfico estados:", error);
-            const ctx = document.getElementById('chartEstados').getContext('2d');
-            ctx.fillStyle = '#dc3545';
-            ctx.font = '14px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('Error cargando datos', 200, 100);
-        });
-}
-
-// ===== Gráfico de ingresos =====
-function cargarGraficoIngresos() {
-    fetch("/reports/contratos/api/estadisticas/")
-        .then(response => {
-            if (!response.ok) throw new Error('Error en la respuesta del servidor');
-            return response.json();
-        })
-        .then(data => {
-            if (!data.success) throw new Error(data.error || 'Error en los datos');
-            const ctx = document.getElementById('chartIngresos').getContext('2d');
-            if (chartIngresos) chartIngresos.destroy();
-            const ingresosData = data.ingresosmensuales || [];
-            const labels = ingresosData.map(item => item.mes);
-            const valores = ingresosData.map(item => item.ingresos || 0);
-            const total = valores.reduce((sum, value) => sum + value, 0);
-            if (total === 0) {
-                ctx.fillStyle = '#6c757d';
-                ctx.font = '16px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('No hay datos de ingresos disponibles', 300, 100);
-                return;
-            }
-            chartIngresos = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Ingresos ($)',
-                        data: valores,
-                        borderColor: '#28a745',
-                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { position: 'top' } }
-                }
-            });
-        })
-        .catch(error => {
-            console.error("Error gráfico ingresos:", error);
-            const ctx = document.getElementById('chartIngresos').getContext('2d');
-            ctx.fillStyle = '#dc3545';
-            ctx.font = '14px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('Error cargando datos', 300, 100);
-        });
-}
-// Cargar reporte completo - CORREGIDO
-function cargarReporteCompleto() {
-    console.log('🔄 Cargando reporte completo...');
-    
-    fetch("{% url 'custom_admin:reports_api_estadisticas_contratos' %}")
-        .then(response => response.json())
-        .then(data => {
-            console.log('📋 Datos para reporte completo:', data);
-            
-            const tbody = document.getElementById('tablaReporteCompleto');
-            let html = '';
-            
-            if (data.success && data.contratos_por_estado) {
-                let totalContratos = data.contratos_por_estado.reduce((sum, item) => sum + (item.total || 0), 0);
-                
-                data.contratos_por_estado.forEach(item => {
-                    const porcentaje = totalContratos > 0 ? ((item.total / totalContratos) * 100).toFixed(1) : 0;
-                    const estados = {
-                        'borrador': 'Borrador',
-                        'generado': 'Generado', 
-                        'enviado': 'Enviado',
-                        'firmado': 'Firmado',
-                        'validado': 'Validado',
-                        'vencido': 'Vencido',
-                        'cancelado': 'Cancelado'
-                    };
-                    
-                    const estadoDisplay = estados[item.estado] || item.estado;
-                    const valorTotal = item.valor_total ? `$${item.valor_total.toLocaleString('es-ES', {minimumFractionDigits: 2})}` : '$0.00';
-                    
-                    html += `
-                        <tr>
-                            <td>${estadoDisplay}</td>
-                            <td>${item.total || 0}</td>
-                            <td>${valorTotal}</td>
-                            <td>
-                                <div class="progress" style="height: 20px;">
-                                    <div class="progress-bar" role="progressbar" 
-                                         style="width: ${porcentaje}%; background-color: ${getColorForEstado(item.estado)}">
-                                        ${porcentaje}%
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                });
-            } else {
-                html = `
-                    <tr>
-                        <td colspan="4" class="text-center text-muted">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            No hay datos disponibles para el reporte
-                        </td>
-                    </tr>
-                `;
-            }
-            
-            tbody.innerHTML = html;
-            console.log('✅ Reporte completo cargado');
-        })
-        .catch(error => {
-            console.error('❌ Error cargando reporte completo:', error);
-            document.getElementById('tablaReporteCompleto').innerHTML = `
-                <tr>
-                    <td colspan="4" class="text-center text-danger">
-                        <i class="fas fa-exclamation-circle me-2"></i>
-                        Error cargando datos: ${error.message}
-                    </td>
-                </tr>
-            `;
-        });
-}
-
-// Función auxiliar para obtener colores por estado
-function getColorForEstado(estado) {
-    const colores = {
-        'borrador': '#6c757d',
-        'generado': '#17a2b8',
-        'enviado': '#ffc107', 
-        'firmado': '#007bff',
-        'validado': '#28a745',
-        'vencido': '#dc3545',
-        'cancelado': '#343a40'
-    };
-    return colores[estado] || '#6c757d';
-}
-
-// Función para recargar todos los gráficos
-function recargarGraficos() {
-    console.log('🔄 Recargando todos los gráficos...');
-    if (chartEstados) chartEstados.destroy();
-    if (chartIngresos) chartIngresos.destroy();
-    cargarGraficos();
-}
-
-// Ver detalle de contrato
+// Función para ver detalle de contrato
 function verDetalleContrato(contratoId) {
-    // Simular carga de datos (en producción sería una llamada AJAX real)
     const contenido = `
         <div class="text-center py-4">
             <div class="spinner-border text-primary" role="status">
@@ -724,23 +520,34 @@ function exportarReporteCompleto() {
     window.location.href = "{% url 'custom_admin:reports_estado_contratos' %}?formato=excel";
 }
 
-// Agregar botón de recarga en el header de los gráficos
-document.addEventListener('DOMContentLoaded', function() {
-    // Agregar funcionalidad de recarga a los botones existentes
-    document.querySelectorAll('.btn-outline-primary').forEach(btn => {
-        if (btn.innerHTML.includes('fa-sync-alt')) {
-            btn.onclick = recargarGraficos;
-        }
-    });
+// Mostrar/ocultar opciones según tipo de reporte
+document.getElementById('tipoReporte').addEventListener('change', function() {
+    const tipo = this.value;
+    document.getElementById('opcionesVencimiento').style.display = tipo === 'vencimiento' ? 'block' : 'none';
+    document.getElementById('opcionesIngresos').style.display = tipo === 'ingresos' ? 'block' : 'none';
 });
-function recargarGraficos() {
-    console.log('Recargando todos los gráficos...');
-    if (chartEstados) chartEstados.destroy();
-    if (chartIngresos) chartIngresos.destroy();
-    cargarGraficos();
-}
 
+// Verificar que Plotly esté cargado
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof Plotly === 'undefined') {
+        console.error('Plotly no está cargado. Las gráficas no funcionarán.');
+        // Recargar Plotly.js si no está disponible
+        const script = document.createElement('script');
+        script.src = 'https://cdn.plot.ly/plotly-latest.min.js';
+        script.onload = function() {
+            console.log('Plotly.js cargado correctamente');
+            // Forzar redibujado de gráficas si es necesario
+            if (typeof window.Plotly === 'object') {
+                window.dispatchEvent(new Event('resize'));
+            }
+        };
+        document.head.appendChild(script);
+    } else {
+        console.log('Plotly.js está disponible');
+    }
+});
 </script>
+
 <style>
 .badge-borrador { background-color: #6c757d; color: white; }
 .badge-generado { background-color: #17a2b8; color: white; }
@@ -762,24 +569,6 @@ function recargarGraficos() {
     background-color: #f8f9fc;
 }
 
-.chart-area, .chart-pie {
-    position: relative;
-    height: 300px; /* Aumentado para mejor visualización */
-    width: 100%;
-}
-
-.progress {
-    height: 20px;
-    background-color: #e9ecef;
-    border-radius: 0.375rem;
-}
-
-.progress-bar {
-    font-size: 0.75rem;
-    line-height: 20px;
-    font-weight: 600;
-}
-
 /* Mejoras para los gráficos */
 .card-header {
     background-color: #f8f9fc;
@@ -791,21 +580,26 @@ function recargarGraficos() {
     transition: all 0.2s ease;
 }
 
-/* Animaciones de carga */
-.spinner-border {
-    width: 3rem;
-    height: 3rem;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
-    .chart-area, .chart-pie {
-        height: 250px;
-    }
-    
     .card-body {
         padding: 1rem;
     }
+}
+
+/* Ajustes para gráficas Plotly */
+.plotly-graph-div {
+    width: 100% !important;
+    min-height: 400px;
+}
+
+/* Mejoras visuales para las gráficas */
+.js-plotly-plot .plotly .modebar {
+    background: transparent !important;
+}
+
+.js-plotly-plot .plotly .main-svg {
+    border-radius: 8px;
 }
 </style>
 {% endblock %}

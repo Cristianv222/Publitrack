@@ -26,6 +26,9 @@ from django.http import HttpResponse
 from datetime import datetime
 from apps.reports_analytics.models import DashboardContratos
 from apps.content_management.models import ContratoGenerado
+import plotly.express as px
+import plotly.offline as pyo
+import plotly.io as pio
 # Obtener el modelo de usuario correcto
 User = get_user_model()
 
@@ -47,6 +50,14 @@ except ImportError as e:
     TipoContrato = None
     ArchivoAudio = None
     ContratoGenerado = None
+try:
+    import plotly.express as px
+    import plotly.offline as pyo
+    import plotly.io as pio
+    PLOTLY_AVAILABLE = True
+except ImportError:
+    PLOTLY_AVAILABLE = False
+    print("⚠️ Plotly no está disponible. Las gráficas no se mostrarán.")
 try:
     from apps.reports_analytics.models import DashboardContratos, ReporteContratos
     REPORTS_MODELS_AVAILABLE = True
@@ -5430,7 +5441,7 @@ def parte_mortorio_descargar_api(request, parte_generado_id):
 @login_required
 @user_passes_test(is_admin)
 def reports_dashboard_contratos(request):
-    """Dashboard principal de contratos - ACTUALIZADO con estadísticas correctas"""
+    """Dashboard principal de contratos - ACTUALIZADO con gráficas Plotly"""
     
     # Verificar disponibilidad de modelos
     if not CONTENT_MODELS_AVAILABLE:
@@ -5447,6 +5458,8 @@ def reports_dashboard_contratos(request):
             'ingresos_totales': Decimal('0.00'),
             'ingresos_activos': Decimal('0.00'),
             'contratos_recientes': [],
+            'grafica_pastel_html': '',
+            'grafica_barras_html': '',
         }
         return render(request, 'custom_admin/reports/contratos/list.html', context)
     
@@ -5548,31 +5561,106 @@ def reports_dashboard_contratos(request):
             print(f"❌ Error obteniendo contratos recientes: {e}")
             contratos_recientes = []
         
-        # Evolución mensual con manejo de errores
-        meses_data = []
+        # ==================== GRÁFICAS CON PLOTLY ====================
+        
+        # 1. Gráfico de pastel - Contratos por Estado
+        datos_estados = {
+            'Estado': ['Validados', 'Pendientes', 'Por Vencer', 'Vencidos', 'Cancelados'],
+            'Cantidad': [contratos_activos, contratos_pendientes, contratos_por_vencer, contratos_vencidos, contratos_cancelados]
+        }
+        
+        fig_pastel = px.pie(
+            datos_estados,
+            values='Cantidad',
+            names='Estado',
+            title='Contratos por Estado',
+            color='Estado',
+            color_discrete_map={
+                'Validados': '#28a745',
+                'Pendientes': '#ffc107',
+                'Por Vencer': '#17a2b8', 
+                'Vencidos': '#dc3545',
+                'Cancelados': '#6c757d'
+            }
+        )
+        
+        fig_pastel.update_traces(
+            textposition='inside',
+            textinfo='percent+label',
+            hovertemplate='<b>%{label}</b><br>Cantidad: %{value}<br>Porcentaje: %{percent}'
+        )
+        
+        fig_pastel.update_layout(
+            height=400,
+            showlegend=True,
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=-0.3,
+                xanchor="center",
+                x=0.5
+            )
+        )
+        
+        # 2. Gráfico de barras - Ingresos Mensuales (últimos 6 meses)
+        ingresos_mensuales = []
+        meses_nombres = []
+        
         try:
             for i in range(5, -1, -1):
                 mes_fecha = hoy - timedelta(days=30*i)
                 mes_str = mes_fecha.strftime('%Y-%m')
                 mes_nombre = mes_fecha.strftime('%b %Y')
                 
-                contrato_mes = ContratoGenerado.objects.filter(
+                # Calcular ingresos del mes
+                ingresos_mes_result = ContratoGenerado.objects.filter(
                     fecha_generacion__year=mes_fecha.year,
                     fecha_generacion__month=mes_fecha.month
-                ).count()
+                ).aggregate(total=Sum('valor_total'))
                 
-                meses_data.append({
-                    'mes': mes_nombre,
-                    'total': contrato_mes
-                })
+                ingresos_mes = ingresos_mes_result['total'] or Decimal('0.00')
+                
+                ingresos_mensuales.append(float(ingresos_mes))
+                meses_nombres.append(mes_nombre)
+                
         except Exception as e:
-            print(f"❌ Error calculando evolución mensual: {e}")
+            print(f"❌ Error calculando ingresos mensuales: {e}")
             # Datos de ejemplo en caso de error
             for i in range(6):
-                meses_data.append({
-                    'mes': f'Mes {i+1}',
-                    'total': 0
-                })
+                ingresos_mensuales.append(0)
+                meses_nombres.append(f'Mes {i+1}')
+        
+        datos_ingresos = {
+            'Mes': meses_nombres,
+            'Ingresos': ingresos_mensuales
+        }
+        
+        fig_barras = px.bar(
+            datos_ingresos,
+            x='Mes',
+            y='Ingresos',
+            title='Ingresos Mensuales',
+            color='Ingresos',
+            color_continuous_scale='Blues'
+        )
+        
+        fig_barras.update_traces(
+            hovertemplate='<b>%{x}</b><br>Ingresos: $%{y:,.2f}'
+        )
+        
+        fig_barras.update_layout(
+            height=400,
+            xaxis_title="Mes",
+            yaxis_title="Ingresos ($)",
+            coloraxis_showscale=False
+        )
+        
+        # Formatear ejes
+        fig_barras.update_yaxes(tickprefix="$", tickformat=",.")
+        
+        # Convertir gráficas a HTML
+        grafica_pastel_html = pyo.plot(fig_pastel, output_type='div', include_plotlyjs=False)
+        grafica_barras_html = pyo.plot(fig_barras, output_type='div', include_plotlyjs=False)
         
         context = {
             'total_contratos': total_contratos,
@@ -5585,7 +5673,8 @@ def reports_dashboard_contratos(request):
             'ingresos_activos': ingresos_activos,
             'ingresos_pendientes': ingresos_pendientes,
             'contratos_recientes': contratos_recientes,
-            'meses_data': meses_data,
+            'grafica_pastel_html': grafica_pastel_html,
+            'grafica_barras_html': grafica_barras_html,
             'models_available': True,
         }
         
@@ -5622,9 +5711,10 @@ def reports_dashboard_contratos(request):
             'ingresos_activos': Decimal('0.00'),
             'ingresos_pendientes': Decimal('0.00'),
             'contratos_recientes': [],
+            'grafica_pastel_html': '',
+            'grafica_barras_html': '',
         }
         return render(request, 'custom_admin/reports/contratos/list.html', context)
-
 @login_required
 @user_passes_test(is_admin)
 def reports_api_estadisticas_contratos(request):
