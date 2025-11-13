@@ -157,7 +157,7 @@
         </div>
     </div>
 
-    <!-- Gráficos y Tablas -->
+     <!-- Gráficos y Tablas -->
     <div class="row">
         <!-- Gráfico de Estados -->
         <div class="col-xl-6 col-lg-6">
@@ -166,7 +166,7 @@
                     <h6 class="m-0 font-weight-bold text-primary">
                         <i class="fas fa-chart-pie fa-fw"></i> Contratos por Estado
                     </h6>
-                    <button class="btn btn-sm btn-outline-primary" onclick="cargarGraficoEstados()">
+                    <button class="btn btn-sm btn-outline-primary" onclick="recargarGraficos()">
                         <i class="fas fa-sync-alt fa-fw"></i>
                     </button>
                 </div>
@@ -177,7 +177,6 @@
                 </div>
             </div>
         </div>
-
         <!-- Gráfico de Ingresos -->
         <div class="col-xl-6 col-lg-6">
             <div class="card shadow mb-4">
@@ -185,7 +184,7 @@
                     <h6 class="m-0 font-weight-bold text-primary">
                         <i class="fas fa-chart-line fa-fw"></i> Ingresos Mensuales
                     </h6>
-                    <button class="btn btn-sm btn-outline-primary" onclick="cargarGraficoIngresos()">
+                    <button class="btn btn-sm btn-outline-primary" onclick="recargarGraficos()">
                         <i class="fas fa-sync-alt fa-fw"></i>
                     </button>
                 </div>
@@ -408,202 +407,96 @@
 {% block extrajs %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Variables globales
 let chartEstados, chartIngresos;
 
-// Inicialización
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔄 Inicializando gráficos...');
     cargarGraficos();
-    configurarEventos();
 });
 
-// Configurar eventos
-function configurarEventos() {
-    // Mostrar/ocultar opciones según tipo de reporte
-    $('#tipoReporte').change(function() {
-        const tipo = $(this).val();
-        $('#opcionesVencimiento').hide();
-        $('#opcionesIngresos').hide();
-        
-        if (tipo === 'vencimiento') {
-            $('#opcionesVencimiento').show();
-        } else if (tipo === 'ingresos') {
-            $('#opcionesIngresos').show();
-        }
-    });
+function recargarGraficos() {
+    if (chartEstados) chartEstados.destroy();
+    if (chartIngresos) chartIngresos.destroy();
+    cargarGraficos();
 }
 
-// Cargar gráficos
 function cargarGraficos() {
-    console.log('📈 Cargando gráficos...');
     cargarGraficoEstados();
     cargarGraficoIngresos();
-    cargarReporteCompleto();
+    // cargarReporteCompleto(); // Si usas reportes completos, mantén esta línea
 }
 
-// Gráfico de estados - CORREGIDO
+// ===== Gráfico de estados =====
 function cargarGraficoEstados() {
-    console.log('🔄 Cargando gráfico de estados...');
-    
-    fetch("{% url 'custom_admin:reports_api_estadisticas_contratos' %}")
+    fetch("/reports/contratos/api/estadisticas/")
         .then(response => {
-            if (!response.ok) {
-                throw new Error('Error en la respuesta del servidor');
-            }
+            if (!response.ok) throw new Error('Error en la respuesta del servidor');
             return response.json();
         })
         .then(data => {
-            console.log('📊 Datos recibidos para gráfico de estados:', data);
-            
-            if (!data.success) {
-                throw new Error(data.error || 'Error en los datos');
-            }
-
+            if (!data.success) throw new Error(data.error || 'Error en los datos');
             const ctx = document.getElementById('chartEstados').getContext('2d');
-            
-            // Destruir gráfico anterior si existe
-            if (chartEstados) {
-                chartEstados.destroy();
-            }
-            
-            // Preparar datos para el gráfico
-            const estadosData = data.contratos_por_estado || [];
-            const labels = estadosData.map(item => {
-                const estados = {
-                    'borrador': 'Borrador',
-                    'generado': 'Generado', 
-                    'enviado': 'Enviado',
-                    'firmado': 'Firmado',
-                    'validado': 'Validado',
-                    'vencido': 'Vencido',
-                    'cancelado': 'Cancelado'
-                };
-                return estados[item.estado] || item.estado;
-            });
-            
+            if (chartEstados) chartEstados.destroy();
+            const estadosData = data.contratosporestado || [];
+            const labels = estadosData.map(item => item.estado);
             const valores = estadosData.map(item => item.total || 0);
-            
-            // Colores para cada estado
-            const colores = [
-                '#6c757d', // borrador - gris
-                '#17a2b8', // generado - azul claro
-                '#ffc107', // enviado - amarillo
-                '#007bff', // firmado - azul
-                '#28a745', // validado - verde
-                '#dc3545', // vencido - rojo
-                '#343a40'  // cancelado - negro
-            ];
-            
-            // Verificar si hay datos
             const total = valores.reduce((sum, value) => sum + value, 0);
             if (total === 0) {
-                // Mostrar mensaje de no datos
                 ctx.fillStyle = '#6c757d';
                 ctx.font = '16px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText('No hay datos disponibles', 200, 100);
                 return;
             }
-            
-            // Crear gráfico
             chartEstados = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: labels,
                     datasets: [{
                         data: valores,
-                        backgroundColor: colores.slice(0, labels.length),
-                        borderColor: '#ffffff',
-                        borderWidth: 2,
-                        hoverOffset: 15
+                        backgroundColor: [
+                            '#6c757d', '#17a2b8', '#ffc107', '#007bff',
+                            '#28a745', '#dc3545', '#343a40'
+                        ]
                     }]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 20,
-                                usePointStyle: true,
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = context.raw || 0;
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = Math.round((value / total) * 100);
-                                    return `${label}: ${value} (${percentage}%)`;
-                                }
-                            }
-                        }
-                    },
-                    animation: {
-                        animateScale: true,
-                        animateRotate: true
-                    }
+                    plugins: { legend: { position: 'bottom' } }
                 }
             });
-            
-            console.log('✅ Gráfico de estados creado exitosamente');
         })
         .catch(error => {
-            console.error('❌ Error cargando gráfico de estados:', error);
-            // Mostrar mensaje de error en el canvas
+            console.error("Error gráfico estados:", error);
             const ctx = document.getElementById('chartEstados').getContext('2d');
             ctx.fillStyle = '#dc3545';
             ctx.font = '14px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('Error cargando datos: ' + error.message, 200, 100);
+            ctx.fillText('Error cargando datos', 200, 100);
         });
 }
 
-// Gráfico de ingresos - CORREGIDO
+// ===== Gráfico de ingresos =====
 function cargarGraficoIngresos() {
-    console.log('🔄 Cargando gráfico de ingresos...');
-    
-    fetch("{% url 'custom_admin:reports_api_estadisticas_contratos' %}")
+    fetch("/reports/contratos/api/estadisticas/")
         .then(response => {
-            if (!response.ok) {
-                throw new Error('Error en la respuesta del servidor');
-            }
+            if (!response.ok) throw new Error('Error en la respuesta del servidor');
             return response.json();
         })
         .then(data => {
-            console.log('💰 Datos recibidos para gráfico de ingresos:', data);
-            
-            if (!data.success) {
-                throw new Error(data.error || 'Error en los datos');
-            }
-
+            if (!data.success) throw new Error(data.error || 'Error en los datos');
             const ctx = document.getElementById('chartIngresos').getContext('2d');
-            
-            // Destruir gráfico anterior si existe
-            if (chartIngresos) {
-                chartIngresos.destroy();
-            }
-            
-            // Preparar datos para el gráfico
-            const ingresosData = data.ingresos_mensuales || [];
+            if (chartIngresos) chartIngresos.destroy();
+            const ingresosData = data.ingresosmensuales || [];
             const labels = ingresosData.map(item => item.mes);
             const valores = ingresosData.map(item => item.ingresos || 0);
-            
-            // Verificar si hay datos
             const total = valores.reduce((sum, value) => sum + value, 0);
             if (total === 0) {
-                // Mostrar mensaje de no datos
                 ctx.fillStyle = '#6c757d';
                 ctx.font = '16px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText('No hay datos de ingresos disponibles', 300, 100);
                 return;
             }
-            
-            // Crear gráfico
             chartIngresos = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -613,79 +506,24 @@ function cargarGraficoIngresos() {
                         data: valores,
                         borderColor: '#28a745',
                         backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.4,
-                        pointBackgroundColor: '#28a745',
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2,
-                        pointRadius: 6,
-                        pointHoverRadius: 8
+                        fill: true
                     }]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '$' + value.toLocaleString('es-ES', {
-                                        minimumFractionDigits: 0,
-                                        maximumFractionDigits: 0
-                                    });
-                                }
-                            },
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top',
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return `Ingresos: $${context.raw.toLocaleString('es-ES', {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2
-                                    })}`;
-                                }
-                            }
-                        }
-                    },
-                    interaction: {
-                        intersect: false,
-                        mode: 'index'
-                    },
-                    animation: {
-                        duration: 1000
-                    }
+                    plugins: { legend: { position: 'top' } }
                 }
             });
-            
-            console.log('✅ Gráfico de ingresos creado exitosamente');
         })
         .catch(error => {
-            console.error('❌ Error cargando gráfico de ingresos:', error);
-            // Mostrar mensaje de error en el canvas
+            console.error("Error gráfico ingresos:", error);
             const ctx = document.getElementById('chartIngresos').getContext('2d');
             ctx.fillStyle = '#dc3545';
             ctx.font = '14px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('Error cargando datos: ' + error.message, 300, 100);
+            ctx.fillText('Error cargando datos', 300, 100);
         });
 }
-
 // Cargar reporte completo - CORREGIDO
 function cargarReporteCompleto() {
     console.log('🔄 Cargando reporte completo...');
@@ -895,6 +733,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+function recargarGraficos() {
+    console.log('Recargando todos los gráficos...');
+    if (chartEstados) chartEstados.destroy();
+    if (chartIngresos) chartIngresos.destroy();
+    cargarGraficos();
+}
+
 </script>
 <style>
 .badge-borrador { background-color: #6c757d; color: white; }

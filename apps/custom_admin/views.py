@@ -24,7 +24,8 @@ import csv
 import xlwt
 from django.http import HttpResponse
 from datetime import datetime
-
+from apps.reports_analytics.models import DashboardContratos
+from apps.content_management.models import ContratoGenerado
 # Obtener el modelo de usuario correcto
 User = get_user_model()
 
@@ -46,6 +47,14 @@ except ImportError as e:
     TipoContrato = None
     ArchivoAudio = None
     ContratoGenerado = None
+try:
+    from apps.reports_analytics.models import DashboardContratos, ReporteContratos
+    REPORTS_MODELS_AVAILABLE = True
+except ImportError as e:
+    print("Error importando modelos de reports_analytics:", e)
+    REPORTS_MODELS_AVAILABLE = False
+    DashboardContratos = None
+    ReporteContratos = None
 
 try:
     from apps.transmission_control.models import ProgramacionTransmision
@@ -5619,100 +5628,30 @@ def reports_dashboard_contratos(request):
 @login_required
 @user_passes_test(is_admin)
 def reports_api_estadisticas_contratos(request):
-    """API para obtener estadísticas de contratos (AJAX) - VERSIÓN CORREGIDA"""
-    
-    if not CONTENT_MODELS_AVAILABLE:
-        return JsonResponse({
-            'success': False,
-            'error': 'Módulo no disponible',
-            'contratos_por_estado': [],
-            'ingresos_mensuales': []
-        })
-    
-    try:
-        hoy = timezone.now().date()
-        
-        # ✅ CORREGIDO: Datos para gráfico de pastel - contratos por estado
-        try:
-            # Agrupar contratos por estado con valores por defecto para todos los estados
-            estados_posibles = ['borrador', 'generado', 'enviado', 'firmado', 'validado', 'vencido', 'cancelado']
-            contratos_por_estado = []
-            
-            for estado in estados_posibles:
-                count = ContratoGenerado.objects.filter(estado=estado).count()
-                # Calcular valor total para este estado
-                valor_total = ContratoGenerado.objects.filter(estado=estado).aggregate(
-                    total=Sum('valor_total')
-                )['total'] or Decimal('0.00')
-                
-                contratos_por_estado.append({
-                    'estado': estado,
-                    'total': count,
-                    'valor_total': float(valor_total)
-                })
-            
-            print(f"📊 Contratos por estado: {contratos_por_estado}")  # Debug
-            
-        except Exception as e:
-            print(f"❌ Error en contratos_por_estado: {e}")
-            contratos_por_estado = []
+    hoy = timezone.now().date()
+    # Contratos por estado (puedes ajustar la lista de estados si necesitas)
+    contratos_por_estado = list(
+        ContratoGenerado.objects.values('estado').annotate(total=Count('id')).order_by('estado')
+    )
 
-        # ✅ CORREGIDO: Ingresos por mes (últimos 6 meses)
-        ingresos_mensuales = []
-        try:
-            for i in range(5, -1, -1):
-                mes_fecha = hoy - timedelta(days=30*i)
-                mes_nombre = mes_fecha.strftime('%b %Y')
-                mes_key = mes_fecha.strftime('%Y-%m')
-                
-                # Obtener contratos de este mes
-                contratos_mes = ContratoGenerado.objects.filter(
-                    fecha_generacion__year=mes_fecha.year,
-                    fecha_generacion__month=mes_fecha.month
-                )
-                
-                ingreso_mes = contratos_mes.aggregate(
-                    total=Sum('valor_total')
-                )['total'] or Decimal('0.00')
-                
-                ingresos_mensuales.append({
-                    'mes': mes_nombre,
-                    'mes_key': mes_key,
-                    'ingresos': float(ingreso_mes),
-                    'contratos_count': contratos_mes.count()
-                })
-            
-            print(f"💰 Ingresos mensuales: {ingresos_mensuales}")  # Debug
-            
-        except Exception as e:
-            print(f"❌ Error en ingresos_mensuales: {e}")
-            # Datos de ejemplo para debugging
-            for i in range(6):
-                mes_fecha = hoy - timedelta(days=30*i)
-                ingresos_mensuales.append({
-                    'mes': mes_fecha.strftime('%b %Y'),
-                    'mes_key': mes_fecha.strftime('%Y-%m'),
-                    'ingresos': 0.0,
-                    'contratos_count': 0
-                })
+    # Ingresos por mes (últimos 6 meses)
+    ingresos_mensuales = []
+    for i in range(5, -1, -1):
+        mes_fecha = hoy - timezone.timedelta(days=30 * i)
+        mes_nombre = mes_fecha.strftime('%Y-%m')
+        ingreso_mes = (
+            ContratoGenerado.objects
+            .filter(fecha_generacion__year=mes_fecha.year, fecha_generacion__month=mes_fecha.month)
+            .aggregate(total=Sum('valor_total'))['total'] or Decimal('0.00')
+        )
+        ingresos_mensuales.append({'mes': mes_nombre, 'ingresos': float(ingreso_mes)})
 
-        return JsonResponse({
-            'success': True,
-            'contratos_por_estado': contratos_por_estado,
-            'ingresos_mensuales': ingresos_mensuales,
-        })
-        
-    except Exception as e:
-        print(f"❌ ERROR en reports_api_estadisticas_contratos: {e}")
-        import traceback
-        traceback.print_exc()
-        return JsonResponse({
-            'success': False,
-            'error': str(e),
-            'contratos_por_estado': [],
-            'ingresos_mensuales': []
-        })
-
+    # DEVOLVER claves TAL CUAL espera tu frontend
+    return JsonResponse({
+        'success': True,
+        'contratosporestado': contratos_por_estado,
+        'ingresosmensuales': ingresos_mensuales
+    })
 @login_required
 @user_passes_test(is_admin)
 def reports_vencimiento_contratos(request):
