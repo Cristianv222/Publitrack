@@ -1,0 +1,356 @@
+<!-- templates/custom_admin/reports/vendedores/dashboard.html -->
+{% extends "custom_admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Reportes de Vendedores{% endblock %}
+
+{% block extra_css %}
+<!-- Incluir Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<style>
+.dashboard-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: none;
+    border-radius: 0.5rem;
+}
+.dashboard-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+.stat-card {
+    border-left: 4px solid;
+}
+.stat-card.contratos { border-left-color: #007bff; }
+.stat-card.vendedores { border-left-color: #28a745; }
+.stat-card.ingresos { border-left-color: #ffc107; }
+.stat-card.clientes { border-left-color: #dc3545; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-chart-line fa-fw"></i> 
+                Reportes de Vendedores
+            </h1>
+            <p class="mb-0">Desempeño y métricas de los vendedores</p>
+        </div>
+        <div class="d-flex gap-2">
+            <!-- Filtros -->
+            <form method="get" class="d-flex gap-2 align-items-center">
+                <div>
+                    <label class="form-label small mb-1">Fecha Inicio</label>
+                    <input type="date" class="form-control form-control-sm" name="fecha_inicio" value="{{ fecha_inicio }}">
+                </div>
+                <div>
+                    <label class="form-label small mb-1">Fecha Fin</label>
+                    <input type="date" class="form-control form-control-sm" name="fecha_fin" value="{{ fecha_fin }}">
+                </div>
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fas fa-filter fa-fw"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if error %}
+    <!-- Alertas de error -->
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong><i class="fas fa-exclamation-triangle fa-fw"></i> Error:</strong> {{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <!-- Estadísticas generales -->
+    <div class="row mb-4">
+        <!-- Total Vendedores -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card vendedores dashboard-card h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Vendedores Activos
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_vendedores }}</div>
+                            {% if vendedor_top %}
+                            <div class="mt-2">
+                                <small class="text-muted">Top: {{ vendedor_top.vendedor.get_full_name }}</small>
+                                <br>
+                                <small class="text-success">${{ vendedor_top.ingresos_totales }}</small>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Contratos -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card contratos dashboard-card h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Contratos
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_contratos_general }}</div>
+                            <div class="mt-2">
+                                <span class="badge bg-primary">Asignados: {{ total_contratos_general }}</span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-file-contract fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Ingresos -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card ingresos dashboard-card h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Total Ingresos
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">${{ total_ingresos_general }}</div>
+                            <div class="mt-2">
+                                {% with total_ing_contratos=0 %}
+                                    {% for stats in estadisticas_vendedores %}
+                                        {% with total_ing_contratos=total_ing_contratos|add:stats.ingresos_contratos %}{% endwith %}
+                                    {% endfor %}
+                                    <small class="text-muted">Contratos: ${{ total_ing_contratos }}</small>
+                                {% endwith %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Clientes Totales -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card clientes dashboard-card h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Total Clientes
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% with total_clientes=0 %}
+                                    {% for stats in estadisticas_vendedores %}
+                                        {% with total_clientes=total_clientes|add:stats.clientes_asignados %}{% endwith %}
+                                    {% endfor %}
+                                    {{ total_clientes }}
+                                {% endwith %}
+                            </div>
+                            <div class="mt-2">
+                                <span class="badge bg-info">Asignados</span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-tie fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficas Principales -->
+    <div class="row mb-4">
+        <!-- Top Vendedores -->
+        <div class="col-xl-6 col-lg-6 mb-4">
+            <div class="card dashboard-card h-100">
+                <div class="card-header bg-transparent">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-trophy fa-fw"></i> Top 5 Vendedores por Ingresos
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if grafica_barras_html %}
+                        {{ grafica_barras_html|safe }}
+                    {% else %}
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                            <p>No hay datos para mostrar</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Distribución de Ingresos -->
+        <div class="col-xl-6 col-lg-6 mb-4">
+            <div class="card dashboard-card h-100">
+                <div class="card-header bg-transparent">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-pie fa-fw"></i> Distribución de Ingresos
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if grafica_pastel_html %}
+                        {{ grafica_pastel_html|safe }}
+                    {% else %}
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-chart-pie fa-3x mb-3"></i>
+                            <p>No hay datos para mostrar</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Vendedores -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-list fa-fw"></i> Desempeño de Vendedores
+                    </h6>
+                    <small class="text-muted">Período: {{ fecha_inicio }} al {{ fecha_fin }}</small>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Vendedor</th>
+                                    <th class="text-center">Clientes</th>
+                                    <th class="text-center">Contratos</th>
+                                    <th class="text-center">Cuñas</th>
+                                    <th class="text-end">Ingresos Contratos</th>
+                                    <th class="text-end">Ingresos Cuñas</th>
+                                    <th class="text-end">Total Ingresos</th>
+                                    <th class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stats in estadisticas_vendedores %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ stats.vendedor.get_full_name }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ stats.vendedor.email }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info">{{ stats.clientes_asignados }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary">{{ stats.total_contratos }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-warning">{{ stats.total_cuñas }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong>${{ stats.ingresos_contratos }}</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        ${{ stats.ingresos_cuñas }}
+                                    </td>
+                                    <td class="text-end">
+                                        <strong class="text-success">${{ stats.ingresos_totales }}</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="{% url 'custom_admin:reports_detalle_vendedor' stats.vendedor.id %}?fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye fa-fw"></i> Ver Detalle
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted py-4">
+                                        <i class="fas fa-users fa-2x mb-2"></i><br>
+                                        No hay datos de vendedores en el período seleccionado
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            {% if estadisticas_vendedores %}
+                            <tfoot class="thead-light">
+                                <tr>
+                                    <th>TOTALES</th>
+                                    <th class="text-center">
+                                        {% with total_clientes=0 %}
+                                            {% for stats in estadisticas_vendedores %}
+                                                {% with total_clientes=total_clientes|add:stats.clientes_asignados %}{% endwith %}
+                                            {% endfor %}
+                                            {{ total_clientes }}
+                                        {% endwith %}
+                                    </th>
+                                    <th class="text-center">{{ total_contratos_general }}</th>
+                                    <th class="text-center">
+                                        {% with total_cunas=0 %}
+                                            {% for stats in estadisticas_vendedores %}
+                                                {% with total_cunas=total_cunas|add:stats.total_cuñas %}{% endwith %}
+                                            {% endfor %}
+                                            {{ total_cunas }}
+                                        {% endwith %}
+                                    </th>
+                                    <th class="text-end">
+                                        ${% with total_ing_contratos=0 %}
+                                            {% for stats in estadisticas_vendedores %}
+                                                {% with total_ing_contratos=total_ing_contratos|add:stats.ingresos_contratos %}{% endwith %}
+                                            {% endfor %}
+                                            {{ total_ing_contratos }}
+                                        {% endwith %}
+                                    </th>
+                                    <th class="text-end">
+                                        ${% with total_ing_cunas=0 %}
+                                            {% for stats in estadisticas_vendedores %}
+                                                {% with total_ing_cunas=total_ing_cunas|add:stats.ingresos_cuñas %}{% endwith %}
+                                            {% endfor %}
+                                            {{ total_ing_cunas }}
+                                        {% endwith %}
+                                    </th>
+                                    <th class="text-end">${{ total_ingresos_general }}</th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extrajs %}
+<script>
+// Inicializar tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Verificar que Plotly esté cargado
+    if (typeof Plotly === 'undefined') {
+        console.warn('Plotly no está cargado. Las gráficas pueden no funcionar correctamente.');
+    }
+    
+    console.log('Dashboard de vendedores cargado correctamente');
+});
+</script>
+{% endblock %}

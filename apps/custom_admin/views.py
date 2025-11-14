@@ -66,7 +66,13 @@ except ImportError as e:
     REPORTS_MODELS_AVAILABLE = False
     DashboardContratos = None
     ReporteContratos = None
-
+try:
+    from apps.authentication.models import CustomUser
+    AUTH_MODELS_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Error importando modelos de authentication: {e}")
+    AUTH_MODELS_AVAILABLE = False
+    CustomUser = None
 try:
     from apps.transmission_control.models import ProgramacionTransmision
     TRANSMISSION_MODELS_AVAILABLE = True
@@ -426,7 +432,7 @@ def contratos_generados_list(request):
 @user_passes_test(is_admin)
 @require_http_methods(["POST"])
 def contrato_generar_api(request):
-    """API para generar un contrato desde una plantilla"""
+    """API para generar un contrato desde una plantilla - VERSIÓN MEJORADA"""
     try:
         from apps.content_management.models import ContratoGenerado
         from datetime import datetime
@@ -437,6 +443,9 @@ def contrato_generar_api(request):
         plantilla = PlantillaContrato.objects.get(id=data['plantilla_id'])
         cliente = CustomUser.objects.get(id=data['cliente_id'], rol='cliente')
         
+        # ✅ OBTENER VENDEDOR ASIGNADO DEL CLIENTE
+        vendedor_asignado = getattr(cliente, 'vendedor_asignado', None)
+        
         # Validar que la plantilla tenga archivo
         if not plantilla.archivo_plantilla:
             return JsonResponse({
@@ -444,13 +453,14 @@ def contrato_generar_api(request):
                 'error': 'La plantilla no tiene un archivo asociado'
             }, status=400)
         
-        # ✅ CREAR CONTRATO CON EL NUEVO CÁLCULO
+        # ✅ CREAR CONTRATO CON VENDEDOR ASIGNADO
         contrato = ContratoGenerado.objects.create(
             plantilla_usada=plantilla,
             cliente=cliente,
+            vendedor_asignado=vendedor_asignado,  # ✅ NUEVO CAMPO
             nombre_cliente=cliente.empresa or cliente.get_full_name(),
             ruc_dni_cliente=cliente.ruc_dni or '',
-            valor_sin_iva=Decimal(str(data['valor_total'])),  # Usamos el valor total calculado
+            valor_sin_iva=Decimal(str(data['valor_total'])),
             generado_por=request.user,
             estado='borrador'
         )
@@ -461,8 +471,10 @@ def contrato_generar_api(request):
             'FECHA_FIN_RAW': data['fecha_fin'],
             'SPOTS_DIA': data.get('spots_dia', 1),
             'DURACION_SPOT': data.get('duracion_spot', 30),
-            'VALOR_POR_SEGUNDO': data.get('valor_por_segundo', 0),  # Nuevo campo
-            'OBSERVACIONES': data.get('observaciones', '')
+            'VALOR_POR_SEGUNDO': data.get('valor_por_segundo', 0),
+            'OBSERVACIONES': data.get('observaciones', ''),
+            'VENDEDOR_ASIGNADO_ID': vendedor_asignado.id if vendedor_asignado else None,  # ✅ GUARDAR ID DEL VENDEDOR
+            'VENDEDOR_ASIGNADO_NOMBRE': vendedor_asignado.get_full_name() if vendedor_asignado else None
         }
         contrato.save()
         
@@ -473,6 +485,7 @@ def contrato_generar_api(request):
                 'message': 'Contrato generado exitosamente',
                 'contrato_id': contrato.id,
                 'numero_contrato': contrato.numero_contrato,
+                'vendedor_asignado': vendedor_asignado.get_full_name() if vendedor_asignado else 'No asignado',  # ✅ INFORMAR VENDEDOR
                 'archivo_url': contrato.archivo_contrato_pdf.url if contrato.archivo_contrato_pdf else None
             })
         else:
@@ -495,7 +508,6 @@ def contrato_generar_api(request):
             'success': False,
             'error': f'Error al generar el contrato: {str(e)}'
         }, status=500)
-
 @login_required
 @user_passes_test(is_admin)
 def contrato_detalle(request, contrato_id):
@@ -6172,3 +6184,874 @@ def reports_ingresos_contratos(request):
         print(f"❌ ERROR en reports_ingresos_contratos: {e}")
         messages.error(request, f'Error al generar el reporte: {str(e)}')
         return redirect('custom_admin:reports_dashboard_contratos')
+# ==================== REPORTES DE VENDEDORES ====================
+@login_required
+@user_passes_test(is_admin)
+def reports_dashboard_vendedores(request):
+    """Dashboard de reportes de vendedores - VERSIÓN CORREGIDA SIN DUPLICADOS"""
+    
+    # Verificar disponibilidad de modelos
+    if not AUTH_MODELS_AVAILABLE or not CONTENT_MODELS_AVAILABLE:
+        context = {
+            'error': 'Módulos necesarios no disponibles',
+            'estadisticas_vendedores': [],
+            'total_vendedores': 0,
+            'total_contratos_general': 0,
+            'total_ingresos_general': Decimal('0.00'),
+            'vendedor_top': None,
+            'fecha_inicio': '',
+            'fecha_fin': '',
+            'fecha_reporte': timezone.now().strftime('%d/%m/%Y %H:%M'),
+        }
+        return render(request, 'custom_admin/reports/vendedores/dashboard.html', context)
+    
+    try:
+        # Parámetros de filtro
+        fecha_inicio = request.GET.get('fecha_inicio')
+        fecha_fin = request.GET.get('fecha_fin')
+        
+        # Si no hay fechas, usar el último mes
+        if not fecha_inicio:
+            fecha_inicio = (timezone.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+        if not fecha_fin:
+            fecha_fin = timezone.now().strftime('%Y-%m-%d')
+        
+        # Convertir a objetos date para consultas
+        fecha_inicio_obj = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+        fecha_fin_obj = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+        
+        # Obtener todos los vendedores activos
+        vendedores = CustomUser.objects.filter(
+            rol='vendedor',
+            is_active=True
+        ).order_by('first_name', 'last_name')
+        
+        # Estadísticas de vendedores - EVITAR DUPLICADOS
+        estadisticas_vendedores = []
+        
+        for vendedor in vendedores:
+            try:
+                # ✅ CORREGIDO: Solo contratos donde el vendedor está asignado (NO duplicar)
+                contratos_vendedor = ContratoGenerado.objects.filter(
+                    Q(cliente__vendedor_asignado=vendedor) |  # Contratos de sus clientes
+                    Q(vendedor_asignado=vendedor),  # Contratos donde es vendedor directo
+                    fecha_generacion__date__gte=fecha_inicio_obj,
+                    fecha_generacion__date__lte=fecha_fin_obj
+                ).distinct()  # ✅ EVITAR DUPLICADOS
+                
+                # ✅ CORREGIDO: Cuñas del vendedor
+                cuñas_vendedor = CuñaPublicitaria.objects.filter(
+                    vendedor_asignado=vendedor,
+                    created_at__date__gte=fecha_inicio_obj,
+                    created_at__date__lte=fecha_fin_obj
+                )
+                
+                # Calcular estadísticas
+                total_contratos = contratos_vendedor.count()
+                total_cuñas = cuñas_vendedor.count()
+                
+                # Ingresos de contratos
+                ingresos_contratos_result = contratos_vendedor.aggregate(
+                    total=Sum('valor_total')
+                )
+                ingresos_contratos = ingresos_contratos_result['total'] or Decimal('0.00')
+                
+                # Ingresos de cuñas
+                ingresos_cuñas_result = cuñas_vendedor.aggregate(
+                    total=Sum('precio_total')
+                )
+                ingresos_cuñas = ingresos_cuñas_result['total'] or Decimal('0.00')
+                
+                # Total de ingresos
+                ingresos_totales = ingresos_contratos + ingresos_cuñas
+                
+                # Clientes asignados
+                clientes_asignados = CustomUser.objects.filter(
+                    vendedor_asignado=vendedor,
+                    rol='cliente',
+                    is_active=True
+                ).count()
+                
+                # Solo incluir vendedores con actividad
+                if total_contratos > 0 or total_cuñas > 0:
+                    estadisticas_vendedores.append({
+                        'vendedor': vendedor,
+                        'total_contratos': total_contratos,
+                        'total_cuñas': total_cuñas,
+                        'ingresos_contratos': ingresos_contratos,
+                        'ingresos_cuñas': ingresos_cuñas,
+                        'ingresos_totales': ingresos_totales,
+                        'clientes_asignados': clientes_asignados,
+                    })
+                
+            except Exception as e:
+                print(f"Error procesando vendedor {vendedor.username}: {e}")
+                continue
+        
+        # Ordenar por ingresos totales (mayor a menor)
+        estadisticas_vendedores.sort(key=lambda x: x['ingresos_totales'], reverse=True)
+        
+        # Estadísticas generales
+        total_vendedores = len(estadisticas_vendedores)
+        total_contratos_general = sum(item['total_contratos'] for item in estadisticas_vendedores)
+        total_ingresos_general = sum(item['ingresos_totales'] for item in estadisticas_vendedores)
+        
+        # Vendedor top
+        vendedor_top = estadisticas_vendedores[0] if estadisticas_vendedores else None
+        
+        # ==================== GRÁFICAS CON PLOTLY - CORREGIDAS ====================
+        
+        # 1. Gráfico de barras - Top 5 Vendedores por Ingresos
+        top_vendedores_data = estadisticas_vendedores[:5] if estadisticas_vendedores else []
+        
+        grafica_barras_html = ''
+        grafica_pastel_html = ''
+        
+        if top_vendedores_data and PLOTLY_AVAILABLE:
+            try:
+                vendedores_nombres = [v['vendedor'].get_full_name() for v in top_vendedores_data]
+                vendedores_ingresos = [float(v['ingresos_totales']) for v in top_vendedores_data]
+                
+                fig_barras = px.bar(
+                    x=vendedores_ingresos,
+                    y=vendedores_nombres,
+                    orientation='h',
+                    title='Top 5 Vendedores por Ingresos',
+                    labels={'x': 'Ingresos ($)', 'y': 'Vendedor'},
+                    color=vendedores_ingresos,
+                    color_continuous_scale='Viridis'
+                )
+                
+                fig_barras.update_traces(
+                    hovertemplate='<b>%{y}</b><br>Ingresos: $%{x:,.2f}'
+                )
+                
+                fig_barras.update_layout(
+                    height=400,
+                    showlegend=False,
+                    coloraxis_showscale=False
+                )
+                
+                fig_barras.update_xaxes(tickprefix="$", tickformat=",.")
+                
+                grafica_barras_html = pyo.plot(fig_barras, output_type='div', include_plotlyjs=False)
+            except Exception as e:
+                print(f"Error generando gráfica de barras: {e}")
+        
+        # 2. Gráfico de pastel - Distribución de Ingresos
+        if estadisticas_vendedores and PLOTLY_AVAILABLE:
+            try:
+                ingresos_contratos_total = sum(item['ingresos_contratos'] for item in estadisticas_vendedores)
+                ingresos_cunas_total = sum(item['ingresos_cuñas'] for item in estadisticas_vendedores)
+                
+                if ingresos_contratos_total > 0 or ingresos_cunas_total > 0:
+                    datos_distribucion = {
+                        'Tipo': ['Contratos', 'Cuñas'],
+                        'Ingresos': [float(ingresos_contratos_total), float(ingresos_cunas_total)]
+                    }
+                    
+                    fig_pastel = px.pie(
+                        datos_distribucion,
+                        values='Ingresos',
+                        names='Tipo',
+                        title='Distribución de Ingresos',
+                        color='Tipo',
+                        color_discrete_map={
+                            'Contratos': '#4e73df',
+                            'Cuñas': '#1cc88a'
+                        }
+                    )
+                    
+                    fig_pastel.update_traces(
+                        textposition='inside',
+                        textinfo='percent+label',
+                        hovertemplate='<b>%{label}</b><br>Ingresos: $%{value:,.2f}<br>Porcentaje: %{percent}'
+                    )
+                    
+                    fig_pastel.update_layout(
+                        height=400,
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=-0.3,
+                            xanchor="center",
+                            x=0.5
+                        )
+                    )
+                    
+                    grafica_pastel_html = pyo.plot(fig_pastel, output_type='div', include_plotlyjs=False)
+            except Exception as e:
+                print(f"Error generando gráfica de pastel: {e}")
+        
+        context = {
+            'estadisticas_vendedores': estadisticas_vendedores,
+            'total_vendedores': total_vendedores,
+            'total_contratos_general': total_contratos_general,
+            'total_ingresos_general': total_ingresos_general,
+            'vendedor_top': vendedor_top,
+            'fecha_inicio': fecha_inicio,
+            'fecha_fin': fecha_fin,
+            'fecha_reporte': timezone.now().strftime('%d/%m/%Y %H:%M'),
+            'grafica_barras_html': grafica_barras_html,
+            'grafica_pastel_html': grafica_pastel_html,
+            'PLOTLY_AVAILABLE': PLOTLY_AVAILABLE,
+        }
+        
+        return render(request, 'custom_admin/reports/vendedores/dashboard.html', context)
+        
+    except Exception as e:
+        print(f"❌ ERROR en reports_dashboard_vendedores: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        context = {
+            'error': 'Error al cargar el reporte de vendedores',
+            'estadisticas_vendedores': [],
+            'total_vendedores': 0,
+            'total_contratos_general': 0,
+            'total_ingresos_general': Decimal('0.00'),
+            'vendedor_top': None,
+            'fecha_inicio': fecha_inicio if 'fecha_inicio' in locals() else '',
+            'fecha_fin': fecha_fin if 'fecha_fin' in locals() else '',
+            'fecha_reporte': timezone.now().strftime('%d/%m/%Y %H:%M'),
+            'grafica_barras_html': '',
+            'grafica_pastel_html': '',
+            'PLOTLY_AVAILABLE': PLOTLY_AVAILABLE,
+        }
+        return render(request, 'custom_admin/reports/vendedores/dashboard.html', context)
+@login_required
+@user_passes_test(is_admin)
+def cliente_contratos_api(request, cliente_id):
+    """API para obtener contratos de un cliente específico"""
+    try:
+        cliente = get_object_or_404(CustomUser, pk=cliente_id, rol='cliente')
+        
+        # Obtener contratos del cliente
+        contratos = ContratoGenerado.objects.filter(
+            cliente=cliente
+        ).select_related('cuña', 'plantilla_usada').order_by('-fecha_generacion')
+        
+        data = {
+            'success': True,
+            'cliente': {
+                'id': cliente.id,
+                'nombre': cliente.get_full_name(),
+                'empresa': cliente.empresa,
+                'email': cliente.email
+            },
+            'contratos': [
+                {
+                    'id': c.id,
+                    'numero_contrato': c.numero_contrato,
+                    'estado': c.estado,
+                    'estado_display': c.get_estado_display(),
+                    'valor_total': str(c.valor_total),
+                    'fecha_generacion': c.fecha_generacion.strftime('%d/%m/%Y %H:%M'),
+                    'cuña_titulo': c.cuña.titulo if c.cuña else None,
+                    'plantilla_nombre': c.plantilla_usada.nombre if c.plantilla_usada else None
+                } for c in contratos
+            ],
+            'total_contratos': contratos.count()
+        }
+        
+        return JsonResponse(data)
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+@login_required
+@user_passes_test(is_admin)
+def vendedor_contratos_api(request, vendedor_id):
+    """API para obtener contratos de un vendedor específico"""
+    try:
+        vendedor = get_object_or_404(CustomUser, pk=vendedor_id, rol='vendedor')
+        
+        # Obtener contratos del vendedor (asignados a sus clientes)
+        contratos = ContratoGenerado.objects.filter(
+            cliente__vendedor_asignado=vendedor
+        ).select_related('cliente', 'cuña', 'plantilla_usada').order_by('-fecha_generacion')
+        
+        # Obtener cuñas del vendedor
+        cuñas = CuñaPublicitaria.objects.filter(
+            vendedor_asignado=vendedor
+        ).select_related('cliente', 'categoria').order_by('-created_at')
+        
+        data = {
+            'success': True,
+            'vendedor': {
+                'id': vendedor.id,
+                'nombre': vendedor.get_full_name(),
+                'email': vendedor.email,
+                'telefono': vendedor.telefono or 'No disponible'
+            },
+            'contratos': [
+                {
+                    'id': c.id,
+                    'numero_contrato': c.numero_contrato,
+                    'estado': c.estado,
+                    'estado_display': c.get_estado_display(),
+                    'valor_total': str(c.valor_total),
+                    'fecha_generacion': c.fecha_generacion.strftime('%d/%m/%Y %H:%M'),
+                    'cliente_nombre': c.nombre_cliente,
+                    'cliente_empresa': c.cliente.empresa if c.cliente else None,
+                    'cuña_titulo': c.cuña.titulo if c.cuña else None,
+                    'plantilla_nombre': c.plantilla_usada.nombre if c.plantilla_usada else None
+                } for c in contratos
+            ],
+            'cuñas': [
+                {
+                    'id': c.id,
+                    'codigo': c.codigo,
+                    'titulo': c.titulo,
+                    'estado': c.estado,
+                    'estado_display': c.get_estado_display(),
+                    'precio_total': str(c.precio_total),
+                    'fecha_inicio': c.fecha_inicio.strftime('%d/%m/%Y') if c.fecha_inicio else None,
+                    'fecha_fin': c.fecha_fin.strftime('%d/%m/%Y') if c.fecha_fin else None,
+                    'cliente_nombre': c.cliente.get_full_name() if c.cliente else None,
+                    'cliente_empresa': c.cliente.empresa if c.cliente else None
+                } for c in cuñas
+            ],
+            'total_contratos': contratos.count(),
+            'total_cuñas': cuñas.count(),
+            'ingresos_contratos': str(contratos.aggregate(total=Sum('valor_total'))['total'] or Decimal('0.00')),
+            'ingresos_cuñas': str(cuñas.aggregate(total=Sum('precio_total'))['total'] or Decimal('0.00'))
+        }
+        
+        return JsonResponse(data)
+        
+    except Exception as e:
+        import traceback
+        print(f"❌ ERROR en vendedor_contratos_api: {str(e)}")
+        traceback.print_exc()
+        return JsonResponse({'success': False, 'error': str(e)})
+@login_required
+@user_passes_test(is_admin)
+def reports_detalle_vendedor(request, vendedor_id):
+    """Detalle del desempeño de un vendedor específico - VERSIÓN CORREGIDA"""
+    
+    # Verificar disponibilidad de modelos
+    if not AUTH_MODELS_AVAILABLE or not CONTENT_MODELS_AVAILABLE:
+        messages.error(request, 'Módulos necesarios no disponibles')
+        return redirect('custom_admin:reports_dashboard_vendedores')
+    
+    try:
+        vendedor = CustomUser.objects.get(pk=vendedor_id, rol='vendedor')
+    except CustomUser.DoesNotExist:
+        messages.error(request, 'Vendedor no encontrado')
+        return redirect('custom_admin:reports_dashboard_vendedores')
+    
+    try:
+        # Parámetros de filtro
+        fecha_inicio = request.GET.get('fecha_inicio')
+        fecha_fin = request.GET.get('fecha_fin')
+        
+        # Si no hay fechas, usar el último mes
+        if not fecha_inicio:
+            fecha_inicio = (timezone.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+        if not fecha_fin:
+            fecha_fin = timezone.now().strftime('%Y-%m-%d')
+        
+        # Convertir a objetos date
+        fecha_inicio_obj = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+        fecha_fin_obj = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+        
+        # ✅ CORREGIDO: Contratos donde el vendedor está asignado (a través del cliente)
+        contratos = ContratoGenerado.objects.filter(
+            cliente__vendedor_asignado=vendedor,
+            fecha_generacion__date__gte=fecha_inicio_obj,
+            fecha_generacion__date__lte=fecha_fin_obj
+        ).select_related('cliente', 'cuña').order_by('-fecha_generacion')
+        
+        # ✅ CORREGIDO: Cuñas del vendedor
+        cuñas = CuñaPublicitaria.objects.filter(
+            vendedor_asignado=vendedor,
+            created_at__date__gte=fecha_inicio_obj,
+            created_at__date__lte=fecha_fin_obj
+        ).select_related('cliente', 'categoria').order_by('-created_at')
+        
+        # Clientes asignados
+        clientes = CustomUser.objects.filter(
+            vendedor_asignado=vendedor,
+            rol='cliente',
+            is_active=True
+        ).order_by('empresa', 'first_name')
+        
+        # Estadísticas
+        total_contratos = contratos.count()
+        total_cuñas = cuñas.count()
+        total_clientes = clientes.count()
+        
+        # Ingresos de contratos
+        ingresos_contratos_result = contratos.aggregate(
+            total=Sum('valor_total')
+        )
+        ingresos_contratos = ingresos_contratos_result['total'] or Decimal('0.00')
+        
+        # Ingresos de cuñas
+        ingresos_cuñas_result = cuñas.aggregate(
+            total=Sum('precio_total')
+        )
+        ingresos_cuñas = ingresos_cuñas_result['total'] or Decimal('0.00')
+        
+        # Total de ingresos
+        ingresos_totales = ingresos_contratos + ingresos_cuñas
+        
+        # Promedio por contrato
+        ingresos_por_contrato = ingresos_contratos / total_contratos if total_contratos > 0 else Decimal('0.00')
+        
+        # Contratos por estado
+        contratos_por_estado = contratos.values('estado').annotate(
+            total=Count('id'),
+            valor_total=Sum('valor_total')
+        ).order_by('estado')
+        
+        context = {
+            'vendedor': vendedor,
+            'contratos': contratos,
+            'cuñas': cuñas,
+            'clientes': clientes,
+            'total_contratos': total_contratos,
+            'total_cuñas': total_cuñas,
+            'total_clientes': total_clientes,
+            'ingresos_contratos': ingresos_contratos,
+            'ingresos_cuñas': ingresos_cuñas,
+            'ingresos_totales': ingresos_totales,
+            'ingresos_por_contrato': ingresos_por_contrato,
+            'contratos_por_estado': contratos_por_estado,
+            'fecha_inicio': fecha_inicio,
+            'fecha_fin': fecha_fin,
+            'fecha_reporte': timezone.now().strftime('%d/%m/%Y %H:%M'),
+        }
+        
+        return render(request, 'custom_admin/reports/vendedores/detalle.html', context)
+        
+    except Exception as e:
+        print(f"❌ ERROR en reports_detalle_vendedor: {e}")
+        messages.error(request, f'Error al cargar el detalle del vendedor: {str(e)}')
+        return redirect('custom_admin:reports_dashboard_vendedores')
+@login_required
+@user_passes_test(is_admin)
+def reports_detalle_vendedor(request, vendedor_id):
+    """Detalle del desempeño de un vendedor específico - CORREGIDO"""
+    
+    # Verificar disponibilidad de modelos
+    if not AUTH_MODELS_AVAILABLE or not CONTENT_MODELS_AVAILABLE:
+        messages.error(request, 'Módulos necesarios no disponibles')
+        return redirect('custom_admin:reports_dashboard_vendedores')
+    
+    try:
+        vendedor = CustomUser.objects.get(pk=vendedor_id, rol='vendedor')
+    except CustomUser.DoesNotExist:
+        messages.error(request, 'Vendedor no encontrado')
+        return redirect('custom_admin:reports_dashboard_vendedores')
+    
+    try:
+        # Parámetros de filtro
+        fecha_inicio = request.GET.get('fecha_inicio')
+        fecha_fin = request.GET.get('fecha_fin')
+        
+        # Si no hay fechas, usar el último mes
+        if not fecha_inicio:
+            fecha_inicio = (timezone.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+        if not fecha_fin:
+            fecha_fin = timezone.now().strftime('%Y-%m-%d')
+        
+        # Convertir a objetos date
+        fecha_inicio_obj = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+        fecha_fin_obj = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+        
+        # ✅ CORREGIDO: Contratos donde el vendedor está asignado (a través del cliente)
+        contratos_asignados = ContratoGenerado.objects.filter(
+            cliente__vendedor_asignado=vendedor,
+            fecha_generacion__date__gte=fecha_inicio_obj,
+            fecha_generacion__date__lte=fecha_fin_obj
+        ).select_related('cliente', 'cuña').order_by('-fecha_generacion')
+        
+        # ✅ CORREGIDO: Contratos generados por el vendedor
+        contratos_generados = ContratoGenerado.objects.filter(
+            generado_por=vendedor,
+            fecha_generacion__date__gte=fecha_inicio_obj,
+            fecha_generacion__date__lte=fecha_fin_obj
+        ).select_related('cliente', 'cuña').order_by('-fecha_generacion')
+        
+        # ✅ CORREGIDO: Cuñas del vendedor
+        cuñas = CuñaPublicitaria.objects.filter(
+            vendedor_asignado=vendedor,
+            created_at__date__gte=fecha_inicio_obj,
+            created_at__date__lte=fecha_fin_obj
+        ).select_related('cliente', 'categoria').order_by('-created_at')
+        
+        # Clientes asignados
+        clientes = CustomUser.objects.filter(
+            vendedor_asignado=vendedor,
+            rol='cliente',
+            is_active=True
+        ).order_by('empresa', 'first_name')
+        
+        # Estadísticas
+        total_contratos_asignados = contratos_asignados.count()
+        total_contratos_generados = contratos_generados.count()
+        total_cuñas = cuñas.count()
+        total_clientes = clientes.count()
+        
+        # Ingresos de contratos asignados
+        ingresos_contratos_asignados_result = contratos_asignados.aggregate(
+            total=Sum('valor_total')
+        )
+        ingresos_contratos_asignados = ingresos_contratos_asignados_result['total'] or Decimal('0.00')
+        
+        # Ingresos de contratos generados
+        ingresos_contratos_generados_result = contratos_generados.aggregate(
+            total=Sum('valor_total')
+        )
+        ingresos_contratos_generados = ingresos_contratos_generados_result['total'] or Decimal('0.00')
+        
+        # Ingresos de cuñas
+        ingresos_cuñas_result = cuñas.aggregate(
+            total=Sum('precio_total')
+        )
+        ingresos_cuñas = ingresos_cuñas_result['total'] or Decimal('0.00')
+        
+        # Total de ingresos
+        ingresos_totales = ingresos_contratos_asignados + ingresos_cuñas
+        
+        # Contratos por estado (solo los asignados)
+        contratos_por_estado = contratos_asignados.values('estado').annotate(
+            total=Count('id'),
+            valor_total=Sum('valor_total')
+        ).order_by('estado')
+        
+        context = {
+            'vendedor': vendedor,
+            'contratos_asignados': contratos_asignados,
+            'contratos_generados': contratos_generados,
+            'cuñas': cuñas,
+            'clientes': clientes,
+            'total_contratos_asignados': total_contratos_asignados,
+            'total_contratos_generados': total_contratos_generados,
+            'total_cuñas': total_cuñas,
+            'total_clientes': total_clientes,
+            'ingresos_contratos_asignados': ingresos_contratos_asignados,
+            'ingresos_contratos_generados': ingresos_contratos_generados,
+            'ingresos_cuñas': ingresos_cuñas,
+            'ingresos_totales': ingresos_totales,
+            'contratos_por_estado': contratos_por_estado,
+            'fecha_inicio': fecha_inicio,
+            'fecha_fin': fecha_fin,
+            'fecha_reporte': timezone.now().strftime('%d/%m/%Y %H:%M'),
+        }
+        
+        return render(request, 'custom_admin/reports/vendedores/detalle.html', context)
+        
+    except Exception as e:
+        print(f"❌ ERROR en reports_detalle_vendedor: {e}")
+        messages.error(request, f'Error al cargar el detalle del vendedor: {str(e)}')
+        return redirect('custom_admin:reports_dashboard_vendedores')
+# ==================== DASHBOARD PRINCIPAL DE REPORTES ====================
+@login_required
+@user_passes_test(is_admin)
+def reports_dashboard_principal(request):
+    """Dashboard principal unificado de reportes"""
+    
+    # Verificar disponibilidad de modelos
+    modelos_disponibles = CONTENT_MODELS_AVAILABLE and AUTH_MODELS_AVAILABLE
+    
+    context = {
+        'models_available': modelos_disponibles,
+        'fecha_reporte': timezone.now().strftime('%d/%m/%Y %H:%M'),
+    }
+    
+    # Si los modelos están disponibles, cargar datos
+    if modelos_disponibles:
+        try:
+            hoy = timezone.now().date()
+            
+            # ========== DATOS DE CONTRATOS ==========
+            stats_contratos = _calcular_estadisticas_contratos()
+            context.update(stats_contratos)
+            
+            # ========== DATOS DE VENDEDORES ==========
+            # Parámetros de filtro para vendedores
+            fecha_inicio_vendedores = request.GET.get('fecha_inicio_vendedores')
+            fecha_fin_vendedores = request.GET.get('fecha_fin_vendedores')
+            
+            # Convertir fechas si se proporcionan
+            fecha_inicio_obj = None
+            fecha_fin_obj = None
+            
+            if fecha_inicio_vendedores:
+                fecha_inicio_obj = datetime.strptime(fecha_inicio_vendedores, '%Y-%m-%d').date()
+            if fecha_fin_vendedores:
+                fecha_fin_obj = datetime.strptime(fecha_fin_vendedores, '%Y-%m-%d').date()
+            
+            # Calcular estadísticas de vendedores
+            estadisticas_vendedores = _calcular_estadisticas_vendedores(
+                fecha_inicio_obj, fecha_fin_obj
+            )
+            
+            # Estadísticas generales de vendedores
+            vendedores_activos = CustomUser.objects.filter(
+                rol='vendedor', 
+                is_active=True
+            ).count()
+            
+            total_ingresos_vendedores = sum(
+                item['ingresos_totales'] for item in estadisticas_vendedores
+            )
+            
+            vendedor_top = estadisticas_vendedores[0] if estadisticas_vendedores else None
+            
+            # Agregar datos al contexto
+            context.update({
+                # Vendedores
+                'vendedores_activos': vendedores_activos,
+                'estadisticas_vendedores': estadisticas_vendedores[:5],  # Top 5
+                'vendedor_top': vendedor_top,
+                'total_ingresos_vendedores': total_ingresos_vendedores,
+                'fecha_inicio_vendedores': fecha_inicio_vendedores,
+                'fecha_fin_vendedores': fecha_fin_vendedores,
+                
+                # Gráficas
+                'PLOTLY_AVAILABLE': PLOTLY_AVAILABLE,
+            })
+            
+            # Generar gráficas si Plotly está disponible
+            if PLOTLY_AVAILABLE:
+                # Gráfica de pastel - Estados de contratos
+                estados_data = [
+                    ('Validados', stats_contratos['contratos_activos']),
+                    ('Pendientes', stats_contratos['contratos_pendientes']),
+                    ('Por Vencer', stats_contratos['contratos_por_vencer']),
+                    ('Vencidos', stats_contratos['contratos_vencidos']),
+                    ('Cancelados', stats_contratos['contratos_cancelados']),
+                ]
+                
+                estados_labels = [item[0] for item in estados_data]
+                estados_values = [item[1] for item in estados_data]
+                
+                fig_pastel = px.pie(
+                    values=estados_values,
+                    names=estados_labels,
+                    title='Contratos por Estado',
+                    color_discrete_sequence=['#28a745', '#ffc107', '#17a2b8', '#dc3545', '#6c757d']
+                )
+                fig_pastel.update_layout(height=400)
+                context['grafica_estados_html'] = pyo.plot(fig_pastel, output_type='div', include_plotlyjs=False)
+                
+                # Gráfica de barras - Ingresos mensuales (últimos 6 meses)
+                ingresos_mensuales = []
+                for i in range(5, -1, -1):
+                    mes_fecha = hoy - timedelta(days=30*i)
+                    mes_nombre = mes_fecha.strftime('%b %Y')
+                    
+                    ingresos_mes_result = ContratoGenerado.objects.filter(
+                        fecha_generacion__year=mes_fecha.year,
+                        fecha_generacion__month=mes_fecha.month
+                    ).aggregate(total=Sum('valor_total'))
+                    
+                    ingresos_mes = ingresos_mes_result['total'] or Decimal('0.00')
+                    ingresos_mensuales.append({
+                        'mes': mes_nombre,
+                        'ingresos': float(ingresos_mes)
+                    })
+                
+                if ingresos_mensuales:
+                    meses = [item['mes'] for item in ingresos_mensuales]
+                    ingresos = [item['ingresos'] for item in ingresos_mensuales]
+                    
+                    fig_barras = px.bar(
+                        x=meses,
+                        y=ingresos,
+                        title='Ingresos Mensuales',
+                        labels={'x': 'Mes', 'y': 'Ingresos ($)'}
+                    )
+                    fig_barras.update_layout(height=400)
+                    fig_barras.update_traces(marker_color='#007bff')
+                    context['grafica_ingresos_html'] = pyo.plot(fig_barras, output_type='div', include_plotlyjs=False)
+                
+                # Gráfica de vendedores
+                if estadisticas_vendedores:
+                    vendedores_nombres = [v['vendedor'].get_full_name() for v in estadisticas_vendedores[:5]]
+                    vendedores_ingresos = [float(v['ingresos_totales']) for v in estadisticas_vendedores[:5]]
+                    
+                    fig_vendedores = px.bar(
+                        x=vendedores_ingresos,
+                        y=vendedores_nombres,
+                        orientation='h',
+                        title='Top 5 Vendedores por Ingresos',
+                        labels={'x': 'Ingresos ($)', 'y': 'Vendedor'}
+                    )
+                    fig_vendedores.update_layout(height=400)
+                    fig_vendedores.update_traces(marker_color='#28a745')
+                    context['grafica_vendedores_html'] = pyo.plot(fig_vendedores, output_type='div', include_plotlyjs=False)
+                    
+        except Exception as e:
+            print(f"❌ ERROR en reports_dashboard_principal: {e}")
+            import traceback
+            traceback.print_exc()
+            context['error'] = f'Error al cargar los datos: {str(e)}'
+    
+    return render(request, 'custom_admin/reports/dashboard_principal.html', context)
+    
+@login_required
+@user_passes_test(is_admin)
+def reports_contratos_detalle_api(request):
+    """API para obtener detalle de contratos para el modal"""
+    try:
+        contratos_recientes = ContratoGenerado.objects.select_related(
+            'cliente', 'cuña'
+        ).order_by('-fecha_generacion')[:10]
+        
+        data = {
+            'contratos': [
+                {
+                    'numero': c.numero_contrato,
+                    'cliente': c.nombre_cliente,
+                    'estado': c.estado,
+                    'valor': str(c.valor_total),
+                    'fecha': c.fecha_generacion.strftime('%d/%m/%Y')
+                } for c in contratos_recientes
+            ]
+        }
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+def reports_vendedores_detalle_api(request):
+    """API para obtener detalle de vendedores para el modal"""
+    try:
+        vendedores = CustomUser.objects.filter(rol='vendedor', is_active=True)
+        
+        data = {
+            'vendedores': [
+                {
+                    'nombre': v.get_full_name(),
+                    'email': v.email,
+                    'contratos': ContratoGenerado.objects.filter(generado_por=v).count(),
+                    'ingresos': str(ContratoGenerado.objects.filter(
+                        generado_por=v
+                    ).aggregate(total=Sum('valor_total'))['total'] or Decimal('0.00'))
+                } for v in vendedores
+            ]
+        }
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+# ==================== FUNCIONES AUXILIARES PARA REPORTES ====================
+
+def _calcular_estadisticas_vendedores(fecha_inicio=None, fecha_fin=None):
+    """Calcula estadísticas de vendedores para el período especificado"""
+    try:
+        vendedores = CustomUser.objects.filter(rol='vendedor', is_active=True)
+        estadisticas = []
+        
+        for vendedor in vendedores:
+            # Filtrar por fechas si se especifican
+            filtros_contratos = {'vendedor_asignado': vendedor}
+            filtros_cunas = {'vendedor_asignado': vendedor}
+            
+            if fecha_inicio and fecha_fin:
+                filtros_contratos['fecha_generacion__range'] = [fecha_inicio, fecha_fin]
+                filtros_cunas['created_at__range'] = [fecha_inicio, fecha_fin]
+            
+            # Contratos del vendedor
+            contratos_vendedor = ContratoGenerado.objects.filter(**filtros_contratos)
+            total_contratos = contratos_vendedor.count()
+            
+            # Cuñas del vendedor
+            cuñas_vendedor = CuñaPublicitaria.objects.filter(**filtros_cunas)
+            total_cuñas = cuñas_vendedor.count()
+            
+            # Ingresos de contratos
+            ingresos_contratos = contratos_vendedor.aggregate(
+                total=Sum('valor_total')
+            )['total'] or Decimal('0.00')
+            
+            # Ingresos de cuñas
+            ingresos_cuñas = cuñas_vendedor.aggregate(
+                total=Sum('precio_total')
+            )['total'] or Decimal('0.00')
+            
+            # Total de ingresos
+            ingresos_totales = ingresos_contratos + ingresos_cuñas
+            
+            # Clientes asignados
+            clientes_asignados = CustomUser.objects.filter(
+                vendedor_asignado=vendedor,
+                rol='cliente',
+                is_active=True
+            ).count()
+            
+            estadisticas.append({
+                'vendedor': vendedor,
+                'total_contratos': total_contratos,
+                'total_cuñas': total_cuñas,
+                'ingresos_contratos': ingresos_contratos,
+                'ingresos_cuñas': ingresos_cuñas,
+                'ingresos_totales': ingresos_totales,
+                'clientes_asignados': clientes_asignados,
+            })
+        
+        # Ordenar por ingresos totales (mayor a menor)
+        estadisticas.sort(key=lambda x: x['ingresos_totales'], reverse=True)
+        return estadisticas
+        
+    except Exception as e:
+        print(f"❌ ERROR en _calcular_estadisticas_vendedores: {e}")
+        return []
+
+def _calcular_estadisticas_contratos():
+    """Calcula estadísticas generales de contratos"""
+    try:
+        hoy = timezone.now().date()
+        
+        # Totales básicos
+        total_contratos = ContratoGenerado.objects.count()
+        
+        # Contratos por estado
+        contratos_activos = ContratoGenerado.objects.filter(estado='validado').count()
+        contratos_pendientes = ContratoGenerado.objects.filter(estado='generado').count()
+        
+        # Contratos por vencer (validados que están cerca de vencer)
+        fecha_limite_vencimiento = hoy + timedelta(days=30)
+        contratos_por_vencer = ContratoGenerado.objects.filter(
+            estado='validado',
+            cuña__fecha_fin__lte=fecha_limite_vencimiento,
+            cuña__fecha_fin__gte=hoy
+        ).count()
+        
+        # Contratos vencidos
+        contratos_vencidos = ContratoGenerado.objects.filter(
+            estado='validado',
+            cuña__fecha_fin__lt=hoy
+        ).count()
+        
+        # Contratos cancelados
+        contratos_cancelados = ContratoGenerado.objects.filter(estado='cancelado').count()
+        
+        # Ingresos
+        ingresos_totales_result = ContratoGenerado.objects.aggregate(total=Sum('valor_total'))
+        ingresos_totales = ingresos_totales_result['total'] or Decimal('0.00')
+        
+        ingresos_activos_result = ContratoGenerado.objects.filter(estado='validado').aggregate(
+            total=Sum('valor_total')
+        )
+        ingresos_activos = ingresos_activos_result['total'] or Decimal('0.00')
+        
+        return {
+            'total_contratos': total_contratos,
+            'contratos_activos': contratos_activos,
+            'contratos_pendientes': contratos_pendientes,
+            'contratos_por_vencer': contratos_por_vencer,
+            'contratos_vencidos': contratos_vencidos,
+            'contratos_cancelados': contratos_cancelados,
+            'ingresos_totales': ingresos_totales,
+            'ingresos_activos': ingresos_activos,
+        }
+        
+    except Exception as e:
+        print(f"❌ ERROR en _calcular_estadisticas_contratos: {e}")
+        return {}

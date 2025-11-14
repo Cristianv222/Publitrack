@@ -1131,7 +1131,7 @@ class ContratoGenerado(models.Model):
         ('generado', 'Generado'),
         ('enviado', 'Enviado al Cliente'),
         ('firmado', 'Firmado'),
-        ('activo', 'Activo'),
+        ('validado', 'Validado'),  # ✅ NUEVO ESTADO
         ('vencido', 'Vencido'),
         ('cancelado', 'Cancelado'),
     ]
@@ -1142,7 +1142,7 @@ class ContratoGenerado(models.Model):
         on_delete=models.CASCADE, 
         related_name='contratos',
         verbose_name='Cuña Publicitaria',
-        null=True,        # <-- CAMBIO CLAVE
+        null=True,
         blank=True
     )
     plantilla_usada = models.ForeignKey(
@@ -1153,6 +1153,18 @@ class ContratoGenerado(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name='contratos_generados', verbose_name='Cliente'
     )
+    
+    # ✅ NUEVO CAMPO: Vendedor asignado (se copia automáticamente del cliente)
+    vendedor_asignado = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='contratos_asignados',
+        verbose_name='Vendedor Asignado',
+        help_text='Vendedor asignado al cliente (se copia automáticamente)'
+    )
+    
     nombre_cliente = models.CharField('Nombre del Cliente', max_length=255)
     ruc_dni_cliente = models.CharField('RUC/DNI del Cliente', max_length=20)
     archivo_contrato_pdf = models.FileField(
@@ -1174,6 +1186,18 @@ class ContratoGenerado(models.Model):
     fecha_generacion = models.DateTimeField('Fecha de Generación', auto_now_add=True)
     fecha_envio = models.DateTimeField('Fecha de Envío', null=True, blank=True)
     fecha_firma = models.DateTimeField('Fecha de Firma', null=True, blank=True)
+    
+    # ✅ NUEVOS CAMPOS PARA VALIDACIÓN
+    fecha_validacion = models.DateTimeField('Fecha de Validación', null=True, blank=True)
+    validado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='contratos_validados',
+        verbose_name='Validado por'
+    )
+    
     observaciones = models.TextField('Observaciones', blank=True)
     generado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
@@ -1189,6 +1213,7 @@ class ContratoGenerado(models.Model):
         indexes = [
             models.Index(fields=['numero_contrato']),
             models.Index(fields=['cliente', 'estado']),
+            models.Index(fields=['vendedor_asignado', 'estado']),  # ✅ NUEVO ÍNDICE
             models.Index(fields=['cuña']),
             models.Index(fields=['fecha_generacion']),
         ]
@@ -1199,6 +1224,11 @@ class ContratoGenerado(models.Model):
     def save(self, *args, **kwargs):
         if not self.numero_contrato:
             self.numero_contrato = self.generar_numero_contrato()
+        
+        # ✅ COPIAR VENDEDOR ASIGNADO DEL CLIENTE AUTOMÁTICAMENTE
+        if self.cliente and not self.vendedor_asignado:
+            self.vendedor_asignado = getattr(self.cliente, 'vendedor_asignado', None)
+        
         if self.valor_sin_iva and not self.valor_total:
             if self.plantilla_usada and self.plantilla_usada.incluye_iva:
                 porcentaje_iva = self.plantilla_usada.porcentaje_iva / 100
@@ -1343,33 +1373,39 @@ class ContratoGenerado(models.Model):
         try:
             if self.cuña:
                 return {'success': False, 'error': 'Este contrato ya tiene una cuña asociada'}
-        
+    
             datos = self.datos_generacion or {}
-        
-            # ✅ CAMBIO CLAVE: Cambiar estado de 'activa' a 'pendiente_revision'
+    
+            # ✅ CREAR CUÑA CON VENDEDOR ASIGNADO
             cuna = CuñaPublicitaria.objects.create(
                 codigo=f"CÑ-{self.numero_contrato}",
                 titulo=datos.get('TITULO_CUÑA', f"Cuña {self.nombre_cliente}"),
                 descripcion=f"Cuña generada automáticamente desde contrato {self.numero_contrato}",
                 cliente=self.cliente,
+                vendedor_asignado=self.vendedor_asignado,  # ✅ COPIAR VENDEDOR DEL CONTRATO
                 duracion_planeada=int(datos.get('DURACION_SPOT', 30)),
                 repeticiones_dia=int(datos.get('SPOTS_DIA', 1)),
                 fecha_inicio=str_to_date(self.datos_generacion.get('FECHA_INICIO_RAW')),
                 fecha_fin=str_to_date(self.datos_generacion.get('FECHA_FIN_RAW')),
                 precio_total=self.valor_total,
                 precio_por_segundo=self.valor_total / int(datos.get('DURACION_SPOT', 30)),
-                estado='pendiente_revision',  # ✅ CAMBIO AQUÍ: de 'activa' a 'pendiente_revision'
+                estado='pendiente_revision',
                 observaciones=self.observaciones,
-                created_by=user  # ✅ Añadir usuario que crea la cuña
+                created_by=user
             )
-        
+    
             self.cuña = cuna
             self.estado = 'validado'
             self.fecha_validacion = timezone.now()
             self.validado_por = user
             self.save()
-        
-            return {'success': True, 'cuna_id': cuna.id, 'message': 'Cuña creada exitosamente en estado pendiente'}
+    
+            return {
+                'success': True, 
+                'cuna_id': cuna.id, 
+                'message': 'Cuña creada exitosamente en estado pendiente',
+                'vendedor_asignado': self.vendedor_asignado.get_full_name() if self.vendedor_asignado else 'No asignado'  # ✅ INFORMAR VENDEDOR
+            }
     
         except Exception as e:
             return {'success': False, 'error': str(e)}

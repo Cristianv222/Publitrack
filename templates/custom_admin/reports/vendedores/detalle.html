@@ -1,0 +1,358 @@
+<!-- templates/custom_admin/reports/vendedores/detalle.html -->
+{% extends "custom_admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Detalle Vendedor - {{ vendedor.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-user-tie fa-fw"></i> 
+                {{ vendedor.get_full_name }}
+            </h1>
+            <p class="mb-0">Reporte detallado de desempeño</p>
+            <small class="text-muted">Email: {{ vendedor.email }} | Período: {{ fecha_inicio }} al {{ fecha_fin }}</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'custom_admin:reports_dashboard_vendedores' %}?fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}" 
+               class="btn btn-secondary">
+                <i class="fas fa-arrow-left fa-fw"></i> Volver al Dashboard
+            </a>
+            <!-- Filtros -->
+            <form method="get" class="d-flex gap-2 align-items-center">
+                <div>
+                    <label class="form-label small mb-1">Fecha Inicio</label>
+                    <input type="date" class="form-control form-control-sm" name="fecha_inicio" value="{{ fecha_inicio }}">
+                </div>
+                <div>
+                    <label class="form-label small mb-1">Fecha Fin</label>
+                    <input type="date" class="form-control form-control-sm" name="fecha_fin" value="{{ fecha_fin }}">
+                </div>
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fas fa-filter fa-fw"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Estadísticas del vendedor -->
+    <div class="row mb-4">
+        <!-- Contratos -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Contratos
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_contratos_asignados }}</div>
+                            <small class="text-muted">${{ ingresos_contratos_asignados }}</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-file-contract fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cuñas -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Cuñas
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_cuñas }}</div>
+                            <small class="text-muted">${{ ingresos_cuñas }}</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-broadcast-tower fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Clientes Asignados -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Clientes
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_clientes }}</div>
+                            <small class="text-muted">Asignados</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Ingresos -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Total Ingresos
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">${{ ingresos_totales }}</div>
+                            <small class="text-muted">Acumulado</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pestañas -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <ul class="nav nav-tabs card-header-tabs" id="myTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="contratos-tab" data-bs-toggle="tab" data-bs-target="#contratos" type="button" role="tab">
+                                <i class="fas fa-file-contract fa-fw"></i> Contratos ({{ total_contratos_asignados }})
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="cunas-tab" data-bs-toggle="tab" data-bs-target="#cunas" type="button" role="tab">
+                                <i class="fas fa-broadcast-tower fa-fw"></i> Cuñas ({{ total_cuñas }})
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="clientes-tab" data-bs-toggle="tab" data-bs-target="#clientes" type="button" role="tab">
+                                <i class="fas fa-users fa-fw"></i> Clientes ({{ total_clientes }})
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="myTabContent">
+                        <!-- Pestaña Contratos -->
+                        <div class="tab-pane fade show active" id="contratos" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Número</th>
+                                            <th>Cliente</th>
+                                            <th>Estado</th>
+                                            <th class="text-end">Valor</th>
+                                            <th>Fecha Generación</th>
+                                            <th>Vendedor Asignado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for contrato in contratos_asignados %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ contrato.numero_contrato }}</strong>
+                                            </td>
+                                            <td>{{ contrato.nombre_cliente }}</td>
+                                            <td>
+                                                <span class="badge badge-{{ contrato.estado }}">
+                                                    {{ contrato.get_estado_display }}
+                                                </span>
+                                            </td>
+                                            <td class="text-end">${{ contrato.valor_total }}</td>
+                                            <td>{{ contrato.fecha_generacion|date:"d/m/Y H:i" }}</td>
+                                            <td>
+                                                {% if contrato.cliente.vendedor_asignado %}
+                                                    {{ contrato.cliente.vendedor_asignado.get_full_name }}
+                                                {% else %}
+                                                    <span class="text-muted">No asignado</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted py-4">
+                                                No hay contratos asignados en el período seleccionado
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    {% if contratos_asignados %}
+                                    <tfoot class="thead-light">
+                                        <tr>
+                                            <th colspan="3" class="text-end">TOTAL:</th>
+                                            <th class="text-end">${{ ingresos_contratos_asignados }}</th>
+                                            <th colspan="2"></th>
+                                        </tr>
+                                    </tfoot>
+                                    {% endif %}
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Pestaña Cuñas -->
+                        <div class="tab-pane fade" id="cunas" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Código</th>
+                                            <th>Título</th>
+                                            <th>Cliente</th>
+                                            <th>Estado</th>
+                                            <th class="text-end">Precio Total</th>
+                                            <th>Fecha Inicio</th>
+                                            <th>Fecha Fin</th>
+                                            <th>Fecha Creación</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for cuna in cuñas %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ cuna.codigo }}</strong>
+                                            </td>
+                                            <td>{{ cuna.titulo }}</td>
+                                            <td>{{ cuna.cliente.empresa|default:cuna.cliente.get_full_name }}</td>
+                                            <td>
+                                                <span class="badge badge-{{ cuna.estado }}">
+                                                    {{ cuna.get_estado_display }}
+                                                </span>
+                                            </td>
+                                            <td class="text-end">${{ cuna.precio_total }}</td>
+                                            <td>{{ cuna.fecha_inicio|date:"d/m/Y"|default:"-" }}</td>
+                                            <td>{{ cuna.fecha_fin|date:"d/m/Y"|default:"-" }}</td>
+                                            <td>{{ cuna.created_at|date:"d/m/Y" }}</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="8" class="text-center text-muted py-4">
+                                                No hay cuñas en el período seleccionado
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    {% if cuñas %}
+                                    <tfoot class="thead-light">
+                                        <tr>
+                                            <th colspan="4" class="text-end">TOTAL:</th>
+                                            <th class="text-end">${{ ingresos_cuñas }}</th>
+                                            <th colspan="3"></th>
+                                        </tr>
+                                    </tfoot>
+                                    {% endif %}
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Pestaña Clientes -->
+                        <div class="tab-pane fade" id="clientes" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Empresa</th>
+                                            <th>Contacto</th>
+                                            <th>Email</th>
+                                            <th>Teléfono</th>
+                                            <th>RUC/DNI</th>
+                                            <th>Estado</th>
+                                            <th>Fecha Registro</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for cliente in clientes %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ cliente.empresa|default:"Sin empresa" }}</strong>
+                                            </td>
+                                            <td>{{ cliente.get_full_name }}</td>
+                                            <td>{{ cliente.email }}</td>
+                                            <td>{{ cliente.telefono|default:"-" }}</td>
+                                            <td>{{ cliente.ruc_dni|default:"-" }}</td>
+                                            <td>
+                                                <span class="badge badge-{{ cliente.status }}">
+                                                    {{ cliente.get_status_display }}
+                                                </span>
+                                            </td>
+                                            <td>{{ cliente.date_joined|date:"d/m/Y" }}</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted py-4">
+                                                No hay clientes asignados
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extrajs %}
+<script>
+// Activar pestañas
+document.addEventListener('DOMContentLoaded', function() {
+    var triggerTabList = [].slice.call(document.querySelectorAll('#myTab button'));
+    triggerTabList.forEach(function (triggerEl) {
+        var tabTrigger = new bootstrap.Tab(triggerEl);
+        triggerEl.addEventListener('click', function (event) {
+            event.preventDefault();
+            tabTrigger.show();
+        });
+    });
+
+    console.log('Detalle de vendedor cargado correctamente');
+});
+</script>
+
+<style>
+.badge-borrador { background-color: #6c757d; color: white; }
+.badge-generado { background-color: #17a2b8; color: white; }
+.badge-enviado { background-color: #ffc107; color: #212529; }
+.badge-firmado { background-color: #007bff; color: white; }
+.badge-validado { background-color: #28a745; color: white; }
+.badge-vencido { background-color: #dc3545; color: white; }
+.badge-cancelado { background-color: #6c757d; color: white; }
+.badge-activo { background-color: #28a745; color: white; }
+.badge-inactivo { background-color: #6c757d; color: white; }
+
+.nav-tabs .nav-link.active {
+    font-weight: 600;
+    border-bottom: 3px solid #007bff;
+}
+
+.card {
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.border-left-primary { border-left: 0.25rem solid #4e73df !important; }
+.border-left-success { border-left: 0.25rem solid #1cc88a !important; }
+.border-left-info { border-left: 0.25rem solid #36b9cc !important; }
+.border-left-warning { border-left: 0.25rem solid #f6c23e !important; }
+</style>
+{% endblock %}

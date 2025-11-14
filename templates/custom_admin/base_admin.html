@@ -851,7 +851,7 @@
                 </a>
             </div>
             
-            <!-- REPORTES -->
+         <!-- REPORTES -->
 <div class="menu-section">
     <div class="menu-section-title">REPORTES</div>
     
@@ -861,10 +861,16 @@
         <span>Dashboard Principal</span>
     </a>
     
-    <!-- Reportes de Contratos - Directo al list -->
+    <!-- Reportes de Contratos -->
     <a href="{% url 'custom_admin:reports_dashboard_contratos' %}" class="menu-link {% if 'reports_dashboard_contratos' in request.resolver_match.url_name %}active{% endif %}">
         <i class="fas fa-file-contract menu-icon"></i>
         <span>Contratos</span>
+    </a>
+    
+    <!-- NUEVO: Reportes de Vendedores -->
+    <a href="{% url 'custom_admin:reports_dashboard_vendedores' %}" class="menu-link {% if 'reports_dashboard_vendedores' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="fas fa-user-tie menu-icon"></i>
+        <span>Vendedores</span>
     </a>
 </div>
             <!-- CONFIGURACIÓN -->

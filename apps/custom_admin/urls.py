@@ -88,8 +88,7 @@ urlpatterns = [
     path('semaforos/configuracion/', views.configuracion_semaforos, name='configuracion_semaforos'),
     
     # Reportes
-    path('reportes/', views.reportes_dashboard, name='reportes_dashboard'),
-    
+    path('reportes/', views.reports_dashboard_principal, name='reportes_dashboard'),
     # Configuración
     path('configuracion/', views.configuracion, name='configuracion'),
     # ==================== NUEVAS URLs PARA PARTE MORTORIOS ====================
@@ -165,4 +164,10 @@ path('parte-mortorios/<int:parte_id>/cambiar-estado/', views.parte_mortorio_camb
     path('reports/contratos/estado/', views.reports_estado_contratos, name='reports_estado_contratos'),
     path('reports/contratos/vencimiento/', views.reports_vencimiento_contratos, name='reports_vencimiento_contratos'),
     path('reports/contratos/ingresos/', views.reports_ingresos_contratos, name='reports_ingresos_contratos'),
+# ==================== REPORTES DE VENDEDORES ====================
+path('reports/vendedores/dashboard/', views.reports_dashboard_vendedores, name='reports_dashboard_vendedores'),
+path('reports/vendedores/<int:vendedor_id>/detalle/', views.reports_detalle_vendedor, name='reports_detalle_vendedor'),
+# Detalles de contratos por cliente/vendedor
+path('clientes/<int:cliente_id>/contratos/', views.cliente_contratos_api, name='cliente_contratos_api'),
+path('vendedores/<int:vendedor_id>/contratos/', views.vendedor_contratos_api, name='vendedor_contratos_api'),
 ]

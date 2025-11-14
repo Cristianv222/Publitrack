@@ -733,11 +733,12 @@ class PlantillaContratoAdmin(admin.ModelAdmin):
 
 @admin.register(ContratoGenerado)
 class ContratoGeneradoAdmin(admin.ModelAdmin):
-    """Administración de contratos generados"""
+    """Administración de contratos generados - VERSIÓN MEJORADA"""
     
     list_display = [
         'numero_contrato',
         'nombre_cliente',
+        'vendedor_info',  # ✅ NUEVO CAMPO
         'ruc_dni_cliente',
         'cuña_link',
         'estado_badge',
@@ -751,6 +752,7 @@ class ContratoGeneradoAdmin(admin.ModelAdmin):
     
     list_filter = [
         'estado',
+        'vendedor_asignado',  # ✅ NUEVO FILTRO
         'fecha_generacion',
         'fecha_envio',
         'fecha_firma',
@@ -762,6 +764,9 @@ class ContratoGeneradoAdmin(admin.ModelAdmin):
         'numero_contrato',
         'nombre_cliente',
         'ruc_dni_cliente',
+        'vendedor_asignado__username',  # ✅ NUEVO CAMPO DE BÚSQUEDA
+        'vendedor_asignado__first_name',
+        'vendedor_asignado__last_name',
         'cuña__codigo',
         'cuña__titulo',
         'cliente__username',
@@ -771,6 +776,7 @@ class ContratoGeneradoAdmin(admin.ModelAdmin):
     
     readonly_fields = [
         'numero_contrato',
+        'vendedor_asignado',  # ✅ HACERLO SOLO LECTURA
         'cuña',
         'plantilla_usada',
         'cliente',
@@ -910,7 +916,13 @@ class ContratoGeneradoAdmin(admin.ModelAdmin):
         
         return format_html(' '.join(acciones)) if acciones else '-'
     acciones_rapidas.short_description = 'Estado'
-    
+    def vendedor_info(self, obj):
+        """Información del vendedor asignado"""
+        if obj.vendedor_asignado:
+            url = reverse('admin:authentication_customuser_change', args=[obj.vendedor_asignado.pk])
+            return format_html('<a href="{}">{}</a>', url, obj.vendedor_asignado.get_full_name())
+        return format_html('<span style="color: #6c757d;">No asignado</span>')
+    vendedor_info.short_description = 'Vendedor'
     # ==================== ACCIONES MASIVAS ====================
     
     def marcar_como_enviado(self, request, queryset):
