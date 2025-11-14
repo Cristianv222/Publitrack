@@ -6188,7 +6188,7 @@ def reports_ingresos_contratos(request):
 @login_required
 @user_passes_test(is_admin)
 def reports_dashboard_vendedores(request):
-    """Dashboard de reportes de vendedores - VERSIÓN CORREGIDA SIN DUPLICADOS"""
+    """Dashboard de reportes de vendedores - VERSIÓN CORREGIDA"""
     
     # Verificar disponibilidad de modelos
     if not AUTH_MODELS_AVAILABLE or not CONTENT_MODELS_AVAILABLE:
@@ -6226,18 +6226,17 @@ def reports_dashboard_vendedores(request):
             is_active=True
         ).order_by('first_name', 'last_name')
         
-        # Estadísticas de vendedores - EVITAR DUPLICADOS
+        # Estadísticas de vendedores
         estadisticas_vendedores = []
         
         for vendedor in vendedores:
             try:
-                # ✅ CORREGIDO: Solo contratos donde el vendedor está asignado (NO duplicar)
+                # ✅ CORREGIDO: Solo contratos donde el vendedor está asignado
                 contratos_vendedor = ContratoGenerado.objects.filter(
-                    Q(cliente__vendedor_asignado=vendedor) |  # Contratos de sus clientes
-                    Q(vendedor_asignado=vendedor),  # Contratos donde es vendedor directo
+                    Q(cliente__vendedor_asignado=vendedor) | Q(vendedor_asignado=vendedor),
                     fecha_generacion__date__gte=fecha_inicio_obj,
                     fecha_generacion__date__lte=fecha_fin_obj
-                ).distinct()  # ✅ EVITAR DUPLICADOS
+                ).distinct()
                 
                 # ✅ CORREGIDO: Cuñas del vendedor
                 cuñas_vendedor = CuñaPublicitaria.objects.filter(
@@ -6251,38 +6250,32 @@ def reports_dashboard_vendedores(request):
                 total_cuñas = cuñas_vendedor.count()
                 
                 # Ingresos de contratos
-                ingresos_contratos_result = contratos_vendedor.aggregate(
-                    total=Sum('valor_total')
-                )
+                ingresos_contratos_result = contratos_vendedor.aggregate(total=Sum('valor_total'))
                 ingresos_contratos = ingresos_contratos_result['total'] or Decimal('0.00')
                 
                 # Ingresos de cuñas
-                ingresos_cuñas_result = cuñas_vendedor.aggregate(
-                    total=Sum('precio_total')
-                )
+                ingresos_cuñas_result = cuñas_vendedor.aggregate(total=Sum('precio_total'))
                 ingresos_cuñas = ingresos_cuñas_result['total'] or Decimal('0.00')
                 
                 # Total de ingresos
                 ingresos_totales = ingresos_contratos + ingresos_cuñas
                 
-                # Clientes asignados
+                # Clientes asignados - CORREGIDO: Contar clientes únicos
                 clientes_asignados = CustomUser.objects.filter(
                     vendedor_asignado=vendedor,
                     rol='cliente',
                     is_active=True
                 ).count()
                 
-                # Solo incluir vendedores con actividad
-                if total_contratos > 0 or total_cuñas > 0:
-                    estadisticas_vendedores.append({
-                        'vendedor': vendedor,
-                        'total_contratos': total_contratos,
-                        'total_cuñas': total_cuñas,
-                        'ingresos_contratos': ingresos_contratos,
-                        'ingresos_cuñas': ingresos_cuñas,
-                        'ingresos_totales': ingresos_totales,
-                        'clientes_asignados': clientes_asignados,
-                    })
+                estadisticas_vendedores.append({
+                    'vendedor': vendedor,
+                    'total_contratos': total_contratos,
+                    'total_cuñas': total_cuñas,
+                    'ingresos_contratos': ingresos_contratos,
+                    'ingresos_cuñas': ingresos_cuñas,
+                    'ingresos_totales': ingresos_totales,
+                    'clientes_asignados': clientes_asignados,
+                })
                 
             except Exception as e:
                 print(f"Error procesando vendedor {vendedor.username}: {e}")
@@ -6291,24 +6284,30 @@ def reports_dashboard_vendedores(request):
         # Ordenar por ingresos totales (mayor a menor)
         estadisticas_vendedores.sort(key=lambda x: x['ingresos_totales'], reverse=True)
         
-        # Estadísticas generales
+        # Estadísticas generales - CORREGIDO
         total_vendedores = len(estadisticas_vendedores)
         total_contratos_general = sum(item['total_contratos'] for item in estadisticas_vendedores)
         total_ingresos_general = sum(item['ingresos_totales'] for item in estadisticas_vendedores)
         
+        # ✅ CORREGIDO: Calcular total de clientes únicos (sin duplicados)
+        total_clientes_general = CustomUser.objects.filter(
+            vendedor_asignado__in=vendedores,
+            rol='cliente',
+            is_active=True
+        ).distinct().count()
+        
         # Vendedor top
         vendedor_top = estadisticas_vendedores[0] if estadisticas_vendedores else None
         
-        # ==================== GRÁFICAS CON PLOTLY - CORREGIDAS ====================
-        
-        # 1. Gráfico de barras - Top 5 Vendedores por Ingresos
-        top_vendedores_data = estadisticas_vendedores[:5] if estadisticas_vendedores else []
+        # ==================== GRÁFICAS CON PLOTLY ====================
         
         grafica_barras_html = ''
         grafica_pastel_html = ''
         
-        if top_vendedores_data and PLOTLY_AVAILABLE:
+        # 1. Gráfico de barras - Top 5 Vendedores por Ingresos
+        if estadisticas_vendedores and PLOTLY_AVAILABLE:
             try:
+                top_vendedores_data = estadisticas_vendedores[:5]
                 vendedores_nombres = [v['vendedor'].get_full_name() for v in top_vendedores_data]
                 vendedores_ingresos = [float(v['ingresos_totales']) for v in top_vendedores_data]
                 
@@ -6336,7 +6335,7 @@ def reports_dashboard_vendedores(request):
                 
                 grafica_barras_html = pyo.plot(fig_barras, output_type='div', include_plotlyjs=False)
             except Exception as e:
-                print(f"Error generando gráfica de barras: {e}")
+                print(f"❌ Error generando gráfica de barras: {e}")
         
         # 2. Gráfico de pastel - Distribución de Ingresos
         if estadisticas_vendedores and PLOTLY_AVAILABLE:
@@ -6382,13 +6381,14 @@ def reports_dashboard_vendedores(request):
                     
                     grafica_pastel_html = pyo.plot(fig_pastel, output_type='div', include_plotlyjs=False)
             except Exception as e:
-                print(f"Error generando gráfica de pastel: {e}")
+                print(f"❌ Error generando gráfica de pastel: {e}")
         
         context = {
             'estadisticas_vendedores': estadisticas_vendedores,
             'total_vendedores': total_vendedores,
             'total_contratos_general': total_contratos_general,
             'total_ingresos_general': total_ingresos_general,
+            'total_clientes_general': total_clientes_general,  # ✅ NUEVO: Total de clientes calculado correctamente
             'vendedor_top': vendedor_top,
             'fecha_inicio': fecha_inicio,
             'fecha_fin': fecha_fin,
@@ -6411,6 +6411,7 @@ def reports_dashboard_vendedores(request):
             'total_vendedores': 0,
             'total_contratos_general': 0,
             'total_ingresos_general': Decimal('0.00'),
+            'total_clientes_general': 0,  # ✅ NUEVO
             'vendedor_top': None,
             'fecha_inicio': fecha_inicio if 'fecha_inicio' in locals() else '',
             'fecha_fin': fecha_fin if 'fecha_fin' in locals() else '',

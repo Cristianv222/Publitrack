@@ -153,12 +153,7 @@
                                 Total Clientes
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                {% with total_clientes=0 %}
-                                    {% for stats in estadisticas_vendedores %}
-                                        {% with total_clientes=total_clientes|add:stats.clientes_asignados %}{% endwith %}
-                                    {% endfor %}
-                                    {{ total_clientes }}
-                                {% endwith %}
+                                {{ total_clientes_general }}
                             </div>
                             <div class="mt-2">
                                 <span class="badge bg-info">Asignados</span>
@@ -289,14 +284,7 @@
                             <tfoot class="thead-light">
                                 <tr>
                                     <th>TOTALES</th>
-                                    <th class="text-center">
-                                        {% with total_clientes=0 %}
-                                            {% for stats in estadisticas_vendedores %}
-                                                {% with total_clientes=total_clientes|add:stats.clientes_asignados %}{% endwith %}
-                                            {% endfor %}
-                                            {{ total_clientes }}
-                                        {% endwith %}
-                                    </th>
+                                    <th class="text-center">{{ total_clientes_general }}</th>
                                     <th class="text-center">{{ total_contratos_general }}</th>
                                     <th class="text-center">
                                         {% with total_cunas=0 %}
