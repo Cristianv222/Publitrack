@@ -1,8 +1,7 @@
-<!-- templates/custom_admin/reports/contratos/list.html -->
 {% extends "custom_admin/base_admin.html" %}
 {% load static %}
 
-{% block title %}Reportes de Contratos{% endblock %}
+{% block title %}Reportes de Partes Mortuorias{% endblock %}
 
 {% block extra_css %}
 <!-- Incluir Plotly.js desde CDN en el head -->
@@ -85,13 +84,14 @@
 }
 
 /* Badges de estado en colores pastel */
-.badge-borrador { background-color: #f5f5f5; color: #757575; border: 1px solid #e0e0e0; }
-.badge-generado { background-color: #e3f2fd; color: #1976d2; border: 1px solid #bbdefb; }
-.badge-enviado { background-color: #fff3e0; color: #f57c00; border: 1px solid #ffe0b2; }
-.badge-firmado { background-color: #e8f5e8; color: #388e3c; border: 1px solid #c8e6c9; }
-.badge-validado { background-color: #e0f2f1; color: #00796b; border: 1px solid #b2dfdb; }
-.badge-vencido { background-color: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+.badge-solicitado { background-color: #fff3e0; color: #f57c00; border: 1px solid #ffe0b2; }
+.badge-programado { background-color: #e3f2fd; color: #1976d2; border: 1px solid #bbdefb; }
+.badge-transmitido { background-color: #e8f5e8; color: #388e3c; border: 1px solid #c8e6c9; }
 .badge-cancelado { background-color: #f5f5f5; color: #616161; border: 1px solid #e0e0e0; }
+.badge-pendiente { background-color: #fff3e0; color: #f57c00; border: 1px solid #ffe0b2; }
+.badge-al_aire { background-color: #e8f5e8; color: #388e3c; border: 1px solid #c8e6c9; }
+.badge-pausado { background-color: #fff3e0; color: #f57c00; border: 1px solid #ffe0b2; }
+.badge-finalizado { background-color: #e0f2f1; color: #00796b; border: 1px solid #b2dfdb; }
 
 .card {
     border: none;
@@ -160,10 +160,10 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-0 text-gray-800">
-                <i class="fas fa-chart-bar fa-fw text-pastel-primary"></i> 
-                Reportes de Contratos
+                <i class="fas fa-cross fa-fw text-pastel-primary"></i> 
+                Reportes de Partes Mortuorias
             </h1>
-            <p class="mb-0">Dashboard y reportes de la salud comercial de la empresa</p>
+            <p class="mb-0">Dashboard y reportes de la gestión de partes mortuorios</p>
         </div>
         <div class="d-flex gap-2 align-items-start">
             <!-- Botón Volver al Panel de Reportes -->
@@ -181,182 +181,180 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     {% endif %}
-
-    <!-- Estadísticas principales - ACTUALIZADAS con estilos del dashboard -->
-    <div class="row mb-4">
-        <!-- Total Contratos -->
-        <div class="col-xl-2 col-md-4 mb-4">
-            <div class="card dashboard-card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-pastel-primary text-uppercase mb-1">
-                                Total Contratos
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_contratos }}</div>
-                            <small class="text-muted">${{ ingresos_totales }}</small>
+<!-- Estadísticas principales - PARTES MORTUORIOS -->
+<div class="row mb-4">
+    <!-- Total Partes Mortuorios -->
+    <div class="col-xl-2 col-md-4 mb-4">
+        <div class="card dashboard-card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-pastel-primary text-uppercase mb-1">
+                            Total Partes Mortuorios
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-file-contract fa-2x text-gray-300"></i>
-                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_partes }}</div>
+                        <small class="text-muted">Todos los estados</small>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Validados (Activos) -->
-        <div class="col-xl-2 col-md-4 mb-4">
-            <div class="card dashboard-card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-pastel-success text-uppercase mb-1">
-                                Validados
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ contratos_activos }}</div>
-                            <small class="text-muted">${{ ingresos_activos }}</small>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Pendientes (Generados) -->
-        <div class="col-xl-2 col-md-4 mb-4">
-            <div class="card dashboard-card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-pastel-warning text-uppercase mb-1">
-                                Pendientes
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ contratos_pendientes }}</div>
-                            <small class="text-muted">Por validar</small>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clock fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Por Vencer -->
-        <div class="col-xl-2 col-md-4 mb-4">
-            <div class="card dashboard-card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-pastel-info text-uppercase mb-1">
-                                Por Vencer
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ contratos_por_vencer }}</div>
-                            <small class="text-muted">Próximos 30 días</small>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-hourglass-half fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Vencidos -->
-        <div class="col-xl-2 col-md-4 mb-4">
-            <div class="card dashboard-card border-left-danger shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                Vencidos
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ contratos_vencidos }}</div>
-                            <small class="text-muted">Requieren atención</small>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Cancelados -->
-        <div class="col-xl-2 col-md-4 mb-4">
-            <div class="card dashboard-card border-left-secondary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
-                                Cancelados
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ contratos_cancelados }}</div>
-                            <small class="text-muted">Contratos anulados</small>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-ban fa-2x text-gray-300"></i>
-                        </div>
+                    <div class="col-auto">
+                        <i class="fas fa-cross fa-2x text-gray-300"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Pendientes -->
+    <div class="col-xl-2 col-md-4 mb-4">
+        <div class="card dashboard-card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-pastel-warning text-uppercase mb-1">
+                            Pendientes
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ partes_pendientes }}</div>
+                        <small class="text-muted">Por programar</small>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clock fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Al Aire -->
+    <div class="col-xl-2 col-md-4 mb-4">
+        <div class="card dashboard-card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-pastel-success text-uppercase mb-1">
+                            Al Aire
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ partes_al_aire }}</div>
+                        <small class="text-muted">En transmisión</small>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-broadcast-tower fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pausados -->
+    <div class="col-xl-2 col-md-4 mb-4">
+        <div class="card dashboard-card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-pastel-info text-uppercase mb-1">
+                            Pausados
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ partes_pausados }}</div>
+                        <small class="text-muted">Transmisión pausada</small>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-pause-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Finalizados -->
+    <div class="col-xl-2 col-md-4 mb-4">
+        <div class="card dashboard-card border-left-secondary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                            Finalizados
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ partes_finalizados }}</div>
+                        <small class="text-muted">Transmisión completada</small>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ingresos Totales -->
+    <div class="col-xl-2 col-md-4 mb-4">
+        <div class="card dashboard-card border-left-danger shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                            Ingresos
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">${{ ingresos_totales }}</div>
+                        <small class="text-muted">Totales</small>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
     <!-- Gráficos Plotly -->
-    <div class="row">
-        <!-- Gráfico de Estados (Pastel) -->
-        <div class="col-xl-6 col-lg-6">
-            <div class="card dashboard-card shadow mb-4">
-                <div class="card-header card-header-soft">
-                    <h6 class="m-0 font-weight-bold">
-                        <i class="fas fa-chart-pie fa-fw"></i> Contratos por Estado
-                    </h6>
-                </div>
-                <div class="card-body">
-                    {% if grafica_pastel_html %}
-                        {{ grafica_pastel_html|safe }}
-                    {% else %}
-                        <div class="alert alert-warning text-center">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            No se pudo generar la gráfica de estados
-                        </div>
-                    {% endif %}
-                </div>
+<div class="row">
+    <!-- Gráfico de Estados (Pastel) -->
+    <div class="col-xl-6 col-lg-6">
+        <div class="card dashboard-card shadow mb-4">
+            <div class="card-header card-header-soft">
+                <h6 class="m-0 font-weight-bold">
+                    <i class="fas fa-chart-pie fa-fw"></i> Partes Mortuorios por Estado
+                </h6>
             </div>
-        </div>
-        
-        <!-- Gráfico de Ingresos (Barras) -->
-        <div class="col-xl-6 col-lg-6">
-            <div class="card dashboard-card shadow mb-4">
-                <div class="card-header card-header-success">
-                    <h6 class="m-0 font-weight-bold">
-                        <i class="fas fa-chart-line fa-fw"></i> Ingresos Mensuales
-                    </h6>
-                </div>
-                <div class="card-body">
-                    {% if grafica_barras_html %}
-                        {{ grafica_barras_html|safe }}
-                    {% else %}
-                        <div class="alert alert-warning text-center">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            No se pudo generar la gráfica de ingresos
-                        </div>
-                    {% endif %}
-                </div>
+            <div class="card-body">
+                {% if grafica_pastel_html %}
+                    {{ grafica_pastel_html|safe }}
+                {% else %}
+                    <div class="alert alert-warning text-center">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        No se pudo generar la gráfica de estados
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
+    
+    <!-- Gráfico de Ingresos Mensuales (Barras) -->
+    <div class="col-xl-6 col-lg-6">
+        <div class="card dashboard-card shadow mb-4">
+            <div class="card-header card-header-success">
+                <h6 class="m-0 font-weight-bold">
+                    <i class="fas fa-chart-line fa-fw"></i> Ingresos Mensuales
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if grafica_barras_html %}
+                    {{ grafica_barras_html|safe }}
+                {% else %}
+                    <div class="alert alert-warning text-center">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        No se pudo generar la gráfica de ingresos
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
 
-    <!-- Tabla de Contratos Recientes -->
+    <!-- Tabla de Partes Recientes -->
     <div class="row">
         <div class="col-12">
             <div class="card dashboard-card shadow mb-4">
                 <div class="card-header card-header-soft">
                     <h6 class="m-0 font-weight-bold">
-                        <i class="fas fa-list fa-fw"></i> Contratos Recientes
+                        <i class="fas fa-list fa-fw"></i> Partes Mortuorios Recientes
                     </h6>
                 </div>
                 <div class="card-body">
@@ -364,54 +362,68 @@
                         <table class="table table-bordered table-hover" id="dataTable" width="100%" cellspacing="0">
                             <thead class="thead-light">
                                 <tr>
-                                    <th>Número</th>
+                                    <th>Código</th>
+                                    <th>Fallecido</th>
                                     <th>Cliente</th>
                                     <th>Estado</th>
-                                    <th>Valor</th>
-                                    <th>Fecha Generación</th>
+                                    <th>Urgencia</th>
+                                    <th>Fecha Fallecimiento</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for contrato in contratos_recientes %}
+                                {% for parte in partes_recientes %}
                                 <tr>
                                     <td>
-                                        <strong>{{ contrato.numero_contrato }}</strong>
+                                        <strong>{{ parte.codigo }}</strong>
                                     </td>
-                                    <td>{{ contrato.nombre_cliente }}</td>
+                                    <td>{{ parte.nombre_fallecido }}</td>
+                                    <td>{{ parte.cliente.get_full_name }}</td>
                                     <td>
-                                        {% if contrato.estado == 'validado' %}
-                                            <span class="badge badge-validado">Validado</span>
-                                        {% elif contrato.estado == 'generado' %}
-                                            <span class="badge badge-generado">Pendiente</span>
-                                        {% elif contrato.estado == 'borrador' %}
-                                            <span class="badge badge-borrador">Borrador</span>
-                                        {% elif contrato.estado == 'enviado' %}
-                                            <span class="badge badge-enviado">Enviado</span>
-                                        {% elif contrato.estado == 'firmado' %}
-                                            <span class="badge badge-firmado">Firmado</span>
-                                        {% elif contrato.estado == 'vencido' %}
-                                            <span class="badge badge-vencido">Vencido</span>
-                                        {% elif contrato.estado == 'cancelado' %}
+                                        {% if parte.estado == 'solicitado' %}
+                                            <span class="badge badge-solicitado">Solicitado</span>
+                                        {% elif parte.estado == 'programado' %}
+                                            <span class="badge badge-programado">Programado</span>
+                                        {% elif parte.estado == 'transmitido' %}
+                                            <span class="badge badge-transmitido">Transmitido</span>
+                                        {% elif parte.estado == 'cancelado' %}
                                             <span class="badge badge-cancelado">Cancelado</span>
+                                        {% elif parte.estado == 'pendiente' %}
+                                            <span class="badge badge-pendiente">Pendiente</span>
+                                        {% elif parte.estado == 'al_aire' %}
+                                            <span class="badge badge-al_aire">Al Aire</span>
+                                        {% elif parte.estado == 'pausado' %}
+                                            <span class="badge badge-pausado">Pausado</span>
+                                        {% elif parte.estado == 'finalizado' %}
+                                            <span class="badge badge-finalizado">Finalizado</span>
                                         {% else %}
-                                            <span class="badge badge-secondary">{{ contrato.estado }}</span>
+                                            <span class="badge badge-secondary">{{ parte.estado }}</span>
                                         {% endif %}
                                     </td>
-                                    <td>${{ contrato.valor_total }}</td>
-                                    <td>{{ contrato.fecha_generacion|date:"d/m/Y" }}</td>
+                                    <td>
+                                        {% if parte.urgencia == 'normal' %}
+                                            <span class="badge badge-pastel-primary">Normal</span>
+                                        {% elif parte.urgencia == 'urgente' %}
+                                            <span class="badge badge-pastel-warning">Urgente</span>
+                                        {% elif parte.urgencia == 'muy_urgente' %}
+                                            <span class="badge badge-pastel-danger">Muy Urgente</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">{{ parte.urgencia }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ parte.fecha_fallecimiento|date:"d/m/Y" }}</td>
                                     <td>
                                         <button class="btn btn-sm btn-outline-info" 
-                                                onclick="verDetalleContrato({{ contrato.id }})">
+                                                onclick="verDetalleParte({{ parte.id }})">
                                             <i class="fas fa-eye fa-fw"></i>
                                         </button>
                                     </td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted py-4">
+                                    <td colspan="7" class="text-center text-muted py-4">
                                         <i class="fas fa-inbox fa-2x mb-2"></i><br>
-                                        No hay contratos recientes
+                                        No hay partes mortuorios recientes
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -451,8 +463,8 @@
                         <div class="col-md-6 mb-3">
                             <label for="tipoReporte" class="form-label">Tipo de Reporte</label>
                             <select class="form-select" id="tipoReporte" name="tipo_reporte">
-                                <option value="estado">Estado de Contratos</option>
-                                <option value="vencimiento">Vencimiento</option>
+                                <option value="estado">Estado de Partes</option>
+                                <option value="urgencia">Por Urgencia</option>
                                 <option value="ingresos">Ingresos</option>
                             </select>
                         </div>
@@ -466,10 +478,15 @@
                         </div>
                     </div>
 
-                    <div class="row" id="opcionesVencimiento" style="display: none;">
+                    <div class="row" id="opcionesUrgencia" style="display: none;">
                         <div class="col-12 mb-3">
-                            <label for="diasAviso" class="form-label">Días para Aviso de Vencimiento</label>
-                            <input type="number" class="form-control" id="diasAviso" name="dias_aviso" value="30" min="1" max="365">
+                            <label for="nivelUrgencia" class="form-label">Nivel de Urgencia</label>
+                            <select class="form-select" id="nivelUrgencia" name="nivel_urgencia">
+                                <option value="todos">Todos</option>
+                                <option value="normal">Normal</option>
+                                <option value="urgente">Urgente</option>
+                                <option value="muy_urgente">Muy Urgente</option>
+                            </select>
                         </div>
                     </div>
 
@@ -495,17 +512,17 @@
     </div>
 </div>
 
-<!-- Modal Detalle Contrato -->
-<div class="modal fade" id="modalDetalleContrato" tabindex="-1" aria-labelledby="modalDetalleContratoLabel" aria-hidden="true">
+<!-- Modal Detalle Parte -->
+<div class="modal fade" id="modalDetalleParte" tabindex="-1" aria-labelledby="modalDetalleParteLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header card-header-soft">
-                <h5 class="modal-title" id="modalDetalleContratoLabel">
-                    <i class="fas fa-file-contract fa-fw"></i> Detalle del Contrato
+                <h5 class="modal-title" id="modalDetalleParteLabel">
+                    <i class="fas fa-cross fa-fw"></i> Detalle del Parte Mortuorio
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body" id="detalleContratoContent">
+            <div class="modal-body" id="detalleParteContent">
                 <!-- Contenido cargado via AJAX -->
             </div>
             <div class="modal-footer">
@@ -515,88 +532,55 @@
     </div>
 </div>
 
-<!-- Modal Reporte Completo -->
-<div class="modal fade" id="modalReporteCompleto" tabindex="-1" aria-labelledby="modalReporteCompletoLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header card-header-soft">
-                <h5 class="modal-title" id="modalReporteCompletoLabel">
-                    <i class="fas fa-chart-bar fa-fw"></i> Reporte Completo de Contratos
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped">
-                        <thead class="thead-dark">
-                            <tr>
-                                <th>Estado</th>
-                                <th>Cantidad</th>
-                                <th>Valor Total</th>
-                                <th>Porcentaje</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tablaReporteCompleto">
-                            <!-- Cargado via AJAX -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                <button type="button" class="btn btn-success" onclick="exportarReporteCompleto()">
-                    <i class="fas fa-download fa-fw"></i> Exportar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 {% endblock %}
 
 {% block extrajs %}
 <script>
-// Función para ver detalle de contrato
-function verDetalleContrato(contratoId) {
+// Función para ver detalle de parte mortuorio
+function verDetalleParte(parteId) {
     const contenido = `
         <div class="text-center py-4">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Cargando...</span>
             </div>
-            <p class="mt-2">Cargando detalles del contrato...</p>
+            <p class="mt-2">Cargando detalles del parte mortuorio...</p>
         </div>
     `;
     
-    document.getElementById('detalleContratoContent').innerHTML = contenido;
+    document.getElementById('detalleParteContent').innerHTML = contenido;
     
     // Simular AJAX call
     setTimeout(() => {
         const detalle = `
             <div class="row">
                 <div class="col-md-6">
-                    <h6>Información del Contrato</h6>
-                    <p><strong>Número:</strong> CTR2024120001</p>
-                    <p><strong>Cliente:</strong> Empresa Ejemplo S.A.</p>
-                    <p><strong>Valor:</strong> $1,500.00</p>
+                    <h6>Información del Fallecido</h6>
+                    <p><strong>Nombre:</strong> Juan Pérez García</p>
+                    <p><strong>Edad:</strong> 78 años</p>
+                    <p><strong>Fecha Fallecimiento:</strong> 15/12/2024</p>
+                    <p><strong>DNI:</strong> 12345678A</p>
                 </div>
                 <div class="col-md-6">
-                    <h6>Estado y Fechas</h6>
-                    <p><strong>Estado:</strong> <span class="badge badge-validado">Validado</span></p>
-                    <p><strong>Generado:</strong> 15/12/2024</p>
-                    <p><strong>Vence:</strong> 15/01/2025</p>
+                    <h6>Información del Cliente</h6>
+                    <p><strong>Cliente:</strong> Familia Pérez Rodríguez</p>
+                    <p><strong>Contacto:</strong> 555-1234</p>
+                    <p><strong>Estado:</strong> <span class="badge badge-programado">Programado</span></p>
+                    <p><strong>Urgencia:</strong> <span class="badge badge-pastel-primary">Normal</span></p>
                 </div>
             </div>
             <div class="row mt-3">
                 <div class="col-12">
-                    <h6>Detalles Adicionales</h6>
-                    <p>Contrato de publicidad para campaña navideña 2024.</p>
+                    <h6>Detalles de la Ceremonia</h6>
+                    <p><strong>Tipo:</strong> Misa</p>
+                    <p><strong>Fecha y Hora:</strong> 16/12/2024 - 10:00 AM</p>
+                    <p><strong>Lugar:</strong> Capilla San José</p>
                 </div>
             </div>
         `;
-        document.getElementById('detalleContratoContent').innerHTML = detalle;
+        document.getElementById('detalleParteContent').innerHTML = detalle;
     }, 1000);
     
-    $('#modalDetalleContrato').modal('show');
+    $('#modalDetalleParte').modal('show');
 }
 
 // Aplicar filtros
@@ -611,13 +595,13 @@ function aplicarFiltros() {
     let url = '';
     switch(tipoReporte) {
         case 'estado':
-            url = "{% url 'custom_admin:reports_estado_contratos' %}";
+            url = "{% url 'custom_admin:reports_estado_partes' %}";
             break;
-        case 'vencimiento':
-            url = "{% url 'custom_admin:reports_vencimiento_contratos' %}";
+        case 'urgencia':
+            url = "{% url 'custom_admin:reports_urgencia_partes' %}";
             break;
         case 'ingresos':
-            url = "{% url 'custom_admin:reports_ingresos_contratos' %}";
+            url = "{% url 'custom_admin:reports_ingresos_partes' %}";
             break;
     }
     
@@ -642,28 +626,23 @@ function exportarReporte() {
     let url = '';
     switch(tipoReporte) {
         case 'estado':
-            url = "{% url 'custom_admin:reports_estado_contratos' %}";
+            url = "{% url 'custom_admin:reports_estado_partes' %}";
             break;
-        case 'vencimiento':
-            url = "{% url 'custom_admin:reports_vencimiento_contratos' %}";
+        case 'urgencia':
+            url = "{% url 'custom_admin:reports_urgencia_partes' %}";
             break;
         case 'ingresos':
-            url = "{% url 'custom_admin:reports_ingresos_contratos' %}";
+            url = "{% url 'custom_admin:reports_ingresos_partes' %}";
             break;
     }
     
     window.location.href = `${url}?formato=${formato}`;
 }
 
-// Exportar reporte completo
-function exportarReporteCompleto() {
-    window.location.href = "{% url 'custom_admin:reports_estado_contratos' %}?formato=excel";
-}
-
 // Mostrar/ocultar opciones según tipo de reporte
 document.getElementById('tipoReporte').addEventListener('change', function() {
     const tipo = this.value;
-    document.getElementById('opcionesVencimiento').style.display = tipo === 'vencimiento' ? 'block' : 'none';
+    document.getElementById('opcionesUrgencia').style.display = tipo === 'urgencia' ? 'block' : 'none';
     document.getElementById('opcionesIngresos').style.display = tipo === 'ingresos' ? 'block' : 'none';
 });
 

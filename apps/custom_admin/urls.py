@@ -170,4 +170,11 @@ path('reports/vendedores/<int:vendedor_id>/detalle/', views.reports_detalle_vend
 # Detalles de contratos por cliente/vendedor
 path('clientes/<int:cliente_id>/contratos/', views.cliente_contratos_api, name='cliente_contratos_api'),
 path('vendedores/<int:vendedor_id>/contratos/', views.vendedor_contratos_api, name='vendedor_contratos_api'),
+# ==================== REPORTES DE PARTES MORTUORIOS ====================
+path('reports/partes-mortuorios/dashboard/', views.reports_dashboard_partes_mortuorios, name='reports_dashboard_partes_mortuorios'),
+path('reports/partes-mortuorios/api/estado/', views.reports_partes_estado_api, name='reports_partes_estado_api'),
+path('reports/partes-mortuorios/api/urgencia/', views.reports_partes_urgencia_api, name='reports_partes_urgencia_api'),
+path('reports/partes-mortuorios/api/ingresos/', views.reports_partes_ingresos_api, name='reports_partes_ingresos_api'),
+path('reports/partes-mortuorios/api/<int:parte_id>/detalle/', views.reports_partes_detalle_api, name='reports_partes_detalle_api'),
+path('reports/partes-mortuorios/dashboard/', views.reports_dashboard_partes_mortuorios, name='reports_dashboard_partes_mortuorios'),
 ]

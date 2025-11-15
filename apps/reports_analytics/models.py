@@ -70,3 +70,49 @@ class ReporteVendedores(models.Model):
     
     def __str__(self):
         return f"{self.nombre} - {self.fecha_generacion.strftime('%d/%m/%Y')}"
+# Agrega estos modelos al final del archivo
+
+class ReportePartesMortuorios(models.Model):
+    """Modelo para almacenar reportes de partes mortuorios generados"""
+    
+    TIPO_REPORTE_CHOICES = [
+        ('estado_partes', 'Reporte por Estado de Partes'),
+        ('urgencia_partes', 'Reporte por Urgencia'),
+        ('ingresos_partes', 'Reporte de Ingresos por Partes'),
+        ('partes_cliente', 'Reporte por Cliente'),
+    ]
+    
+    nombre = models.CharField('Nombre del Reporte', max_length=200)
+    tipo_reporte = models.CharField('Tipo de Reporte', max_length=50, choices=TIPO_REPORTE_CHOICES)
+    parametros = models.JSONField('Parámetros del Reporte', default=dict, blank=True)
+    archivo_generado = models.FileField('Archivo Generado', upload_to='reportes/partes_mortuorios/', null=True, blank=True)
+    fecha_generacion = models.DateTimeField('Fecha de Generación', auto_now_add=True)
+    generado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    
+    class Meta:
+        verbose_name = 'Reporte de Partes Mortuorios'
+        verbose_name_plural = 'Reportes de Partes Mortuorios'
+        ordering = ['-fecha_generacion']
+    
+    def __str__(self):
+        return f"{self.nombre} - {self.get_tipo_reporte_display()}"
+
+class DashboardPartesMortuorios(models.Model):
+    """Modelo para almacenar datos del dashboard de partes mortuorios"""
+    
+    fecha_actualizacion = models.DateTimeField('Fecha de Actualización', auto_now=True)
+    total_partes = models.IntegerField('Total Partes', default=0)
+    partes_programados = models.IntegerField('Partes Programados', default=0)
+    partes_transmitidos = models.IntegerField('Partes Transmitidos', default=0)
+    partes_urgentes = models.IntegerField('Partes Urgentes', default=0)
+    partes_pendientes = models.IntegerField('Partes Pendientes', default=0)
+    partes_cancelados = models.IntegerField('Partes Cancelados', default=0)
+    ingresos_totales = models.DecimalField('Ingresos Totales', max_digits=15, decimal_places=2, default=0)
+    ingresos_mensuales = models.DecimalField('Ingresos Mensuales', max_digits=15, decimal_places=2, default=0)
+    
+    class Meta:
+        verbose_name = 'Dashboard Partes Mortuorios'
+        verbose_name_plural = 'Dashboards Partes Mortuorios'
+    
+    def __str__(self):
+        return f"Dashboard Partes Mortuorios - {self.fecha_actualizacion.strftime('%d/%m/%Y %H:%M')}"

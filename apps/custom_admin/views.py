@@ -143,7 +143,34 @@ except ImportError as e:
 def is_admin(user):
     """Verifica si el usuario es administrador"""
     return user.is_superuser or user.is_staff or getattr(user, 'rol', None) == 'admin'
+# IMPORTS CONDICIONALES PARA MODELOS - ACTUALIZAR ESTA SECCIÓN
+try:
+    from apps.reports_analytics.models import DashboardContratos, ReporteContratos, ReportePartesMortuorios, DashboardPartesMortuorios
+    REPORTS_MODELS_AVAILABLE = True
+except ImportError as e:
+    print("Error importando modelos de reports_analytics:", e)
+    REPORTS_MODELS_AVAILABLE = False
+    DashboardContratos = None
+    ReporteContratos = None
+    ReportePartesMortuorios = None
+    DashboardPartesMortuorios = None
 
+# IMPORTS CONDICIONALES PARA PARTE MORTORIOS - ACTUALIZAR ESTA SECCIÓN
+try:
+    from apps.parte_mortorios.models import (
+        ParteMortorio, 
+        HistorialParteMortorio,
+        PlantillaParteMortorio,
+        ParteMortorioGenerado
+    )
+    PARTE_MORTORIO_MODELS_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Error importando modelos de parte_mortorios: {e}")
+    PARTE_MORTORIO_MODELS_AVAILABLE = False
+    ParteMortorio = None
+    HistorialParteMortorio = None
+    PlantillaParteMortorio = None
+    ParteMortorioGenerado = None
 # ==================== APIs PARA PANTEONES ====================
 
 @login_required
@@ -6284,9 +6311,12 @@ def reports_dashboard_vendedores(request):
         # Ordenar por ingresos totales (mayor a menor)
         estadisticas_vendedores.sort(key=lambda x: x['ingresos_totales'], reverse=True)
         
-        # Estadísticas generales - CORREGIDO
+        # ✅ CORREGIDO: Calcular totales generales para el template
         total_vendedores = len(estadisticas_vendedores)
         total_contratos_general = sum(item['total_contratos'] for item in estadisticas_vendedores)
+        total_cunas_general = sum(item['total_cuñas'] for item in estadisticas_vendedores)
+        total_ing_contratos_general = sum(item['ingresos_contratos'] for item in estadisticas_vendedores)
+        total_ing_cunas_general = sum(item['ingresos_cuñas'] for item in estadisticas_vendedores)
         total_ingresos_general = sum(item['ingresos_totales'] for item in estadisticas_vendedores)
         
         # ✅ CORREGIDO: Calcular total de clientes únicos (sin duplicados)
@@ -6387,8 +6417,11 @@ def reports_dashboard_vendedores(request):
             'estadisticas_vendedores': estadisticas_vendedores,
             'total_vendedores': total_vendedores,
             'total_contratos_general': total_contratos_general,
+            'total_cunas_general': total_cunas_general,  # ✅ NUEVO: Total de cuñas
+            'total_ing_contratos_general': total_ing_contratos_general,  # ✅ NUEVO: Total ingresos contratos
+            'total_ing_cunas_general': total_ing_cunas_general,  # ✅ NUEVO: Total ingresos cuñas
             'total_ingresos_general': total_ingresos_general,
-            'total_clientes_general': total_clientes_general,  # ✅ NUEVO: Total de clientes calculado correctamente
+            'total_clientes_general': total_clientes_general,
             'vendedor_top': vendedor_top,
             'fecha_inicio': fecha_inicio,
             'fecha_fin': fecha_fin,
@@ -6410,8 +6443,11 @@ def reports_dashboard_vendedores(request):
             'estadisticas_vendedores': [],
             'total_vendedores': 0,
             'total_contratos_general': 0,
+            'total_cunas_general': 0,
+            'total_ing_contratos_general': Decimal('0.00'),
+            'total_ing_cunas_general': Decimal('0.00'),
             'total_ingresos_general': Decimal('0.00'),
-            'total_clientes_general': 0,  # ✅ NUEVO
+            'total_clientes_general': 0,
             'vendedor_top': None,
             'fecha_inicio': fecha_inicio if 'fecha_inicio' in locals() else '',
             'fecha_fin': fecha_fin if 'fecha_fin' in locals() else '',
@@ -6773,11 +6809,9 @@ def reports_dashboard_principal(request):
             context.update(stats_contratos)
             
             # ========== DATOS DE VENDEDORES ==========
-            # Parámetros de filtro para vendedores
             fecha_inicio_vendedores = request.GET.get('fecha_inicio_vendedores')
             fecha_fin_vendedores = request.GET.get('fecha_fin_vendedores')
             
-            # Convertir fechas si se proporcionan
             fecha_inicio_obj = None
             fecha_fin_obj = None
             
@@ -6802,6 +6836,14 @@ def reports_dashboard_principal(request):
             )
             
             vendedor_top = estadisticas_vendedores[0] if estadisticas_vendedores else None
+            
+            # ========== DATOS DE PARTES MORTUORIOS ==========
+            stats_partes = _calcular_estadisticas_partes_mortuorios()
+            context.update(stats_partes)
+            
+            # ✅ SUMAR INGRESOS DE PARTES MORTUORIOS A LOS INGRESOS TOTALES
+            ingresos_totales_con_partes = stats_contratos.get('ingresos_totales', Decimal('0.00')) + stats_partes.get('ingresos_totales_partes', Decimal('0.00'))
+            context['ingresos_totales'] = ingresos_totales_con_partes
             
             # Agregar datos al contexto
             context.update({
@@ -6846,15 +6888,22 @@ def reports_dashboard_principal(request):
                     mes_fecha = hoy - timedelta(days=30*i)
                     mes_nombre = mes_fecha.strftime('%b %Y')
                     
-                    ingresos_mes_result = ContratoGenerado.objects.filter(
+                    # Sumar ingresos de contratos y partes mortuorios
+                    ingresos_contratos_mes = ContratoGenerado.objects.filter(
                         fecha_generacion__year=mes_fecha.year,
                         fecha_generacion__month=mes_fecha.month
-                    ).aggregate(total=Sum('valor_total'))
+                    ).aggregate(total=Sum('valor_total'))['total'] or Decimal('0.00')
                     
-                    ingresos_mes = ingresos_mes_result['total'] or Decimal('0.00')
+                    ingresos_partes_mes = ParteMortorio.objects.filter(
+                        fecha_solicitud__year=mes_fecha.year,
+                        fecha_solicitud__month=mes_fecha.month
+                    ).aggregate(total=Sum('precio_total'))['total'] or Decimal('0.00')
+                    
+                    ingresos_mes_total = ingresos_contratos_mes + ingresos_partes_mes
+                    
                     ingresos_mensuales.append({
                         'mes': mes_nombre,
-                        'ingresos': float(ingresos_mes)
+                        'ingresos': float(ingresos_mes_total)
                     })
                 
                 if ingresos_mensuales:
@@ -6864,7 +6913,7 @@ def reports_dashboard_principal(request):
                     fig_barras = px.bar(
                         x=meses,
                         y=ingresos,
-                        title='Ingresos Mensuales',
+                        title='Ingresos Mensuales Totales',
                         labels={'x': 'Mes', 'y': 'Ingresos ($)'}
                     )
                     fig_barras.update_layout(height=400)
@@ -6886,6 +6935,61 @@ def reports_dashboard_principal(request):
                     fig_vendedores.update_layout(height=400)
                     fig_vendedores.update_traces(marker_color='#28a745')
                     context['grafica_vendedores_html'] = pyo.plot(fig_vendedores, output_type='div', include_plotlyjs=False)
+
+                # ========== GRÁFICA DE PASTEL PARA PARTES MORTORIOS ==========
+                if PARTE_MORTORIO_MODELS_AVAILABLE:
+                    try:
+                        # Datos para el gráfico de pastel de partes mortorios
+                        partes_data = [
+                            ('Pendientes', stats_partes.get('partes_mortuorios_pendientes', 0)),
+                            ('Al Aire', stats_partes.get('partes_mortuorios_al_aire', 0)),
+                            ('Pausados', stats_partes.get('partes_mortuorios_pausados', 0)),
+                            ('Finalizados', stats_partes.get('partes_mortuorios_finalizados', 0)),
+                        ]
+                        
+                        partes_labels = [item[0] for item in partes_data]
+                        partes_values = [item[1] for item in partes_data]
+                        
+                        if any(partes_values):
+                            fig_partes_pastel = px.pie(
+                                values=partes_values,
+                                names=partes_labels,
+                                title='Partes Mortorios por Estado',
+                                color=partes_labels,
+                                color_discrete_map={
+                                    'Pendientes': '#ffc107',      # Amarillo
+                                    'Al Aire': '#28a745',        # Verde
+                                    'Pausados': '#fd7e14',       # Naranja
+                                    'Finalizados': '#20c997'     # Verde azulado
+                                }
+                            )
+                            
+                            fig_partes_pastel.update_traces(
+                                textposition='inside',
+                                textinfo='percent+label',
+                                hovertemplate='<b>%{label}</b><br>Cantidad: %{value}<br>Porcentaje: %{percent}'
+                            )
+                            
+                            fig_partes_pastel.update_layout(
+                                height=300,
+                                showlegend=True,
+                                margin=dict(l=20, r=20, t=40, b=20),
+                                legend=dict(
+                                    orientation="h",
+                                    yanchor="bottom",
+                                    y=-0.2,
+                                    xanchor="center",
+                                    x=0.5
+                                )
+                            )
+                            
+                            context['grafica_pastel_partes_html'] = pyo.plot(fig_partes_pastel, output_type='div', include_plotlyjs=False)
+                        else:
+                            context['grafica_pastel_partes_html'] = ''
+                            
+                    except Exception as e:
+                        print(f"❌ Error generando gráfica de pastel para partes mortorios: {e}")
+                        context['grafica_pastel_partes_html'] = ''
                     
         except Exception as e:
             print(f"❌ ERROR en reports_dashboard_principal: {e}")
@@ -6894,7 +6998,113 @@ def reports_dashboard_principal(request):
             context['error'] = f'Error al cargar los datos: {str(e)}'
     
     return render(request, 'custom_admin/reports/dashboard_principal.html', context)
-    
+
+def _calcular_estadisticas_partes_mortuorios():
+    """Calcula estadísticas generales de partes mortuorios"""
+    try:
+        if not PARTE_MORTORIO_MODELS_AVAILABLE:
+            return {
+                'total_partes_mortuorios': 0,
+                'partes_mortuorios_pendientes': 0,
+                'partes_mortuorios_al_aire': 0,
+                'partes_mortuorios_pausados': 0,
+                'partes_mortuorios_finalizados': 0,
+                'ingresos_totales_partes': Decimal('0.00'),
+            }
+        
+        # Totales básicos
+        total_partes_mortuorios = ParteMortorio.objects.count()
+        
+        # Partes por estado
+        partes_mortuorios_pendientes = ParteMortorio.objects.filter(estado='pendiente').count()
+        partes_mortuorios_al_aire = ParteMortorio.objects.filter(estado='al_aire').count()
+        partes_mortuorios_pausados = ParteMortorio.objects.filter(estado='pausado').count()
+        partes_mortuorios_finalizados = ParteMortorio.objects.filter(estado='finalizado').count()
+        
+        # Ingresos totales de partes mortuorios
+        ingresos_totales_partes_result = ParteMortorio.objects.aggregate(total=Sum('precio_total'))
+        ingresos_totales_partes = ingresos_totales_partes_result['total'] or Decimal('0.00')
+        
+        return {
+            'total_partes_mortuorios': total_partes_mortuorios,
+            'partes_mortuorios_pendientes': partes_mortuorios_pendientes,
+            'partes_mortuorios_al_aire': partes_mortuorios_al_aire,
+            'partes_mortuorios_pausados': partes_mortuorios_pausados,
+            'partes_mortuorios_finalizados': partes_mortuorios_finalizados,
+            'ingresos_totales_partes': ingresos_totales_partes,
+        }
+        
+    except Exception as e:
+        print(f"❌ ERROR en _calcular_estadisticas_partes_mortuorios: {e}")
+        return {
+            'total_partes_mortuorios': 0,
+            'partes_mortuorios_pendientes': 0,
+            'partes_mortuorios_al_aire': 0,
+            'partes_mortuorios_pausados': 0,
+            'partes_mortuorios_finalizados': 0,
+            'ingresos_totales_partes': Decimal('0.00'),
+        }
+
+def _calcular_estadisticas_vendedores(fecha_inicio=None, fecha_fin=None):
+    """Calcula estadísticas de vendedores para el período especificado"""
+    try:
+        vendedores = CustomUser.objects.filter(rol='vendedor', is_active=True)
+        estadisticas = []
+        
+        for vendedor in vendedores:
+            # Filtrar por fechas si se especifican
+            filtros_contratos = {'vendedor_asignado': vendedor}
+            filtros_cunas = {'vendedor_asignado': vendedor}
+            
+            if fecha_inicio and fecha_fin:
+                filtros_contratos['fecha_generacion__range'] = [fecha_inicio, fecha_fin]
+                filtros_cunas['created_at__range'] = [fecha_inicio, fecha_fin]
+            
+            # Contratos del vendedor
+            contratos_vendedor = ContratoGenerado.objects.filter(**filtros_contratos)
+            total_contratos = contratos_vendedor.count()
+            
+            # Cuñas del vendedor
+            cuñas_vendedor = CuñaPublicitaria.objects.filter(**filtros_cunas)
+            total_cuñas = cuñas_vendedor.count()
+            
+            # Ingresos de contratos
+            ingresos_contratos = contratos_vendedor.aggregate(
+                total=Sum('valor_total')
+            )['total'] or Decimal('0.00')
+            
+            # Ingresos de cuñas
+            ingresos_cuñas = cuñas_vendedor.aggregate(
+                total=Sum('precio_total')
+            )['total'] or Decimal('0.00')
+            
+            # Total de ingresos
+            ingresos_totales = ingresos_contratos + ingresos_cuñas
+            
+            # Clientes asignados
+            clientes_asignados = CustomUser.objects.filter(
+                vendedor_asignado=vendedor,
+                rol='cliente',
+                is_active=True
+            ).count()
+            
+            estadisticas.append({
+                'vendedor': vendedor,
+                'total_contratos': total_contratos,
+                'total_cuñas': total_cuñas,
+                'ingresos_contratos': ingresos_contratos,
+                'ingresos_cuñas': ingresos_cuñas,
+                'ingresos_totales': ingresos_totales,
+                'clientes_asignados': clientes_asignados,
+            })
+        
+        # Ordenar por ingresos totales (mayor a menor)
+        estadisticas.sort(key=lambda x: x['ingresos_totales'], reverse=True)
+        return estadisticas
+        
+    except Exception as e:
+        print(f"❌ ERROR en _calcular_estadisticas_vendedores: {e}")
+        return []
 @login_required
 @user_passes_test(is_admin)
 def reports_contratos_detalle_api(request):
@@ -7056,3 +7266,386 @@ def _calcular_estadisticas_contratos():
     except Exception as e:
         print(f"❌ ERROR en _calcular_estadisticas_contratos: {e}")
         return {}
+# ==================== DASHBOARD DE PARTES MORTUORIOS ====================
+@login_required
+@user_passes_test(is_admin)
+def reports_dashboard_partes_mortuorios(request):
+    """Dashboard principal de partes mortuorios - VERSIÓN CORREGIDA CON 5 TARJETAS"""
+    
+    # Verificar disponibilidad del módulo
+    if not PARTE_MORTORIO_MODELS_AVAILABLE:
+        context = {
+            'error': 'Módulo de Partes Mortuorios no disponible',
+            'mensaje': 'No se pueden cargar los reportes en este momento.',
+            'models_available': False,
+            'total_partes': 0,
+            'partes_pendientes': 0,
+            'partes_al_aire': 0,
+            'partes_pausados': 0,
+            'partes_finalizados': 0,
+            'ingresos_totales': Decimal('0.00'),
+            'partes_recientes': [],
+            'grafica_pastel_html': '',
+            'grafica_barras_html': '',
+        }
+        return render(request, 'custom_admin/reports/parte_mortorios/list.html', context)
+    
+    try:
+        hoy = timezone.now().date()
+        
+        # Estadísticas básicas - LOS 5 ESTADOS QUE QUIERES
+        try:
+            total_partes = ParteMortorio.objects.count()
+        except Exception as e:
+            print(f"❌ Error contando partes: {e}")
+            total_partes = 0
+        
+        # Partes pendientes
+        try:
+            partes_pendientes = ParteMortorio.objects.filter(estado='pendiente').count()
+        except Exception as e:
+            print(f"❌ Error contando partes pendientes: {e}")
+            partes_pendientes = 0
+        
+        # Partes al aire
+        try:
+            partes_al_aire = ParteMortorio.objects.filter(estado='al_aire').count()
+        except Exception as e:
+            print(f"❌ Error contando partes al aire: {e}")
+            partes_al_aire = 0
+        
+        # Partes pausados
+        try:
+            partes_pausados = ParteMortorio.objects.filter(estado='pausado').count()
+        except Exception as e:
+            print(f"❌ Error contando partes pausados: {e}")
+            partes_pausados = 0
+        
+        # Partes finalizados
+        try:
+            partes_finalizados = ParteMortorio.objects.filter(estado='finalizado').count()
+        except Exception as e:
+            print(f"❌ Error contando partes finalizados: {e}")
+            partes_finalizados = 0
+        
+        # Ingresos totales
+        try:
+            ingresos_totales_result = ParteMortorio.objects.aggregate(
+                total=Sum('precio_total')
+            )
+            ingresos_totales = ingresos_totales_result['total'] or Decimal('0.00')
+        except Exception as e:
+            print(f"❌ Error calculando ingresos totales: {e}")
+            ingresos_totales = Decimal('0.00')
+        
+        # Partes recientes
+        try:
+            partes_recientes = ParteMortorio.objects.select_related(
+                'cliente'
+            ).order_by('-fecha_solicitud')[:10]
+        except Exception as e:
+            print(f"❌ Error obteniendo partes recientes: {e}")
+            partes_recientes = []
+        
+        # ==================== GRÁFICAS CON PLOTLY ====================
+        
+        # 1. Gráfico de pastel - Partes por Estado (LOS 4 ESTADOS PRINCIPALES)
+        try:
+            # Solo los 4 estados principales (sin el total)
+            estados_data = [
+                ('pendiente', partes_pendientes),
+                ('al_aire', partes_al_aire), 
+                ('pausado', partes_pausados),
+                ('finalizado', partes_finalizados)
+            ]
+            
+            # Preparar datos para la gráfica
+            estados_labels = []
+            estados_values = []
+            colores_estados = {
+                'pendiente': '#ffc107',      # Amarillo
+                'al_aire': '#28a745',        # Verde
+                'pausado': '#fd7e14',        # Naranja
+                'finalizado': '#20c997'      # Verde azulado
+            }
+            
+            for estado_codigo, cantidad in estados_data:
+                nombre_estado = dict(ParteMortorio.ESTADO_CHOICES).get(estado_codigo, estado_codigo)
+                estados_labels.append(nombre_estado)
+                estados_values.append(cantidad)
+            
+            if any(estados_values):
+                fig_pastel = px.pie(
+                    values=estados_values,
+                    names=estados_labels,
+                    title='Partes Mortuorios por Estado',
+                    color=estados_labels,
+                    color_discrete_map=colores_estados
+                )
+                
+                fig_pastel.update_traces(
+                    textposition='inside',
+                    textinfo='percent+label',
+                    hovertemplate='<b>%{label}</b><br>Cantidad: %{value}<br>Porcentaje: %{percent}'
+                )
+                
+                fig_pastel.update_layout(
+                    height=400,
+                    showlegend=True,
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=-0.3,
+                        xanchor="center",
+                        x=0.5
+                    )
+                )
+                
+                grafica_pastel_html = pyo.plot(fig_pastel, output_type='div', include_plotlyjs=False)
+            else:
+                grafica_pastel_html = ''
+                
+        except Exception as e:
+            print(f"❌ Error generando gráfica de pastel: {e}")
+            grafica_pastel_html = ''
+        
+        # 2. Gráfico de barras - Ingresos Mensuales
+        try:
+            ingresos_mensuales = []
+            meses_nombres = []
+            
+            for i in range(5, -1, -1):
+                mes_fecha = hoy - timedelta(days=30*i)
+                mes_str = mes_fecha.strftime('%Y-%m')
+                mes_nombre = mes_fecha.strftime('%b %Y')
+                
+                # Calcular ingresos del mes
+                ingresos_mes_result = ParteMortorio.objects.filter(
+                    fecha_solicitud__year=mes_fecha.year,
+                    fecha_solicitud__month=mes_fecha.month
+                ).aggregate(total=Sum('precio_total'))
+                
+                ingresos_mes = ingresos_mes_result['total'] or Decimal('0.00')
+                
+                ingresos_mensuales.append(float(ingresos_mes))
+                meses_nombres.append(mes_nombre)
+            
+            if any(ingresos_mensuales):
+                datos_ingresos = {
+                    'Mes': meses_nombres,
+                    'Ingresos': ingresos_mensuales
+                }
+                
+                fig_barras = px.bar(
+                    datos_ingresos,
+                    x='Mes',
+                    y='Ingresos',
+                    title='Ingresos Mensuales',
+                    color='Ingresos',
+                    color_continuous_scale='Blues'
+                )
+                
+                fig_barras.update_traces(
+                    hovertemplate='<b>%{x}</b><br>Ingresos: $%{y:,.2f}'
+                )
+                
+                fig_barras.update_layout(
+                    height=400,
+                    xaxis_title="Mes",
+                    yaxis_title="Ingresos ($)",
+                    coloraxis_showscale=False
+                )
+                
+                # Formatear ejes
+                fig_barras.update_yaxes(tickprefix="$", tickformat=",.")
+                
+                grafica_barras_html = pyo.plot(fig_barras, output_type='div', include_plotlyjs=False)
+            else:
+                grafica_barras_html = ''
+                
+        except Exception as e:
+            print(f"❌ Error generando gráfica de barras: {e}")
+            grafica_barras_html = ''
+        
+        context = {
+            'total_partes': total_partes,
+            'partes_pendientes': partes_pendientes,
+            'partes_al_aire': partes_al_aire,
+            'partes_pausados': partes_pausados,
+            'partes_finalizados': partes_finalizados,
+            'ingresos_totales': ingresos_totales,
+            'partes_recientes': partes_recientes,
+            'grafica_pastel_html': grafica_pastel_html,
+            'grafica_barras_html': grafica_barras_html,
+            'models_available': True,
+        }
+        
+        print(f"✅ Dashboard de Partes Mortuorios cargado exitosamente:")
+        print(f"   - Total partes: {total_partes}")
+        print(f"   - Pendientes: {partes_pendientes}")
+        print(f"   - Al Aire: {partes_al_aire}")
+        print(f"   - Pausados: {partes_pausados}")
+        print(f"   - Finalizados: {partes_finalizados}")
+        print(f"   - Ingresos totales: {ingresos_totales}")
+        
+        return render(request, 'custom_admin/reports/parte_mortorios/list.html', context)
+        
+    except Exception as e:
+        print(f"❌ ERROR CRÍTICO en reports_dashboard_partes_mortuorios: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        context = {
+            'error': 'Error al cargar el dashboard',
+            'mensaje': str(e),
+            'models_available': False,
+            'total_partes': 0,
+            'partes_pendientes': 0,
+            'partes_al_aire': 0,
+            'partes_pausados': 0,
+            'partes_finalizados': 0,
+            'ingresos_totales': Decimal('0.00'),
+            'partes_recientes': [],
+            'grafica_pastel_html': '',
+            'grafica_barras_html': '',
+        }
+        return render(request, 'custom_admin/reports/parte_mortorios/list.html', context)
+# ==================== APIs PARA MODALES ====================
+
+@login_required
+@user_passes_test(is_admin)
+def reports_partes_estado_api(request):
+    """API para obtener datos de partes por estado (para modal)"""
+    if not PARTE_MORTORIO_MODELS_AVAILABLE:
+        return JsonResponse({'success': False, 'error': 'Módulo no disponible'})
+    
+    try:
+        # Agrupar por estado
+        partes_por_estado = ParteMortorio.objects.values('estado').annotate(
+            total=Count('id'),
+            ingresos_totales=Sum('precio_total')
+        ).order_by('estado')
+        
+        data = []
+        for item in partes_por_estado:
+            data.append({
+                'estado': dict(ParteMortorio.ESTADO_CHOICES).get(item['estado'], item['estado']),
+                'total': item['total'],
+                'ingresos_totales': str(item['ingresos_totales'] or Decimal('0.00'))
+            })
+        
+        return JsonResponse({'success': True, 'data': data})
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+@user_passes_test(is_admin)
+def reports_partes_urgencia_api(request):
+    """API para obtener datos de partes por urgencia (para modal)"""
+    if not PARTE_MORTORIO_MODELS_AVAILABLE:
+        return JsonResponse({'success': False, 'error': 'Módulo no disponible'})
+    
+    try:
+        # Agrupar por urgencia
+        partes_por_urgencia = ParteMortorio.objects.values('urgencia').annotate(
+            total=Count('id'),
+            ingresos_totales=Sum('precio_total')
+        ).order_by('urgencia')
+        
+        data = []
+        for item in partes_por_urgencia:
+            data.append({
+                'urgencia': dict(ParteMortorio.URGENCIA_CHOICES).get(item['urgencia'], item['urgencia']),
+                'total': item['total'],
+                'ingresos_totales': str(item['ingresos_totales'] or Decimal('0.00'))
+            })
+        
+        return JsonResponse({'success': True, 'data': data})
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+@user_passes_test(is_admin)
+def reports_partes_ingresos_api(request):
+    """API para obtener datos de ingresos de partes (para modal)"""
+    if not PARTE_MORTORIO_MODELS_AVAILABLE:
+        return JsonResponse({'success': False, 'error': 'Módulo no disponible'})
+    
+    try:
+        hoy = timezone.now().date()
+        ingresos_mensuales = []
+        
+        for i in range(5, -1, -1):
+            mes_fecha = hoy - timedelta(days=30*i)
+            mes_nombre = mes_fecha.strftime('%b %Y')
+            
+            # Calcular ingresos del mes
+            ingresos_mes_result = ParteMortorio.objects.filter(
+                fecha_solicitud__year=mes_fecha.year,
+                fecha_solicitud__month=mes_fecha.month
+            ).aggregate(total=Sum('precio_total'))
+            
+            ingresos_mes = ingresos_mes_result['total'] or Decimal('0.00')
+            
+            ingresos_mensuales.append({
+                'mes': mes_nombre,
+                'ingresos': float(ingresos_mes)
+            })
+        
+        return JsonResponse({'success': True, 'data': ingresos_mensuales})
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+@user_passes_test(is_admin)
+def reports_partes_detalle_api(request, parte_id):
+    """API para obtener detalle completo de un parte mortuorio"""
+    if not PARTE_MORTORIO_MODELS_AVAILABLE:
+        return JsonResponse({'success': False, 'error': 'Módulo no disponible'})
+    
+    try:
+        parte = get_object_or_404(ParteMortorio, pk=parte_id)
+        
+        data = {
+            'success': True,
+            'parte': {
+                'codigo': parte.codigo,
+                'nombre_fallecido': parte.nombre_fallecido,
+                'edad_fallecido': parte.edad_fallecido,
+                'dni_fallecido': parte.dni_fallecido,
+                'fecha_fallecimiento': parte.fecha_fallecimiento.strftime('%d/%m/%Y') if parte.fecha_fallecimiento else '',
+                'fecha_nacimiento': parte.fecha_nacimiento.strftime('%d/%m/%Y') if parte.fecha_nacimiento else '',
+                'nombre_esposa': parte.nombre_esposa,
+                'cantidad_hijos': parte.cantidad_hijos,
+                'hijos_vivos': parte.hijos_vivos,
+                'hijos_fallecidos': parte.hijos_fallecidos,
+                'nombres_hijos': parte.nombres_hijos,
+                'familiares_adicionales': parte.familiares_adicionales,
+                'tipo_ceremonia': parte.get_tipo_ceremonia_display(),
+                'fecha_misa': parte.fecha_misa.strftime('%d/%m/%Y') if parte.fecha_misa else '',
+                'hora_misa': parte.hora_misa.strftime('%H:%M') if parte.hora_misa else '',
+                'lugar_misa': parte.lugar_misa,
+                'fecha_inicio_transmision': parte.fecha_inicio_transmision.strftime('%d/%m/%Y') if parte.fecha_inicio_transmision else '',
+                'fecha_fin_transmision': parte.fecha_fin_transmision.strftime('%d/%m/%Y') if parte.fecha_fin_transmision else '',
+                'hora_transmision': parte.hora_transmision.strftime('%H:%M') if parte.hora_transmision else '',
+                'duracion_transmision': parte.duracion_transmision,
+                'repeticiones_dia': parte.repeticiones_dia,
+                'precio_total': str(parte.precio_total),
+                'estado': parte.get_estado_display(),
+                'urgencia': parte.get_urgencia_display(),
+                'observaciones': parte.observaciones,
+                'mensaje_personalizado': parte.mensaje_personalizado,
+                'fecha_solicitud': parte.fecha_solicitud.strftime('%d/%m/%Y %H:%M'),
+                'cliente_nombre': parte.cliente.get_full_name() if parte.cliente else '',
+                'cliente_telefono': parte.cliente.telefono if parte.cliente else '',
+                'cliente_email': parte.cliente.email if parte.cliente else '',
+            }
+        }
+        
+        return JsonResponse(data)
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})

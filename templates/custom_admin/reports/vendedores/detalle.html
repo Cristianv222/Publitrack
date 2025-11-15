@@ -4,6 +4,81 @@
 
 {% block title %}Detalle Vendedor - {{ vendedor.get_full_name }}{% endblock %}
 
+{% block extra_css %}
+<style>
+/* Estilos del dashboard principal aplicados */
+.dashboard-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: none;
+    border-radius: 0.75rem;
+}
+.dashboard-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+}
+
+/* Bordes izquierdos para cards de estadísticas */
+.border-left-primary { border-left: 0.25rem solid #4e73df !important; }
+.border-left-success { border-left: 0.25rem solid #1cc88a !important; }
+.border-left-info { border-left: 0.25rem solid #36b9cc !important; }
+.border-left-warning { border-left: 0.25rem solid #f6c23e !important; }
+
+/* Headers suaves */
+.card-header-soft {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+}
+
+/* Botón volver mejorado */
+.btn-volver {
+    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    color: white;
+    border: none;
+    transition: all 0.3s ease;
+}
+.btn-volver:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(37, 117, 252, 0.3);
+    color: white;
+}
+
+.badge-borrador { background-color: #6c757d; color: white; }
+.badge-generado { background-color: #17a2b8; color: white; }
+.badge-enviado { background-color: #ffc107; color: #212529; }
+.badge-firmado { background-color: #007bff; color: white; }
+.badge-validado { background-color: #28a745; color: white; }
+.badge-vencido { background-color: #dc3545; color: white; }
+.badge-cancelado { background-color: #6c757d; color: white; }
+.badge-activo { background-color: #28a745; color: white; }
+.badge-inactivo { background-color: #6c757d; color: white; }
+
+.nav-tabs .nav-link.active {
+    font-weight: 600;
+    border-bottom: 3px solid #007bff;
+}
+
+.card {
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+/* Estilos para el botón volver más sutil */
+.btn-outline-secondary {
+    border-color: #dee2e6;
+    color: #6c757d;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #f8f9fa;
+    border-color: #adb5bd;
+    color: #495057;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid px-4">
     <!-- Header -->
@@ -14,12 +89,13 @@
                 {{ vendedor.get_full_name }}
             </h1>
             <p class="mb-0">Reporte detallado de desempeño</p>
-            <small class="text-muted">Email: {{ vendedor.email }} | Período: {{ fecha_inicio }} al {{ fecha_fin }}</small>
+            <small class="h5 mb-0 font-weight-bold text-gray-800">Email: {{ vendedor.email }} | Período: {{ fecha_inicio }} al {{ fecha_fin }}</small>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 align-items-start">
+            <!-- Botón Volver mejorado -->
             <a href="{% url 'custom_admin:reports_dashboard_vendedores' %}?fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}" 
-               class="btn btn-secondary">
-                <i class="fas fa-arrow-left fa-fw"></i> Volver al Dashboard
+               class="btn btn-volver btn-sm mt-3">
+                <i class="fas fa-arrow-left fa-fw"></i> Volver a Vendedores
             </a>
             <!-- Filtros -->
             <form method="get" class="d-flex gap-2 align-items-center">
@@ -44,7 +120,7 @@
     <div class="row mb-4">
         <!-- Contratos -->
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card dashboard-card border-left-primary shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
@@ -64,7 +140,7 @@
 
         <!-- Cuñas -->
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card dashboard-card border-left-warning shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
@@ -84,7 +160,7 @@
 
         <!-- Clientes Asignados -->
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
+            <div class="card dashboard-card border-left-success shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
@@ -104,7 +180,7 @@
 
         <!-- Total Ingresos -->
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
+            <div class="card dashboard-card border-left-info shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
@@ -126,8 +202,8 @@
     <!-- Pestañas -->
     <div class="row">
         <div class="col-12">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
+            <div class="card dashboard-card shadow mb-4">
+                <div class="card-header card-header-soft">
                     <ul class="nav nav-tabs card-header-tabs" id="myTab" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="contratos-tab" data-bs-toggle="tab" data-bs-target="#contratos" type="button" role="tab">
@@ -327,32 +403,4 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Detalle de vendedor cargado correctamente');
 });
 </script>
-
-<style>
-.badge-borrador { background-color: #6c757d; color: white; }
-.badge-generado { background-color: #17a2b8; color: white; }
-.badge-enviado { background-color: #ffc107; color: #212529; }
-.badge-firmado { background-color: #007bff; color: white; }
-.badge-validado { background-color: #28a745; color: white; }
-.badge-vencido { background-color: #dc3545; color: white; }
-.badge-cancelado { background-color: #6c757d; color: white; }
-.badge-activo { background-color: #28a745; color: white; }
-.badge-inactivo { background-color: #6c757d; color: white; }
-
-.nav-tabs .nav-link.active {
-    font-weight: 600;
-    border-bottom: 3px solid #007bff;
-}
-
-.card {
-    border: none;
-    border-radius: 0.5rem;
-    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-}
-
-.border-left-primary { border-left: 0.25rem solid #4e73df !important; }
-.border-left-success { border-left: 0.25rem solid #1cc88a !important; }
-.border-left-info { border-left: 0.25rem solid #36b9cc !important; }
-.border-left-warning { border-left: 0.25rem solid #f6c23e !important; }
-</style>
 {% endblock %}

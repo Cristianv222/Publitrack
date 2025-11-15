@@ -8,22 +8,83 @@
 <!-- Incluir Plotly.js -->
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <style>
+/* Estilos del dashboard principal aplicados */
 .dashboard-card {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     border: none;
-    border-radius: 0.5rem;
+    border-radius: 0.75rem;
 }
 .dashboard-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
 }
 .stat-card {
     border-left: 4px solid;
 }
-.stat-card.contratos { border-left-color: #007bff; }
-.stat-card.vendedores { border-left-color: #28a745; }
-.stat-card.ingresos { border-left-color: #ffc107; }
-.stat-card.clientes { border-left-color: #dc3545; }
+
+/* Paleta de colores pastel armoniosa */
+.pastel-primary { background-color: #e3f2fd; border-left-color: #90caf9; }
+.pastel-success { background-color: #e8f5e8; border-left-color: #81c784; }
+.pastel-warning { background-color: #fff3e0; border-left-color: #ffb74d; }
+.pastel-info { background-color: #e0f2f1; border-left-color: #4db6ac; }
+.pastel-purple { background-color: #f3e5f5; border-left-color: #ba68c8; }
+.pastel-indigo { background-color: #e8eaf6; border-left-color: #7986cb; }
+
+/* Badges pastel */
+.badge-pastel-primary { background-color: #e3f2fd; color: #1976d2; }
+.badge-pastel-success { background-color: #e8f5e8; color: #388e3c; }
+.badge-pastel-warning { background-color: #fff3e0; color: #f57c00; }
+.badge-pastel-info { background-color: #e0f2f1; color: #00796b; }
+
+/* Headers suaves en colores pastel */
+.card-header-soft {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    color: #1565c0;
+    border: none;
+    font-weight: 600;
+}
+
+.card-header-success {
+    background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
+    color: #2e7d32;
+    border: none;
+    font-weight: 600;
+}
+
+.card-header-warning {
+    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+    color: #ef6c00;
+    border: none;
+    font-weight: 600;
+}
+
+/* Botón volver mejorado */
+.btn-volver {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    color: #1565c0;
+    border: 2px solid #bbdefb;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+.btn-volver:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+    background: linear-gradient(135deg, #bbdefb 0%, #90caf9 100%);
+    color: #1565c0;
+    border-color: #90caf9;
+}
+
+/* Bordes izquierdos para cards de estadísticas */
+.border-left-primary { border-left: 0.25rem solid #90caf9 !important; }
+.border-left-success { border-left: 0.25rem solid #81c784 !important; }
+.border-left-warning { border-left: 0.25rem solid #ffb74d !important; }
+.border-left-info { border-left: 0.25rem solid #4db6ac !important; }
+
+/* Text colors pastel */
+.text-pastel-primary { color: #1976d2; }
+.text-pastel-success { color: #388e3c; }
+.text-pastel-warning { color: #f57c00; }
+.text-pastel-info { color: #00796b; }
 </style>
 {% endblock %}
 
@@ -33,12 +94,17 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-0 text-gray-800">
-                <i class="fas fa-chart-line fa-fw"></i> 
+                <i class="fas fa-chart-line fa-fw text-pastel-primary"></i> 
                 Reportes de Vendedores
             </h1>
             <p class="mb-0">Desempeño y métricas de los vendedores</p>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 align-items-start">
+            <!-- Botón Volver al Panel de Reportes -->
+            <a href="{% url 'custom_admin:reportes_dashboard' %}" 
+               class="btn btn-volver btn-sm mt-3">
+                <i class="fas fa-arrow-left fa-fw"></i> Volver a Reportes
+            </a>
             <!-- Filtros -->
             <form method="get" class="d-flex gap-2 align-items-center">
                 <div>
@@ -50,7 +116,7 @@
                     <input type="date" class="form-control form-control-sm" name="fecha_fin" value="{{ fecha_fin }}">
                 </div>
                 <div class="mt-4">
-                    <button type="submit" class="btn btn-primary btn-sm">
+                    <button type="submit" class="btn btn-sm btn-outline-success">
                         <i class="fas fa-filter fa-fw"></i> Filtrar
                     </button>
                 </div>
@@ -60,7 +126,7 @@
 
     {% if error %}
     <!-- Alertas de error -->
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
         <strong><i class="fas fa-exclamation-triangle fa-fw"></i> Error:</strong> {{ error }}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
@@ -70,11 +136,11 @@
     <div class="row mb-4">
         <!-- Total Vendedores -->
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card stat-card vendedores dashboard-card h-100">
+            <div class="card dashboard-card border-left-success shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            <div class="text-xs font-weight-bold text-pastel-success text-uppercase mb-1">
                                 Vendedores Activos
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_vendedores }}</div>
@@ -96,16 +162,16 @@
 
         <!-- Total Contratos -->
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card stat-card contratos dashboard-card h-100">
+            <div class="card dashboard-card border-left-primary shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            <div class="text-xs font-weight-bold text-pastel-primary text-uppercase mb-1">
                                 Total Contratos
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_contratos_general }}</div>
                             <div class="mt-2">
-                                <span class="badge bg-primary">Asignados: {{ total_contratos_general }}</span>
+                                <span class="badge badge-pastel-primary">Asignados: {{ total_contratos_general }}</span>
                             </div>
                         </div>
                         <div class="col-auto">
@@ -118,21 +184,18 @@
 
         <!-- Total Ingresos -->
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card stat-card ingresos dashboard-card h-100">
+            <div class="card dashboard-card border-left-warning shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            <div class="text-xs font-weight-bold text-pastel-warning text-uppercase mb-1">
                                 Total Ingresos
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">${{ total_ingresos_general }}</div>
                             <div class="mt-2">
-                                {% with total_ing_contratos=0 %}
-                                    {% for stats in estadisticas_vendedores %}
-                                        {% with total_ing_contratos=total_ing_contratos|add:stats.ingresos_contratos %}{% endwith %}
-                                    {% endfor %}
-                                    <small class="text-muted">Contratos: ${{ total_ing_contratos }}</small>
-                                {% endwith %}
+                                <small class="text-muted">Contratos: ${{ total_ing_contratos_general }}</small>
+                                <br>
+                                <small class="text-muted">Cuñas: ${{ total_ing_cunas_general }}</small>
                             </div>
                         </div>
                         <div class="col-auto">
@@ -145,18 +208,18 @@
 
         <!-- Clientes Totales -->
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card stat-card clientes dashboard-card h-100">
+            <div class="card dashboard-card border-left-info shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                            <div class="text-xs font-weight-bold text-pastel-info text-uppercase mb-1">
                                 Total Clientes
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
                                 {{ total_clientes_general }}
                             </div>
                             <div class="mt-2">
-                                <span class="badge bg-info">Asignados</span>
+                                <span class="badge badge-pastel-info">Asignados</span>
                             </div>
                         </div>
                         <div class="col-auto">
@@ -173,8 +236,8 @@
         <!-- Top Vendedores -->
         <div class="col-xl-6 col-lg-6 mb-4">
             <div class="card dashboard-card h-100">
-                <div class="card-header bg-transparent">
-                    <h6 class="m-0 font-weight-bold text-primary">
+                <div class="card-header card-header-success">
+                    <h6 class="m-0 font-weight-bold">
                         <i class="fas fa-trophy fa-fw"></i> Top 5 Vendedores por Ingresos
                     </h6>
                 </div>
@@ -194,8 +257,8 @@
         <!-- Distribución de Ingresos -->
         <div class="col-xl-6 col-lg-6 mb-4">
             <div class="card dashboard-card h-100">
-                <div class="card-header bg-transparent">
-                    <h6 class="m-0 font-weight-bold text-primary">
+                <div class="card-header card-header-soft">
+                    <h6 class="m-0 font-weight-bold">
                         <i class="fas fa-chart-pie fa-fw"></i> Distribución de Ingresos
                     </h6>
                 </div>
@@ -216,12 +279,12 @@
     <!-- Tabla de Vendedores -->
     <div class="row">
         <div class="col-12">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                    <h6 class="m-0 font-weight-bold text-primary">
+            <div class="card dashboard-card shadow mb-4">
+                <div class="card-header card-header-success">
+                    <h6 class="m-0 font-weight-bold">
                         <i class="fas fa-list fa-fw"></i> Desempeño de Vendedores
                     </h6>
-                    <small class="text-muted">Período: {{ fecha_inicio }} al {{ fecha_fin }}</small>
+                    <small class="text-black">Período: {{ fecha_inicio }} al {{ fecha_fin }}</small>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -247,13 +310,13 @@
                                         <small class="text-muted">{{ stats.vendedor.email }}</small>
                                     </td>
                                     <td class="text-center">
-                                        <span class="badge bg-info">{{ stats.clientes_asignados }}</span>
+                                        <span class="badge badge-pastel-info">{{ stats.clientes_asignados }}</span>
                                     </td>
                                     <td class="text-center">
-                                        <span class="badge bg-primary">{{ stats.total_contratos }}</span>
+                                        <span class="badge badge-pastel-primary">{{ stats.total_contratos }}</span>
                                     </td>
                                     <td class="text-center">
-                                        <span class="badge bg-warning">{{ stats.total_cuñas }}</span>
+                                        <span class="badge badge-pastel-warning">{{ stats.total_cuñas }}</span>
                                     </td>
                                     <td class="text-end">
                                         <strong>${{ stats.ingresos_contratos }}</strong>
@@ -286,30 +349,9 @@
                                     <th>TOTALES</th>
                                     <th class="text-center">{{ total_clientes_general }}</th>
                                     <th class="text-center">{{ total_contratos_general }}</th>
-                                    <th class="text-center">
-                                        {% with total_cunas=0 %}
-                                            {% for stats in estadisticas_vendedores %}
-                                                {% with total_cunas=total_cunas|add:stats.total_cuñas %}{% endwith %}
-                                            {% endfor %}
-                                            {{ total_cunas }}
-                                        {% endwith %}
-                                    </th>
-                                    <th class="text-end">
-                                        ${% with total_ing_contratos=0 %}
-                                            {% for stats in estadisticas_vendedores %}
-                                                {% with total_ing_contratos=total_ing_contratos|add:stats.ingresos_contratos %}{% endwith %}
-                                            {% endfor %}
-                                            {{ total_ing_contratos }}
-                                        {% endwith %}
-                                    </th>
-                                    <th class="text-end">
-                                        ${% with total_ing_cunas=0 %}
-                                            {% for stats in estadisticas_vendedores %}
-                                                {% with total_ing_cunas=total_ing_cunas|add:stats.ingresos_cuñas %}{% endwith %}
-                                            {% endfor %}
-                                            {{ total_ing_cunas }}
-                                        {% endwith %}
-                                    </th>
+                                    <th class="text-center">{{ total_cunas_general }}</th>
+                                    <th class="text-end">${{ total_ing_contratos_general }}</th>
+                                    <th class="text-end">${{ total_ing_cunas_general }}</th>
                                     <th class="text-end">${{ total_ingresos_general }}</th>
                                     <th></th>
                                 </tr>
