@@ -177,4 +177,23 @@ path('reports/partes-mortuorios/api/urgencia/', views.reports_partes_urgencia_ap
 path('reports/partes-mortuorios/api/ingresos/', views.reports_partes_ingresos_api, name='reports_partes_ingresos_api'),
 path('reports/partes-mortuorios/api/<int:parte_id>/detalle/', views.reports_partes_detalle_api, name='reports_partes_detalle_api'),
 path('reports/partes-mortuorios/dashboard/', views.reports_dashboard_partes_mortuorios, name='reports_dashboard_partes_mortuorios'),
+# =============================================================================
+# URLs DE PROGRAMACIÓN CANAL - MODALES
+# =============================================================================
+path('programacion-canal/', views.programacion_list, name='programacion_canal_dashboard'),
+path('programacion/', views.programacion_list, name='programacion_list'),
+path('programacion-canal/programas/crear-modal/', views.programa_create_modal, name='programa_create_modal'),
+path('programacion-canal/programaciones/crear-modal/', views.programacion_semanal_create_modal, name='programacion_semanal_create_modal'),
+path('programacion-canal/bloques/crear-modal/', views.bloque_programacion_create_modal, name='bloque_programacion_create_modal'),
+path('programacion-canal/programas/<int:programa_id>/eliminar-modal/', views.programa_delete_modal, name='programa_delete_modal'),
+path('programacion-canal/programaciones/<int:programacion_id>/eliminar-modal/', views.programacion_semanal_delete_modal, name='programacion_semanal_delete_modal'),
+path('programacion-canal/programaciones/<int:programacion_id>/copiar/', views.copiar_programacion_semanal, name='copiar_programacion_semanal'),
+path('programacion-canal/bloques/<int:bloque_id>/eliminar-modal/', views.bloque_programacion_delete_modal, name='bloque_programacion_delete_modal'),
+# URLs para las APIs de ver y editar
+path('api/programas/<int:programa_id>/', views.api_programa_detail, name='api_programa_detail'),
+path('api/programas/<int:programa_id>/actualizar/', views.api_programa_update, name='api_programa_update'),
+path('api/programaciones/<int:programacion_id>/', views.api_programacion_detail, name='api_programacion_detail'),
+path('api/programaciones/<int:programacion_id>/actualizar/', views.api_programacion_update, name='api_programacion_update'),
+path('api/bloques/<int:bloque_id>/', views.api_bloque_detail, name='api_bloque_detail'),
+path('api/bloques/<int:bloque_id>/actualizar/', views.api_bloque_update, name='api_bloque_update'),
 ]

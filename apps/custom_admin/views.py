@@ -29,6 +29,7 @@ from apps.content_management.models import ContratoGenerado
 import plotly.express as px
 import plotly.offline as pyo
 import plotly.io as pio
+from apps.programacion_canal.models import ProgramacionSemanal, BloqueProgramacion
 # Obtener el modelo de usuario correcto
 User = get_user_model()
 
@@ -154,7 +155,19 @@ except ImportError as e:
     ReporteContratos = None
     ReportePartesMortuorios = None
     DashboardPartesMortuorios = None
-
+# =============================================================================
+# IMPORTS PARA PROGRAMACIÓN CANAL
+# =============================================================================
+try:
+    from apps.programacion_canal.models import (
+        Programa, 
+        ProgramacionSemanal, 
+        BloqueProgramacion
+    )
+    PROGRAMACION_CANAL_AVAILABLE = True
+except ImportError:
+    PROGRAMACION_CANAL_AVAILABLE = False
+    print("⚠️  Programación Canal no disponible - modelos no encontrados")
 # IMPORTS CONDICIONALES PARA PARTE MORTORIOS - ACTUALIZAR ESTA SECCIÓN
 try:
     from apps.parte_mortorios.models import (
@@ -171,6 +184,15 @@ except ImportError as e:
     HistorialParteMortorio = None
     PlantillaParteMortorio = None
     ParteMortorioGenerado = None
+# =============================================================================
+# IMPORTACIONES DE PROGRAMACIÓN CANAL
+# =============================================================================
+try:
+    from apps.programacion_canal.models import Programa, ProgramacionSemanal, BloqueProgramacion
+    from apps.programacion_canal.forms import ProgramaForm, ProgramacionSemanalForm, BloqueProgramacionForm
+    PROGRAMACION_CANAL_AVAILABLE = True
+except ImportError:
+    PROGRAMACION_CANAL_AVAILABLE = False
 # ==================== APIs PARA PANTEONES ====================
 
 @login_required
@@ -7649,3 +7671,376 @@ def reports_partes_detalle_api(request, parte_id):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+# =============================================================================
+# VISTAS PRINCIPALES DE PROGRAMACIÓN CANAL - MODALES
+# =============================================================================
+@login_required
+def programacion_list(request):
+    """
+    Vista ÚNICA de programación con todo integrado - Modales
+    """
+    try:
+        from apps.programacion_canal.models import Programa, ProgramacionSemanal, BloqueProgramacion
+        from apps.programacion_canal.forms import ProgramaForm, ProgramacionSemanalForm, BloqueProgramacionForm
+        PROGRAMACION_AVAILABLE = True
+    except ImportError:
+        PROGRAMACION_AVAILABLE = False
+        messages.error(request, 'Módulo de Programación no disponible')
+        return redirect('custom_admin:dashboard')
+    
+    # Obtener datos para la vista
+    programas = Programa.objects.all().order_by('nombre')
+    programaciones = ProgramacionSemanal.objects.all().order_by('-fecha_inicio_semana')
+    
+    # Obtener parámetro de semana
+    programacion_id = request.GET.get('programacion_id')
+    programacion_actual = None
+    
+    if programacion_id:
+        # Si se especifica una programación específica
+        programacion_actual = get_object_or_404(ProgramacionSemanal, id=programacion_id)
+    else:
+        # Obtener programación actual para el calendario (semana actual)
+        from django.utils import timezone
+        from datetime import timedelta
+        hoy = timezone.now().date()
+        inicio_semana = hoy - timedelta(days=hoy.weekday())
+        
+        programacion_actual = ProgramacionSemanal.objects.filter(
+            fecha_inicio_semana=inicio_semana,
+            estado='publicada'
+        ).first()
+        
+        # Si no hay programación para la semana actual, usar la más reciente
+        if not programacion_actual and programaciones.exists():
+            programacion_actual = programaciones.first()
+    
+    # Obtener bloques para el calendario
+    bloques_semana = []
+    if programacion_actual:
+        bloques_semana = BloqueProgramacion.objects.filter(
+            programacion_semanal=programacion_actual
+        ).select_related('programa').order_by('dia_semana', 'hora_inicio')
+    
+    # Configuración del calendario
+    dias_semana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+    horas_dia = []
+    for hora in range(6, 24):
+        for minuto in [0, 30]:
+            horas_dia.append(f"{hora:02d}:{minuto:02d}")
+    
+    context = {
+        'section': 'transmisiones',
+        'programas': programas,
+        'programaciones': programaciones,
+        'programacion_actual': programacion_actual,
+        'bloques_semana': bloques_semana,
+        'dias_semana': dias_semana,
+        'horas_dia': horas_dia,
+        'PROGRAMACION_AVAILABLE': PROGRAMACION_AVAILABLE,
+    }
+    
+    return render(request, 'custom_admin/programacion_canal/programacion_list.html', context)
+@login_required
+def copiar_programacion_semanal(request, programacion_id):
+    """Copiar una programación semanal completa a otra programación existente"""
+    if request.method == 'POST':
+        import json
+        from apps.programacion_canal.models import ProgramacionSemanal, BloqueProgramacion
+        
+        programacion_origen = get_object_or_404(ProgramacionSemanal, id=programacion_id)
+        
+        # Obtener la programación destino del body JSON
+        data = json.loads(request.body)
+        programacion_destino_id = data.get('programacion_destino_id')
+        
+        if not programacion_destino_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Debe seleccionar una programación destino'
+            })
+        
+        programacion_destino = get_object_or_404(ProgramacionSemanal, id=programacion_destino_id)
+        
+        # Verificar que no sea la misma programación
+        if programacion_origen.id == programacion_destino.id:
+            return JsonResponse({
+                'success': False,
+                'error': 'No puede copiar la programación a sí misma'
+            })
+        
+        # Eliminar bloques existentes en la programación destino (opcional)
+        # Si quieres que se mantengan los bloques existentes, comenta esta línea
+        programacion_destino.bloques.all().delete()
+        
+        # Copiar todos los bloques
+        bloques_origen = BloqueProgramacion.objects.filter(programacion_semanal=programacion_origen)
+        bloques_copiados = 0
+        
+        for bloque in bloques_origen:
+            nuevo_bloque = BloqueProgramacion(
+                programacion_semanal=programacion_destino,
+                programa=bloque.programa,
+                dia_semana=bloque.dia_semana,
+                hora_inicio=bloque.hora_inicio,
+                duracion_real=bloque.duracion_real,
+                es_repeticion=bloque.es_repeticion,
+                notas=bloque.notas
+            )
+            nuevo_bloque.save()
+            bloques_copiados += 1
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Se copiaron {bloques_copiados} bloques de "{programacion_origen.nombre}" a "{programacion_destino.nombre}"',
+            'programacion_destino_id': programacion_destino.id
+        })
+    
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+@login_required
+def bloque_programacion_delete_modal(request, bloque_id):
+    """Eliminar bloque de programación via modal"""
+    if request.method == 'POST':
+        from apps.programacion_canal.models import BloqueProgramacion
+        bloque = get_object_or_404(BloqueProgramacion, id=bloque_id)
+        programacion_id = bloque.programacion_semanal.id
+        bloque.delete()
+        return JsonResponse({
+            'success': True,
+            'message': 'Bloque eliminado exitosamente',
+            'programacion_id': programacion_id
+        })
+    
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+@login_required
+def programa_create_modal(request):
+    """Crear programa via modal"""
+    if request.method == 'POST':
+        from apps.programacion_canal.forms import ProgramaForm
+        form = ProgramaForm(request.POST)
+        if form.is_valid():
+            programa = form.save()
+            return JsonResponse({
+                'success': True,
+                'message': f'Programa "{programa.nombre}" creado exitosamente',
+                'programa_id': programa.id,
+                'programa_nombre': programa.nombre,
+                'programa_color': programa.color
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'errors': form.errors
+            })
+    
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+@login_required
+def programacion_semanal_create_modal(request):
+    """Crear programación semanal via modal"""
+    if request.method == 'POST':
+        from apps.programacion_canal.forms import ProgramacionSemanalForm
+        form = ProgramacionSemanalForm(request.POST)
+        if form.is_valid():
+            programacion = form.save(commit=False)
+            programacion.created_by = request.user
+            programacion.save()
+            return JsonResponse({
+                'success': True,
+                'message': f'Programación "{programacion.nombre}" creada exitosamente',
+                'programacion_id': programacion.id,
+                'programacion_nombre': programacion.nombre
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'errors': form.errors
+            })
+    
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+@login_required
+def bloque_programacion_create_modal(request):
+    """Crear bloque de programación via modal"""
+    if request.method == 'POST':
+        from apps.programacion_canal.forms import BloqueProgramacionForm
+        form = BloqueProgramacionForm(request.POST)
+        if form.is_valid():
+            bloque = form.save()
+            return JsonResponse({
+                'success': True,
+                'message': 'Bloque de programación creado exitosamente',
+                'bloque_id': bloque.id
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'errors': form.errors
+            })
+    
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+@login_required
+def programa_delete_modal(request, programa_id):
+    """Eliminar programa via modal"""
+    if request.method == 'POST':
+        from apps.programacion_canal.models import Programa
+        programa = get_object_or_404(Programa, id=programa_id)
+        nombre_programa = programa.nombre
+        programa.delete()
+        return JsonResponse({
+            'success': True,
+            'message': f'Programa "{nombre_programa}" eliminado exitosamente'
+        })
+    
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+@login_required
+def programacion_semanal_delete_modal(request, programacion_id):
+    """Eliminar programación semanal via modal"""
+    if request.method == 'POST':
+        from apps.programacion_canal.models import ProgramacionSemanal
+        programacion = get_object_or_404(ProgramacionSemanal, id=programacion_id)
+        nombre_programacion = programacion.nombre
+        programacion.delete()
+        return JsonResponse({
+            'success': True,
+            'message': f'Programación "{nombre_programacion}" eliminada exitosamente'
+        })
+    
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+# APIs para ver y editar
+@login_required
+def api_programa_detail(request, programa_id):
+    programa = get_object_or_404(Programa, id=programa_id)
+    return JsonResponse({
+        'success': True,
+        'programa': {
+            'id': programa.id,
+            'nombre': programa.nombre,
+            'codigo': programa.codigo,
+            'descripcion': programa.descripcion,
+            'tipo': programa.tipo,
+            'tipo_display': programa.get_tipo_display(),
+            'duracion_estandar': str(programa.duracion_estandar),
+            'estado': programa.estado,
+            'estado_display': programa.get_estado_display(),
+            'color': programa.color,
+            'es_serie': programa.es_serie,
+            'temporada': programa.temporada,
+            'episodio': programa.episodio,
+            'titulo_episodio': programa.titulo_episodio,
+            'created_at': programa.created_at.strftime('%d/%m/%Y %H:%M'),
+            'updated_at': programa.updated_at.strftime('%d/%m/%Y %H:%M'),
+        }
+    })
+
+@login_required
+def api_programa_update(request, programa_id):
+    if request.method == 'POST':
+        programa = get_object_or_404(Programa, id=programa_id)
+        form = ProgramaForm(request.POST, instance=programa)
+        if form.is_valid():
+            programa = form.save()
+            return JsonResponse({
+                'success': True,
+                'message': f'Programa "{programa.nombre}" actualizado exitosamente'
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'errors': form.errors
+            })
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+@login_required
+def api_programacion_detail(request, programacion_id):
+    programacion = get_object_or_404(ProgramacionSemanal, id=programacion_id)
+    bloques = BloqueProgramacion.objects.filter(programacion_semanal=programacion).select_related('programa')
+    
+    bloques_data = []
+    for bloque in bloques:
+        bloques_data.append({
+            'id': bloque.id,
+            'dia_semana': bloque.dia_semana,
+            'dia_semana_display': bloque.get_dia_semana_display(),
+            'hora_inicio': bloque.hora_inicio.strftime('%H:%M'),
+            'hora_fin': bloque.hora_fin.strftime('%H:%M'),
+            'duracion_real': str(bloque.duracion_real),
+            'programa_id': bloque.programa.id,
+            'programa_nombre': bloque.programa.nombre,
+            'programa_color': bloque.programa.color,
+            'es_repeticion': bloque.es_repeticion,
+            'notas': bloque.notas,
+        })
+    
+    return JsonResponse({
+        'success': True,
+        'programacion': {
+            'id': programacion.id,
+            'nombre': programacion.nombre,
+            'codigo': programacion.codigo,
+            'fecha_inicio_semana': programacion.fecha_inicio_semana.strftime('%d/%m/%Y'),
+            'fecha_fin_semana': programacion.fecha_fin_semana.strftime('%d/%m/%Y'),
+            'estado': programacion.estado,
+            'estado_display': programacion.get_estado_display(),
+            'created_by_name': programacion.created_by.get_full_name() or programacion.created_by.username,
+            'created_at': programacion.created_at.strftime('%d/%m/%Y %H:%M'),
+            'updated_at': programacion.updated_at.strftime('%d/%m/%Y %H:%M'),
+        },
+        'bloques': bloques_data
+    })
+
+@login_required
+def api_programacion_update(request, programacion_id):
+    if request.method == 'POST':
+        programacion = get_object_or_404(ProgramacionSemanal, id=programacion_id)
+        form = ProgramacionSemanalForm(request.POST, instance=programacion)
+        if form.is_valid():
+            programacion = form.save()
+            return JsonResponse({
+                'success': True,
+                'message': f'Programación "{programacion.nombre}" actualizada exitosamente'
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'errors': form.errors
+            })
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+@login_required
+def api_bloque_detail(request, bloque_id):
+    bloque = get_object_or_404(BloqueProgramacion, id=bloque_id)
+    return JsonResponse({
+        'success': True,
+        'bloque': {
+            'id': bloque.id,
+            'programacion_semanal_id': bloque.programacion_semanal.id,
+            'programa_id': bloque.programa.id,
+            'dia_semana': bloque.dia_semana,
+            'hora_inicio': bloque.hora_inicio.strftime('%H:%M'),
+            'duracion_real': str(bloque.duracion_real),
+            'es_repeticion': bloque.es_repeticion,
+            'notas': bloque.notas,
+        }
+    })
+
+@login_required
+def api_bloque_update(request, bloque_id):
+    if request.method == 'POST':
+        bloque = get_object_or_404(BloqueProgramacion, id=bloque_id)
+        form = BloqueProgramacionForm(request.POST, instance=bloque)
+        if form.is_valid():
+            bloque = form.save()
+            return JsonResponse({
+                'success': True,
+                'message': 'Bloque de programación actualizado exitosamente'
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'errors': form.errors
+            })
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})

@@ -1,0 +1,2231 @@
+{% extends 'custom_admin/base_admin.html' %}
+{% load static %}
+
+{% block title %}Programación del Canal - PublicTrack{% endblock %}
+
+{% block header_title %}
+    <i class="fas fa-tv me-2"></i>Programación del Canal
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Estilos para el calendario */
+    .calendario-grid {
+        display: grid;
+        grid-template-columns: 80px repeat(7, 1fr);
+        gap: 1px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+    }
+    
+    .calendario-header {
+        background: #6c757d;
+        color: white;
+        padding: 12px 8px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    
+    .calendario-hora {
+        background: #f8f9fa;
+        padding: 8px;
+        text-align: center;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #495057;
+        border-right: 1px solid #dee2e6;
+    }
+    
+    .calendario-celda {
+        background: white;
+        min-height: 60px;
+        padding: 4px;
+        border-right: 1px solid #dee2e6;
+        border-bottom: 1px solid #dee2e6;
+        position: relative;
+    }
+    
+    .calendario-bloque {
+        background: #4dabf7;
+        color: white;
+        padding: 4px 6px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        margin-bottom: 2px;
+        cursor: pointer;
+        border-left: 3px solid;
+    }
+    
+    .calendario-bloque:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+    
+    /* Tabs personalizados */
+    .nav-tabs-custom .nav-link {
+        border: none;
+        color: #6c757d;
+        font-weight: 500;
+        padding: 12px 24px;
+    }
+    
+    .nav-tabs-custom .nav-link.active {
+        background: none;
+        color: #007bff;
+        border-bottom: 3px solid #007bff;
+    }
+    
+    .nav-tabs-custom .nav-link:hover {
+        color: #0056b3;
+        border-bottom: 3px solid #a3d0ff;
+    }
+    
+    /* Cards de programas */
+    .programa-card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 12px;
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .programa-card:hover {
+        border-color: #007bff;
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.1);
+    }
+    
+    .programa-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        display: inline-block;
+        margin-right: 8px;
+    }
+
+    /* Estados de programación - Colores pastel */
+    .estado-borrador { 
+        background: #fff3cd; 
+        color: #856404;
+    }
+    .estado-revision { 
+        background: #d1ecf1; 
+        color: #0c5460;
+    }
+    .estado-aprobada { 
+        background: #d4edda; 
+        color: #155724;
+    }
+    .estado-publicada { 
+        background: #cce7ff; 
+        color: #004085;
+    }
+
+    /* Estilos para las acciones de bloques */
+    .acciones-bloque {
+        transition: all 0.3s ease;
+    }
+
+    .calendario-bloque:hover .acciones-bloque {
+        display: block !important;
+    }
+
+    .acciones-bloque .btn {
+        border: none;
+        width: 20px;
+        height: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .acciones-bloque .btn:hover {
+        background: rgba(255, 255, 255, 0.3) !important;
+    }
+
+    /* Selector de semana */
+    .selector-semana {
+        width: auto;
+        display: inline-block;
+        max-width: 300px;
+    }
+
+    /* Leyenda arriba */
+    .leyenda-superior {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-bottom: 16px;
+        border: 1px solid #e9ecef;
+    }
+
+    /* Botones mejorados con colores azules y pastel */
+    .btn-copiar {
+        background: #4dabf7;
+        border: none;
+        color: white;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-copiar:hover {
+        background: #339af0;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(77, 171, 247, 0.3);
+    }
+
+    .btn-agregar {
+        background: #51cf66;
+        border: none;
+        color: white;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-agregar:hover {
+        background: #40c057;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(81, 207, 102, 0.3);
+    }
+
+    .btn-actualizar {
+        background: #868e96;
+        border: none;
+        color: white;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-actualizar:hover {
+        background: #6c757d;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(134, 142, 150, 0.3);
+    }
+
+    .btn-ver {
+        background: #4dabf7;
+        border: none;
+        color: white;
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-ver:hover {
+        background: #339af0;
+        color: white;
+        transform: translateY(-1px);
+    }
+
+    .btn-editar {
+        background: #ffd43b;
+        border: none;
+        color: #212529;
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-editar:hover {
+        background: #fab005;
+        color: #212529;
+        transform: translateY(-1px);
+    }
+
+    .btn-eliminar {
+        background: #fa5252;
+        border: none;
+        color: white;
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-eliminar:hover {
+        background: #e03131;
+        color: white;
+        transform: translateY(-1px);
+    }
+
+    /* Contenedor de botones mejorado */
+    .contenedor-botones {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    /* Detalles de programación */
+    .detalle-programacion {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .lista-bloques {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .bloque-item {
+        border-left: 4px solid #4dabf7;
+        background: white;
+        margin-bottom: 8px;
+    }
+
+    /* Colores pastel para badges */
+    .badge {
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .bg-primary { background: #cce7ff !important; color: #004085; }
+    .bg-success { background: #d4edda !important; color: #155724; }
+    .bg-warning { background: #fff3cd !important; color: #856404; }
+    .bg-info { background: #d1ecf1 !important; color: #0c5460; }
+    .bg-secondary { background: #e9ecef !important; color: #495057; }
+
+    /* Alertas con colores pastel */
+    .alert-danger {
+        background: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+    }
+
+    .alert-info {
+        background: #d1ecf1;
+        border-color: #bee5eb;
+        color: #0c5460;
+    }
+
+    .alert-warning {
+        background: #fff3cd;
+        border-color: #ffeaa7;
+        color: #856404;
+    }
+
+    /* Text colors */
+    .text-primary { color: #007bff !important; }
+    .text-success { color: #28a745 !important; }
+    .text-info { color: #17a2b8 !important; }
+    .text-muted { color: #6c757d !important; }
+    .text-gray-800 { color: #343a40 !important; }
+
+    /* Icon colors */
+    .text-primary i { color: #007bff !important; }
+    .text-success i { color: #28a745 !important; }
+    .text-info i { color: #17a2b8 !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Alert si no está disponible -->
+    {% if not PROGRAMACION_AVAILABLE %}
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        El módulo de Programación del Canal no está disponible. Verifica la instalación.
+    </div>
+    {% endif %}
+
+    <!-- Tabs principales -->
+    <ul class="nav nav-tabs nav-tabs-custom mb-4" id="programacionTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="calendario-tab" data-bs-toggle="tab" data-bs-target="#calendario" type="button" role="tab">
+                <i class="fas fa-calendar-alt me-2"></i>Calendario Semanal
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="programas-tab" data-bs-toggle="tab" data-bs-target="#programas" type="button" role="tab">
+                <i class="fas fa-list me-2"></i>Programas ({{ programas.count }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="programaciones-tab" data-bs-toggle="tab" data-bs-target="#programaciones" type="button" role="tab">
+                <i class="fas fa-calendar-week me-2"></i>Programaciones ({{ programaciones.count }})
+            </button>
+        </li>
+    </ul>
+
+    <!-- Contenido de los Tabs -->
+    <div class="tab-content" id="programacionTabsContent">
+        
+        <!-- TAB 1: CALENDARIO SEMANAL -->
+        <div class="tab-pane fade show active" id="calendario" role="tabpanel">
+            <!-- Header del Calendario -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <h4 class="text-gray-800">
+                        <i class="fas fa-calendar-week text-primary me-2"></i>
+                        Calendario Semanal
+                    </h4>
+                    {% if programacion_actual %}
+                    <p class="text-muted mb-0">
+                        {{ programacion_actual.nombre }} - 
+                        Del {{ programacion_actual.fecha_inicio_semana|date:"d/m/Y" }} al {{ programacion_actual.fecha_fin_semana|date:"d/m/Y" }}
+                    </p>
+                    {% else %}
+                    <p class="text-muted mb-0">No hay programación activa para esta semana</p>
+                    {% endif %}
+                </div>
+                <div class="col-md-6 text-end">
+                    <div class="contenedor-botones justify-content-end">
+                        <!-- Selector de Semana -->
+                        <select class="form-select selector-semana" id="selectorSemana">
+                            <option value="">Seleccionar semana...</option>
+                            {% for programacion in programaciones %}
+                            <option value="{{ programacion.id }}" 
+                                    {% if programacion_actual and programacion.id == programacion_actual.id %}selected{% endif %}>
+                                {{ programacion.nombre }} ({{ programacion.fecha_inicio_semana|date:"d/m/Y" }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        
+                        <!-- Botón Copiar Semana -->
+                        {% if programacion_actual %}
+                        <button class="btn btn-copiar" onclick="abrirModalCopiarSemana({{ programacion_actual.id }})">
+                            <i class="fas fa-copy me-1"></i>Copiar
+                        </button>
+                        {% endif %}
+                        
+                        <button class="btn btn-agregar" data-bs-toggle="modal" data-bs-target="#nuevoBloqueModal">
+                            <i class="fas fa-plus me-1"></i>Agregar
+                        </button>
+                        <button class="btn btn-actualizar" onclick="location.reload()">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leyenda de Colores (Arriba) -->
+            <div class="leyenda-superior">
+                <div class="d-flex flex-wrap gap-3 align-items-center">
+                    <span class="text-muted small fw-bold">Leyenda de colores:</span>
+                    {% for programa in programas|slice:":8" %}
+                    <span class="badge" style="background: {{ programa.color }}; color: white;">
+                        <i class="fas fa-square me-1"></i>{{ programa.nombre|truncatechars:15 }}
+                    </span>
+                    {% endfor %}
+                    {% if programas.count > 8 %}
+                    <span class="badge bg-secondary">+{{ programas.count|add:"-8" }} más</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Calendario Grid -->
+            <div class="admin-card">
+                <div class="admin-card-body p-0">
+                    <div class="calendario-grid">
+                        <!-- Header de horas -->
+                        <div class="calendario-header">HORA</div>
+                        {% for dia in dias_semana %}
+                        <div class="calendario-header">{{ dia|upper }}</div>
+                        {% endfor %}
+
+                        <!-- Filas de horas -->
+                        {% for hora in horas_dia %}
+                        <div class="calendario-hora">{{ hora }}</div>
+                        {% for dia in dias_semana %}
+                            <div class="calendario-celda" data-hora="{{ hora }}" data-dia="{{ dia }}">
+                                <!-- Buscar bloques para este día y hora -->
+                                {% for bloque in bloques_semana %}
+                                    {% if bloque.dia_semana == forloop.parentloop.counter0 %}
+                                        {% if bloque.hora_inicio|date:"H:i" <= hora and bloque.hora_fin|date:"H:i" > hora %}
+                                            <div class="calendario-bloque" 
+                                                 style="background: {{ bloque.programa.color }}; border-left-color: {{ bloque.programa.color }};"
+                                                 data-bs-toggle="tooltip" 
+                                                 title="{{ bloque.programa.nombre }} - {{ bloque.duracion_real }}"
+                                                 onmouseover="mostrarAccionesBloque(this, {{ bloque.id }})"
+                                                 onmouseout="ocultarAccionesBloque(this)">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div class="flex-grow-1">
+                                                        <strong>{{ bloque.programa.nombre|truncatechars:15 }}</strong>
+                                                        <br>
+                                                        <small>{{ bloque.hora_inicio|time:"H:i" }} - {{ bloque.hora_fin|time:"H:i" }}</small>
+                                                    </div>
+                                                    <div class="acciones-bloque" style="display: none;">
+                                                        <button class="btn btn-sm btn-outline-light p-0 me-1" 
+                                                                onclick="editarBloque({{ bloque.id }})"
+                                                                title="Editar bloque">
+                                                            <i class="fas fa-edit" style="font-size: 10px;"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-light p-0" 
+                                                                onclick="eliminarBloque({{ bloque.id }})"
+                                                                title="Eliminar bloque">
+                                                            <i class="fas fa-trash" style="font-size: 10px;"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% endfor %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: PROGRAMAS -->
+        <div class="tab-pane fade" id="programas" role="tabpanel">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h4 class="text-gray-800">
+                        <i class="fas fa-list text-success me-2"></i>
+                        Gestión de Programas
+                    </h4>
+                    <p class="text-muted mb-0">Administra los programas del canal</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <button class="btn btn-agregar" data-bs-toggle="modal" data-bs-target="#nuevoProgramaModal">
+                        <i class="fas fa-plus me-2"></i>Nuevo Programa
+                    </button>
+                </div>
+            </div>
+
+            <!-- Lista de Programas -->
+            <div class="row">
+                {% for programa in programas %}
+                <div class="col-xl-4 col-lg-6 mb-4">
+                    <div class="programa-card">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="mb-0">
+                                <span class="programa-color" style="background: {{ programa.color }};"></span>
+                                {{ programa.nombre }}
+                            </h5>
+                            <span class="badge bg-{% if programa.estado == 'activo' %}success{% else %}warning{% endif %}">
+                                {{ programa.get_estado_display }}
+                            </span>
+                        </div>
+                        
+                        <p class="text-muted small mb-2">{{ programa.descripcion|default:"Sin descripción"|truncatewords:20 }}</p>
+                        
+                        <div class="programa-info mb-2">
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>{{ programa.duracion_estandar }}
+                                <i class="fas fa-tag ms-2 me-1"></i>{{ programa.get_tipo_display }}
+                                {% if programa.es_serie %}
+                                <i class="fas fa-tv ms-2 me-1"></i>S{{ programa.temporada }}E{{ programa.episodio }}
+                                {% endif %}
+                            </small>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-light text-dark">{{ programa.codigo }}</span>
+                            </div>
+                            <div class="btn-group">
+                                <button class="btn btn-ver" onclick="verPrograma({{ programa.id }})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-editar" onclick="editarPrograma({{ programa.id }})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-eliminar" onclick="eliminarPrograma({{ programa.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="text-center py-5">
+                        <i class="fas fa-tv fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No hay programas registrados</h5>
+                        <p class="text-muted">Comienza creando el primer programa del canal.</p>
+                        <button class="btn btn-agregar" data-bs-toggle="modal" data-bs-target="#nuevoProgramaModal">
+                            <i class="fas fa-plus me-2"></i>Crear Primer Programa
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- TAB 3: PROGRAMACIONES -->
+        <div class="tab-pane fade" id="programaciones" role="tabpanel">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h4 class="text-gray-800">
+                        <i class="fas fa-calendar-week text-info me-2"></i>
+                        Programaciones Semanales
+                    </h4>
+                    <p class="text-muted mb-0">Gestiona la programación por semanas</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <button class="btn btn-agregar" data-bs-toggle="modal" data-bs-target="#nuevaProgramacionModal">
+                        <i class="fas fa-plus me-2"></i>Nueva Programación
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabla de Programaciones -->
+            <div class="admin-card">
+                <div class="admin-card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Semana</th>
+                                    <th>Estado</th>
+                                    <th>Bloques</th>
+                                    <th>Creada por</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for programacion in programaciones %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ programacion.nombre }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ programacion.codigo }}</small>
+                                    </td>
+                                    <td>
+                                        {{ programacion.fecha_inicio_semana|date:"d/m/Y" }}
+                                        <br>
+                                        <small class="text-muted">al {{ programacion.fecha_fin_semana|date:"d/m/Y" }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge estado-{{ programacion.estado }}">
+                                            {{ programacion.get_estado_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ programacion.bloques.count }}</span>
+                                    </td>
+                                    <td>
+                                        <small>{{ programacion.created_by.get_full_name|default:programacion.created_by.username }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button class="btn btn-ver" onclick="verProgramacion({{ programacion.id }})">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-editar" onclick="editarProgramacion({{ programacion.id }})">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-copiar" onclick="abrirModalCopiarSemana({{ programacion.id }})">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                            <button class="btn btn-eliminar" onclick="eliminarProgramacion({{ programacion.id }})">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-4">
+                                        <i class="fas fa-calendar-times fa-2x text-muted mb-3"></i>
+                                        <h5 class="text-muted">No hay programaciones</h5>
+                                        <p class="text-muted">Crea la primera programación semanal.</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODALES -->
+
+<!-- Modal Nuevo Programa -->
+<div class="modal fade" id="nuevoProgramaModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>Nuevo Programa
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="programaForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre del Programa *</label>
+                                <input type="text" class="form-control" name="nombre" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Código</label>
+                                <input type="text" class="form-control" name="codigo" placeholder="Se generará automáticamente si se deja vacío">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Tipo *</label>
+                                <select class="form-select" name="tipo" required>
+                                    <option value="">Seleccionar tipo...</option>
+                                    <option value="noticiero">Noticiero</option>
+                                    <option value="entretenimiento">Entretenimiento</option>
+                                    <option value="deportivo">Deportivo</option>
+                                    <option value="cultural">Cultural</option>
+                                    <option value="educativo">Educativo</option>
+                                    <option value="musical">Musical</option>
+                                    <option value="variedades">Variedades</option>
+                                    <option value="pelicula">Película</option>
+                                    <option value="serie">Serie</option>
+                                    <option value="documental">Documental</option>
+                                    <option value="otros">Otros</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Duración Estándar *</label>
+                                <input type="text" class="form-control" name="duracion_estandar" placeholder="HH:MM:SS" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" name="descripcion" rows="3" placeholder="Descripción del programa..."></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Color en Calendario</label>
+                                <input type="color" class="form-control" name="color" value="#3498db">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" name="estado">
+                                    <option value="activo">Activo</option>
+                                    <option value="inactivo">Inactivo</option>
+                                    <option value="en_produccion">En Producción</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="es_serie" id="esSerie">
+                        <label class="form-check-label" for="esSerie">Es una serie</label>
+                    </div>
+                    
+                    <div id="serieFields" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Temporada</label>
+                                    <input type="number" class="form-control" name="temporada" min="1">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Episodio</label>
+                                    <input type="number" class="form-control" name="episodio" min="1">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Título Episodio</label>
+                                    <input type="text" class="form-control" name="titulo_episodio" placeholder="Título específico del episodio...">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-agregar" id="btnGuardarPrograma">
+                        <i class="fas fa-save me-2"></i>Guardar Programa
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Programa -->
+<div class="modal fade" id="editarProgramaModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>Editar Programa
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editarProgramaForm">
+                {% csrf_token %}
+                <div class="modal-body" id="editarProgramaBody">
+                    <!-- Se llena dinámicamente -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-editar" id="btnActualizarPrograma">
+                        <i class="fas fa-save me-2"></i>Actualizar Programa
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ver Programa -->
+<div class="modal fade" id="verProgramaModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-eye me-2"></i>Detalles del Programa
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="verProgramaBody">
+                <!-- Se llena dinámicamente -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nueva Programación -->
+<div class="modal fade" id="nuevaProgramacionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>Nueva Programación Semanal
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="programacionForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre *</label>
+                        <input type="text" class="form-control" name="nombre" placeholder="Ej: Programación Semana 45" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Código</label>
+                        <input type="text" class="form-control" name="codigo" placeholder="Se generará automáticamente si se deja vacío">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Fecha Inicio (Lunes) *</label>
+                                <input type="date" class="form-control" name="fecha_inicio_semana" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Fecha Fin (Domingo) *</label>
+                                <input type="date" class="form-control" name="fecha_fin_semana" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Estado</label>
+                        <select class="form-select" name="estado">
+                            <option value="borrador">Borrador</option>
+                            <option value="revision">En Revisión</option>
+                            <option value="aprobada">Aprobada</option>
+                            <option value="publicada">Publicada</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-agregar" id="btnGuardarProgramacion">
+                        <i class="fas fa-save me-2"></i>Guardar Programación
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Programación -->
+<div class="modal fade" id="editarProgramacionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>Editar Programación
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editarProgramacionForm">
+                {% csrf_token %}
+                <div class="modal-body" id="editarProgramacionBody">
+                    <!-- Se llena dinámicamente -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-editar" id="btnActualizarProgramacion">
+                        <i class="fas fa-save me-2"></i>Actualizar Programación
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ver Programación -->
+<div class="modal fade" id="verProgramacionModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-eye me-2"></i>Detalles de Programación
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="verProgramacionBody">
+                <!-- Se llena dinámicamente -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuevo Bloque -->
+<div class="modal fade" id="nuevoBloqueModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>Nuevo Bloque de Programación
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="bloqueForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Programación Semanal *</label>
+                        <select class="form-select" name="programacion_semanal" required>
+                            <option value="">Seleccionar programación...</option>
+                            {% for programacion in programaciones %}
+                            <option value="{{ programacion.id }}" {% if programacion_actual and programacion.id == programacion_actual.id %}selected{% endif %}>
+                                {{ programacion.nombre }} ({{ programacion.fecha_inicio_semana|date:"d/m/Y" }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Programa *</label>
+                        <select class="form-select" name="programa" required>
+                            <option value="">Seleccionar programa...</option>
+                            {% for programa in programas %}
+                            <option value="{{ programa.id }}" data-color="{{ programa.color }}">
+                                {{ programa.nombre }} ({{ programa.get_tipo_display }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Día de la Semana *</label>
+                                <select class="form-select" name="dia_semana" required>
+                                    <option value="">Seleccionar día...</option>
+                                    <option value="0">Lunes</option>
+                                    <option value="1">Martes</option>
+                                    <option value="2">Miércoles</option>
+                                    <option value="3">Jueves</option>
+                                    <option value="4">Viernes</option>
+                                    <option value="5">Sábado</option>
+                                    <option value="6">Domingo</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Hora de Inicio *</label>
+                                <input type="time" class="form-control" name="hora_inicio" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Duración Real *</label>
+                        <input type="text" class="form-control" name="duracion_real" placeholder="HH:MM:SS" required value="01:00:00">
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="es_repeticion" id="esRepeticion">
+                        <label class="form-check-label" for="esRepeticion">Es repetición</label>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Notas</label>
+                        <textarea class="form-control" name="notas" rows="2" placeholder="Notas adicionales..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-agregar" id="btnGuardarBloque">
+                        <i class="fas fa-save me-2"></i>Guardar Bloque
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Bloque -->
+<div class="modal fade" id="editarBloqueModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>Editar Bloque de Programación
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editarBloqueForm">
+                {% csrf_token %}
+                <div class="modal-body" id="editarBloqueBody">
+                    <!-- Se llena dinámicamente -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-editar" id="btnActualizarBloque">
+                        <i class="fas fa-save me-2"></i>Actualizar Bloque
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Copiar Semana -->
+<div class="modal fade" id="copiarSemanaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-copy me-2"></i>Copiar Programación Semanal
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="copiarSemanaForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Programación de Origen</label>
+                        <input type="text" class="form-control" id="programacionOrigenNombre" readonly>
+                        <input type="hidden" id="programacionOrigenId">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Seleccionar Programación Destino *</label>
+                        <select class="form-select" id="programacionDestino" required>
+                            <option value="">Seleccionar programación destino...</option>
+                            {% for programacion in programaciones %}
+                            <option value="{{ programacion.id }}">
+                                {{ programacion.nombre }} ({{ programacion.fecha_inicio_semana|date:"d/m/Y" }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Selecciona la programación donde quieres copiar los bloques</small>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Se copiarán todos los bloques de programación a la semana destino.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-copiar" id="btnCopiarSemana">
+                        <i class="fas fa-copy me-2"></i>Copiar Programación
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+
+<script>
+// Variables globales
+let programacionActualId = {% if programacion_actual %}{{ programacion_actual.id }}{% else %}null{% endif %};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle campos de serie
+    const esSerieCheckbox = document.getElementById('esSerie');
+    const serieFields = document.getElementById('serieFields');
+    
+    if (esSerieCheckbox && serieFields) {
+        esSerieCheckbox.addEventListener('change', function() {
+            serieFields.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+    
+    // Tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Auto-calcular fecha fin cuando se selecciona fecha inicio
+    const fechaInicio = document.querySelector('input[name="fecha_inicio_semana"]');
+    const fechaFin = document.querySelector('input[name="fecha_fin_semana"]');
+    
+    if (fechaInicio && fechaFin) {
+        fechaInicio.addEventListener('change', function() {
+            if (this.value) {
+                const fecha = new Date(this.value);
+                // Sumar 6 días para llegar al domingo
+                fecha.setDate(fecha.getDate() + 6);
+                const fechaFinStr = fecha.toISOString().split('T')[0];
+                fechaFin.value = fechaFinStr;
+            }
+        });
+    }
+
+    // Manejo de formularios via modales
+    const programaForm = document.getElementById('programaForm');
+    if (programaForm) {
+        programaForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            guardarPrograma();
+        });
+    }
+
+    const programacionForm = document.getElementById('programacionForm');
+    if (programacionForm) {
+        programacionForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            guardarProgramacion();
+        });
+    }
+
+    const bloqueForm = document.getElementById('bloqueForm');
+    if (bloqueForm) {
+        bloqueForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            guardarBloque();
+        });
+    }
+
+    // Selector de semana
+    const selectorSemana = document.getElementById('selectorSemana');
+    if (selectorSemana) {
+        selectorSemana.addEventListener('change', function() {
+            const programacionId = this.value;
+            if (programacionId) {
+                window.location.href = `?programacion_id=${programacionId}`;
+            }
+        });
+    }
+
+    // Formularios de edición
+    const editarProgramaForm = document.getElementById('editarProgramaForm');
+    if (editarProgramaForm) {
+        editarProgramaForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            actualizarPrograma();
+        });
+    }
+
+    const editarProgramacionForm = document.getElementById('editarProgramacionForm');
+    if (editarProgramacionForm) {
+        editarProgramacionForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            actualizarProgramacion();
+        });
+    }
+
+    const editarBloqueForm = document.getElementById('editarBloqueForm');
+    if (editarBloqueForm) {
+        editarBloqueForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            actualizarBloque();
+        });
+    }
+
+    // Formulario copiar semana
+    const copiarSemanaForm = document.getElementById('copiarSemanaForm');
+    if (copiarSemanaForm) {
+        copiarSemanaForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            copiarProgramacion();
+        });
+    }
+});
+
+// =============================================================================
+// FUNCIONES PARA PROGRAMAS
+// =============================================================================
+
+function verPrograma(programaId) {
+    fetch(`/panel/api/programas/${programaId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const programa = data.programa;
+                const modalBody = document.getElementById('verProgramaBody');
+                
+                modalBody.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Nombre:</label>
+                                <p>${programa.nombre}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Código:</label>
+                                <p><span class="badge bg-primary">${programa.codigo}</span></p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Tipo:</label>
+                                <p>${programa.tipo_display}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Duración:</label>
+                                <p>${programa.duracion_estandar}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Estado:</label>
+                                <p><span class="badge bg-${programa.estado === 'activo' ? 'success' : 'warning'}">${programa.estado_display}</span></p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Color:</label>
+                                <p><span class="badge" style="background: ${programa.color}">${programa.color}</span></p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Es Serie:</label>
+                                <p>${programa.es_serie ? 'Sí' : 'No'}</p>
+                            </div>
+                            ${programa.es_serie ? `
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Temporada/Episodio:</label>
+                                    <p>S${programa.temporada}E${programa.episodio} - ${programa.titulo_episodio || 'Sin título'}</p>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Descripción:</label>
+                                <p>${programa.descripcion || 'Sin descripción'}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Creado:</label>
+                                <p>${programa.created_at}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Actualizado:</label>
+                                <p>${programa.updated_at}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                const modal = new bootstrap.Modal(document.getElementById('verProgramaModal'));
+                modal.show();
+            } else {
+                Swal.fire('Error', data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error', 'No se pudo cargar la información del programa', 'error');
+        });
+}
+
+function editarPrograma(programaId) {
+    fetch(`/panel/api/programas/${programaId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const programa = data.programa;
+                const modalBody = document.getElementById('editarProgramaBody');
+                
+                modalBody.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre del Programa *</label>
+                                <input type="text" class="form-control" name="nombre" value="${programa.nombre}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Código</label>
+                                <input type="text" class="form-control" name="codigo" value="${programa.codigo}">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Tipo *</label>
+                                <select class="form-select" name="tipo" required>
+                                    <option value="">Seleccionar tipo...</option>
+                                    <option value="noticiero" ${programa.tipo === 'noticiero' ? 'selected' : ''}>Noticiero</option>
+                                    <option value="entretenimiento" ${programa.tipo === 'entretenimiento' ? 'selected' : ''}>Entretenimiento</option>
+                                    <option value="deportivo" ${programa.tipo === 'deportivo' ? 'selected' : ''}>Deportivo</option>
+                                    <option value="cultural" ${programa.tipo === 'cultural' ? 'selected' : ''}>Cultural</option>
+                                    <option value="educativo" ${programa.tipo === 'educativo' ? 'selected' : ''}>Educativo</option>
+                                    <option value="musical" ${programa.tipo === 'musical' ? 'selected' : ''}>Musical</option>
+                                    <option value="variedades" ${programa.tipo === 'variedades' ? 'selected' : ''}>Variedades</option>
+                                    <option value="pelicula" ${programa.tipo === 'pelicula' ? 'selected' : ''}>Película</option>
+                                    <option value="serie" ${programa.tipo === 'serie' ? 'selected' : ''}>Serie</option>
+                                    <option value="documental" ${programa.tipo === 'documental' ? 'selected' : ''}>Documental</option>
+                                    <option value="otros" ${programa.tipo === 'otros' ? 'selected' : ''}>Otros</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Duración Estándar *</label>
+                                <input type="text" class="form-control" name="duracion_estandar" value="${programa.duracion_estandar}" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" name="descripcion" rows="3">${programa.descripcion || ''}</textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Color en Calendario</label>
+                                <input type="color" class="form-control" name="color" value="${programa.color}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" name="estado">
+                                    <option value="activo" ${programa.estado === 'activo' ? 'selected' : ''}>Activo</option>
+                                    <option value="inactivo" ${programa.estado === 'inactivo' ? 'selected' : ''}>Inactivo</option>
+                                    <option value="en_produccion" ${programa.estado === 'en_produccion' ? 'selected' : ''}>En Producción</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="es_serie" id="esSerieEditar" ${programa.es_serie ? 'checked' : ''}>
+                        <label class="form-check-label" for="esSerieEditar">Es una serie</label>
+                    </div>
+                    
+                    <div id="serieFieldsEditar" style="display: ${programa.es_serie ? 'block' : 'none'};">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Temporada</label>
+                                    <input type="number" class="form-control" name="temporada" value="${programa.temporada || ''}" min="1">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Episodio</label>
+                                    <input type="number" class="form-control" name="episodio" value="${programa.episodio || ''}" min="1">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Título Episodio</label>
+                                    <input type="text" class="form-control" name="titulo_episodio" value="${programa.titulo_episodio || ''}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" name="programa_id" value="${programaId}">
+                `;
+
+                // Toggle campos de serie en edición
+                const esSerieEditar = document.getElementById('esSerieEditar');
+                const serieFieldsEditar = document.getElementById('serieFieldsEditar');
+                if (esSerieEditar && serieFieldsEditar) {
+                    esSerieEditar.addEventListener('change', function() {
+                        serieFieldsEditar.style.display = this.checked ? 'block' : 'none';
+                    });
+                }
+                
+                const modal = new bootstrap.Modal(document.getElementById('editarProgramaModal'));
+                modal.show();
+            } else {
+                Swal.fire('Error', data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error', 'No se pudo cargar la información del programa', 'error');
+        });
+}
+
+function actualizarPrograma() {
+    const formData = new FormData(document.getElementById('editarProgramaForm'));
+    const programaId = formData.get('programa_id');
+    const btn = document.getElementById('btnActualizarPrograma');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Actualizando...';
+
+    fetch(`/panel/api/programas/${programaId}/actualizar/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editarProgramaModal'));
+            modal.hide();
+            
+            Swal.fire({
+                icon: 'success',
+                title: '¡Actualizado!',
+                text: data.message,
+                timer: 3000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            let errorMessage = 'Por favor corrige los errores en el formulario';
+            if (data.errors) {
+                errorMessage += '\n\n' + Object.values(data.errors).join('\n');
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMessage
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Ocurrió un error al actualizar el programa'
+        });
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-2"></i>Actualizar Programa';
+    });
+}
+
+// =============================================================================
+// FUNCIONES PARA PROGRAMACIONES
+// =============================================================================
+
+function verProgramacion(programacionId) {
+    fetch(`/panel/api/programaciones/${programacionId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const programacion = data.programacion;
+                const bloques = data.bloques;
+                const modalBody = document.getElementById('verProgramacionBody');
+                
+                let bloquesHTML = '';
+                if (bloques.length > 0) {
+                    bloquesHTML = `
+                        <div class="lista-bloques">
+                            <h6 class="mb-3"><i class="fas fa-list me-2"></i>Bloques de Programación</h6>
+                            ${bloques.map(bloque => `
+                                <div class="card bloque-item mb-2">
+                                    <div class="card-body py-2">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-3">
+                                                <strong>${bloque.dia_semana_display}</strong>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <small>${bloque.hora_inicio} - ${bloque.hora_fin}</small>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <span class="badge" style="background: ${bloque.programa_color}">${bloque.programa_nombre}</span>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <small class="text-muted">${bloque.duracion_real}</small>
+                                                ${bloque.es_repeticion ? '<span class="badge bg-warning ms-1">R</span>' : ''}
+                                            </div>
+                                        </div>
+                                        ${bloque.notas ? `<div class="row mt-1"><div class="col-12"><small class="text-muted">${bloque.notas}</small></div></div>` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    bloquesHTML = '<div class="alert alert-info">No hay bloques programados para esta semana.</div>';
+                }
+                
+                modalBody.innerHTML = `
+                    <div class="detalle-programacion">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Nombre:</label>
+                                    <p>${programacion.nombre}</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Código:</label>
+                                    <p><span class="badge bg-primary">${programacion.codigo}</span></p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Estado:</label>
+                                    <p><span class="badge estado-${programacion.estado}">${programacion.estado_display}</span></p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Fecha Inicio:</label>
+                                    <p>${programacion.fecha_inicio_semana}</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Fecha Fin:</label>
+                                    <p>${programacion.fecha_fin_semana}</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Creada por:</label>
+                                    <p>${programacion.created_by_name}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Creada:</label>
+                                    <p>${programacion.created_at}</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Actualizada:</label>
+                                    <p>${programacion.updated_at}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    ${bloquesHTML}
+                `;
+                
+                const modal = new bootstrap.Modal(document.getElementById('verProgramacionModal'));
+                modal.show();
+            } else {
+                Swal.fire('Error', data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error', 'No se pudo cargar la información de la programación', 'error');
+        });
+}
+
+function editarProgramacion(programacionId) {
+    fetch(`/panel/api/programaciones/${programacionId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const programacion = data.programacion;
+                const modalBody = document.getElementById('editarProgramacionBody');
+                
+                modalBody.innerHTML = `
+                    <div class="mb-3">
+                        <label class="form-label">Nombre *</label>
+                        <input type="text" class="form-control" name="nombre" value="${programacion.nombre}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Código</label>
+                        <input type="text" class="form-control" name="codigo" value="${programacion.codigo}">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Fecha Inicio (Lunes) *</label>
+                                <input type="date" class="form-control" name="fecha_inicio_semana" value="${programacion.fecha_inicio_semana}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Fecha Fin (Domingo) *</label>
+                                <input type="date" class="form-control" name="fecha_fin_semana" value="${programacion.fecha_fin_semana}" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Estado</label>
+                        <select class="form-select" name="estado">
+                            <option value="borrador" ${programacion.estado === 'borrador' ? 'selected' : ''}>Borrador</option>
+                            <option value="revision" ${programacion.estado === 'revision' ? 'selected' : ''}>En Revisión</option>
+                            <option value="aprobada" ${programacion.estado === 'aprobada' ? 'selected' : ''}>Aprobada</option>
+                            <option value="publicada" ${programacion.estado === 'publicada' ? 'selected' : ''}>Publicada</option>
+                        </select>
+                    </div>
+                    <input type="hidden" name="programacion_id" value="${programacionId}">
+                `;
+                
+                const modal = new bootstrap.Modal(document.getElementById('editarProgramacionModal'));
+                modal.show();
+            } else {
+                Swal.fire('Error', data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error', 'No se pudo cargar la información de la programación', 'error');
+        });
+}
+
+function actualizarProgramacion() {
+    const formData = new FormData(document.getElementById('editarProgramacionForm'));
+    const programacionId = formData.get('programacion_id');
+    const btn = document.getElementById('btnActualizarProgramacion');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Actualizando...';
+
+    fetch(`/panel/api/programaciones/${programacionId}/actualizar/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editarProgramacionModal'));
+            modal.hide();
+            
+            Swal.fire({
+                icon: 'success',
+                title: '¡Actualizado!',
+                text: data.message,
+                timer: 3000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            let errorMessage = 'Por favor corrige los errores en el formulario';
+            if (data.errors) {
+                errorMessage += '\n\n' + Object.values(data.errors).join('\n');
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMessage
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Ocurrió un error al actualizar la programación'
+        });
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-2"></i>Actualizar Programación';
+    });
+}
+
+// =============================================================================
+// FUNCIONES PARA BLOQUES
+// =============================================================================
+
+function editarBloque(bloqueId) {
+    fetch(`/panel/api/bloques/${bloqueId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const bloque = data.bloque;
+                const modalBody = document.getElementById('editarBloqueBody');
+                
+                modalBody.innerHTML = `
+                    <div class="mb-3">
+                        <label class="form-label">Programación Semanal *</label>
+                        <select class="form-select" name="programacion_semanal" required>
+                            <option value="">Seleccionar programación...</option>
+                            {% for programacion in programaciones %}
+                            <option value="{{ programacion.id }}" ${bloque.programacion_semanal_id == {{ programacion.id }} ? 'selected' : ''}>
+                                {{ programacion.nombre }} ({{ programacion.fecha_inicio_semana|date:"d/m/Y" }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Programa *</label>
+                        <select class="form-select" name="programa" required>
+                            <option value="">Seleccionar programa...</option>
+                            {% for programa in programas %}
+                            <option value="{{ programa.id }}" ${bloque.programa_id == {{ programa.id }} ? 'selected' : ''}>
+                                {{ programa.nombre }} ({{ programa.get_tipo_display }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Día de la Semana *</label>
+                                <select class="form-select" name="dia_semana" required>
+                                    <option value="">Seleccionar día...</option>
+                                    <option value="0" ${bloque.dia_semana == 0 ? 'selected' : ''}>Lunes</option>
+                                    <option value="1" ${bloque.dia_semana == 1 ? 'selected' : ''}>Martes</option>
+                                    <option value="2" ${bloque.dia_semana == 2 ? 'selected' : ''}>Miércoles</option>
+                                    <option value="3" ${bloque.dia_semana == 3 ? 'selected' : ''}>Jueves</option>
+                                    <option value="4" ${bloque.dia_semana == 4 ? 'selected' : ''}>Viernes</option>
+                                    <option value="5" ${bloque.dia_semana == 5 ? 'selected' : ''}>Sábado</option>
+                                    <option value="6" ${bloque.dia_semana == 6 ? 'selected' : ''}>Domingo</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Hora de Inicio *</label>
+                                <input type="time" class="form-control" name="hora_inicio" value="${bloque.hora_inicio}" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Duración Real *</label>
+                        <input type="text" class="form-control" name="duracion_real" value="${bloque.duracion_real}" required>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="es_repeticion" id="esRepeticionEditar" ${bloque.es_repeticion ? 'checked' : ''}>
+                        <label class="form-check-label" for="esRepeticionEditar">Es repetición</label>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Notas</label>
+                        <textarea class="form-control" name="notas" rows="2">${bloque.notas || ''}</textarea>
+                    </div>
+                    <input type="hidden" name="bloque_id" value="${bloqueId}">
+                `;
+                
+                const modal = new bootstrap.Modal(document.getElementById('editarBloqueModal'));
+                modal.show();
+            } else {
+                Swal.fire('Error', data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error', 'No se pudo cargar la información del bloque', 'error');
+        });
+}
+
+function actualizarBloque() {
+    const formData = new FormData(document.getElementById('editarBloqueForm'));
+    const bloqueId = formData.get('bloque_id');
+    const btn = document.getElementById('btnActualizarBloque');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Actualizando...';
+
+    fetch(`/panel/api/bloques/${bloqueId}/actualizar/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editarBloqueModal'));
+            modal.hide();
+            
+            Swal.fire({
+                icon: 'success',
+                title: '¡Actualizado!',
+                text: data.message,
+                timer: 3000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            let errorMessage = 'Por favor corrige los errores en el formulario';
+            if (data.errors) {
+                errorMessage += '\n\n' + Object.values(data.errors).join('\n');
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMessage
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Ocurrió un error al actualizar el bloque'
+        });
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-2"></i>Actualizar Bloque';
+    });
+}
+
+// =============================================================================
+// FUNCIONES COMPARTIDAS
+// =============================================================================
+
+// Funciones para guardar (crear) - se mantienen igual que antes
+function guardarPrograma() {
+    const form = document.getElementById('programaForm');
+    const formData = new FormData(form);
+    const btn = document.getElementById('btnGuardarPrograma');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+
+    fetch('{% url "custom_admin:programa_create_modal" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('nuevoProgramaModal'));
+            modal.hide();
+            
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: data.message,
+                timer: 3000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            let errorMessage = 'Por favor corrige los errores en el formulario';
+            if (data.errors) {
+                errorMessage += '\n\n' + Object.values(data.errors).join('\n');
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMessage
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Ocurrió un error al guardar el programa'
+        });
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Programa';
+    });
+}
+
+function guardarProgramacion() {
+    const form = document.getElementById('programacionForm');
+    const formData = new FormData(form);
+    const btn = document.getElementById('btnGuardarProgramacion');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+
+    fetch('{% url "custom_admin:programacion_semanal_create_modal" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('nuevaProgramacionModal'));
+            modal.hide();
+            
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: data.message,
+                timer: 3000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            let errorMessage = 'Por favor corrige los errores en el formulario';
+            if (data.errors) {
+                errorMessage += '\n\n' + Object.values(data.errors).join('\n');
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMessage
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Ocurrió un error al guardar la programación'
+        });
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Programación';
+    });
+}
+
+function guardarBloque() {
+    const form = document.getElementById('bloqueForm');
+    const formData = new FormData(form);
+    const btn = document.getElementById('btnGuardarBloque');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+
+    fetch('{% url "custom_admin:bloque_programacion_create_modal" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('nuevoBloqueModal'));
+            modal.hide();
+            
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: data.message,
+                timer: 3000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            let errorMessage = 'Por favor corrige los errores en el formulario';
+            if (data.errors) {
+                errorMessage += '\n\n' + Object.values(data.errors).join('\n');
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMessage
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Ocurrió un error al guardar el bloque'
+        });
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Bloque';
+    });
+}
+
+// Funciones para eliminar - se mantienen igual que antes
+function eliminarPrograma(programaId) {
+    Swal.fire({
+        title: '¿Eliminar programa?',
+        text: 'Esta acción no se puede deshacer',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`{% url "custom_admin:programa_delete_modal" 0 %}`.replace('0', programaId), {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Eliminado', data.message, 'success').then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Ocurrió un error al eliminar el programa', 'error');
+            });
+        }
+    });
+}
+
+function eliminarProgramacion(programacionId) {
+    Swal.fire({
+        title: '¿Eliminar programación?',
+        text: 'Esta acción no se puede deshacer',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`{% url "custom_admin:programacion_semanal_delete_modal" 0 %}`.replace('0', programacionId), {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Eliminado', data.message, 'success').then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Ocurrió un error al eliminar la programación', 'error');
+            });
+        }
+    });
+}
+
+function eliminarBloque(bloqueId) {
+    Swal.fire({
+        title: '¿Eliminar bloque?',
+        text: 'Esta acción no se puede deshacer',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`{% url "custom_admin:bloque_programacion_delete_modal" 0 %}`.replace('0', bloqueId), {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Eliminado', data.message, 'success').then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Ocurrió un error al eliminar el bloque', 'error');
+            });
+        }
+    });
+}
+
+// Funciones para bloques del calendario
+function mostrarAccionesBloque(elemento, bloqueId) {
+    const acciones = elemento.querySelector('.acciones-bloque');
+    if (acciones) {
+        acciones.style.display = 'block';
+    }
+}
+
+function ocultarAccionesBloque(elemento) {
+    const acciones = elemento.querySelector('.acciones-bloque');
+    if (acciones) {
+        acciones.style.display = 'none';
+    }
+}
+
+function abrirModalCopiarSemana(programacionId) {
+    // Obtener información de la programación origen
+    const programacionOrigen = document.querySelector(`#selectorSemana option[value="${programacionId}"]`);
+    if (programacionOrigen) {
+        document.getElementById('programacionOrigenNombre').value = programacionOrigen.textContent;
+        document.getElementById('programacionOrigenId').value = programacionId;
+        
+        // Mostrar modal
+        const modal = new bootstrap.Modal(document.getElementById('copiarSemanaModal'));
+        modal.show();
+    }
+}
+
+function copiarProgramacion() {
+    const programacionOrigenId = document.getElementById('programacionOrigenId').value;
+    const programacionDestinoId = document.getElementById('programacionDestino').value;
+    const btn = document.getElementById('btnCopiarSemana');
+    
+    if (!programacionDestinoId) {
+        Swal.fire('Error', 'Por favor selecciona una programación destino', 'error');
+        return;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Copiando...';
+
+    fetch(`{% url "custom_admin:copiar_programacion_semanal" 0 %}`.replace('0', programacionOrigenId), {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            programacion_destino_id: programacionDestinoId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('copiarSemanaModal'));
+            modal.hide();
+            
+            Swal.fire({
+                icon: 'success',
+                title: '¡Copiada!',
+                text: data.message,
+                confirmButtonText: 'Aceptar'
+            }).then(() => {
+                // Recargar para ver los cambios
+                window.location.href = `?programacion_id=${data.programacion_destino_id}`;
+            });
+        } else {
+            Swal.fire('Error', data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire('Error', 'Ocurrió un error al copiar la programación', 'error');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-copy me-2"></i>Copiar Programación';
+    });
+}
+
+// Limpiar formularios cuando se cierren los modales
+document.addEventListener('hidden.bs.modal', function (event) {
+    const modal = event.target;
+    const form = modal.querySelector('form');
+    if (form && !form.id.includes('editar')) {
+        form.reset();
+        
+        // Resetear campos específicos
+        const serieFields = document.getElementById('serieFields');
+        if (serieFields) {
+            serieFields.style.display = 'none';
+        }
+        
+        const esSerieCheckbox = document.getElementById('esSerie');
+        if (esSerieCheckbox) {
+            esSerieCheckbox.checked = false;
+        }
+    }
+});
+</script>
+
+{% endblock %}
