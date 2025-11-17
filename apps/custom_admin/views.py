@@ -30,6 +30,8 @@ import plotly.express as px
 import plotly.offline as pyo
 import plotly.io as pio
 from apps.programacion_canal.models import ProgramacionSemanal, BloqueProgramacion
+from apps.grilla_publicitaria.models import TipoUbicacionPublicitaria, UbicacionPublicitaria, AsignacionCuña, GrillaPublicitaria
+from apps.content_management.models import CuñaPublicitaria
 # Obtener el modelo de usuario correcto
 User = get_user_model()
 
@@ -193,6 +195,22 @@ try:
     PROGRAMACION_CANAL_AVAILABLE = True
 except ImportError:
     PROGRAMACION_CANAL_AVAILABLE = False
+
+# ==================== GRILLA PUBLICITARIA ====================
+
+# IMPORTS CONDICIONALES PARA GRILLA
+try:
+    from apps.grilla_publicitaria.models import (
+        GrillaPublicitaria, AsignacionCuña, UbicacionPublicitaria, TipoUbicacionPublicitaria
+    )
+    GRILLA_MODELS_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Error importando modelos de grilla: {e}")
+    GRILLA_MODELS_AVAILABLE = False
+    GrillaPublicitaria = None
+    AsignacionCuña = None
+    UbicacionPublicitaria = None
+    TipoUbicacionPublicitaria = None
 # ==================== APIs PARA PANTEONES ====================
 
 @login_required
@@ -8044,3 +8062,216 @@ def api_bloque_update(request, bloque_id):
                 'errors': form.errors
             })
     return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+# ==================== GRILLA PUBLICITARIA ====================
+
+
+@login_required
+@user_passes_test(is_admin)
+def grilla_publicitaria_list(request):
+    """Vista única para la grilla publicitaria - TODO INTEGRADO"""
+    
+    # Verificar disponibilidad de módulos
+    if not GRILLA_MODELS_AVAILABLE or not PROGRAMACION_CANAL_AVAILABLE or not CONTENT_MODELS_AVAILABLE:
+        context = {
+            'mensaje': 'Módulos necesarios no disponibles para la grilla publicitaria',
+            'grilla_available': False
+        }
+        return render(request, 'custom_admin/grilla_publicitaria/list.html', context)
+    
+    try:
+        # Obtener parámetros
+        programacion_id = request.GET.get('programacion_id')
+        fecha_filtro = request.GET.get('fecha_filtro')
+        action = request.GET.get('action')
+        
+        # Obtener programaciones semanales
+        programaciones = ProgramacionSemanal.objects.all().order_by('-fecha_inicio_semana')
+        
+        # Programación seleccionada o actual
+        programacion_actual = None
+        if programacion_id:
+            programacion_actual = get_object_or_404(ProgramacionSemanal, id=programacion_id)
+        elif programaciones.exists():
+            programacion_actual = programaciones.first()
+        
+        # Obtener grilla para la programación seleccionada
+        grilla_actual = None
+        if programacion_actual:
+            grilla_actual, created = GrillaPublicitaria.objects.get_or_create(
+                programacion_semanal=programacion_actual,
+                defaults={'generada_por': request.user}
+            )
+        
+        # Obtener asignaciones
+        asignaciones = []
+        if grilla_actual:
+            asignaciones = AsignacionCuña.objects.filter(
+                ubicacion__bloque_programacion__programacion_semanal=programacion_actual
+            ).select_related('cuña', 'ubicacion', 'ubicacion__bloque_programacion__programa')
+        
+        # Obtener cuñas disponibles
+        cuñas_disponibles = CuñaPublicitaria.objects.filter(
+            estado='activa'
+        ).select_related('cliente', 'vendedor_asignado')
+        
+        # Obtener ubicaciones disponibles
+        ubicaciones_disponibles = []
+        if programacion_actual:
+            ubicaciones_disponibles = UbicacionPublicitaria.objects.filter(
+                bloque_programacion__programacion_semanal=programacion_actual,
+                activo=True
+            ).select_related('bloque_programacion__programa', 'tipo_ubicacion')
+        
+        # Estadísticas
+        total_cuñas = cuñas_disponibles.count()
+        cuñas_programadas = len(asignaciones)
+        cuñas_pendientes = total_cuñas - cuñas_programadas
+        
+        # Calcular ingresos
+        ingresos_totales = sum(float(asig.cuña.precio_total) for asig in asignaciones)
+        ingresos_proyectados = sum(float(cuña.precio_total) for cuña in cuñas_disponibles)
+        
+        # Organizar datos para el calendario
+        dias_semana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+        horas_dia = [f"{hora:02d}:00" for hora in range(6, 24)]  # De 6am a 11pm
+        
+        # Datos para el calendario
+        calendario_data = {}
+        for dia in range(7):  # 0-6 para lunes-domingo
+            dia_nombre = dias_semana[dia]
+            calendario_data[dia_nombre] = {}
+            
+            for hora in horas_dia:
+                asignaciones_hora = [
+                    asig for asig in asignaciones 
+                    if asig.ubicacion.bloque_programacion.dia_semana == dia and 
+                    asig.hora_emision.strftime('%H:%M') == hora
+                ]
+                calendario_data[dia_nombre][hora] = asignaciones_hora
+        
+        context = {
+            # Datos principales
+            'programaciones': programaciones,
+            'programacion_actual': programacion_actual,
+            'grilla_actual': grilla_actual,
+            'asignaciones': asignaciones,
+            'cuñas_disponibles': cuñas_disponibles,
+            'ubicaciones_disponibles': ubicaciones_disponibles,
+            
+            # Estadísticas
+            'total_cuñas': total_cuñas,
+            'cuñas_programadas': cuñas_programadas,
+            'cuñas_pendientes': cuñas_pendientes,
+            'ingresos_totales': ingresos_totales,
+            'ingresos_proyectados': ingresos_proyectados,
+            
+            # Calendario
+            'dias_semana': dias_semana,
+            'horas_dia': horas_dia,
+            'calendario_data': calendario_data,
+            
+            # Filtros
+            'programacion_id': programacion_id,
+            'fecha_filtro': fecha_filtro,
+            
+            # Flags
+            'grilla_available': True,
+            'section': 'grilla_publicitaria'
+        }
+        
+        return render(request, 'custom_admin/grilla_publicitaria/list.html', context)
+        
+    except Exception as e:
+        print(f"❌ ERROR en grilla_publicitaria_list: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        context = {
+            'error': f'Error al cargar la grilla: {str(e)}',
+            'grilla_available': False,
+            'programaciones': [],
+            'cuñas_disponibles': [],
+            'asignaciones': [],
+        }
+        return render(request, 'custom_admin/grilla_publicitaria/list.html', context)
+
+# APIs para la grilla
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def grilla_asignar_cuna_api(request):
+    """API para asignar una cuña a una ubicación"""
+    try:
+        data = json.loads(request.body)
+        
+        ubicacion_id = data.get('ubicacion_id')
+        cuña_id = data.get('cuña_id')
+        fecha_emision = data.get('fecha_emision')
+        hora_emision = data.get('hora_emision')
+        
+        # Validaciones
+        if not all([ubicacion_id, cuña_id, fecha_emision, hora_emision]):
+            return JsonResponse({'success': False, 'error': 'Faltan datos requeridos'})
+        
+        ubicacion = get_object_or_404(UbicacionPublicitaria, id=ubicacion_id)
+        cuña = get_object_or_404(CuñaPublicitaria, id=cuña_id)
+        
+        # Crear asignación
+        asignacion = AsignacionCuña.objects.create(
+            ubicacion=ubicacion,
+            cuña=cuña,
+            fecha_emision=fecha_emision,
+            hora_emision=hora_emision,
+            creado_por=request.user
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Cuña asignada exitosamente',
+            'asignacion_id': asignacion.id
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["DELETE"])
+def grilla_eliminar_asignacion_api(request, asignacion_id):
+    """API para eliminar una asignación"""
+    try:
+        asignacion = get_object_or_404(AsignacionCuña, id=asignacion_id)
+        asignacion.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Asignación eliminada exitosamente'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+@user_passes_test(is_admin)
+def grilla_generar_automatica_api(request, programacion_id):
+    """API para generar grilla automáticamente"""
+    try:
+        programacion = get_object_or_404(ProgramacionSemanal, id=programacion_id)
+        
+        # Aquí iría la lógica de generación automática
+        # Por ahora solo creamos/actualizamos la grilla
+        
+        grilla, created = GrillaPublicitaria.objects.get_or_create(
+            programacion_semanal=programacion,
+            defaults={'generada_por': request.user}
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Grilla {"creada" if created else "actualizada"} exitosamente',
+            'grilla_id': grilla.id
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})

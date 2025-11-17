@@ -196,4 +196,11 @@ path('api/programaciones/<int:programacion_id>/', views.api_programacion_detail,
 path('api/programaciones/<int:programacion_id>/actualizar/', views.api_programacion_update, name='api_programacion_update'),
 path('api/bloques/<int:bloque_id>/', views.api_bloque_detail, name='api_bloque_detail'),
 path('api/bloques/<int:bloque_id>/actualizar/', views.api_bloque_update, name='api_bloque_update'),
+
+
+# ==================== GRILLA PUBLICITARIA ====================
+path('grilla-publicitaria/', views.grilla_publicitaria_list, name='grilla_publicitaria_list'),
+path('grilla-publicitaria/api/asignar/', views.grilla_asignar_cuna_api, name='grilla_asignar_cuna_api'),
+path('grilla-publicitaria/api/eliminar/<int:asignacion_id>/', views.grilla_eliminar_asignacion_api, name='grilla_eliminar_asignacion_api'),
+path('grilla-publicitaria/api/generar/<int:programacion_id>/', views.grilla_generar_automatica_api, name='grilla_generar_automatica_api'),
 ]

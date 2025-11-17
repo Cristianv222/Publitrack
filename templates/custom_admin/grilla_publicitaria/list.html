@@ -1,0 +1,279 @@
+{% extends 'custom_admin/base_admin.html' %}
+
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-calendar-alt text-primary me-2"></i>
+            Grilla Publicitaria
+        </h1>
+        
+        {% if grilla_available %}
+        <div class="btn-group">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalGenerarGrilla">
+                <i class="fas fa-magic me-2"></i>Generar Automática
+            </button>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalAsignarCuña">
+                <i class="fas fa-plus me-2"></i>Asignar Cuña
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if not grilla_available %}
+        <!-- Mensaje de no disponibilidad -->
+        <div class="alert alert-warning">
+            <h4 class="alert-heading">Módulo no disponible</h4>
+            <p class="mb-0">{{ mensaje|default:"Los módulos necesarios para la grilla publicitaria no están disponibles." }}</p>
+        </div>
+    {% else %}
+        <!-- Filtros -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="get" class="row g-3 align-items-center">
+                    <div class="col-md-4">
+                        <label for="programacion_id" class="form-label">Programación Semanal</label>
+                        <select name="programacion_id" id="programacion_id" class="form-select" onchange="this.form.submit()">
+                            <option value="">Seleccionar programación...</option>
+                            {% for programacion in programaciones %}
+                                <option value="{{ programacion.id }}" 
+                                    {% if programacion_actual and programacion.id == programacion_actual.id %}selected{% endif %}>
+                                    {{ programacion.nombre }} ({{ programacion.fecha_inicio_semana }} - {{ programacion.fecha_fin_semana }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="fecha_filtro" class="form-label">Fecha Específica</label>
+                        <input type="date" name="fecha_filtro" id="fecha_filtro" 
+                               class="form-control" value="{{ fecha_filtro }}">
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div>
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="fas fa-filter me-2"></i>Filtrar
+                            </button>
+                            <a href="{% url 'custom_admin:grilla_publicitaria_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Limpiar
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="row mb-4">
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-primary text-white mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                    Total Cuñas
+                                </div>
+                                <div class="h5 mb-0">{{ total_cuñas }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-bullhorn fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-success text-white mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                    Programadas
+                                </div>
+                                <div class="h5 mb-0">{{ cuñas_programadas }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-check-circle fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-warning text-white mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                    Pendientes
+                                </div>
+                                <div class="h5 mb-0">{{ cuñas_pendientes }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-clock fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-info text-white mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                    Ingresos
+                                </div>
+                                <div class="h5 mb-0">${{ ingresos_totales|floatformat:2 }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-dollar-sign fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendario Grilla -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-calendar me-2"></i>
+                    Grilla Publicitaria - {{ programacion_actual.nombre|default:"Seleccione una programación" }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover grilla-calendario">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 100px;">Hora</th>
+                                {% for dia in dias_semana %}
+                                    <th class="text-center">{{ dia }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for hora in horas_dia %}
+                                <tr>
+                                    <td class="fw-bold bg-light">{{ hora }}</td>
+                                    {% for dia in dias_semana %}
+                                        <td class="grilla-celda" data-dia="{{ forloop.counter0 }}" data-hora="{{ hora }}">
+                                            {% for asignacion in calendario_data.dia.hora %}
+                                                <div class="asignacion-item mb-1 p-2 rounded small"
+                                                     data-bs-toggle="tooltip" 
+                                                     title="{{ asignacion.cuña.titulo }} - {{ asignacion.cuña.cliente.empresa }}">
+                                                    <div class="fw-bold">{{ asignacion.cuña.codigo }}</div>
+                                                    <div class="text-muted">{{ asignacion.cuña.duracion_planeada }}s</div>
+                                                    <div class="text-danger small cursor-pointer" 
+                                                         onclick="eliminarAsignacion({{ asignacion.id }})">
+                                                        <i class="fas fa-times"></i>
+                                                    </div>
+                                                </div>
+                                            {% empty %}
+                                                <div class="text-center text-muted py-2">
+                                                    <i class="fas fa-plus-circle cursor-pointer"
+                                                       onclick="abrirModalAsignar('{{ forloop.counter0 }}', '{{ hora }}')"></i>
+                                                </div>
+                                            {% endfor %}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Cuñas Disponibles -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-list me-2"></i>
+                    Cuñas Disponibles para Programar
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for cuña in cuñas_disponibles %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card h-100 {% if cuña.esta_activa %}border-success{% else %}border-warning{% endif %}">
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ cuña.codigo }} - {{ cuña.titulo }}</h6>
+                                    <p class="card-text small mb-1">
+                                        <strong>Cliente:</strong> {{ cuña.cliente.empresa }}<br>
+                                        <strong>Duración:</strong> {{ cuña.duracion_planeada }}s<br>
+                                        <strong>Precio:</strong> ${{ cuña.precio_total }}<br>
+                                        <strong>Período:</strong> {{ cuña.fecha_inicio }} - {{ cuña.fecha_fin }}
+                                    </p>
+                                </div>
+                                <div class="card-footer bg-transparent">
+                                    <small class="text-muted">
+                                        Estado: 
+                                        <span class="badge {% if cuña.esta_activa %}bg-success{% else %}bg-warning{% endif %}">
+                                            {{ cuña.get_estado_display }}
+                                        </span>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="col-12">
+                            <div class="alert alert-info text-center">
+                                <i class="fas fa-info-circle me-2"></i>
+                                No hay cuñas disponibles para programar
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Modales -->
+        {% include 'custom_admin/grilla_publicitaria/modales/generar_grilla.html' %}
+        {% include 'custom_admin/grilla_publicitaria/modales/asignar_cuna.html' %}
+        
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function eliminarAsignacion(asignacionId) {
+    if (confirm('¿Está seguro de eliminar esta asignación?')) {
+        fetch(`{% url 'custom_admin:grilla_eliminar_asignacion_api' 0 %}`.replace('0', asignacionId), {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+
+function abrirModalAsignar(dia, hora) {
+    // Lógica para abrir modal de asignación con día y hora pre-seleccionados
+    document.getElementById('dia_semana').value = dia;
+    document.getElementById('hora_emision').value = hora;
+    new bootstrap.Modal(document.getElementById('modalAsignarCuña')).show();
+}
+</script>
+{% endblock %}

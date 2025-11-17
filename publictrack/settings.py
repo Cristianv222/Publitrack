@@ -58,7 +58,8 @@ LOCAL_APPS = [
     # ✨ NUEVAS APPS AGREGADAS
     'apps.orders',
     'apps.parte_mortorios',
-    'apps.programacion_canal',  
+    'apps.programacion_canal',
+    'apps.grilla_publicitaria',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

@@ -728,7 +728,14 @@
                     </div>
                 </div>
             </div>
-
+            <!-- GRILLA PUBLICITARIA -->
+            <div class="menu-section">
+                <div class="menu-section-title">Control de Publicidad</div>
+                <a href="{% url 'custom_admin:grilla_publicitaria_list' %}" class="menu-link {% if 'semaforos' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fa-solid fa-video menu-icon"></i>
+                    <span> Grilla publicitaria </span>
+                </a>           
+            </div>
             <!-- ÓRDENES (nueva sección) -->
 <div class="menu-section">
     <div class="menu-section-title">ÓRDENES</div>
@@ -828,7 +835,7 @@
                         <div id="transmissionCollapse" class="accordion-collapse collapse" data-bs-parent="#transmissionAccordion">
                             <div class="accordion-body">
                                 <a  href="{% url 'custom_admin:programacion_list' %}" class="submenu-link">
-                                    <i class="fas fa-calendar"></i>Programación
+                                    <i class="fa-regular fa-calendar-days"></i>Programación
                                 </a>
                                 <a href="#" class="submenu-link">
                                     <i class="fas fa-play-circle"></i>En Vivo
