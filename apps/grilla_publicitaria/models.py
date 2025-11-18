@@ -3,20 +3,10 @@ from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+from datetime import timedelta  # ✅ AGREGAR ESTA IMPORTACIÓN
 
-# IMPORTS CONDICIONALES
-try:
-    from apps.programacion_canal.models import BloqueProgramacion, ProgramacionSemanal
-    from apps.content_management.models import CuñaPublicitaria
-    from apps.authentication.models import CustomUser
-    MODELS_AVAILABLE = True
-except ImportError as e:
-    print(f"⚠️ Error importando modelos: {e}")
-    MODELS_AVAILABLE = False
-    BloqueProgramacion = None
-    ProgramacionSemanal = None
-    CuñaPublicitaria = None
-    CustomUser = None
+# Importaciones mejoradas - evitar circulares
+from django.apps import apps
 
 class TipoUbicacionPublicitaria(models.Model):
     """Tipos de ubicaciones para publicidad"""
@@ -38,18 +28,25 @@ class TipoUbicacionPublicitaria(models.Model):
 class UbicacionPublicitaria(models.Model):
     """Ubicaciones específicas en la programación para publicidad"""
     
+    TIPO_PAUSA_CHOICES = [
+        ('corta', 'Pausa Corta (30 seg)'),
+        ('media', 'Pausa Media (60 seg)'),
+        ('larga', 'Pausa Larga (90 seg)'),
+        ('especial', 'Pausa Especial (120 seg)'),
+    ]
+    
     bloque_programacion = models.ForeignKey(
-        BloqueProgramacion,
+        'programacion_canal.BloqueProgramacion',
         on_delete=models.CASCADE,
         related_name='ubicaciones_publicitarias',
         verbose_name=_('Bloque de Programación')
     )
     
-    tipo_ubicacion = models.ForeignKey(
-        TipoUbicacionPublicitaria,
-        on_delete=models.CASCADE,
-        related_name='ubicaciones',
-        verbose_name=_('Tipo de Ubicación')
+    tipo_pausa = models.CharField(
+        _('Tipo de Pausa'),
+        max_length=20,
+        choices=TIPO_PAUSA_CHOICES,
+        default='corta'
     )
     
     nombre = models.CharField(_('Nombre'), max_length=200)
@@ -65,7 +62,7 @@ class UbicacionPublicitaria(models.Model):
     
     capacidad_cuñas = models.PositiveIntegerField(
         _('Capacidad de Cuñas'),
-        default=1
+        default=3  # Por defecto 3 cuñas por pausa
     )
     
     activo = models.BooleanField(_('Activo'), default=True)
@@ -77,6 +74,19 @@ class UbicacionPublicitaria(models.Model):
     
     def __str__(self):
         return f"{self.bloque_programacion} - {self.nombre}"
+    
+    def save(self, *args, **kwargs):
+        # Establecer duración disponible según el tipo de pausa
+        if not self.duracion_disponible:
+            duraciones = {
+                'corta': timedelta(seconds=30),
+                'media': timedelta(seconds=60),
+                'larga': timedelta(seconds=90),
+                'especial': timedelta(seconds=120),
+            }
+            self.duracion_disponible = duraciones.get(self.tipo_pausa, timedelta(seconds=30))
+        
+        super().save(*args, **kwargs)
 
 class AsignacionCuña(models.Model):
     """Asignación de cuñas a ubicaciones específicas"""
@@ -96,7 +106,7 @@ class AsignacionCuña(models.Model):
     )
     
     cuña = models.ForeignKey(
-        CuñaPublicitaria,
+        'content_management.CuñaPublicitaria',
         on_delete=models.CASCADE,
         related_name='asignaciones',
         verbose_name=_('Cuña Publicitaria')
@@ -119,7 +129,7 @@ class AsignacionCuña(models.Model):
     
     # Metadata
     creado_por = models.ForeignKey(
-        CustomUser,
+        'authentication.CustomUser',
         on_delete=models.SET_NULL,
         null=True,
         verbose_name=_('Creado por')
@@ -140,7 +150,7 @@ class GrillaPublicitaria(models.Model):
     """Grilla publicitaria semanal consolidada"""
     
     programacion_semanal = models.ForeignKey(
-        ProgramacionSemanal,
+        'programacion_canal.ProgramacionSemanal',
         on_delete=models.CASCADE,
         related_name='grillas_publicitarias',
         verbose_name=_('Programación Semanal')
@@ -148,7 +158,7 @@ class GrillaPublicitaria(models.Model):
     
     fecha_generacion = models.DateTimeField(_('Fecha de Generación'), auto_now_add=True)
     generada_por = models.ForeignKey(
-        CustomUser,
+        'authentication.CustomUser',
         on_delete=models.SET_NULL,
         null=True,
         verbose_name=_('Generada por')
@@ -169,3 +179,21 @@ class GrillaPublicitaria(models.Model):
     
     def __str__(self):
         return f"Grilla - {self.programacion_semanal}"
+    
+    def actualizar_estadisticas(self):
+        """Actualiza las estadísticas de la grilla"""
+        self.total_cuñas_programadas = AsignacionCuña.objects.filter(
+            ubicacion__bloque_programacion__programacion_semanal=self.programacion_semanal
+        ).count()
+        
+        # Calcular ingresos proyectados
+        total_ingresos = 0
+        asignaciones = AsignacionCuña.objects.filter(
+            ubicacion__bloque_programacion__programacion_semanal=self.programacion_semanal
+        ).select_related('cuña')
+        
+        for asignacion in asignaciones:
+            total_ingresos += float(asignacion.cuña.precio_total)
+        
+        self.total_ingresos_proyectados = total_ingresos
+        self.save()

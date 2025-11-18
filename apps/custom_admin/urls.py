@@ -89,118 +89,128 @@ urlpatterns = [
     
     # Reportes
     path('reportes/', views.reports_dashboard_principal, name='reportes_dashboard'),
+    
     # Configuración
     path('configuracion/', views.configuracion, name='configuracion'),
-    # ==================== NUEVAS URLs PARA PARTE MORTORIOS ====================
+    
     # ==================== ÓRDENES DE TOMA ====================
-path('orders/', views.orders_list, name='orders_list'),
-path('orders/<int:order_id>/detalle/', views.order_detail_api, name='order_detail_api'),
-path('orders/crear/', views.order_create_api, name='order_create_api'),
-path('orders/<int:order_id>/editar/', views.order_update_api, name='order_update_api'),
-path('orders/<int:order_id>/eliminar/', views.order_delete_api, name='order_delete_api'),
-# ==================== URLs PARA ÓRDENES ====================
-path('orders/plantillas/', views.plantillas_orden_list, name='plantillas_orden_list'),
-path('orders/plantillas/crear/', views.plantilla_orden_crear_api, name='plantilla_orden_crear_api'),
-
-path('orders/<int:orden_toma_id>/generar/', views.orden_generar_api, name='orden_generar_api'),
-path('orders/<int:orden_toma_id>/completar-generar/', views.orden_completar_y_generar_api, name='orden_completar_y_generar_api'),
-path('orders/generadas/<int:orden_generada_id>/subir-validada/', views.orden_subir_validada_api, name='orden_subir_validada_api'),
-path('orders/generadas/<int:orden_generada_id>/descargar/', views.orden_descargar_api, name='orden_descargar_api'),
-# ==================== URLs PARA PLANTILLAS DE ORDEN ====================
-path('plantillas-orden/', views.plantillas_orden_list, name='plantillas_orden_list'),
-path('plantillas-orden/api/crear/', views.plantilla_orden_crear_api, name='plantilla_orden_crear_api'),
-path('plantillas-orden/api/<int:id>/', views.plantilla_orden_detalle_api, name='plantilla_orden_detalle_api'),
-path('plantillas-orden/api/<int:id>/actualizar/', views.plantilla_orden_actualizar_api, name='plantilla_orden_actualizar_api'),
-path('plantillas-orden/api/<int:id>/eliminar/', views.plantilla_orden_eliminar_api, name='plantilla_orden_eliminar_api'),
-path('plantillas-orden/api/<int:id>/marcar-default/', views.plantilla_orden_marcar_default_api, name='plantilla_orden_marcar_default_api'),
-path('plantillas-orden/api/<int:id>/descargar/', views.plantilla_orden_descargar_api, name='plantilla_orden_descargar_api'),
-# Agregar estas URLs en custom_admin/urls.py
-
-# ==================== URLs PARA ÓRDENES GENERADAS ====================
-path('orders/generadas/<int:orden_generada_id>/verificar/', views.orden_verificar_api, name='orden_verificar_api'),
-path('orders/generadas/<int:orden_generada_id>/subir-validada/', views.orden_subir_validada_api, name='orden_subir_validada_api'),
-path('orders/<int:orden_toma_id>/generar/', views.orden_generar_api, name='orden_generar_api'),
-path('plantillas-orden/api/', views.api_plantillas_orden, name='api_plantillas_orden'),
-# ==================== URLs PARA ÓRDENES DE PRODUCCIÓN ====================
-path('ordenes-produccion/', views.ordenes_produccion_list, name='ordenes_produccion_list'),
-path('ordenes-produccion/<int:order_id>/detalle/', views.orden_produccion_detail_api, name='orden_produccion_detail_api'),
-path('ordenes-produccion/crear/', views.orden_produccion_create_api, name='orden_produccion_create_api'),
-path('ordenes-produccion/<int:order_id>/editar/', views.orden_produccion_update_api, name='orden_produccion_update_api'),
-path('ordenes-produccion/<int:order_id>/eliminar/', views.orden_produccion_delete_api, name='orden_produccion_delete_api'),
-path('ordenes-produccion/<int:order_id>/iniciar/', views.orden_produccion_iniciar_api, name='orden_produccion_iniciar_api'),
-path('ordenes-produccion/<int:order_id>/completar/', views.orden_produccion_completar_api, name='orden_produccion_completar_api'),
-path('ordenes-produccion/<int:order_id>/validar/', views.orden_produccion_validar_api, name='orden_produccion_validar_api'),
-path('ordenes-produccion/<int:order_id>/generar/', views.orden_produccion_generar_api, name='orden_produccion_generar_api'),
-path('ordenes-produccion/<int:order_id>/subir-firmada/', views.orden_produccion_subir_firmada_api, name='orden_produccion_subir_firmada_api'),
-path('ordenes-produccion/<int:order_id>/descargar-plantilla/', views.orden_produccion_descargar_plantilla_api, name='orden_produccion_descargar_plantilla_api'),
-path('ordenes-produccion/<int:order_id>/plantillas/', views.orden_produccion_obtener_plantillas_api, name='orden_produccion_obtener_plantillas_api'),
-# ==================== URLs PARA PARTE MORTORIOS ====================
-path('parte-mortorios/', views.parte_mortorios_list, name='parte_mortorios_list'),
-path('parte-mortorios/<int:parte_id>/detalle/', views.parte_mortorio_detail_api, name='parte_mortorio_detail_api'),
-path('parte-mortorios/crear/', views.parte_mortorio_create_api, name='parte_mortorio_create_api'),
-path('parte-mortorios/<int:parte_id>/editar/', views.parte_mortorio_update_api, name='parte_mortorio_update_api'),
-path('parte-mortorios/<int:parte_id>/eliminar/', views.parte_mortorio_delete_api, name='parte_mortorio_delete_api'),
-path('parte-mortorios/<int:parte_id>/programar/', views.parte_mortorio_programar_api, name='parte_mortorio_programar_api'),
-path('parte-mortorios/<int:parte_id>/marcar-transmitido/', views.parte_mortorio_marcar_transmitido_api, name='parte_mortorio_marcar_transmitido_api'),
-path('parte-mortorios/<int:parte_id>/cancelar/', views.parte_mortorio_cancelar_api, name='parte_mortorio_cancelar_api'),
-# ==================== URLs PARA PLANTILLAS DE PARTE MORTORIO ====================
-path('parte-mortorios/plantillas/', views.plantillas_parte_mortorio_list, name='plantillas_parte_mortorio_list'),
-path('parte-mortorios/plantillas/api/crear/', views.plantilla_parte_mortorio_crear_api, name='plantilla_parte_mortorio_crear_api'),
-path('parte-mortorios/plantillas/api/<int:id>/', views.plantilla_parte_mortorio_detalle_api, name='plantilla_parte_mortorio_detalle_api'),
-path('parte-mortorios/plantillas/api/<int:id>/actualizar/', views.plantilla_parte_mortorio_actualizar_api, name='plantilla_parte_mortorio_actualizar_api'),
-path('parte-mortorios/plantillas/api/<int:id>/eliminar/', views.plantilla_parte_mortorio_eliminar_api, name='plantilla_parte_mortorio_eliminar_api'),
-path('parte-mortorios/plantillas/api/<int:id>/marcar-default/', views.plantilla_parte_mortorio_marcar_default_api, name='plantilla_parte_mortorio_marcar_default_api'),
-path('parte-mortorios/plantillas/api/<int:id>/descargar/', views.plantilla_parte_mortorio_descargar_api, name='plantilla_parte_mortorio_descargar_api'),
-
-# ==================== URLs PARA GENERAR PARTES MORTORIOS ====================
-path('parte-mortorios/api/plantillas/', views.api_plantillas_parte_mortorio, name='api_plantillas_parte_mortorio'),
-path('parte-mortorios/<int:parte_id>/generar/', views.parte_mortorio_generar_api, name='parte_mortorio_generar_api'),
-path('parte-mortorios/generados/<int:parte_generado_id>/verificar/', views.parte_mortorio_verificar_api, name='parte_mortorio_verificar_api'),
-path('parte-mortorios/generados/<int:parte_generado_id>/descargar/', views.parte_mortorio_descargar_api, name='parte_mortorio_descargar_api'),
-path('parte-mortorios/<int:parte_id>/cambiar-estado/', views.parte_mortorio_cambiar_estado_api, name='parte_mortorio_cambiar_estado'),
-# ==================== REPORTES DE CONTRATOS ====================
+    path('orders/', views.orders_list, name='orders_list'),
+    path('orders/<int:order_id>/detalle/', views.order_detail_api, name='order_detail_api'),
+    path('orders/crear/', views.order_create_api, name='order_create_api'),
+    path('orders/<int:order_id>/editar/', views.order_update_api, name='order_update_api'),
+    path('orders/<int:order_id>/eliminar/', views.order_delete_api, name='order_delete_api'),
+    
+    # ==================== URLs PARA ÓRDENES ====================
+    path('orders/plantillas/', views.plantillas_orden_list, name='plantillas_orden_list'),
+    path('orders/plantillas/crear/', views.plantilla_orden_crear_api, name='plantilla_orden_crear_api'),
+    path('orders/<int:orden_toma_id>/generar/', views.orden_generar_api, name='orden_generar_api'),
+    path('orders/<int:orden_toma_id>/completar-generar/', views.orden_completar_y_generar_api, name='orden_completar_y_generar_api'),
+    path('orders/generadas/<int:orden_generada_id>/subir-validada/', views.orden_subir_validada_api, name='orden_subir_validada_api'),
+    path('orders/generadas/<int:orden_generada_id>/descargar/', views.orden_descargar_api, name='orden_descargar_api'),
+    
+    # ==================== URLs PARA PLANTILLAS DE ORDEN ====================
+    path('plantillas-orden/', views.plantillas_orden_list, name='plantillas_orden_list'),
+    path('plantillas-orden/api/crear/', views.plantilla_orden_crear_api, name='plantilla_orden_crear_api'),
+    path('plantillas-orden/api/<int:id>/', views.plantilla_orden_detalle_api, name='plantilla_orden_detalle_api'),
+    path('plantillas-orden/api/<int:id>/actualizar/', views.plantilla_orden_actualizar_api, name='plantilla_orden_actualizar_api'),
+    path('plantillas-orden/api/<int:id>/eliminar/', views.plantilla_orden_eliminar_api, name='plantilla_orden_eliminar_api'),
+    path('plantillas-orden/api/<int:id>/marcar-default/', views.plantilla_orden_marcar_default_api, name='plantilla_orden_marcar_default_api'),
+    path('plantillas-orden/api/<int:id>/descargar/', views.plantilla_orden_descargar_api, name='plantilla_orden_descargar_api'),
+    
+    # ==================== URLs PARA ÓRDENES GENERADAS ====================
+    path('orders/generadas/<int:orden_generada_id>/verificar/', views.orden_verificar_api, name='orden_verificar_api'),
+    path('plantillas-orden/api/', views.api_plantillas_orden, name='api_plantillas_orden'),
+    
+    # ==================== URLs PARA ÓRDENES DE PRODUCCIÓN ====================
+    path('ordenes-produccion/', views.ordenes_produccion_list, name='ordenes_produccion_list'),
+    path('ordenes-produccion/<int:order_id>/detalle/', views.orden_produccion_detail_api, name='orden_produccion_detail_api'),
+    path('ordenes-produccion/crear/', views.orden_produccion_create_api, name='orden_produccion_create_api'),
+    path('ordenes-produccion/<int:order_id>/editar/', views.orden_produccion_update_api, name='orden_produccion_update_api'),
+    path('ordenes-produccion/<int:order_id>/eliminar/', views.orden_produccion_delete_api, name='orden_produccion_delete_api'),
+    path('ordenes-produccion/<int:order_id>/iniciar/', views.orden_produccion_iniciar_api, name='orden_produccion_iniciar_api'),
+    path('ordenes-produccion/<int:order_id>/completar/', views.orden_produccion_completar_api, name='orden_produccion_completar_api'),
+    path('ordenes-produccion/<int:order_id>/validar/', views.orden_produccion_validar_api, name='orden_produccion_validar_api'),
+    path('ordenes-produccion/<int:order_id>/generar/', views.orden_produccion_generar_api, name='orden_produccion_generar_api'),
+    path('ordenes-produccion/<int:order_id>/subir-firmada/', views.orden_produccion_subir_firmada_api, name='orden_produccion_subir_firmada_api'),
+    path('ordenes-produccion/<int:order_id>/descargar-plantilla/', views.orden_produccion_descargar_plantilla_api, name='orden_produccion_descargar_plantilla_api'),
+    path('ordenes-produccion/<int:order_id>/plantillas/', views.orden_produccion_obtener_plantillas_api, name='orden_produccion_obtener_plantillas_api'),
+    
+    # ==================== URLs PARA PARTE MORTORIOS ====================
+    path('parte-mortorios/', views.parte_mortorios_list, name='parte_mortorios_list'),
+    path('parte-mortorios/<int:parte_id>/detalle/', views.parte_mortorio_detail_api, name='parte_mortorio_detail_api'),
+    path('parte-mortorios/crear/', views.parte_mortorio_create_api, name='parte_mortorio_create_api'),
+    path('parte-mortorios/<int:parte_id>/editar/', views.parte_mortorio_update_api, name='parte_mortorio_update_api'),
+    path('parte-mortorios/<int:parte_id>/eliminar/', views.parte_mortorio_delete_api, name='parte_mortorio_delete_api'),
+    path('parte-mortorios/<int:parte_id>/programar/', views.parte_mortorio_programar_api, name='parte_mortorio_programar_api'),
+    path('parte-mortorios/<int:parte_id>/marcar-transmitido/', views.parte_mortorio_marcar_transmitido_api, name='parte_mortorio_marcar_transmitido_api'),
+    path('parte-mortorios/<int:parte_id>/cancelar/', views.parte_mortorio_cancelar_api, name='parte_mortorio_cancelar_api'),
+    
+    # ==================== URLs PARA PLANTILLAS DE PARTE MORTORIO ====================
+    path('parte-mortorios/plantillas/', views.plantillas_parte_mortorio_list, name='plantillas_parte_mortorio_list'),
+    path('parte-mortorios/plantillas/api/crear/', views.plantilla_parte_mortorio_crear_api, name='plantilla_parte_mortorio_crear_api'),
+    path('parte-mortorios/plantillas/api/<int:id>/', views.plantilla_parte_mortorio_detalle_api, name='plantilla_parte_mortorio_detalle_api'),
+    path('parte-mortorios/plantillas/api/<int:id>/actualizar/', views.plantilla_parte_mortorio_actualizar_api, name='plantilla_parte_mortorio_actualizar_api'),
+    path('parte-mortorios/plantillas/api/<int:id>/eliminar/', views.plantilla_parte_mortorio_eliminar_api, name='plantilla_parte_mortorio_eliminar_api'),
+    path('parte-mortorios/plantillas/api/<int:id>/marcar-default/', views.plantilla_parte_mortorio_marcar_default_api, name='plantilla_parte_mortorio_marcar_default_api'),
+    path('parte-mortorios/plantillas/api/<int:id>/descargar/', views.plantilla_parte_mortorio_descargar_api, name='plantilla_parte_mortorio_descargar_api'),
+    
+    # ==================== URLs PARA GENERAR PARTES MORTORIOS ====================
+    path('parte-mortorios/api/plantillas/', views.api_plantillas_parte_mortorio, name='api_plantillas_parte_mortorio'),
+    path('parte-mortorios/<int:parte_id>/generar/', views.parte_mortorio_generar_api, name='parte_mortorio_generar_api'),
+    path('parte-mortorios/generados/<int:parte_generado_id>/verificar/', views.parte_mortorio_verificar_api, name='parte_mortorio_verificar_api'),
+    path('parte-mortorios/generados/<int:parte_generado_id>/descargar/', views.parte_mortorio_descargar_api, name='parte_mortorio_descargar_api'),
+    path('parte-mortorios/<int:parte_id>/cambiar-estado/', views.parte_mortorio_cambiar_estado_api, name='parte_mortorio_cambiar_estado'),
+    
+    # ==================== REPORTES DE CONTRATOS ====================
     path('reports/contratos/dashboard/', views.reports_dashboard_contratos, name='reports_dashboard_contratos'),
     path('reports/contratos/api/estadisticas/', views.reports_api_estadisticas_contratos, name='reports_api_estadisticas_contratos'),
     path('reports/contratos/estado/', views.reports_estado_contratos, name='reports_estado_contratos'),
     path('reports/contratos/vencimiento/', views.reports_vencimiento_contratos, name='reports_vencimiento_contratos'),
     path('reports/contratos/ingresos/', views.reports_ingresos_contratos, name='reports_ingresos_contratos'),
-# ==================== REPORTES DE VENDEDORES ====================
-path('reports/vendedores/dashboard/', views.reports_dashboard_vendedores, name='reports_dashboard_vendedores'),
-path('reports/vendedores/<int:vendedor_id>/detalle/', views.reports_detalle_vendedor, name='reports_detalle_vendedor'),
-# Detalles de contratos por cliente/vendedor
-path('clientes/<int:cliente_id>/contratos/', views.cliente_contratos_api, name='cliente_contratos_api'),
-path('vendedores/<int:vendedor_id>/contratos/', views.vendedor_contratos_api, name='vendedor_contratos_api'),
-# ==================== REPORTES DE PARTES MORTUORIOS ====================
-path('reports/partes-mortuorios/dashboard/', views.reports_dashboard_partes_mortuorios, name='reports_dashboard_partes_mortuorios'),
-path('reports/partes-mortuorios/api/estado/', views.reports_partes_estado_api, name='reports_partes_estado_api'),
-path('reports/partes-mortuorios/api/urgencia/', views.reports_partes_urgencia_api, name='reports_partes_urgencia_api'),
-path('reports/partes-mortuorios/api/ingresos/', views.reports_partes_ingresos_api, name='reports_partes_ingresos_api'),
-path('reports/partes-mortuorios/api/<int:parte_id>/detalle/', views.reports_partes_detalle_api, name='reports_partes_detalle_api'),
-path('reports/partes-mortuorios/dashboard/', views.reports_dashboard_partes_mortuorios, name='reports_dashboard_partes_mortuorios'),
-# =============================================================================
-# URLs DE PROGRAMACIÓN CANAL - MODALES
-# =============================================================================
-path('programacion-canal/', views.programacion_list, name='programacion_canal_dashboard'),
-path('programacion/', views.programacion_list, name='programacion_list'),
-path('programacion-canal/programas/crear-modal/', views.programa_create_modal, name='programa_create_modal'),
-path('programacion-canal/programaciones/crear-modal/', views.programacion_semanal_create_modal, name='programacion_semanal_create_modal'),
-path('programacion-canal/bloques/crear-modal/', views.bloque_programacion_create_modal, name='bloque_programacion_create_modal'),
-path('programacion-canal/programas/<int:programa_id>/eliminar-modal/', views.programa_delete_modal, name='programa_delete_modal'),
-path('programacion-canal/programaciones/<int:programacion_id>/eliminar-modal/', views.programacion_semanal_delete_modal, name='programacion_semanal_delete_modal'),
-path('programacion-canal/programaciones/<int:programacion_id>/copiar/', views.copiar_programacion_semanal, name='copiar_programacion_semanal'),
-path('programacion-canal/bloques/<int:bloque_id>/eliminar-modal/', views.bloque_programacion_delete_modal, name='bloque_programacion_delete_modal'),
-# URLs para las APIs de ver y editar
-path('api/programas/<int:programa_id>/', views.api_programa_detail, name='api_programa_detail'),
-path('api/programas/<int:programa_id>/actualizar/', views.api_programa_update, name='api_programa_update'),
-path('api/programaciones/<int:programacion_id>/', views.api_programacion_detail, name='api_programacion_detail'),
-path('api/programaciones/<int:programacion_id>/actualizar/', views.api_programacion_update, name='api_programacion_update'),
-path('api/bloques/<int:bloque_id>/', views.api_bloque_detail, name='api_bloque_detail'),
-path('api/bloques/<int:bloque_id>/actualizar/', views.api_bloque_update, name='api_bloque_update'),
+    
+    # ==================== REPORTES DE VENDEDORES ====================
+    path('reports/vendedores/dashboard/', views.reports_dashboard_vendedores, name='reports_dashboard_vendedores'),
+    path('reports/vendedores/<int:vendedor_id>/detalle/', views.reports_detalle_vendedor, name='reports_detalle_vendedor'),
+    
+    # Detalles de contratos por cliente/vendedor
+    path('clientes/<int:cliente_id>/contratos/', views.cliente_contratos_api, name='cliente_contratos_api'),
+    path('vendedores/<int:vendedor_id>/contratos/', views.vendedor_contratos_api, name='vendedor_contratos_api'),
+    
+    # ==================== REPORTES DE PARTES MORTUORIOS ====================
+    path('reports/partes-mortuorios/dashboard/', views.reports_dashboard_partes_mortuorios, name='reports_dashboard_partes_mortuorios'),
+    path('reports/partes-mortuorios/api/estado/', views.reports_partes_estado_api, name='reports_partes_estado_api'),
+    path('reports/partes-mortuorios/api/urgencia/', views.reports_partes_urgencia_api, name='reports_partes_urgencia_api'),
+    path('reports/partes-mortuorios/api/ingresos/', views.reports_partes_ingresos_api, name='reports_partes_ingresos_api'),
+    path('reports/partes-mortuorios/api/<int:parte_id>/detalle/', views.reports_partes_detalle_api, name='reports_partes_detalle_api'),
+    
+    # =============================================================================
+    # URLs DE PROGRAMACIÓN CANAL - MODALES
+    # =============================================================================
+    path('programacion-canal/', views.programacion_list, name='programacion_canal_dashboard'),
+    path('programacion/', views.programacion_list, name='programacion_list'),
+    path('programacion-canal/programas/crear-modal/', views.programa_create_modal, name='programa_create_modal'),
+    path('programacion-canal/programaciones/crear-modal/', views.programacion_semanal_create_modal, name='programacion_semanal_create_modal'),
+    path('programacion-canal/bloques/crear-modal/', views.bloque_programacion_create_modal, name='bloque_programacion_create_modal'),
+    path('programacion-canal/programas/<int:programa_id>/eliminar-modal/', views.programa_delete_modal, name='programa_delete_modal'),
+    path('programacion-canal/programaciones/<int:programacion_id>/eliminar-modal/', views.programacion_semanal_delete_modal, name='programacion_semanal_delete_modal'),
+    path('programacion-canal/programaciones/<int:programacion_id>/copiar/', views.copiar_programacion_semanal, name='copiar_programacion_semanal'),
+    path('programacion-canal/bloques/<int:bloque_id>/eliminar-modal/', views.bloque_programacion_delete_modal, name='bloque_programacion_delete_modal'),
+    
+    # URLs para las APIs de ver y editar
+    path('api/programas/<int:programa_id>/', views.api_programa_detail, name='api_programa_detail'),
+    path('api/programas/<int:programa_id>/actualizar/', views.api_programa_update, name='api_programa_update'),
+    path('api/programaciones/<int:programacion_id>/', views.api_programacion_detail, name='api_programacion_detail'),
+    path('api/programaciones/<int:programacion_id>/actualizar/', views.api_programacion_update, name='api_programacion_update'),
+    path('api/bloques/<int:bloque_id>/', views.api_bloque_detail, name='api_bloque_detail'),
+    path('api/bloques/<int:bloque_id>/actualizar/', views.api_bloque_update, name='api_bloque_update'),
+    
+    # ==================== GRILLA PUBLICITARIA ====================
+    path('grilla-publicitaria/', views.grilla_publicitaria_list, name='grilla_publicitaria_list'),
+    path('grilla-publicitaria/api/asignar/', views.grilla_asignar_cuna_api, name='grilla_asignar_cuna_api'),
+    path('grilla-publicitaria/api/eliminar/<int:asignacion_id>/', views.grilla_eliminar_asignacion_api, name='grilla_eliminar_asignacion_api'),
+    path('grilla-publicitaria/api/generar/<int:programacion_id>/', views.grilla_generar_automatica_api, name='grilla_generar_automatica_api'),
+    # En tus urls.py
+    path('grilla-publicitaria/api/crear-ubicacion/', views.grilla_crear_ubicacion_api, name='grilla_crear_ubicacion_api'),
+    path('grilla-publicitaria/api/generar-ubicaciones/', views.grilla_generar_ubicaciones_api, name='grilla_generar_ubicaciones_api'),
 
-
-# ==================== GRILLA PUBLICITARIA ====================
-path('grilla-publicitaria/', views.grilla_publicitaria_list, name='grilla_publicitaria_list'),
-path('grilla-publicitaria/api/asignar/', views.grilla_asignar_cuna_api, name='grilla_asignar_cuna_api'),
-path('grilla-publicitaria/api/eliminar/<int:asignacion_id>/', views.grilla_eliminar_asignacion_api, name='grilla_eliminar_asignacion_api'),
-path('grilla-publicitaria/api/generar/<int:programacion_id>/', views.grilla_generar_automatica_api, name='grilla_generar_automatica_api'),
 ]

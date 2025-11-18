@@ -8065,37 +8065,23 @@ def api_bloque_update(request, bloque_id):
 
 # ==================== GRILLA PUBLICITARIA ====================
 
-
 @login_required
 @user_passes_test(is_admin)
 def grilla_publicitaria_list(request):
-    """Vista única para la grilla publicitaria - TODO INTEGRADO"""
-    
-    # Verificar disponibilidad de módulos
-    if not GRILLA_MODELS_AVAILABLE or not PROGRAMACION_CANAL_AVAILABLE or not CONTENT_MODELS_AVAILABLE:
-        context = {
-            'mensaje': 'Módulos necesarios no disponibles para la grilla publicitaria',
-            'grilla_available': False
-        }
-        return render(request, 'custom_admin/grilla_publicitaria/list.html', context)
+    """Vista principal de grilla publicitaria - CON PROGRAMACIÓN INTEGRADA"""
     
     try:
-        # Obtener parámetros
+        # Obtener programación seleccionada
         programacion_id = request.GET.get('programacion_id')
-        fecha_filtro = request.GET.get('fecha_filtro')
-        action = request.GET.get('action')
-        
-        # Obtener programaciones semanales
         programaciones = ProgramacionSemanal.objects.all().order_by('-fecha_inicio_semana')
         
-        # Programación seleccionada o actual
         programacion_actual = None
         if programacion_id:
             programacion_actual = get_object_or_404(ProgramacionSemanal, id=programacion_id)
         elif programaciones.exists():
             programacion_actual = programaciones.first()
         
-        # Obtener grilla para la programación seleccionada
+        # Obtener o crear grilla
         grilla_actual = None
         if programacion_actual:
             grilla_actual, created = GrillaPublicitaria.objects.get_or_create(
@@ -8103,25 +8089,85 @@ def grilla_publicitaria_list(request):
                 defaults={'generada_por': request.user}
             )
         
-        # Obtener asignaciones
+        # Obtener bloques de programación para la semana
+        bloques_semana = []
+        ubicaciones_publicitarias = []
+        
+        if programacion_actual:
+            bloques_semana = BloqueProgramacion.objects.filter(
+                programacion_semanal=programacion_actual
+            ).select_related('programa').order_by('dia_semana', 'hora_inicio')
+            
+            # Obtener ubicaciones publicitarias para estos bloques
+            ubicaciones_publicitarias = UbicacionPublicitaria.objects.filter(
+                bloque_programacion__in=bloques_semana,
+                activo=True
+            ).select_related('bloque_programacion', 'bloque_programacion__programa')
+        
+        # Obtener asignaciones existentes
         asignaciones = []
-        if grilla_actual:
+        if programacion_actual:
             asignaciones = AsignacionCuña.objects.filter(
                 ubicacion__bloque_programacion__programacion_semanal=programacion_actual
-            ).select_related('cuña', 'ubicacion', 'ubicacion__bloque_programacion__programa')
+            ).select_related(
+                'cuña', 
+                'cuña__cliente',
+                'ubicacion',
+                'ubicacion__bloque_programacion__programa'
+            ).order_by('fecha_emision', 'hora_emision')
         
-        # Obtener cuñas disponibles
+        # Obtener cuñas disponibles (activas y en período válido)
+        hoy = timezone.now().date()
         cuñas_disponibles = CuñaPublicitaria.objects.filter(
-            estado='activa'
-        ).select_related('cliente', 'vendedor_asignado')
+            estado__in=['activa', 'aprobada'],
+            fecha_inicio__lte=hoy,
+            fecha_fin__gte=hoy
+        ).select_related('cliente', 'vendedor_asignado', 'categoria')
         
-        # Obtener ubicaciones disponibles
-        ubicaciones_disponibles = []
-        if programacion_actual:
-            ubicaciones_disponibles = UbicacionPublicitaria.objects.filter(
-                bloque_programacion__programacion_semanal=programacion_actual,
-                activo=True
-            ).select_related('bloque_programacion__programa', 'tipo_ubicacion')
+        # Configuración del calendario - Mismo formato que programación del canal
+        dias_semana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+        horas_dia = [f"{hora:02d}:00" for hora in range(6, 24)]  # De 6am a 11pm
+        
+        # Organizar datos para el calendario COMO EN PROGRAMACIÓN DEL CANAL
+        calendario_data = {}
+        for dia_idx, dia_nombre in enumerate(dias_semana):
+            calendario_data[dia_nombre] = {}
+            
+            for hora_str in horas_dia:
+                hora_obj = datetime.strptime(hora_str, '%H:%M').time()
+                calendario_data[dia_nombre][hora_str] = {
+                    'bloques_programacion': [],
+                    'ubicaciones_publicitarias': [],
+                    'asignaciones': []
+                }
+                
+                # Buscar bloques de programación para este día y hora
+                for bloque in bloques_semana:
+                    if bloque.dia_semana == dia_idx:
+                        bloque_inicio = bloque.hora_inicio
+                        bloque_fin = bloque.hora_fin
+                        
+                        if bloque_inicio <= hora_obj < bloque_fin:
+                            calendario_data[dia_nombre][hora_str]['bloques_programacion'].append(bloque)
+                
+                # Buscar ubicaciones publicitarias
+                for ubicacion in ubicaciones_publicitarias:
+                    if ubicacion.bloque_programacion.dia_semana == dia_idx:
+                        # Calcular hora absoluta de la ubicación
+                        bloque_inicio = ubicacion.bloque_programacion.hora_inicio
+                        ubicacion_hora_absoluta = (
+                            datetime.combine(datetime.today(), bloque_inicio) + 
+                            ubicacion.hora_inicio_relativa
+                        ).time()
+                        
+                        if ubicacion_hora_absoluta.strftime('%H:%M') == hora_str:
+                            calendario_data[dia_nombre][hora_str]['ubicaciones_publicitarias'].append(ubicacion)
+                
+                # Buscar asignaciones para este día y hora
+                for asignacion in asignaciones:
+                    if (asignacion.fecha_emision.weekday() == dia_idx and 
+                        asignacion.hora_emision.strftime('%H:%M') == hora_str):
+                        calendario_data[dia_nombre][hora_str]['asignaciones'].append(asignacion)
         
         # Estadísticas
         total_cuñas = cuñas_disponibles.count()
@@ -8130,50 +8176,26 @@ def grilla_publicitaria_list(request):
         
         # Calcular ingresos
         ingresos_totales = sum(float(asig.cuña.precio_total) for asig in asignaciones)
-        ingresos_proyectados = sum(float(cuña.precio_total) for cuña in cuñas_disponibles)
-        
-        # Organizar datos para el calendario
-        dias_semana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
-        horas_dia = [f"{hora:02d}:00" for hora in range(6, 24)]  # De 6am a 11pm
-        
-        # Datos para el calendario
-        calendario_data = {}
-        for dia in range(7):  # 0-6 para lunes-domingo
-            dia_nombre = dias_semana[dia]
-            calendario_data[dia_nombre] = {}
-            
-            for hora in horas_dia:
-                asignaciones_hora = [
-                    asig for asig in asignaciones 
-                    if asig.ubicacion.bloque_programacion.dia_semana == dia and 
-                    asig.hora_emision.strftime('%H:%M') == hora
-                ]
-                calendario_data[dia_nombre][hora] = asignaciones_hora
         
         context = {
-            # Datos principales
             'programaciones': programaciones,
             'programacion_actual': programacion_actual,
             'grilla_actual': grilla_actual,
             'asignaciones': asignaciones,
             'cuñas_disponibles': cuñas_disponibles,
-            'ubicaciones_disponibles': ubicaciones_disponibles,
+            'bloques_semana': bloques_semana,
+            'ubicaciones_publicitarias': ubicaciones_publicitarias,
+            
+            # Calendario - Misma estructura que programación del canal
+            'dias_semana': dias_semana,
+            'horas_dia': horas_dia,
+            'calendario_data': calendario_data,
             
             # Estadísticas
             'total_cuñas': total_cuñas,
             'cuñas_programadas': cuñas_programadas,
             'cuñas_pendientes': cuñas_pendientes,
             'ingresos_totales': ingresos_totales,
-            'ingresos_proyectados': ingresos_proyectados,
-            
-            # Calendario
-            'dias_semana': dias_semana,
-            'horas_dia': horas_dia,
-            'calendario_data': calendario_data,
-            
-            # Filtros
-            'programacion_id': programacion_id,
-            'fecha_filtro': fecha_filtro,
             
             # Flags
             'grilla_available': True,
@@ -8190,32 +8212,52 @@ def grilla_publicitaria_list(request):
         context = {
             'error': f'Error al cargar la grilla: {str(e)}',
             'grilla_available': False,
-            'programaciones': [],
+            'programaciones': ProgramacionSemanal.objects.all().order_by('-fecha_inicio_semana'),
             'cuñas_disponibles': [],
-            'asignaciones': [],
         }
         return render(request, 'custom_admin/grilla_publicitaria/list.html', context)
-
-# APIs para la grilla
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["POST"])
 def grilla_asignar_cuna_api(request):
-    """API para asignar una cuña a una ubicación"""
+    """API para asignar cuña a una ubicación - MEJORADA"""
     try:
         data = json.loads(request.body)
         
-        ubicacion_id = data.get('ubicacion_id')
         cuña_id = data.get('cuña_id')
+        ubicacion_id = data.get('ubicacion_id')
         fecha_emision = data.get('fecha_emision')
         hora_emision = data.get('hora_emision')
         
         # Validaciones
-        if not all([ubicacion_id, cuña_id, fecha_emision, hora_emision]):
+        if not all([cuña_id, ubicacion_id, fecha_emision, hora_emision]):
             return JsonResponse({'success': False, 'error': 'Faltan datos requeridos'})
         
-        ubicacion = get_object_or_404(UbicacionPublicitaria, id=ubicacion_id)
         cuña = get_object_or_404(CuñaPublicitaria, id=cuña_id)
+        ubicacion = get_object_or_404(UbicacionPublicitaria, id=ubicacion_id)
+        
+        # Verificar que la cuña no exceda la duración disponible
+        duracion_cuña = timedelta(seconds=cuña.duracion_planeada)
+        if duracion_cuña > ubicacion.duracion_disponible:
+            return JsonResponse({
+                'success': False, 
+                'error': f'La cuña ({cuña.duracion_planeada}s) excede la duración disponible ({ubicacion.duracion_disponible.total_seconds()}s)'
+            })
+        
+        # Verificar capacidad de la ubicación
+        asignaciones_existentes = AsignacionCuña.objects.filter(
+            ubicacion=ubicacion,
+            fecha_emision=fecha_emision
+        ).count()
+        
+        if asignaciones_existentes >= ubicacion.capacidad_cuñas:
+            return JsonResponse({
+                'success': False,
+                'error': f'La ubicación ya tiene {asignaciones_existentes} cuñas asignadas (máximo: {ubicacion.capacidad_cuñas})'
+            })
+        
+        # Determinar el orden
+        orden = asignaciones_existentes + 1
         
         # Crear asignación
         asignacion = AsignacionCuña.objects.create(
@@ -8223,8 +8265,16 @@ def grilla_asignar_cuna_api(request):
             cuña=cuña,
             fecha_emision=fecha_emision,
             hora_emision=hora_emision,
-            creado_por=request.user
+            orden_en_ubicacion=orden,
+            creado_por=request.user,
+            estado='programada'
         )
+        
+        # Actualizar estadísticas de la grilla
+        grilla = GrillaPublicitaria.objects.get(
+            programacion_semanal=ubicacion.bloque_programacion.programacion_semanal
+        )
+        grilla.actualizar_estadisticas()
         
         return JsonResponse({
             'success': True,
@@ -8234,8 +8284,6 @@ def grilla_asignar_cuna_api(request):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
-
-@login_required
 @user_passes_test(is_admin)
 @require_http_methods(["DELETE"])
 def grilla_eliminar_asignacion_api(request, asignacion_id):
@@ -8271,6 +8319,104 @@ def grilla_generar_automatica_api(request, programacion_id):
             'success': True,
             'message': f'Grilla {"creada" if created else "actualizada"} exitosamente',
             'grilla_id': grilla.id
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def grilla_crear_ubicacion_api(request):
+    """API para crear ubicación publicitaria"""
+    try:
+        data = json.loads(request.body)
+        
+        bloque_id = data.get('bloque_id')
+        tipo_pausa = data.get('tipo_pausa', 'corta')
+        nombre = data.get('nombre')
+        capacidad = data.get('capacidad', 3)
+        
+        bloque = get_object_or_404(BloqueProgramacion, id=bloque_id)
+        
+        # Crear ubicación publicitaria
+        ubicacion = UbicacionPublicitaria.objects.create(
+            bloque_programacion=bloque,
+            tipo_pausa=tipo_pausa,
+            nombre=nombre,
+            hora_inicio_relativa=timedelta(minutes=0),  # Al inicio del bloque
+            capacidad_cuñas=capacidad,
+            activo=True
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Ubicación publicitaria creada exitosamente',
+            'ubicacion_id': ubicacion.id
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def grilla_generar_ubicaciones_api(request):
+    """API para generar ubicaciones automáticamente"""
+    try:
+        data = json.loads(request.body)
+        programacion_id = data.get('programacion_id')
+        
+        programacion = get_object_or_404(ProgramacionSemanal, id=programacion_id)
+        bloques = BloqueProgramacion.objects.filter(programacion_semanal=programacion)
+        
+        ubicaciones_creadas = 0
+        
+        for bloque in bloques:
+            # Crear 2-3 pausas publicitarias por bloque dependiendo de la duración
+            duracion_minutos = bloque.duracion_real.total_seconds() / 60
+            
+            if duracion_minutos >= 30:
+                # Para bloques largos, crear 3 pausas
+                pausas = [
+                    ('Pausa Inicial', 'corta', timedelta(minutes=0)),
+                    ('Pausa Intermedia', 'media', timedelta(minutes=duracion_minutos/2)),
+                    ('Pausa Final', 'corta', timedelta(minutes=duracion_minutos-5)),
+                ]
+            elif duracion_minutos >= 15:
+                # Para bloques medianos, crear 2 pausas
+                pausas = [
+                    ('Pausa Inicial', 'corta', timedelta(minutes=0)),
+                    ('Pausa Final', 'corta', timedelta(minutes=duracion_minutos-5)),
+                ]
+            else:
+                # Para bloques cortos, crear 1 pausa
+                pausas = [
+                    ('Pausa Central', 'corta', timedelta(minutes=duracion_minutos/2)),
+                ]
+            
+            for nombre_pausa, tipo_pausa, hora_relativa in pausas:
+                # Verificar si ya existe una ubicación similar
+                existe = UbicacionPublicitaria.objects.filter(
+                    bloque_programacion=bloque,
+                    hora_inicio_relativa=hora_relativa
+                ).exists()
+                
+                if not existe:
+                    UbicacionPublicitaria.objects.create(
+                        bloque_programacion=bloque,
+                        tipo_pausa=tipo_pausa,
+                        nombre=f"{bloque.programa.nombre} - {nombre_pausa}",
+                        hora_inicio_relativa=hora_relativa,
+                        capacidad_cuñas=3,
+                        activo=True
+                    )
+                    ubicaciones_creadas += 1
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Se crearon {ubicaciones_creadas} ubicaciones publicitarias automáticamente',
+            'ubicaciones_creadas': ubicaciones_creadas
         })
         
     except Exception as e:

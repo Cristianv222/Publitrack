@@ -1,6 +1,7 @@
 # grilla_publicitaria/admin.py
 from django.contrib import admin
 from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
 
 # IMPORTS CONDICIONALES
 try:
@@ -19,26 +20,172 @@ if MODELS_AVAILABLE:
         list_display = ['nombre', 'codigo', 'duracion_maxima', 'prioridad']
         list_filter = ['prioridad']
         search_fields = ['nombre', 'codigo']
+        list_editable = ['prioridad']
+        
+        fieldsets = (
+            ('Información Básica', {
+                'fields': ('nombre', 'codigo', 'descripcion')
+            }),
+            ('Configuración', {
+                'fields': ('duracion_maxima', 'prioridad')
+            }),
+        )
 
     @admin.register(UbicacionPublicitaria)
     class UbicacionPublicitariaAdmin(admin.ModelAdmin):
         list_display = [
-            'nombre', 'bloque_programacion', 'tipo_ubicacion', 
-            'hora_inicio_relativa', 'duracion_disponible', 'activo'
+            'nombre', 
+            'bloque_programacion_display', 
+            'tipo_pausa_badge', 
+            'hora_inicio_relativa', 
+            'duracion_disponible', 
+            'capacidad_cuñas',
+            'asignaciones_count',
+            'activo_badge'
         ]
-        list_filter = ['tipo_ubicacion', 'activo', 'bloque_programacion__programacion_semanal']
-        search_fields = ['nombre', 'bloque_programacion__programa__nombre']
+        
+        list_filter = [
+            'tipo_pausa', 
+            'activo', 
+            'bloque_programacion__programacion_semanal',
+            'bloque_programacion__dia_semana'
+        ]
+        
+        search_fields = [
+            'nombre', 
+            'bloque_programacion__programa__nombre',
+            'bloque_programacion__programacion_semanal__nombre'
+        ]
+        
+        readonly_fields = ['asignaciones_count']
+        
+        fieldsets = (
+            ('Información Básica', {
+                'fields': (
+                    'bloque_programacion', 
+                    'nombre', 
+                    'tipo_pausa'
+                )
+            }),
+            ('Configuración de Tiempo', {
+                'fields': (
+                    'hora_inicio_relativa',
+                    'duracion_disponible',
+                    'capacidad_cuñas'
+                )
+            }),
+            ('Estado', {
+                'fields': ('activo',)
+            }),
+        )
+        
+        def bloque_programacion_display(self, obj):
+            return f"{obj.bloque_programacion.programa.nombre} - {obj.bloque_programacion.get_dia_semana_display()}"
+        bloque_programacion_display.short_description = 'Bloque de Programación'
+        
+        def tipo_pausa_badge(self, obj):
+            colors = {
+                'corta': 'info',
+                'media': 'warning',
+                'larga': 'success',
+                'especial': 'danger'
+            }
+            color = colors.get(obj.tipo_pausa, 'secondary')
+            return format_html(
+                '<span class="badge bg-{}">{}</span>',
+                color, obj.get_tipo_pausa_display()
+            )
+        tipo_pausa_badge.short_description = 'Tipo de Pausa'
+        
+        def asignaciones_count(self, obj):
+            count = obj.asignaciones.count()
+            return format_html(
+                '<span class="badge bg-{}">{}</span>',
+                'primary' if count > 0 else 'secondary', 
+                count
+            )
+        asignaciones_count.short_description = 'Cuñas Asignadas'
+        
+        def activo_badge(self, obj):
+            color = 'success' if obj.activo else 'secondary'
+            text = 'Activo' if obj.activo else 'Inactivo'
+            return format_html(
+                '<span class="badge bg-{}">{}</span>',
+                color, text
+            )
+        activo_badge.short_description = 'Estado'
 
     @admin.register(AsignacionCuña)
     class AsignacionCuñaAdmin(admin.ModelAdmin):
         list_display = [
-            'cuña', 'ubicacion', 'fecha_emision', 'hora_emision',
-            'estado_badge', 'orden_en_ubicacion'
+            'cuña_display', 
+            'ubicacion_display', 
+            'fecha_emision', 
+            'hora_emision',
+            'duracion_cuña',
+            'estado_badge', 
+            'orden_en_ubicacion',
+            'creado_por_display'
         ]
         
-        list_filter = ['estado', 'fecha_emision', 'ubicacion__tipo_ubicacion']
-        search_fields = ['cuña__codigo', 'cuña__titulo', 'ubicacion__nombre']
+        list_filter = [
+            'estado', 
+            'fecha_emision', 
+            'ubicacion__tipo_pausa',
+            'ubicacion__bloque_programacion__programacion_semanal'
+        ]
+        
+        search_fields = [
+            'cuña__codigo', 
+            'cuña__titulo', 
+            'ubicacion__nombre',
+            'creado_por__username',
+            'creado_por__first_name',
+            'creado_por__last_name'
+        ]
+        
         date_hierarchy = 'fecha_emision'
+        
+        readonly_fields = [
+            'fecha_creacion', 
+            'fecha_actualizacion', 
+            'creado_por'
+        ]
+        
+        fieldsets = (
+            ('Información de Asignación', {
+                'fields': (
+                    'ubicacion',
+                    'cuña',
+                    'fecha_emision',
+                    'hora_emision',
+                    'orden_en_ubicacion'
+                )
+            }),
+            ('Estado', {
+                'fields': ('estado',)
+            }),
+            ('Metadatos', {
+                'fields': (
+                    'creado_por',
+                    'fecha_creacion',
+                    'fecha_actualizacion'
+                ),
+                'classes': ('collapse',)
+            }),
+        )
+        
+        def cuña_display(self, obj):
+            return f"{obj.cuña.codigo} - {obj.cuña.titulo}"
+        cuña_display.short_description = 'Cuña Publicitaria'
+        
+        def ubicacion_display(self, obj):
+            return f"{obj.ubicacion.bloque_programacion.programa.nombre} - {obj.ubicacion.nombre}"
+        ubicacion_display.short_description = 'Ubicación'
+        
+        def duracion_cuña(self, obj):
+            return f"{obj.cuña.duracion_planeada}s"
+        duracion_cuña.short_description = 'Duración'
         
         def estado_badge(self, obj):
             colors = {
@@ -53,12 +200,96 @@ if MODELS_AVAILABLE:
                 color, obj.get_estado_display()
             )
         estado_badge.short_description = 'Estado'
+        
+        def creado_por_display(self, obj):
+            if obj.creado_por:
+                return obj.creado_por.get_full_name() or obj.creado_por.username
+            return '-'
+        creado_por_display.short_description = 'Creado por'
+        
+        def save_model(self, request, obj, form, change):
+            if not obj.creado_por:
+                obj.creado_por = request.user
+            super().save_model(request, obj, form, change)
 
     @admin.register(GrillaPublicitaria)
     class GrillaPublicitariaAdmin(admin.ModelAdmin):
         list_display = [
-            'programacion_semanal', 'fecha_generacion', 
-            'total_cuñas_programadas', 'total_ingresos_proyectados'
+            'programacion_semanal_display', 
+            'fecha_generacion', 
+            'total_cuñas_programadas_badge',
+            'total_ingresos_proyectados_format',
+            'generada_por_display'
         ]
-        list_filter = ['programacion_semanal__fecha_inicio_semana']
-        readonly_fields = ['fecha_generacion', 'total_cuñas_programadas', 'total_ingresos_proyectados']
+        
+        list_filter = [
+            'programacion_semanal__fecha_inicio_semana',
+            'fecha_generacion'
+        ]
+        
+        search_fields = [
+            'programacion_semanal__nombre',
+            'programacion_semanal__codigo',
+            'generada_por__username'
+        ]
+        
+        readonly_fields = [
+            'fecha_generacion', 
+            'total_cuñas_programadas', 
+            'total_ingresos_proyectados',
+            'generada_por'
+        ]
+        
+        fieldsets = (
+            ('Información de la Grilla', {
+                'fields': (
+                    'programacion_semanal',
+                    'generada_por',
+                    'fecha_generacion'
+                )
+            }),
+            ('Estadísticas', {
+                'fields': (
+                    'total_cuñas_programadas',
+                    'total_ingresos_proyectados',
+                )
+            }),
+        )
+        
+        def programacion_semanal_display(self, obj):
+            return f"{obj.programacion_semanal.nombre} ({obj.programacion_semanal.fecha_inicio_semana} - {obj.programacion_semanal.fecha_fin_semana})"
+        programacion_semanal_display.short_description = 'Programación Semanal'
+        
+        def total_cuñas_programadas_badge(self, obj):
+            color = 'success' if obj.total_cuñas_programadas > 0 else 'secondary'
+            return format_html(
+                '<span class="badge bg-{}">{}</span>',
+                color, obj.total_cuñas_programadas
+            )
+        total_cuñas_programadas_badge.short_description = 'Cuñas Programadas'
+        
+        def total_ingresos_proyectados_format(self, obj):
+            return f"${obj.total_ingresos_proyectados:,.2f}"
+        total_ingresos_proyectados_format.short_description = 'Ingresos Proyectados'
+        
+        def generada_por_display(self, obj):
+            if obj.generada_por:
+                return obj.generada_por.get_full_name() or obj.generada_por.username
+            return '-'
+        generada_por_display.short_description = 'Generada por'
+        
+        def save_model(self, request, obj, form, change):
+            if not obj.generada_por:
+                obj.generada_por = request.user
+            super().save_model(request, obj, form, change)
+        
+        actions = ['actualizar_estadisticas']
+        
+        def actualizar_estadisticas(self, request, queryset):
+            for grilla in queryset:
+                grilla.actualizar_estadisticas()
+            self.message_user(
+                request, 
+                f"Estadísticas actualizadas para {queryset.count()} grilla(s)"
+            )
+        actualizar_estadisticas.short_description = "Actualizar estadísticas de las grillas seleccionadas"

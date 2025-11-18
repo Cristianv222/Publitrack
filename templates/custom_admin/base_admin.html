@@ -806,9 +806,7 @@
                         </h2>
                         <div id="contentCollapse" class="accordion-collapse collapse" data-bs-parent="#contentAccordion">
                             <div class="accordion-body">
-                                <a href="#" class="submenu-link">
-                                    <i class="fas fa-file-audio"></i>Archivos de Audio(no hacer de momento)
-                                </a>
+                                
                                 <a href="{% url 'custom_admin:categorias_list' %}" class="submenu-link {% if 'categoria' in request.resolver_match.url_name %}active{% endif %}">
                                     <i class="fas fa-tags"></i>Categorías
                                 </a>
