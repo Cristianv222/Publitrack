@@ -44,6 +44,18 @@
         border-right: 1px solid #dee2e6;
         border-bottom: 1px solid #dee2e6;
         position: relative;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .calendario-celda:hover {
+        background-color: #f8f9fa !important;
+    }
+    
+    .calendario-celda.seleccionada {
+        background-color: #e3f2fd !important;
+        border: 2px solid #2196f3 !important;
+        z-index: 10;
     }
     
     .calendario-bloque {
@@ -332,6 +344,90 @@
     .text-primary i { color: #007bff !important; }
     .text-success i { color: #28a745 !important; }
     .text-info i { color: #17a2b8 !important; }
+
+    /* Nuevos estilos para la selección */
+    .seleccion-indicator {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        width: 8px;
+        height: 8px;
+        background: #007bff;
+        border-radius: 50%;
+        display: none;
+    }
+
+    .calendario-celda.seleccionada .seleccion-indicator {
+        display: block;
+    }
+
+    /* Modal de selección rápida */
+    .modal-rapido .modal-content {
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .modal-rapido .modal-header {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: white;
+        border-radius: 12px 12px 0 0;
+        padding: 20px;
+    }
+
+    .modal-rapido .modal-body {
+        padding: 25px;
+    }
+
+    .info-seleccion {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-left: 4px solid #007bff;
+    }
+
+    .programa-option {
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .programa-option:hover {
+        border-color: #007bff;
+        background-color: #f8f9fa;
+    }
+
+    .programa-option.seleccionado {
+        border-color: #007bff;
+        background-color: #e3f2fd;
+    }
+
+    .programa-color-modal {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        display: inline-block;
+        margin-right: 10px;
+    }
+
+    .btn-crear-rapido {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        border: none;
+        color: white;
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-crear-rapido:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+    }
 </style>
 {% endblock %}
 
@@ -345,7 +441,7 @@
     </div>
     {% endif %}
 
-    <!-- Tabs principales -->
+    <!-- Tabs principales - SOLO CALENDARIO Y PROGRAMAS -->
     <ul class="nav nav-tabs nav-tabs-custom mb-4" id="programacionTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="calendario-tab" data-bs-toggle="tab" data-bs-target="#calendario" type="button" role="tab">
@@ -355,11 +451,6 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="programas-tab" data-bs-toggle="tab" data-bs-target="#programas" type="button" role="tab">
                 <i class="fas fa-list me-2"></i>Programas ({{ programas.count }})
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="programaciones-tab" data-bs-toggle="tab" data-bs-target="#programaciones" type="button" role="tab">
-                <i class="fas fa-calendar-week me-2"></i>Programaciones ({{ programaciones.count }})
             </button>
         </li>
     </ul>
@@ -405,14 +496,21 @@
                         </button>
                         {% endif %}
                         
-                        <button class="btn btn-agregar" data-bs-toggle="modal" data-bs-target="#nuevoBloqueModal">
-                            <i class="fas fa-plus me-1"></i>Agregar
+                        <!-- Botón Nueva Semana -->
+                        <button class="btn btn-agregar" data-bs-toggle="modal" data-bs-target="#nuevaProgramacionModal">
+                            <i class="fas fa-plus me-1"></i>Nueva Semana
                         </button>
                         <button class="btn btn-actualizar" onclick="location.reload()">
                             <i class="fas fa-sync-alt"></i>
                         </button>
                     </div>
                 </div>
+            </div>
+
+            <!-- Instrucciones -->
+            <div class="alert alert-info mb-3">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Nueva forma de trabajar:</strong> Haz clic en cualquier horario del calendario para agregar un programa en ese horario específico.
             </div>
 
             <!-- Leyenda de Colores (Arriba) -->
@@ -443,14 +541,23 @@
                         <!-- Filas de horas -->
                         {% for hora in horas_dia %}
                         <div class="calendario-hora">{{ hora }}</div>
-                        {% for dia in dias_semana %}
-                            <div class="calendario-celda" data-hora="{{ hora }}" data-dia="{{ dia }}">
+                        {% for dia_num in "0123456" %}
+                            {% with dia_num=dia_num|add:"0" %}
+                            {% with dia_index=forloop.counter0 %}
+                            <div class="calendario-celda" 
+                                 data-hora="{{ hora }}" 
+                                 data-dia="{{ dias_semana|slice:dia_index|first }}" 
+                                 data-dia-index="{{ dia_index }}"
+                                 onclick="seleccionarCelda(this, '{{ hora }}', {{ dia_index }})">
+                                <div class="seleccion-indicator"></div>
+                                
                                 <!-- Buscar bloques para este día y hora -->
                                 {% for bloque in bloques_semana %}
-                                    {% if bloque.dia_semana == forloop.parentloop.counter0 %}
+                                    {% if bloque.dia_semana == dia_index %}
                                         {% if bloque.hora_inicio|date:"H:i" <= hora and bloque.hora_fin|date:"H:i" > hora %}
                                             <div class="calendario-bloque" 
                                                  style="background: {{ bloque.programa.color }}; border-left-color: {{ bloque.programa.color }};"
+                                                 data-bloque-id="{{ bloque.id }}"
                                                  data-bs-toggle="tooltip" 
                                                  title="{{ bloque.programa.nombre }} - {{ bloque.duracion_real }}"
                                                  onmouseover="mostrarAccionesBloque(this, {{ bloque.id }})"
@@ -463,12 +570,12 @@
                                                     </div>
                                                     <div class="acciones-bloque" style="display: none;">
                                                         <button class="btn btn-sm btn-outline-light p-0 me-1" 
-                                                                onclick="editarBloque({{ bloque.id }})"
+                                                                onclick="event.stopPropagation(); editarBloque({{ bloque.id }})"
                                                                 title="Editar bloque">
                                                             <i class="fas fa-edit" style="font-size: 10px;"></i>
                                                         </button>
                                                         <button class="btn btn-sm btn-outline-light p-0" 
-                                                                onclick="eliminarBloque({{ bloque.id }})"
+                                                                onclick="event.stopPropagation(); eliminarBloque({{ bloque.id }})"
                                                                 title="Eliminar bloque">
                                                             <i class="fas fa-trash" style="font-size: 10px;"></i>
                                                         </button>
@@ -479,6 +586,8 @@
                                     {% endif %}
                                 {% endfor %}
                             </div>
+                            {% endwith %}
+                            {% endwith %}
                         {% endfor %}
                         {% endfor %}
                     </div>
@@ -562,99 +671,10 @@
                 {% endfor %}
             </div>
         </div>
-
-        <!-- TAB 3: PROGRAMACIONES -->
-        <div class="tab-pane fade" id="programaciones" role="tabpanel">
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <h4 class="text-gray-800">
-                        <i class="fas fa-calendar-week text-info me-2"></i>
-                        Programaciones Semanales
-                    </h4>
-                    <p class="text-muted mb-0">Gestiona la programación por semanas</p>
-                </div>
-                <div class="col-md-6 text-end">
-                    <button class="btn btn-agregar" data-bs-toggle="modal" data-bs-target="#nuevaProgramacionModal">
-                        <i class="fas fa-plus me-2"></i>Nueva Programación
-                    </button>
-                </div>
-            </div>
-
-            <!-- Tabla de Programaciones -->
-            <div class="admin-card">
-                <div class="admin-card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Nombre</th>
-                                    <th>Semana</th>
-                                    <th>Estado</th>
-                                    <th>Bloques</th>
-                                    <th>Creada por</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for programacion in programaciones %}
-                                <tr>
-                                    <td>
-                                        <strong>{{ programacion.nombre }}</strong>
-                                        <br>
-                                        <small class="text-muted">{{ programacion.codigo }}</small>
-                                    </td>
-                                    <td>
-                                        {{ programacion.fecha_inicio_semana|date:"d/m/Y" }}
-                                        <br>
-                                        <small class="text-muted">al {{ programacion.fecha_fin_semana|date:"d/m/Y" }}</small>
-                                    </td>
-                                    <td>
-                                        <span class="badge estado-{{ programacion.estado }}">
-                                            {{ programacion.get_estado_display }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-primary">{{ programacion.bloques.count }}</span>
-                                    </td>
-                                    <td>
-                                        <small>{{ programacion.created_by.get_full_name|default:programacion.created_by.username }}</small>
-                                    </td>
-                                    <td>
-                                        <div class="btn-group">
-                                            <button class="btn btn-ver" onclick="verProgramacion({{ programacion.id }})">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                            <button class="btn btn-editar" onclick="editarProgramacion({{ programacion.id }})">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-copiar" onclick="abrirModalCopiarSemana({{ programacion.id }})">
-                                                <i class="fas fa-copy"></i>
-                                            </button>
-                                            <button class="btn btn-eliminar" onclick="eliminarProgramacion({{ programacion.id }})">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="6" class="text-center py-4">
-                                        <i class="fas fa-calendar-times fa-2x text-muted mb-3"></i>
-                                        <h5 class="text-muted">No hay programaciones</h5>
-                                        <p class="text-muted">Crea la primera programación semanal.</p>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
-<!-- MODALES -->
+<!-- MODALES EXISTENTES -->
 
 <!-- Modal Nuevo Programa -->
 <div class="modal fade" id="nuevoProgramaModal" tabindex="-1">
@@ -926,93 +946,6 @@
     </div>
 </div>
 
-<!-- Modal Nuevo Bloque -->
-<div class="modal fade" id="nuevoBloqueModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-plus me-2"></i>Nuevo Bloque de Programación
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="bloqueForm" method="post">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Programación Semanal *</label>
-                        <select class="form-select" name="programacion_semanal" required>
-                            <option value="">Seleccionar programación...</option>
-                            {% for programacion in programaciones %}
-                            <option value="{{ programacion.id }}" {% if programacion_actual and programacion.id == programacion_actual.id %}selected{% endif %}>
-                                {{ programacion.nombre }} ({{ programacion.fecha_inicio_semana|date:"d/m/Y" }})
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Programa *</label>
-                        <select class="form-select" name="programa" required>
-                            <option value="">Seleccionar programa...</option>
-                            {% for programa in programas %}
-                            <option value="{{ programa.id }}" data-color="{{ programa.color }}">
-                                {{ programa.nombre }} ({{ programa.get_tipo_display }})
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Día de la Semana *</label>
-                                <select class="form-select" name="dia_semana" required>
-                                    <option value="">Seleccionar día...</option>
-                                    <option value="0">Lunes</option>
-                                    <option value="1">Martes</option>
-                                    <option value="2">Miércoles</option>
-                                    <option value="3">Jueves</option>
-                                    <option value="4">Viernes</option>
-                                    <option value="5">Sábado</option>
-                                    <option value="6">Domingo</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Hora de Inicio *</label>
-                                <input type="time" class="form-control" name="hora_inicio" required>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Duración Real *</label>
-                        <input type="text" class="form-control" name="duracion_real" placeholder="HH:MM:SS" required value="01:00:00">
-                    </div>
-                    
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" name="es_repeticion" id="esRepeticion">
-                        <label class="form-check-label" for="esRepeticion">Es repetición</label>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Notas</label>
-                        <textarea class="form-control" name="notas" rows="2" placeholder="Notas adicionales..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-agregar" id="btnGuardarBloque">
-                        <i class="fas fa-save me-2"></i>Guardar Bloque
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 <!-- Modal Editar Bloque -->
 <div class="modal fade" id="editarBloqueModal" tabindex="-1">
     <div class="modal-dialog">
@@ -1086,25 +1019,302 @@
         </div>
     </div>
 </div>
+
+<!-- NUEVO MODAL: Selección Rápida SIMPLIFICADO -->
+<div class="modal fade modal-rapido" id="seleccionRapidaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-clock me-2"></i>Agregar Programa
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Información de la selección -->
+                <div class="info-seleccion">
+                    <h6 class="mb-2">Horario Seleccionado:</h6>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong id="infoDiaHora">Lunes 06:00</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selección de Programa -->
+                <div class="mb-4">
+                    <h6 class="mb-3">Selecciona un Programa:</h6>
+                    
+                    <!-- Lista de programas existentes -->
+                    <div id="listaProgramas" class="mb-3">
+                        {% for programa in programas %}
+                        <div class="programa-option" onclick="seleccionarPrograma({{ programa.id }}, '{{ programa.nombre }}', '{{ programa.color }}', '{{ programa.duracion_estandar }}')">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="programa-color-modal" style="background: {{ programa.color }};"></span>
+                                    <strong>{{ programa.nombre }}</strong>
+                                    <small class="text-muted d-block ms-4">
+                                        {{ programa.get_tipo_display }} - {{ programa.duracion_estandar }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-tv fa-2x text-muted mb-2"></i>
+                            <p class="text-muted">No hay programas creados</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Detalles del bloque -->
+                <div class="mb-3">
+                    <h6 class="mb-3">Detalles:</h6>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Duración</label>
+                        <select class="form-select" id="duracionBloque">
+                            <option value="00:30:00">30 minutos</option>
+                            <option value="01:00:00">1 hora</option>
+                            <option value="01:30:00">1 hora 30 min</option>
+                            <option value="02:00:00">2 horas</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="esRepeticionRapido">
+                        <label class="form-check-label" for="esRepeticionRapido">Es repetición</label>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Notas</label>
+                        <textarea class="form-control" id="notasBloque" rows="2" placeholder="Notas adicionales..."></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-agregar" id="btnGuardarRapido" onclick="guardarBloqueRapido()" disabled>
+                    <i class="fas fa-save me-2"></i>Agregar Programa
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
-
 <script>
-// Variables globales
-let programacionActualId = {% if programacion_actual %}{{ programacion_actual.id }}{% else %}null{% endif %};
+// Variables globales para la selección
+let seleccionActual = {
+    celda: null,
+    hora: null,
+    diaIndex: null,
+    diaNombre: null,
+    programacionId: {% if programacion_actual %}{{ programacion_actual.id }}{% else %}null{% endif %},
+    programaId: null,
+    programaNombre: null,
+    programaColor: null,
+    programaDuracion: null
+};
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Toggle campos de serie
-    const esSerieCheckbox = document.getElementById('esSerie');
-    const serieFields = document.getElementById('serieFields');
+// =============================================================================
+// FUNCIONALIDAD DE SELECCIÓN RÁPIDA EN CALENDARIO - CORREGIDA
+// =============================================================================
+
+function seleccionarCelda(celda, hora, diaIndex) {
+    console.log("Celda clickeada:", {hora, diaIndex, celda});
     
-    if (esSerieCheckbox && serieFields) {
-        esSerieCheckbox.addEventListener('change', function() {
-            serieFields.style.display = this.checked ? 'block' : 'none';
-        });
+    // Limpiar selección anterior
+    if (seleccionActual.celda) {
+        seleccionActual.celda.classList.remove('seleccionada');
     }
     
+    // Marcar celda como seleccionada
+    celda.classList.add('seleccionada');
+    seleccionActual.celda = celda;
+    
+    // Guardar selección actual
+    seleccionActual.hora = hora;
+    seleccionActual.diaIndex = diaIndex;
+    
+    // Obtener nombre del día
+    const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    seleccionActual.diaNombre = dias[diaIndex];
+    
+    // Verificar si ya hay un bloque en esta celda
+    const bloqueExistente = celda.querySelector('.calendario-bloque');
+    if (bloqueExistente) {
+        // Si ya hay un bloque, mostrar opciones de edición
+        const bloqueId = bloqueExistente.getAttribute('data-bloque-id');
+        if (bloqueId) {
+            Swal.fire({
+                title: 'Bloque Existente',
+                text: 'Ya hay un programa programado en este horario. ¿Qué deseas hacer?',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Editar',
+                cancelButtonText: 'Eliminar',
+                showDenyButton: true,
+                denyButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    editarBloque(parseInt(bloqueId));
+                } else if (result.dismiss === Swal.DismissReason.cancel) {
+                    eliminarBloque(parseInt(bloqueId));
+                }
+                // Si elige cancelar, simplemente limpiamos la selección
+                limpiarSeleccion();
+            });
+        }
+    } else {
+        // Si no hay bloque, abrir modal de selección rápida
+        abrirModalSeleccionRapida();
+    }
+}
+
+function limpiarSeleccion() {
+    if (seleccionActual.celda) {
+        seleccionActual.celda.classList.remove('seleccionada');
+        seleccionActual.celda = null;
+    }
+}
+
+function abrirModalSeleccionRapida() {
+    if (!seleccionActual.programacionId) {
+        Swal.fire('Error', 'Debe tener una programación activa seleccionada', 'error');
+        limpiarSeleccion();
+        return;
+    }
+    
+    // Actualizar información en el modal
+    document.getElementById('infoDiaHora').textContent = 
+        `${seleccionActual.diaNombre} ${seleccionActual.hora}`;
+    
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('seleccionRapidaModal'));
+    modal.show();
+    
+    // Resetear selección de programa
+    seleccionActual.programaId = null;
+    seleccionActual.programaNombre = null;
+    seleccionActual.programaColor = null;
+    seleccionActual.programaDuracion = null;
+    
+    document.querySelectorAll('.programa-option').forEach(opt => {
+        opt.classList.remove('seleccionado');
+    });
+    
+    document.getElementById('btnGuardarRapido').disabled = true;
+}
+
+function seleccionarPrograma(programaId, programaNombre, programaColor, programaDuracion) {
+    // Remover selección anterior
+    document.querySelectorAll('.programa-option').forEach(opt => {
+        opt.classList.remove('seleccionado');
+    });
+    
+    // Marcar como seleccionado
+    event.currentTarget.classList.add('seleccionado');
+    
+    // Guardar selección
+    seleccionActual.programaId = programaId;
+    seleccionActual.programaNombre = programaNombre;
+    seleccionActual.programaColor = programaColor;
+    seleccionActual.programaDuracion = programaDuracion;
+    
+    // Habilitar botón de guardar
+    document.getElementById('btnGuardarRapido').disabled = false;
+    
+    // Actualizar duración por defecto
+    const duracionSelect = document.getElementById('duracionBloque');
+    const opcionPorDefecto = Array.from(duracionSelect.options).find(opt => opt.value === programaDuracion);
+    if (opcionPorDefecto) {
+        duracionSelect.value = programaDuracion;
+    } else {
+        duracionSelect.value = '00:30:00';
+    }
+}
+
+function guardarBloqueRapido() {
+    if (!seleccionActual.programaId || !seleccionActual.programacionId) {
+        Swal.fire('Error', 'Debe seleccionar un programa y tener una programación activa', 'error');
+        return;
+    }
+    
+    const duracionSelect = document.getElementById('duracionBloque');
+    const duracionReal = duracionSelect.value;
+    
+    // Mostrar loading
+    const btn = document.getElementById('btnGuardarRapido');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+    
+    const formData = new FormData();
+    formData.append('programacion_semanal', seleccionActual.programacionId);
+    formData.append('programa', seleccionActual.programaId);
+    formData.append('dia_semana', seleccionActual.diaIndex);
+    formData.append('hora_inicio', seleccionActual.hora + ':00');
+    formData.append('duracion_real', duracionReal);
+    formData.append('es_repeticion', document.getElementById('esRepeticionRapido').checked ? 'on' : '');
+    formData.append('notas', document.getElementById('notasBloque').value);
+    
+    fetch('{% url "custom_admin:bloque_programacion_create_modal" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('seleccionRapidaModal'));
+            modal.hide();
+            
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: 'Programa agregado correctamente',
+                timer: 3000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            let errorMessage = 'Por favor corrige los errores en el formulario';
+            if (data.errors) {
+                errorMessage += '\n\n' + Object.values(data.errors).join('\n');
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMessage
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Ocurrió un error al guardar el bloque'
+        });
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-2"></i>Agregar Programa';
+    });
+}
+
+// =============================================================================
+// FUNCIONES EXISTENTES (se mantienen igual)
+// =============================================================================
+
+document.addEventListener('DOMContentLoaded', function() {
     // Tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
@@ -1141,14 +1351,6 @@ document.addEventListener('DOMContentLoaded', function() {
         programacionForm.addEventListener('submit', function(e) {
             e.preventDefault();
             guardarProgramacion();
-        });
-    }
-
-    const bloqueForm = document.getElementById('bloqueForm');
-    if (bloqueForm) {
-        bloqueForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            guardarBloque();
         });
     }
 
@@ -1196,12 +1398,136 @@ document.addEventListener('DOMContentLoaded', function() {
             copiarProgramacion();
         });
     }
+
+    // Toggle campos de serie
+    const esSerieCheckbox = document.getElementById('esSerie');
+    const serieFields = document.getElementById('serieFields');
+    
+    if (esSerieCheckbox && serieFields) {
+        esSerieCheckbox.addEventListener('change', function() {
+            serieFields.style.display = this.checked ? 'block' : 'none';
+        });
+    }
 });
 
-// =============================================================================
-// FUNCIONES PARA PROGRAMAS
-// =============================================================================
+// ... (EL RESTO DE LAS FUNCIONES EXISTENTES SE MANTIENEN IGUAL)
+// Funciones para guardar, editar, eliminar, etc.
 
+function guardarPrograma() {
+    const form = document.getElementById('programaForm');
+    const formData = new FormData(form);
+    const btn = document.getElementById('btnGuardarPrograma');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+
+    fetch('{% url "custom_admin:programa_create_modal" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('nuevoProgramaModal'));
+            modal.hide();
+            
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: data.message,
+                timer: 3000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            let errorMessage = 'Por favor corrige los errores en el formulario';
+            if (data.errors) {
+                errorMessage += '\n\n' + Object.values(data.errors).join('\n');
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMessage
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Ocurrió un error al guardar el programa'
+        });
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Programa';
+    });
+}
+
+function guardarProgramacion() {
+    const form = document.getElementById('programacionForm');
+    const formData = new FormData(form);
+    const btn = document.getElementById('btnGuardarProgramacion');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+
+    fetch('{% url "custom_admin:programacion_semanal_create_modal" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('nuevaProgramacionModal'));
+            modal.hide();
+            
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: data.message,
+                timer: 3000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            let errorMessage = 'Por favor corrige los errores en el formulario';
+            if (data.errors) {
+                errorMessage += '\n\n' + Object.values(data.errors).join('\n');
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMessage
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Ocurrió un error al guardar la programación'
+        });
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Programación';
+    });
+}
+
+// Funciones para ver programas
 function verPrograma(programaId) {
     fetch(`/panel/api/programas/${programaId}/`)
         .then(response => response.json())
@@ -1379,7 +1705,7 @@ function editarPrograma(programaId) {
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label class="form-label">Episodio</label>
-                                    <input type="number" class="form-control" name="episodio" value="${programa.episodio || ''}" min="1">
+                                    <input type="number" class="formControl" name="episodio" value="${programa.episodio || ''}" min="1">
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -1471,553 +1797,7 @@ function actualizarPrograma() {
     });
 }
 
-// =============================================================================
-// FUNCIONES PARA PROGRAMACIONES
-// =============================================================================
-
-function verProgramacion(programacionId) {
-    fetch(`/panel/api/programaciones/${programacionId}/`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const programacion = data.programacion;
-                const bloques = data.bloques;
-                const modalBody = document.getElementById('verProgramacionBody');
-                
-                let bloquesHTML = '';
-                if (bloques.length > 0) {
-                    bloquesHTML = `
-                        <div class="lista-bloques">
-                            <h6 class="mb-3"><i class="fas fa-list me-2"></i>Bloques de Programación</h6>
-                            ${bloques.map(bloque => `
-                                <div class="card bloque-item mb-2">
-                                    <div class="card-body py-2">
-                                        <div class="row align-items-center">
-                                            <div class="col-md-3">
-                                                <strong>${bloque.dia_semana_display}</strong>
-                                            </div>
-                                            <div class="col-md-2">
-                                                <small>${bloque.hora_inicio} - ${bloque.hora_fin}</small>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <span class="badge" style="background: ${bloque.programa_color}">${bloque.programa_nombre}</span>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <small class="text-muted">${bloque.duracion_real}</small>
-                                                ${bloque.es_repeticion ? '<span class="badge bg-warning ms-1">R</span>' : ''}
-                                            </div>
-                                        </div>
-                                        ${bloque.notas ? `<div class="row mt-1"><div class="col-12"><small class="text-muted">${bloque.notas}</small></div></div>` : ''}
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    `;
-                } else {
-                    bloquesHTML = '<div class="alert alert-info">No hay bloques programados para esta semana.</div>';
-                }
-                
-                modalBody.innerHTML = `
-                    <div class="detalle-programacion">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold">Nombre:</label>
-                                    <p>${programacion.nombre}</p>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold">Código:</label>
-                                    <p><span class="badge bg-primary">${programacion.codigo}</span></p>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold">Estado:</label>
-                                    <p><span class="badge estado-${programacion.estado}">${programacion.estado_display}</span></p>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold">Fecha Inicio:</label>
-                                    <p>${programacion.fecha_inicio_semana}</p>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold">Fecha Fin:</label>
-                                    <p>${programacion.fecha_fin_semana}</p>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold">Creada por:</label>
-                                    <p>${programacion.created_by_name}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold">Creada:</label>
-                                    <p>${programacion.created_at}</p>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold">Actualizada:</label>
-                                    <p>${programacion.updated_at}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    ${bloquesHTML}
-                `;
-                
-                const modal = new bootstrap.Modal(document.getElementById('verProgramacionModal'));
-                modal.show();
-            } else {
-                Swal.fire('Error', data.error, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            Swal.fire('Error', 'No se pudo cargar la información de la programación', 'error');
-        });
-}
-
-function editarProgramacion(programacionId) {
-    fetch(`/panel/api/programaciones/${programacionId}/`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const programacion = data.programacion;
-                const modalBody = document.getElementById('editarProgramacionBody');
-                
-                modalBody.innerHTML = `
-                    <div class="mb-3">
-                        <label class="form-label">Nombre *</label>
-                        <input type="text" class="form-control" name="nombre" value="${programacion.nombre}" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Código</label>
-                        <input type="text" class="form-control" name="codigo" value="${programacion.codigo}">
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Fecha Inicio (Lunes) *</label>
-                                <input type="date" class="form-control" name="fecha_inicio_semana" value="${programacion.fecha_inicio_semana}" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Fecha Fin (Domingo) *</label>
-                                <input type="date" class="form-control" name="fecha_fin_semana" value="${programacion.fecha_fin_semana}" required>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Estado</label>
-                        <select class="form-select" name="estado">
-                            <option value="borrador" ${programacion.estado === 'borrador' ? 'selected' : ''}>Borrador</option>
-                            <option value="revision" ${programacion.estado === 'revision' ? 'selected' : ''}>En Revisión</option>
-                            <option value="aprobada" ${programacion.estado === 'aprobada' ? 'selected' : ''}>Aprobada</option>
-                            <option value="publicada" ${programacion.estado === 'publicada' ? 'selected' : ''}>Publicada</option>
-                        </select>
-                    </div>
-                    <input type="hidden" name="programacion_id" value="${programacionId}">
-                `;
-                
-                const modal = new bootstrap.Modal(document.getElementById('editarProgramacionModal'));
-                modal.show();
-            } else {
-                Swal.fire('Error', data.error, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            Swal.fire('Error', 'No se pudo cargar la información de la programación', 'error');
-        });
-}
-
-function actualizarProgramacion() {
-    const formData = new FormData(document.getElementById('editarProgramacionForm'));
-    const programacionId = formData.get('programacion_id');
-    const btn = document.getElementById('btnActualizarProgramacion');
-    
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Actualizando...';
-
-    fetch(`/panel/api/programaciones/${programacionId}/actualizar/`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': '{{ csrf_token }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('editarProgramacionModal'));
-            modal.hide();
-            
-            Swal.fire({
-                icon: 'success',
-                title: '¡Actualizado!',
-                text: data.message,
-                timer: 3000,
-                showConfirmButton: false
-            }).then(() => {
-                location.reload();
-            });
-        } else {
-            let errorMessage = 'Por favor corrige los errores en el formulario';
-            if (data.errors) {
-                errorMessage += '\n\n' + Object.values(data.errors).join('\n');
-            }
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: errorMessage
-            });
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Ocurrió un error al actualizar la programación'
-        });
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-save me-2"></i>Actualizar Programación';
-    });
-}
-
-// =============================================================================
-// FUNCIONES PARA BLOQUES
-// =============================================================================
-
-function editarBloque(bloqueId) {
-    fetch(`/panel/api/bloques/${bloqueId}/`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const bloque = data.bloque;
-                const modalBody = document.getElementById('editarBloqueBody');
-                
-                modalBody.innerHTML = `
-                    <div class="mb-3">
-                        <label class="form-label">Programación Semanal *</label>
-                        <select class="form-select" name="programacion_semanal" required>
-                            <option value="">Seleccionar programación...</option>
-                            {% for programacion in programaciones %}
-                            <option value="{{ programacion.id }}" ${bloque.programacion_semanal_id == {{ programacion.id }} ? 'selected' : ''}>
-                                {{ programacion.nombre }} ({{ programacion.fecha_inicio_semana|date:"d/m/Y" }})
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Programa *</label>
-                        <select class="form-select" name="programa" required>
-                            <option value="">Seleccionar programa...</option>
-                            {% for programa in programas %}
-                            <option value="{{ programa.id }}" ${bloque.programa_id == {{ programa.id }} ? 'selected' : ''}>
-                                {{ programa.nombre }} ({{ programa.get_tipo_display }})
-                            </option>
-                            {% endfor %}
-                        </select>
-                        </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Día de la Semana *</label>
-                                <select class="form-select" name="dia_semana" required>
-                                    <option value="">Seleccionar día...</option>
-                                    <option value="0" ${bloque.dia_semana == 0 ? 'selected' : ''}>Lunes</option>
-                                    <option value="1" ${bloque.dia_semana == 1 ? 'selected' : ''}>Martes</option>
-                                    <option value="2" ${bloque.dia_semana == 2 ? 'selected' : ''}>Miércoles</option>
-                                    <option value="3" ${bloque.dia_semana == 3 ? 'selected' : ''}>Jueves</option>
-                                    <option value="4" ${bloque.dia_semana == 4 ? 'selected' : ''}>Viernes</option>
-                                    <option value="5" ${bloque.dia_semana == 5 ? 'selected' : ''}>Sábado</option>
-                                    <option value="6" ${bloque.dia_semana == 6 ? 'selected' : ''}>Domingo</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Hora de Inicio *</label>
-                                <input type="time" class="form-control" name="hora_inicio" value="${bloque.hora_inicio}" required>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Duración Real *</label>
-                        <input type="text" class="form-control" name="duracion_real" value="${bloque.duracion_real}" required>
-                    </div>
-                    
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" name="es_repeticion" id="esRepeticionEditar" ${bloque.es_repeticion ? 'checked' : ''}>
-                        <label class="form-check-label" for="esRepeticionEditar">Es repetición</label>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Notas</label>
-                        <textarea class="form-control" name="notas" rows="2">${bloque.notas || ''}</textarea>
-                    </div>
-                    <input type="hidden" name="bloque_id" value="${bloqueId}">
-                `;
-                
-                const modal = new bootstrap.Modal(document.getElementById('editarBloqueModal'));
-                modal.show();
-            } else {
-                Swal.fire('Error', data.error, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            Swal.fire('Error', 'No se pudo cargar la información del bloque', 'error');
-        });
-}
-
-function actualizarBloque() {
-    const formData = new FormData(document.getElementById('editarBloqueForm'));
-    const bloqueId = formData.get('bloque_id');
-    const btn = document.getElementById('btnActualizarBloque');
-    
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Actualizando...';
-
-    fetch(`/panel/api/bloques/${bloqueId}/actualizar/`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': '{{ csrf_token }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('editarBloqueModal'));
-            modal.hide();
-            
-            Swal.fire({
-                icon: 'success',
-                title: '¡Actualizado!',
-                text: data.message,
-                timer: 3000,
-                showConfirmButton: false
-            }).then(() => {
-                location.reload();
-            });
-        } else {
-            let errorMessage = 'Por favor corrige los errores en el formulario';
-            if (data.errors) {
-                errorMessage += '\n\n' + Object.values(data.errors).join('\n');
-            }
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: errorMessage
-            });
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Ocurrió un error al actualizar el bloque'
-        });
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-save me-2"></i>Actualizar Bloque';
-    });
-}
-
-// =============================================================================
-// FUNCIONES COMPARTIDAS
-// =============================================================================
-
-// Funciones para guardar (crear) - se mantienen igual que antes
-function guardarPrograma() {
-    const form = document.getElementById('programaForm');
-    const formData = new FormData(form);
-    const btn = document.getElementById('btnGuardarPrograma');
-    
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
-
-    fetch('{% url "custom_admin:programa_create_modal" %}', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': '{{ csrf_token }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('nuevoProgramaModal'));
-            modal.hide();
-            
-            Swal.fire({
-                icon: 'success',
-                title: '¡Éxito!',
-                text: data.message,
-                timer: 3000,
-                showConfirmButton: false
-            }).then(() => {
-                location.reload();
-            });
-        } else {
-            let errorMessage = 'Por favor corrige los errores en el formulario';
-            if (data.errors) {
-                errorMessage += '\n\n' + Object.values(data.errors).join('\n');
-            }
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: errorMessage
-            });
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Ocurrió un error al guardar el programa'
-        });
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Programa';
-    });
-}
-
-function guardarProgramacion() {
-    const form = document.getElementById('programacionForm');
-    const formData = new FormData(form);
-    const btn = document.getElementById('btnGuardarProgramacion');
-    
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
-
-    fetch('{% url "custom_admin:programacion_semanal_create_modal" %}', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': '{{ csrf_token }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('nuevaProgramacionModal'));
-            modal.hide();
-            
-            Swal.fire({
-                icon: 'success',
-                title: '¡Éxito!',
-                text: data.message,
-                timer: 3000,
-                showConfirmButton: false
-            }).then(() => {
-                location.reload();
-            });
-        } else {
-            let errorMessage = 'Por favor corrige los errores en el formulario';
-            if (data.errors) {
-                errorMessage += '\n\n' + Object.values(data.errors).join('\n');
-            }
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: errorMessage
-            });
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Ocurrió un error al guardar la programación'
-        });
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Programación';
-    });
-}
-
-function guardarBloque() {
-    const form = document.getElementById('bloqueForm');
-    const formData = new FormData(form);
-    const btn = document.getElementById('btnGuardarBloque');
-    
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
-
-    fetch('{% url "custom_admin:bloque_programacion_create_modal" %}', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': '{{ csrf_token }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('nuevoBloqueModal'));
-            modal.hide();
-            
-            Swal.fire({
-                icon: 'success',
-                title: '¡Éxito!',
-                text: data.message,
-                timer: 3000,
-                showConfirmButton: false
-            }).then(() => {
-                location.reload();
-            });
-        } else {
-            let errorMessage = 'Por favor corrige los errores en el formulario';
-            if (data.errors) {
-                errorMessage += '\n\n' + Object.values(data.errors).join('\n');
-            }
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: errorMessage
-            });
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Ocurrió un error al guardar el bloque'
-        });
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Bloque';
-    });
-}
-
-// Funciones para eliminar - se mantienen igual que antes
+// Funciones para eliminar
 function eliminarPrograma(programaId) {
     Swal.fire({
         title: '¿Eliminar programa?',
@@ -2139,6 +1919,149 @@ function ocultarAccionesBloque(elemento) {
     if (acciones) {
         acciones.style.display = 'none';
     }
+}
+
+function editarBloque(bloqueId) {
+    fetch(`/panel/api/bloques/${bloqueId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const bloque = data.bloque;
+                const modalBody = document.getElementById('editarBloqueBody');
+                
+                modalBody.innerHTML = `
+                    <div class="mb-3">
+                        <label class="form-label">Programación Semanal *</label>
+                        <select class="form-select" name="programacion_semanal" required>
+                            <option value="">Seleccionar programación...</option>
+                            {% for programacion in programaciones %}
+                            <option value="{{ programacion.id }}" ${bloque.programacion_semanal_id == {{ programacion.id }} ? 'selected' : ''}>
+                                {{ programacion.nombre }} ({{ programacion.fecha_inicio_semana|date:"d/m/Y" }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Programa *</label>
+                        <select class="form-select" name="programa" required>
+                            <option value="">Seleccionar programa...</option>
+                            {% for programa in programas %}
+                            <option value="{{ programa.id }}" ${bloque.programa_id == {{ programa.id }} ? 'selected' : ''}>
+                                {{ programa.nombre }} ({{ programa.get_tipo_display }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Día de la Semana *</label>
+                                <select class="form-select" name="dia_semana" required>
+                                    <option value="">Seleccionar día...</option>
+                                    <option value="0" ${bloque.dia_semana == 0 ? 'selected' : ''}>Lunes</option>
+                                    <option value="1" ${bloque.dia_semana == 1 ? 'selected' : ''}>Martes</option>
+                                    <option value="2" ${bloque.dia_semana == 2 ? 'selected' : ''}>Miércoles</option>
+                                    <option value="3" ${bloque.dia_semana == 3 ? 'selected' : ''}>Jueves</option>
+                                    <option value="4" ${bloque.dia_semana == 4 ? 'selected' : ''}>Viernes</option>
+                                    <option value="5" ${bloque.dia_semana == 5 ? 'selected' : ''}>Sábado</option>
+                                    <option value="6" ${bloque.dia_semana == 6 ? 'selected' : ''}>Domingo</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Hora de Inicio *</label>
+                                <input type="time" class="form-control" name="hora_inicio" value="${bloque.hora_inicio}" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Duración Real *</label>
+                        <input type="text" class="form-control" name="duracion_real" value="${bloque.duracion_real}" required>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="es_repeticion" id="esRepeticionEditar" ${bloque.es_repeticion ? 'checked' : ''}>
+                        <label class="form-check-label" for="esRepeticionEditar">Es repetición</label>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Notas</label>
+                        <textarea class="form-control" name="notas" rows="2">${bloque.notas || ''}</textarea>
+                    </div>
+                    <input type="hidden" name="bloque_id" value="${bloqueId}">
+                `;
+                
+                const modal = new bootstrap.Modal(document.getElementById('editarBloqueModal'));
+                modal.show();
+            } else {
+                Swal.fire('Error', data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error', 'No se pudo cargar la información del bloque', 'error');
+        });
+}
+
+function actualizarBloque() {
+    const formData = new FormData(document.getElementById('editarBloqueForm'));
+    const bloqueId = formData.get('bloque_id');
+    const btn = document.getElementById('btnActualizarBloque');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Actualizando...';
+
+    fetch(`/panel/api/bloques/${bloqueId}/actualizar/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editarBloqueModal'));
+            modal.hide();
+            
+            Swal.fire({
+                icon: 'success',
+                title: '¡Actualizado!',
+                text: data.message,
+                timer: 3000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            let errorMessage = 'Por favor corrige los errores en el formulario';
+            if (data.errors) {
+                errorMessage += '\n\n' + Object.values(data.errors).join('\n');
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMessage
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Ocurrió un error al actualizar el bloque'
+        });
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-2"></i>Actualizar Bloque';
+    });
 }
 
 function abrirModalCopiarSemana(programacionId) {
