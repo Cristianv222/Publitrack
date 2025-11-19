@@ -113,6 +113,66 @@
         font-size: 0.75rem;
         font-weight: 600;
     }
+
+    /* Estilos para el modal de contratos */
+    .step-indicator {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 30px;
+        position: relative;
+    }
+    
+    .step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+    }
+    
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        color: #64748b;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-bottom: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .step.active .step-number {
+        background: #3b82f6;
+        color: white;
+    }
+    
+    .step.completed .step-number {
+        background: #10b981;
+        color: white;
+    }
+    
+    .step-line {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        width: 100%;
+        height: 2px;
+        background: #e2e8f0;
+        z-index: -1;
+    }
+    
+    .step.completed .step-line {
+        background: #10b981;
+    }
+    
+    .calculation-display {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        padding: 0.75rem;
+        font-size: 0.875rem;
+    }
 </style>
 {% endblock %}
 
@@ -127,6 +187,9 @@
             <p class="text-muted mb-0">Bienvenido, {{ user.get_full_name }}</p>
         </div>
         <div class="text-end">
+            <button class="btn btn-success me-2" onclick="abrirModalCrearContrato()">
+                <i class="fas fa-file-contract me-2"></i>Nuevo Contrato
+            </button>
             <button class="btn btn-primary me-2" onclick="abrirModalCrearCliente()">
                 <i class="fas fa-user-plus me-2"></i>Nuevo Cliente
             </button>
@@ -434,6 +497,9 @@
                     <i class="fas fa-file-contract"></i>
                     <h5>No hay contratos registrados</h5>
                     <p class="text-muted">Los contratos generados aparecerán aquí</p>
+                    <button class="btn btn-success mt-3" onclick="abrirModalCrearContrato()">
+                        <i class="fas fa-file-contract me-2"></i>Crear Primer Contrato
+                    </button>
                 </div>
                 {% endif %}
             </div>
@@ -546,7 +612,6 @@
         </div>
     </div>
 </div>
-
 <!-- Modal Crear/Editar Cliente -->
 <div class="modal fade" id="modalCliente" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -560,13 +625,11 @@
                     {% csrf_token %}
                     <input type="hidden" id="cliente_id" name="cliente_id">
                     
-                    <!-- Información Básica -->
                     <h6 class="mb-3 text-primary">Información Básica</h6>
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label">Usuario <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" name="username" id="username" required>
-                            <small class="text-muted">Identificador único del cliente</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">RUC/Cédula <span class="text-danger">*</span></label>
@@ -582,24 +645,18 @@
                         </div>
                     </div>
 
-                    <!-- Información Profesional -->
                     <h6 class="mb-3 text-primary">Información Profesional</h6>
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label">Profesión</label>
-                            <input type="text" class="form-control" name="profesion" id="profesion" 
-                                   placeholder="Ej: Ingeniero Civil, Licenciado...">
-                            <small class="text-muted">Profesión del contacto para contratos</small>
+                            <input type="text" class="form-control" name="profesion" id="profesion">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Cargo en la Empresa</label>
-                            <input type="text" class="form-control" name="cargo_empresa" id="cargo_empresa" 
-                                   placeholder="Ej: Gerente General, Propietario...">
-                            <small class="text-muted">Cargo que desempeña en la empresa</small>
+                            <input type="text" class="form-control" name="cargo_empresa" id="cargo_empresa">
                         </div>
                     </div>
 
-                    <!-- Contacto -->
                     <h6 class="mb-3 text-primary">Información de Contacto</h6>
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
@@ -620,7 +677,6 @@
                         </div>
                     </div>
 
-                    <!-- Ubicación -->
                     <h6 class="mb-3 text-primary">Ubicación</h6>
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
@@ -637,7 +693,6 @@
                         </div>
                     </div>
 
-                    <!-- Información Comercial -->
                     <h6 class="mb-3 text-primary">Información Comercial</h6>
                     <div class="row g-3 mb-4">
                         <div class="col-md-12">
@@ -659,7 +714,7 @@
     </div>
 </div>
 
-<!-- Modal Ver Detalles -->
+<!-- Modal Ver Detalles Cliente -->
 <div class="modal fade" id="modalDetalleCliente" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -669,10 +724,162 @@
             </div>
             <div class="modal-body" id="detalleClienteContent">
                 <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Cargando...</span>
+                    <div class="spinner-border text-primary" role="status"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Crear Contrato -->
+<div class="modal fade" id="modalContrato" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-contract me-2"></i>Generar Nuevo Contrato
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Indicador de Pasos -->
+                <div class="step-indicator">
+                    <div class="step active" id="contratoStep1">
+                        <div class="step-line"></div>
+                        <div class="step-number">1</div>
+                        <div class="step-label">Plantilla</div>
+                    </div>
+                    <div class="step" id="contratoStep2">
+                        <div class="step-line"></div>
+                        <div class="step-number">2</div>
+                        <div class="step-label">Cliente</div>
+                    </div>
+                    <div class="step" id="contratoStep3">
+                        <div class="step-number">3</div>
+                        <div class="step-label">Configuración</div>
                     </div>
                 </div>
+
+                <form id="formContrato">
+                    <div class="row">
+                        <!-- Paso 1: Plantilla -->
+                        <div class="col-md-6">
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-file-contract text-primary me-2"></i>
+                                    1. Plantilla de Contrato *
+                                </label>
+                                <select class="form-select form-select-lg" id="contratoPlantillaSelect" required>
+                                    <option value="">-- Seleccione plantilla --</option>
+                                </select>
+                            </div>
+                            
+                            <div id="contratoPlantillaPreview" class="d-none">
+                                <div class="card border-primary">
+                                    <div class="card-header bg-primary text-white">
+                                        <i class="fas fa-eye me-2"></i>Vista Previa
+                                    </div>
+                                    <div class="card-body">
+                                        <h6 id="contratoPreviewNombre"></h6>
+                                        <div class="row g-2">
+                                            <div class="col-6">
+                                                <small class="text-muted">Tipo:</small><br>
+                                                <strong id="contratoPreviewTipo"></strong>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-muted">Versión:</small><br>
+                                                <strong id="contratoPreviewVersion"></strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Paso 2: Cliente -->
+                        <div class="col-md-6">
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-user-tie text-primary me-2"></i>
+                                    2. Cliente *
+                                </label>
+                                <select class="form-select form-select-lg" id="contratoClienteSelect" required disabled>
+                                    <option value="">-- Primero seleccione plantilla --</option>
+                                </select>
+                            </div>
+                            
+                            <div id="contratoClientePreview" class="d-none">
+                                <div class="card border-success">
+                                    <div class="card-header bg-success text-white">
+                                        <i class="fas fa-user-check me-2"></i>Cliente Seleccionado
+                                    </div>
+                                    <div class="card-body">
+                                        <h6 id="contratoPreviewClienteNombre"></h6>
+                                        <small class="text-muted">RUC:</small><br>
+                                        <strong id="contratoPreviewClienteRUC"></strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Paso 3: Configuración -->
+                    <div id="contratoDatosSection" class="d-none">
+                        <hr class="my-4">
+                        <h6 class="mb-3">
+                            <i class="fas fa-edit text-primary me-2"></i>
+                            3. Configuración del Contrato
+                        </h6>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label class="form-label">Fecha Inicio *</label>
+                                <input type="date" class="form-control" id="contratoFechaInicio" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Fecha Fin *</label>
+                                <input type="date" class="form-control" id="contratoFechaFin" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Valor por Segundo (S/) *</label>
+                                <input type="number" class="form-control" id="contratoValorSegundo" 
+                                       step="0.01" min="0" placeholder="0.14" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Spots por Día *</label>
+                                <input type="number" class="form-control" id="contratoSpotsDia" 
+                                       min="1" value="1" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Duración Spot (seg) *</label>
+                                <input type="number" class="form-control" id="contratoDuracionSpot" 
+                                       min="1" value="30" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Total Calculado</label>
+                                <div class="calculation-display" id="contratoTotalCalculado">
+                                    <strong>S/ 0.00</strong>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <label class="form-label">Observaciones (Opcional)</label>
+                            <textarea class="form-control" id="contratoObservaciones" rows="2"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-success" id="btnGenerarContrato" onclick="generarContrato()" disabled>
+                    <i class="fas fa-file-download me-2"></i>Generar Contrato
+                </button>
             </div>
         </div>
     </div>
@@ -684,20 +891,17 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-let modalCliente;
-let modalDetalleCliente;
+let modalCliente, modalDetalleCliente, modalContrato;
+let plantillaSeleccionada = null;
+let clienteSeleccionado = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     modalCliente = new bootstrap.Modal(document.getElementById('modalCliente'));
     modalDetalleCliente = new bootstrap.Modal(document.getElementById('modalDetalleCliente'));
-    
-    // Inicializar tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl)
-    });
+    modalContrato = new bootstrap.Modal(document.getElementById('modalContrato'));
 });
 
+// ==================== FUNCIONES DE CLIENTES ====================
 function abrirModalCrearCliente() {
     document.getElementById('modalClienteTitulo').textContent = 'Nuevo Cliente';
     document.getElementById('formCliente').reset();
@@ -709,7 +913,6 @@ function editarCliente(clienteId) {
     document.getElementById('modalClienteTitulo').textContent = 'Editar Cliente';
     document.getElementById('cliente_id').value = clienteId;
     
-    // Cargar datos del cliente
     fetch(`/auth/vendedor/clientes/${clienteId}/detalle/`)
         .then(response => response.json())
         .then(data => {
@@ -731,12 +934,7 @@ function editarCliente(clienteId) {
             modalCliente.show();
         })
         .catch(error => {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Error al cargar los datos del cliente'
-            });
+            Swal.fire('Error', 'Error al cargar datos del cliente', 'error');
         });
 }
 
@@ -753,7 +951,7 @@ function guardarCliente() {
     
     Swal.fire({
         title: clienteId ? 'Actualizando...' : 'Guardando...',
-        html: '<div class="spinner-border text-primary" role="status"></div>',
+        html: '<div class="spinner-border text-primary"></div>',
         allowOutsideClick: false,
         showConfirmButton: false
     });
@@ -774,34 +972,224 @@ function verDetalleCliente(clienteId) {
             if (data.profesion || data.cargo_empresa) {
                 infoProfesional = `
                     <hr>
-                    <h6 class="mb-3">Información Profesional</h6>
+                    <h6>Información Profesional</h6>
                     ${data.profesion ? `<p><strong>Profesión:</strong> <span class="profesion-badge">${data.profesion}</span></p>` : ''}
                     ${data.cargo_empresa ? `<p><strong>Cargo:</strong> <span class="cargo-badge">${data.cargo_empresa}</span></p>` : ''}
                 `;
             }
             
-            const html = `
+            document.getElementById('detalleClienteContent').innerHTML = `
                 <div class="row">
                     <div class="col-md-6 mb-3"><strong>Empresa:</strong><br>${data.empresa || '-'}</div>
-                    <div class="col-md-6 mb-3"><strong>RUC/Cédula:</strong><br>${data.ruc_dni || '-'}</div>
-                    <div class="col-md-6 mb-3"><strong>Contacto:</strong><br>${data.first_name} ${data.last_name}</div>
+                    <div class="col-md-6 mb-3"><strong>RUC:</strong><br>${data.ruc_dni || '-'}</div>
                     <div class="col-md-6 mb-3"><strong>Email:</strong><br>${data.email}</div>
                     <div class="col-md-6 mb-3"><strong>Teléfono:</strong><br>${data.telefono || '-'}</div>
-                    <div class="col-md-6 mb-3"><strong>Ciudad:</strong><br>${data.ciudad || '-'}</div>
                     <div class="col-md-12 mb-3"><strong>Dirección:</strong><br>${data.direccion_exacta || '-'}</div>
                 </div>
                 ${infoProfesional}
             `;
-            document.getElementById('detalleClienteContent').innerHTML = html;
         })
         .catch(error => {
-            console.error('Error:', error);
-            document.getElementById('detalleClienteContent').innerHTML = `
-                <div class="alert alert-danger">
-                    Error al cargar los detalles del cliente
-                </div>
-            `;
+            document.getElementById('detalleClienteContent').innerHTML = '<div class="alert alert-danger">Error al cargar detalles</div>';
         });
+}
+
+// ==================== FUNCIONES DE CONTRATOS ====================
+function abrirModalCrearContrato() {
+    document.getElementById('formContrato').reset();
+    plantillaSeleccionada = null;
+    clienteSeleccionado = null;
+    
+    document.getElementById('contratoPlantillaPreview').classList.add('d-none');
+    document.getElementById('contratoClientePreview').classList.add('d-none');
+    document.getElementById('contratoDatosSection').classList.add('d-none');
+    document.getElementById('contratoClienteSelect').disabled = true;
+    document.getElementById('btnGenerarContrato').disabled = true;
+    
+    document.getElementById('contratoStep1').classList.remove('completed');
+    document.getElementById('contratoStep2').classList.remove('active', 'completed');
+    document.getElementById('contratoStep3').classList.remove('active');
+    
+    cargarPlantillasContrato();
+    cargarClientesContrato();
+    
+    modalContrato.show();
+}
+
+function cargarPlantillasContrato() {
+    fetch('/auth/vendedor/api/plantillas/')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('contratoPlantillaSelect');
+            select.innerHTML = '<option value="">-- Seleccione plantilla --</option>';
+            
+            data.plantillas.forEach(p => {
+                const option = document.createElement('option');
+                option.value = p.id;
+                option.textContent = p.nombre + (p.is_default ? ' ★' : '');
+                option.dataset.nombre = p.nombre;
+                option.dataset.tipo = p.tipo_contrato_display;
+                option.dataset.version = p.version;
+                select.appendChild(option);
+            });
+        });
+}
+
+function cargarClientesContrato() {
+    fetch('/auth/vendedor/clientes/crear/')
+        .then(response => response.text())
+        .then(() => {
+            // Los clientes ya están en el sistema, los cargamos del template
+            const select = document.getElementById('contratoClienteSelect');
+            select.innerHTML = '<option value="">-- Seleccione cliente --</option>';
+            
+            {% for cliente in clientes_recientes %}
+            const opt{{ forloop.counter }} = document.createElement('option');
+            opt{{ forloop.counter }}.value = {{ cliente.pk }};
+            opt{{ forloop.counter }}.textContent = '{{ cliente.empresa|default:cliente.get_full_name|escapejs }} ({{ cliente.ruc_dni|escapejs }})';
+            opt{{ forloop.counter }}.dataset.nombre = '{{ cliente.empresa|default:cliente.get_full_name|escapejs }}';
+            opt{{ forloop.counter }}.dataset.ruc = '{{ cliente.ruc_dni|escapejs }}';
+            select.appendChild(opt{{ forloop.counter }});
+            {% endfor %}
+        });
+}
+
+// Event listeners
+document.getElementById('contratoPlantillaSelect')?.addEventListener('change', function() {
+    const plantillaId = this.value;
+    
+    if (plantillaId) {
+        plantillaSeleccionada = plantillaId;
+        const option = this.options[this.selectedIndex];
+        
+        document.getElementById('contratoPreviewNombre').textContent = option.dataset.nombre;
+        document.getElementById('contratoPreviewTipo').textContent = option.dataset.tipo;
+        document.getElementById('contratoPreviewVersion').textContent = 'v' + option.dataset.version;
+        
+        document.getElementById('contratoPlantillaPreview').classList.remove('d-none');
+        document.getElementById('contratoClienteSelect').disabled = false;
+        
+        document.getElementById('contratoStep1').classList.add('completed');
+        document.getElementById('contratoStep2').classList.add('active');
+    }
+});
+
+document.getElementById('contratoClienteSelect')?.addEventListener('change', function() {
+    const clienteId = this.value;
+    
+    if (clienteId) {
+        clienteSeleccionado = clienteId;
+        const option = this.options[this.selectedIndex];
+        
+        document.getElementById('contratoPreviewClienteNombre').textContent = option.dataset.nombre;
+        document.getElementById('contratoPreviewClienteRUC').textContent = option.dataset.ruc;
+        
+        document.getElementById('contratoClientePreview').classList.remove('d-none');
+        document.getElementById('contratoDatosSection').classList.remove('d-none');
+        
+        document.getElementById('contratoStep2').classList.add('completed');
+        document.getElementById('contratoStep3').classList.add('active');
+        
+        document.getElementById('btnGenerarContrato').disabled = false;
+        
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('contratoFechaInicio').value = today;
+    }
+});
+
+// Cálculo automático
+function calcularDiasContrato(fechaInicio, fechaFin) {
+    const inicio = new Date(fechaInicio);
+    const fin = new Date(fechaFin);
+    return Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24)) + 1;
+}
+
+function calcularTotalContrato() {
+    const valorSegundo = parseFloat(document.getElementById('contratoValorSegundo').value) || 0;
+    const duracion = parseInt(document.getElementById('contratoDuracionSpot').value) || 0;
+    const spots = parseInt(document.getElementById('contratoSpotsDia').value) || 0;
+    const fechaInicio = document.getElementById('contratoFechaInicio').value;
+    const fechaFin = document.getElementById('contratoFechaFin').value;
+    
+    if (fechaInicio && fechaFin) {
+        const dias = calcularDiasContrato(fechaInicio, fechaFin);
+        const total = valorSegundo * duracion * spots * dias;
+        document.getElementById('contratoTotalCalculado').innerHTML = `<strong>S/ ${total.toFixed(2)}</strong>`;
+        return total;
+    }
+    return 0;
+}
+
+document.getElementById('contratoValorSegundo')?.addEventListener('input', calcularTotalContrato);
+document.getElementById('contratoDuracionSpot')?.addEventListener('input', calcularTotalContrato);
+document.getElementById('contratoSpotsDia')?.addEventListener('input', calcularTotalContrato);
+document.getElementById('contratoFechaInicio')?.addEventListener('change', calcularTotalContrato);
+document.getElementById('contratoFechaFin')?.addEventListener('change', calcularTotalContrato);
+
+function generarContrato() {
+    if (!plantillaSeleccionada || !clienteSeleccionado) {
+        Swal.fire('Error', 'Debe seleccionar plantilla y cliente', 'warning');
+        return;
+    }
+    
+    const valorTotal = calcularTotalContrato();
+    if (valorTotal <= 0) {
+        Swal.fire('Error', 'El valor total debe ser mayor a cero', 'error');
+        return;
+    }
+    
+    const data = {
+        plantilla_id: plantillaSeleccionada,
+        cliente_id: clienteSeleccionado,
+        fecha_inicio: document.getElementById('contratoFechaInicio').value,
+        fecha_fin: document.getElementById('contratoFechaFin').value,
+        valor_por_segundo: parseFloat(document.getElementById('contratoValorSegundo').value),
+        valor_total: valorTotal,
+        spots_dia: parseInt(document.getElementById('contratoSpotsDia').value),
+        duracion_spot: parseInt(document.getElementById('contratoDuracionSpot').value),
+        observaciones: document.getElementById('contratoObservaciones').value
+    };
+    
+    modalContrato.hide();
+    
+    Swal.fire({
+        title: 'Generando Contrato',
+        html: '<div class="spinner-border text-success"></div><br>Por favor espere...',
+        allowOutsideClick: false,
+        showConfirmButton: false
+    });
+    
+    fetch('/auth/vendedor/contratos/crear/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Contrato Generado!',
+                html: `<p>Número: <strong>${data.numero_contrato}</strong></p>`,
+                showCancelButton: true,
+                confirmButtonText: 'Descargar Ahora',
+                cancelButtonText: 'Ver Después'
+            }).then((result) => {
+                if (result.isConfirmed && data.archivo_url) {
+                    window.open(data.archivo_url, '_blank');
+                }
+                location.reload();
+            });
+        } else {
+            Swal.fire('Error', data.error || 'No se pudo generar el contrato', 'error');
+        }
+    })
+    .catch(error => {
+        Swal.fire('Error', 'Ocurrió un error al generar el contrato', 'error');
+    });
 }
 </script>
 {% endblock %}

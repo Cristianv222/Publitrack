@@ -819,3 +819,142 @@ def vendedor_detalle_cliente_api(request, cliente_id):
         return JsonResponse({'error': 'Cliente no encontrado'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+# ============================================================================
+# VISTAS PARA GESTIÓN DE CONTRATOS POR VENDEDORES
+# ============================================================================
+
+@login_required
+@user_passes_test(is_vendedor_or_admin)
+def vendedor_crear_contrato(request):
+    """Crear un nuevo contrato (vendedor o admin)"""
+    if request.method == 'POST':
+        try:
+            # Importar modelos necesarios
+            from apps.content_management.models import PlantillaContrato, ContratoGenerado
+            
+            data = json.loads(request.body)
+            
+            # Obtener plantilla y cliente
+            plantilla = get_object_or_404(PlantillaContrato, pk=data['plantilla_id'])
+            cliente = get_object_or_404(CustomUser, pk=data['cliente_id'], rol='cliente')
+            
+            # Verificar que el cliente pertenece al vendedor (si no es admin)
+            if request.user.es_vendedor and cliente.vendedor_asignado != request.user:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'No tienes permisos para crear contratos para este cliente'
+                }, status=403)
+            
+            with transaction.atomic():
+                # Calcular valores
+                valor_sin_iva = Decimal(str(data['valor_total']))
+                
+                # Crear el contrato
+                contrato = ContratoGenerado.objects.create(
+                    plantilla_usada=plantilla,
+                    cliente=cliente,
+                    nombre_cliente=cliente.empresa or cliente.get_full_name(),
+                    ruc_dni_cliente=cliente.ruc_dni or '',
+                    valor_sin_iva=valor_sin_iva,
+                    generado_por=request.user,
+                    vendedor_asignado=request.user if request.user.es_vendedor else cliente.vendedor_asignado
+                )
+                
+                # Guardar datos de generación
+                contrato.datos_generacion = {
+                    'FECHA_INICIO_RAW': data['fecha_inicio'],
+                    'FECHA_FIN_RAW': data['fecha_fin'],
+                    'SPOTS_DIA': str(data['spots_dia']),
+                    'DURACION_SPOT': str(data['duracion_spot']),
+                    'VALOR_POR_SEGUNDO': str(data['valor_por_segundo']),
+                    'OBSERVACIONES': data.get('observaciones', ''),
+                }
+                
+                contrato.save()
+                
+                # Generar el PDF del contrato
+                if contrato.generar_contrato():
+                    return JsonResponse({
+                        'success': True,
+                        'contrato_id': contrato.id,
+                        'numero_contrato': contrato.numero_contrato,
+                        'archivo_url': contrato.archivo_contrato_pdf.url if contrato.archivo_contrato_pdf else None
+                    })
+                else:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Error al generar el PDF del contrato'
+                    }, status=500)
+                
+        except Exception as e:
+            print(f"Error creando contrato: {e}")
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({
+                'success': False,
+                'error': f'Error al crear el contrato: {str(e)}'
+            }, status=500)
+    
+    return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+
+
+@login_required
+@user_passes_test(is_vendedor_or_admin)
+def vendedor_plantillas_api(request):
+    """API para obtener plantillas activas"""
+    try:
+        from apps.content_management.models import PlantillaContrato
+        
+        plantillas = PlantillaContrato.objects.filter(is_active=True).order_by('-is_default', 'nombre')
+        
+        data = {
+            'success': True,
+            'plantillas': [
+                {
+                    'id': p.id,
+                    'nombre': p.nombre,
+                    'tipo_contrato': p.tipo_contrato,
+                    'tipo_contrato_display': p.get_tipo_contrato_display(),
+                    'version': p.version,
+                    'incluye_iva': p.incluye_iva,
+                    'porcentaje_iva': float(p.porcentaje_iva),
+                    'is_default': p.is_default
+                }
+                for p in plantillas
+            ]
+        }
+        
+        return JsonResponse(data)
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@user_passes_test(is_vendedor_or_admin)
+def vendedor_plantilla_detalle_api(request, plantilla_id):
+    """API para obtener detalles de una plantilla"""
+    try:
+        from apps.content_management.models import PlantillaContrato
+        
+        plantilla = get_object_or_404(PlantillaContrato, pk=plantilla_id, is_active=True)
+        
+        data = {
+            'success': True,
+            'plantilla': {
+                'id': plantilla.id,
+                'nombre': plantilla.nombre,
+                'tipo_contrato': plantilla.tipo_contrato,
+                'tipo_contrato_display': plantilla.get_tipo_contrato_display(),
+                'version': plantilla.version,
+                'incluye_iva': plantilla.incluye_iva,
+                'porcentaje_iva': float(plantilla.porcentaje_iva),
+                'is_default': plantilla.is_default,
+                'descripcion': plantilla.descripcion
+            }
+        }
+        
+        return JsonResponse(data)
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

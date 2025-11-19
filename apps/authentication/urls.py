@@ -41,6 +41,13 @@ urlpatterns = [
     path('vendedor/clientes/<int:cliente_id>/detalle/', views.vendedor_detalle_cliente_api, name='vendedor_detalle_cliente_api'),
     
     # ============================================================================
+    # GESTIÓN DE CONTRATOS PARA VENDEDORES
+    # ============================================================================
+    path('vendedor/contratos/crear/', views.vendedor_crear_contrato, name='vendedor_crear_contrato'),
+    path('vendedor/api/plantillas/', views.vendedor_plantillas_api, name='vendedor_plantillas_api'),
+    path('vendedor/api/plantilla/<int:plantilla_id>/detalle/', views.vendedor_plantilla_detalle_api, name='vendedor_plantilla_detalle_api'),
+    
+    # ============================================================================
     # REPORTES Y API
     # ============================================================================
     path('reports/', views.user_reports_view, name='user_reports'),
