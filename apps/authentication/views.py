@@ -360,29 +360,106 @@ def user_stats_api(request):
 # ============================================================================
 # VISTAS PARA VENDEDORES
 # ============================================================================
-
 @user_passes_test(is_vendedor_or_admin)
 def vendedor_dashboard(request):
-    """Dashboard específico para vendedores"""
+    """Dashboard específico para vendedores con contratos, clientes y contratos activos"""
     user = request.user
+    
+    # Importar modelos necesarios
+    try:
+        from apps.content_management.models import ContratoGenerado, CuñaPublicitaria
+    except ImportError:
+        ContratoGenerado = None
+        CuñaPublicitaria = None
+    
+    # Obtener fechas para filtros
+    hoy = timezone.now().date()
+    inicio_mes = hoy.replace(day=1)
     
     context = {
         'user': user,
+        'hoy': hoy,
     }
     
     if user.es_vendedor:
+        # ========== CLIENTES DEL VENDEDOR ==========
         clientes = user.get_clientes()
+        
+        # ========== CONTRATOS DEL VENDEDOR ==========
+        contratos_vendedor = []
+        contratos_activos = []
+        ventas_mes = Decimal('0.00')
+        comisiones_mes = Decimal('0.00')
+        
+        if ContratoGenerado:
+            # Todos los contratos del vendedor
+            contratos_vendedor = ContratoGenerado.objects.filter(
+                vendedor_asignado=user
+            ).select_related('cliente', 'cuña', 'plantilla_usada').order_by('-fecha_generacion')
+            
+            # Contratos activos (validados con cuña asociada)
+            contratos_activos = contratos_vendedor.filter(
+                estado='validado',
+                cuña__isnull=False
+            )
+            
+            # Calcular ventas del mes (contratos generados o validados este mes)
+            contratos_mes = contratos_vendedor.filter(
+                fecha_generacion__gte=inicio_mes,
+                estado__in=['generado', 'validado', 'firmado']
+            )
+            ventas_mes = contratos_mes.aggregate(
+                total=Sum('valor_total')
+            )['total'] or Decimal('0.00')
+            
+            # Calcular comisiones del mes
+            if user.comision_porcentaje:
+                comisiones_mes = ventas_mes * (user.comision_porcentaje / 100)
+        
+        # ========== CUÑAS DEL VENDEDOR ==========
+        cuñas_activas = 0
+        cuñas_pendientes = 0
+        
+        if CuñaPublicitaria:
+            cuñas_activas = CuñaPublicitaria.objects.filter(
+                vendedor_asignado=user,
+                estado='activa',
+                fecha_inicio__lte=hoy,
+                fecha_fin__gte=hoy
+            ).count()
+            
+            cuñas_pendientes = CuñaPublicitaria.objects.filter(
+                vendedor_asignado=user,
+                estado='pendiente_revision'
+            ).count()
+        
+        # ========== CÁLCULO DE META ==========
+        porcentaje_meta = 0
+        if user.meta_mensual and user.meta_mensual > 0:
+            porcentaje_meta = min(int((ventas_mes / user.meta_mensual) * 100), 100)
+        
         context.update({
+            # Estadísticas generales
             'total_clientes': clientes.count(),
-            'clientes_recientes': clientes[:5],
-            'ventas_mes': user.get_ventas_mes_actual(),
-            'comisiones_mes': user.get_comisiones_mes_actual(),
-            'porcentaje_meta': user.get_porcentaje_meta(),
-            'meta_mensual': user.meta_mensual,
+            'total_contratos': contratos_vendedor.count() if ContratoGenerado else 0,
+            'contratos_activos_count': contratos_activos.count() if ContratoGenerado else 0,
+            'cuñas_activas': cuñas_activas,
+            'cuñas_pendientes': cuñas_pendientes,
+            
+            # Métricas financieras
+            'ventas_mes': ventas_mes,
+            'comisiones_mes': comisiones_mes,
+            'porcentaje_meta': porcentaje_meta,
+            'meta_mensual': user.meta_mensual or Decimal('0.00'),
+            
+            # Listados para la vista
+            'clientes_recientes': clientes.order_by('-created_at')[:10],
+            'contratos_recientes': contratos_vendedor[:10] if ContratoGenerado else [],
+            'contratos_activos': contratos_activos[:10] if ContratoGenerado else [],
         })
     
     # Si es admin, mostrar estadísticas generales
-    if user.es_admin:
+    elif user.es_admin:
         context.update({
             'total_usuarios': CustomUser.objects.filter(status='activo').count(),
             'total_vendedores': CustomUser.objects.filter(rol='vendedor', status='activo').count(),
@@ -391,7 +468,6 @@ def vendedor_dashboard(request):
         })
     
     return render(request, 'dashboard/vendedor.html', context)
-
 @login_required
 def mis_clientes_view(request):
     """Lista de clientes del vendedor actual"""
@@ -604,3 +680,142 @@ def cliente_dashboard(request):
         'vendedor': request.user.get_vendedor(),
     }
     return render(request, 'dashboard/cliente.html', context)
+# ============================================================================
+# VISTAS PARA GESTIÓN DE CLIENTES POR VENDEDORES
+# ============================================================================
+
+@login_required
+@user_passes_test(is_vendedor_or_admin)
+def vendedor_crear_cliente(request):
+    """Crear un nuevo cliente (vendedor o admin)"""
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                # Generar contraseña aleatoria
+                import random
+                import string
+                password = ''.join(random.choices(string.ascii_letters + string.digits, k=12))
+                
+                # Crear usuario
+                cliente = CustomUser.objects.create_user(
+                    username=request.POST.get('username'),
+                    email=request.POST.get('email'),
+                    password=password,
+                    first_name=request.POST.get('first_name', ''),
+                    last_name=request.POST.get('last_name', ''),
+                    rol='cliente',
+                    status='activo'
+                )
+                
+                # Asignar campos adicionales
+                cliente.telefono = request.POST.get('telefono', '')
+                cliente.empresa = request.POST.get('empresa', '')
+                cliente.ruc_dni = request.POST.get('ruc_dni', '')
+                cliente.razon_social = request.POST.get('razon_social', '')
+                cliente.giro_comercial = request.POST.get('giro_comercial', '')
+                cliente.ciudad = request.POST.get('ciudad', '')
+                cliente.provincia = request.POST.get('provincia', '')
+                cliente.direccion_exacta = request.POST.get('direccion_exacta', '')
+                
+                # IMPORTANTE: Asignar información profesional
+                cliente.profesion = request.POST.get('profesion', '')
+                cliente.cargo_empresa = request.POST.get('cargo_empresa', '')
+                
+                # Asignar al vendedor actual si no es admin
+                if request.user.es_vendedor:
+                    cliente.vendedor_asignado = request.user
+                
+                cliente.save()
+                
+                messages.success(
+                    request,
+                    f'Cliente {cliente.empresa} creado exitosamente. '
+                    f'Contraseña temporal: {password}'
+                )
+                
+        except Exception as e:
+            messages.error(request, f'Error al crear el cliente: {str(e)}')
+    
+    return redirect('authentication:vendedor_dashboard')
+
+
+@login_required
+@user_passes_test(is_vendedor_or_admin)
+def vendedor_editar_cliente(request, cliente_id):
+    """Editar un cliente existente"""
+    cliente = get_object_or_404(CustomUser, pk=cliente_id, rol='cliente')
+    
+    # Verificar permisos
+    if request.user.es_vendedor and cliente.vendedor_asignado != request.user:
+        messages.error(request, 'No tienes permisos para editar este cliente.')
+        return redirect('authentication:vendedor_dashboard')
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                # Actualizar datos básicos
+                cliente.username = request.POST.get('username', cliente.username)
+                cliente.first_name = request.POST.get('first_name', '')
+                cliente.last_name = request.POST.get('last_name', '')
+                cliente.email = request.POST.get('email', cliente.email)
+                cliente.telefono = request.POST.get('telefono', '')
+                cliente.empresa = request.POST.get('empresa', '')
+                cliente.ruc_dni = request.POST.get('ruc_dni', '')
+                cliente.razon_social = request.POST.get('razon_social', '')
+                cliente.giro_comercial = request.POST.get('giro_comercial', '')
+                cliente.ciudad = request.POST.get('ciudad', '')
+                cliente.provincia = request.POST.get('provincia', '')
+                cliente.direccion_exacta = request.POST.get('direccion_exacta', '')
+                
+                # IMPORTANTE: Actualizar información profesional
+                cliente.profesion = request.POST.get('profesion', '')
+                cliente.cargo_empresa = request.POST.get('cargo_empresa', '')
+                
+                cliente.save()
+                
+                messages.success(request, f'Cliente {cliente.empresa} actualizado exitosamente.')
+                
+        except Exception as e:
+            messages.error(request, f'Error al actualizar el cliente: {str(e)}')
+    
+    return redirect('authentication:vendedor_dashboard')
+
+
+@login_required
+@user_passes_test(is_vendedor_or_admin)
+def vendedor_detalle_cliente_api(request, cliente_id):
+    """API para obtener detalles de un cliente (JSON)"""
+    try:
+        cliente = get_object_or_404(CustomUser, pk=cliente_id, rol='cliente')
+        
+        # Verificar permisos
+        if request.user.es_vendedor and cliente.vendedor_asignado != request.user:
+            return JsonResponse({'error': 'Sin permisos'}, status=403)
+        
+        data = {
+            'id': cliente.id,
+            'username': cliente.username,
+            'first_name': cliente.first_name,
+            'last_name': cliente.last_name,
+            'email': cliente.email,
+            'telefono': cliente.telefono or '',
+            'empresa': cliente.empresa or '',
+            'ruc_dni': cliente.ruc_dni or '',
+            'razon_social': cliente.razon_social or '',
+            'giro_comercial': cliente.giro_comercial or '',
+            'ciudad': cliente.ciudad or '',
+            'provincia': cliente.provincia or '',
+            'direccion_exacta': cliente.direccion_exacta or '',
+            'profesion': cliente.profesion or '',
+            'cargo_empresa': cliente.cargo_empresa or '',
+            'status': cliente.status,
+            'fecha_registro': cliente.created_at.strftime('%d/%m/%Y'),
+            'vendedor_asignado_nombre': cliente.vendedor_asignado.get_full_name() if cliente.vendedor_asignado else None,
+        }
+        
+        return JsonResponse(data)
+        
+    except CustomUser.DoesNotExist:
+        return JsonResponse({'error': 'Cliente no encontrado'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

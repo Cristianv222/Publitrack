@@ -30,8 +30,16 @@ urlpatterns = [
     # DASHBOARD Y VENDEDORES
     # ============================================================================
     path('dashboard/admin/', lambda request: redirect('/panel/'), name='admin_dashboard'),
-    path('dashboard/vendedor/', views.vendedor_dashboard, name='vendedor_dashboard'),  # ← AGREGAR ESTA LÍNEA
+    path('dashboard/vendedor/', views.vendedor_dashboard, name='vendedor_dashboard'),
     path('dashboard/cliente/', views.cliente_dashboard, name='cliente_dashboard'),
+    
+    # ============================================================================
+    # GESTIÓN DE CLIENTES PARA VENDEDORES
+    # ============================================================================
+    path('vendedor/clientes/crear/', views.vendedor_crear_cliente, name='vendedor_crear_cliente'),
+    path('vendedor/clientes/<int:cliente_id>/editar/', views.vendedor_editar_cliente, name='vendedor_editar_cliente'),
+    path('vendedor/clientes/<int:cliente_id>/detalle/', views.vendedor_detalle_cliente_api, name='vendedor_detalle_cliente_api'),
+    
     # ============================================================================
     # REPORTES Y API
     # ============================================================================

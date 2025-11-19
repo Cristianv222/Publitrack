@@ -1,97 +1,807 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Dashboard Vendedor - PublicTrack{% endblock %}
 
-{% block content %}
-<div class="container-fluid">
-    <h1 class="h3 mb-4">
-        <i class="fas fa-chart-bar me-2"></i>Dashboard de Ventas
-    </h1>
+{% block extra_css %}
+<style>
+    .metric-card {
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+    }
     
-    <div class="row">
-        <!-- Métricas del vendedor -->
-        <div class="col-md-3 mb-4">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Mis Clientes</h5>
-                    <p class="card-text display-4">{{ total_clientes|default:0 }}</p>
+    .metric-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .metric-icon {
+        font-size: 2.5rem;
+        opacity: 0.8;
+    }
+    
+    .metric-value {
+        font-size: 2rem;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    
+    .metric-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+    }
+    
+    .progress-meta {
+        height: 30px;
+        border-radius: 15px;
+        background-color: #e9ecef;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .progress-bar-meta {
+        height: 100%;
+        background: linear-gradient(90deg, #28a745, #20c997);
+        transition: width 0.6s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+    }
+    
+    .table-responsive {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .badge-custom {
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+    }
+    
+    .card-section {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    .section-title {
+        border-bottom: 2px solid #f1f3f5;
+        padding-bottom: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        opacity: 0.3;
+        margin-bottom: 20px;
+    }
+    
+    /* Estilos del modal */
+    .animated-modal {
+        border-radius: 15px !important;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2) !important;
+    }
+    
+    .profesion-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .cargo-badge {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">
+                <i class="fas fa-chart-line me-2"></i>Dashboard de Ventas
+            </h1>
+            <p class="text-muted mb-0">Bienvenido, {{ user.get_full_name }}</p>
+        </div>
+        <div class="text-end">
+            <button class="btn btn-primary me-2" onclick="abrirModalCrearCliente()">
+                <i class="fas fa-user-plus me-2"></i>Nuevo Cliente
+            </button>
+            <small class="text-muted d-block mt-2">
+                <i class="fas fa-calendar"></i> {{ hoy|date:"d/m/Y" }}
+            </small>
+        </div>
+    </div>
+    
+    <!-- Métricas principales -->
+    <div class="row g-3 mb-4">
+        <!-- Total Clientes -->
+        <div class="col-md-3 col-sm-6">
+            <div class="metric-card bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="metric-label">Mis Clientes</div>
+                        <div class="metric-value">{{ total_clientes }}</div>
+                        <small><i class="fas fa-users"></i> Clientes activos</small>
+                    </div>
+                    <div class="metric-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-md-3 mb-4">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Ventas del Mes</h5>
-                    <p class="card-text display-4">S/. {{ ventas_mes|default:"0.00" }}</p>
+        <!-- Contratos Totales -->
+        <div class="col-md-3 col-sm-6">
+            <div class="metric-card bg-info text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="metric-label">Total Contratos</div>
+                        <div class="metric-value">{{ total_contratos }}</div>
+                        <small><i class="fas fa-file-contract"></i> Generados</small>
+                    </div>
+                    <div class="metric-icon">
+                        <i class="fas fa-file-contract"></i>
+                    </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-md-3 mb-4">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Comisiones</h5>
-                    <p class="card-text display-4">S/. {{ comisiones_mes|default:"0.00" }}</p>
+        <!-- Contratos Activos -->
+        <div class="col-md-3 col-sm-6">
+            <div class="metric-card bg-success text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="metric-label">Contratos Activos</div>
+                        <div class="metric-value">{{ contratos_activos_count }}</div>
+                        <small><i class="fas fa-check-circle"></i> Validados</small>
+                    </div>
+                    <div class="metric-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-md-3 mb-4">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Meta Mensual</h5>
-                    <p class="card-text display-4">{{ porcentaje_meta|default:0 }}%</p>
+        <!-- Cuñas Activas -->
+        <div class="col-md-3 col-sm-6">
+            <div class="metric-card bg-warning text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="metric-label">Cuñas Activas</div>
+                        <div class="metric-value">{{ cuñas_activas }}</div>
+                        <small><i class="fas fa-play-circle"></i> Al aire</small>
+                    </div>
+                    <div class="metric-icon">
+                        <i class="fas fa-play-circle"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
     
-    <!-- Lista de clientes recientes -->
-    <div class="card shadow">
-        <div class="card-header">
-            <h5 class="mb-0">
-                <i class="fas fa-users me-2"></i>Clientes Recientes
-            </h5>
+    <!-- Métricas financieras -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card-section p-3">
+                <h6 class="text-muted mb-2">Ventas del Mes</h6>
+                <h3 class="mb-0 text-success">
+                    <i class="fas fa-dollar-sign"></i> {{ ventas_mes|floatformat:2 }}
+                </h3>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Cliente</th>
-                            <th>Empresa</th>
-                            <th>Teléfono</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for cliente in clientes_recientes %}
-                        <tr>
-                            <td>{{ cliente.nombre_completo }}</td>
-                            <td>{{ cliente.empresa|default:"-" }}</td>
-                            <td>{{ cliente.telefono|default:"-" }}</td>
-                            <td>
-                                <span class="badge bg-{% if cliente.status == 'activo' %}success{% else %}warning{% endif %}">
-                                    {{ cliente.get_status_display }}
-                                </span>
-                            </td>
-                            <td>
-                                <a href="{% url 'authentication:user_detail' cliente.pk %}" class="btn btn-sm btn-primary">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="5" class="text-center">No hay clientes asignados</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        
+        <div class="col-md-4">
+            <div class="card-section p-3">
+                <h6 class="text-muted mb-2">Comisiones</h6>
+                <h3 class="mb-0 text-info">
+                    <i class="fas fa-percentage"></i> {{ comisiones_mes|floatformat:2 }}
+                </h3>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card-section p-3">
+                <h6 class="text-muted mb-2">Meta Mensual</h6>
+                <div class="progress-meta">
+                    <div class="progress-bar-meta" style="width: {{ porcentaje_meta }}%">
+                        {{ porcentaje_meta }}%
+                    </div>
+                </div>
+                <small class="text-muted mt-1 d-block">
+                    Meta: ${{ meta_mensual|floatformat:2 }}
+                </small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tabs de contenido -->
+    <ul class="nav nav-tabs mb-3" id="dashboardTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="clientes-tab" data-bs-toggle="tab" 
+                    data-bs-target="#clientes" type="button" role="tab">
+                <i class="fas fa-users me-2"></i>Mis Clientes
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="contratos-tab" data-bs-toggle="tab" 
+                    data-bs-target="#contratos" type="button" role="tab">
+                <i class="fas fa-file-contract me-2"></i>Contratos Recientes
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="activos-tab" data-bs-toggle="tab" 
+                    data-bs-target="#activos" type="button" role="tab">
+                <i class="fas fa-check-circle me-2"></i>Contratos Activos
+            </button>
+        </li>
+    </ul>
+    
+    <div class="tab-content" id="dashboardTabsContent">
+        <!-- Tab: Mis Clientes -->
+        <div class="tab-pane fade show active" id="clientes" role="tabpanel">
+            <div class="card-section p-4">
+                <div class="section-title">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users text-primary me-2"></i>
+                        Clientes Asignados
+                    </h5>
+                </div>
+                
+                {% if clientes_recientes %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Empresa</th>
+                                <th>RUC/DNI</th>
+                                <th>Email</th>
+                                <th>Teléfono</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cliente in clientes_recientes %}
+                            <tr>
+                                <td>
+                                    <strong>{{ cliente.get_full_name }}</strong>
+                                    {% if cliente.profesion %}
+                                    <br><small class="profesion-badge">{{ cliente.profesion }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>{{ cliente.empresa|default:"—" }}</td>
+                                <td>{{ cliente.ruc_dni|default:"—" }}</td>
+                                <td>
+                                    <small>{{ cliente.email }}</small>
+                                </td>
+                                <td>{{ cliente.telefono|default:"—" }}</td>
+                                <td>
+                                    {% if cliente.status == 'activo' %}
+                                        <span class="badge bg-success badge-custom">Activo</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary badge-custom">{{ cliente.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-info" onclick="verDetalleCliente({{ cliente.pk }})" title="Ver detalle">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-warning" onclick="editarCliente({{ cliente.pk }})" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if total_clientes > 10 %}
+                <div class="text-center mt-3">
+                    <a href="#" class="btn btn-outline-primary">
+                        Ver todos los clientes ({{ total_clientes }})
+                    </a>
+                </div>
+                {% endif %}
+                
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-users"></i>
+                    <h5>No tienes clientes asignados</h5>
+                    <p class="text-muted">Haz clic en "Nuevo Cliente" para crear tu primer cliente</p>
+                    <button class="btn btn-primary mt-3" onclick="abrirModalCrearCliente()">
+                        <i class="fas fa-user-plus me-2"></i>Crear Primer Cliente
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Tab: Contratos Recientes -->
+        <div class="tab-pane fade" id="contratos" role="tabpanel">
+            <div class="card-section p-4">
+                <div class="section-title">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-contract text-info me-2"></i>
+                        Contratos Recientes
+                    </h5>
+                </div>
+                
+                {% if contratos_recientes %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Número</th>
+                                <th>Cliente</th>
+                                <th>Fecha Generación</th>
+                                <th>Valor Total</th>
+                                <th>Estado</th>
+                                <th>Cuña Asociada</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for contrato in contratos_recientes %}
+                            <tr>
+                                <td>
+                                    <strong>{{ contrato.numero_contrato }}</strong>
+                                </td>
+                                <td>
+                                    {{ contrato.nombre_cliente }}
+                                    {% if contrato.cliente.empresa %}
+                                    <br><small class="text-muted">{{ contrato.cliente.empresa }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ contrato.fecha_generacion|date:"d/m/Y H:i" }}
+                                </td>
+                                <td>
+                                    <strong class="text-success">${{ contrato.valor_total|floatformat:2 }}</strong>
+                                </td>
+                                <td>
+                                    {% if contrato.estado == 'validado' %}
+                                        <span class="badge bg-primary badge-custom">Validado</span>
+                                    {% elif contrato.estado == 'generado' %}
+                                        <span class="badge bg-success badge-custom">Generado</span>
+                                    {% elif contrato.estado == 'borrador' %}
+                                        <span class="badge bg-warning badge-custom">Borrador</span>
+                                    {% elif contrato.estado == 'firmado' %}
+                                        <span class="badge bg-info badge-custom">Firmado</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary badge-custom">{{ contrato.get_estado_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if contrato.cuña %}
+                                        <span class="badge bg-success badge-custom">
+                                            <i class="fas fa-check"></i> {{ contrato.cuña.codigo }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary badge-custom">Sin cuña</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if contrato.archivo_contrato_pdf %}
+                                    <a href="{{ contrato.archivo_contrato_pdf.url }}" 
+                                       class="btn btn-sm btn-outline-danger" 
+                                       target="_blank" title="Ver PDF">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if total_contratos > 10 %}
+                <div class="text-center mt-3">
+                    <a href="#" class="btn btn-outline-info">
+                        Ver todos los contratos ({{ total_contratos }})
+                    </a>
+                </div>
+                {% endif %}
+                
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-file-contract"></i>
+                    <h5>No hay contratos registrados</h5>
+                    <p class="text-muted">Los contratos generados aparecerán aquí</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Tab: Contratos Activos -->
+        <div class="tab-pane fade" id="activos" role="tabpanel">
+            <div class="card-section p-4">
+                <div class="section-title">
+                    <h5 class="mb-0">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        Contratos Activos (Validados)
+                    </h5>
+                </div>
+                
+                {% if contratos_activos %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Número</th>
+                                <th>Cliente</th>
+                                <th>Cuña</th>
+                                <th>Fecha Inicio</th>
+                                <th>Fecha Fin</th>
+                                <th>Valor</th>
+                                <th>Estado Cuña</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for contrato in contratos_activos %}
+                            <tr>
+                                <td>
+                                    <strong>{{ contrato.numero_contrato }}</strong>
+                                </td>
+                                <td>
+                                    {{ contrato.nombre_cliente }}
+                                    {% if contrato.cliente.empresa %}
+                                    <br><small class="text-muted">{{ contrato.cliente.empresa }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if contrato.cuña %}
+                                        <strong>{{ contrato.cuña.codigo }}</strong>
+                                        <br><small class="text-muted">{{ contrato.cuña.titulo }}</small>
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if contrato.cuña %}
+                                        {{ contrato.cuña.fecha_inicio|date:"d/m/Y" }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if contrato.cuña %}
+                                        {{ contrato.cuña.fecha_fin|date:"d/m/Y" }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <strong class="text-success">${{ contrato.valor_total|floatformat:2 }}</strong>
+                                </td>
+                                <td>
+                                    {% if contrato.cuña %}
+                                        {% if contrato.cuña.estado == 'activa' %}
+                                            <span class="badge bg-success badge-custom">
+                                                <i class="fas fa-play-circle"></i> Activa
+                                            </span>
+                                        {% elif contrato.cuña.estado == 'pendiente_revision' %}
+                                            <span class="badge bg-warning badge-custom">
+                                                <i class="fas fa-clock"></i> Pendiente
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary badge-custom">
+                                                {{ contrato.cuña.get_estado_display }}
+                                            </span>
+                                        {% endif %}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if contrato.archivo_contrato_pdf %}
+                                    <a href="{{ contrato.archivo_contrato_pdf.url }}" 
+                                       class="btn btn-sm btn-outline-danger" 
+                                       target="_blank" title="Ver PDF">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-check-circle"></i>
+                    <h5>No hay contratos activos</h5>
+                    <p class="text-muted">Los contratos validados con cuñas asociadas aparecerán aquí</p>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
+
+<!-- Modal Crear/Editar Cliente -->
+<div class="modal fade" id="modalCliente" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalClienteTitulo">Nuevo Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formCliente" method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" id="cliente_id" name="cliente_id">
+                    
+                    <!-- Información Básica -->
+                    <h6 class="mb-3 text-primary">Información Básica</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Usuario <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="username" id="username" required>
+                            <small class="text-muted">Identificador único del cliente</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">RUC/Cédula <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="ruc_dni" id="ruc_dni" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Nombre de la Empresa <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="empresa" id="empresa" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Razón Social</label>
+                            <input type="text" class="form-control" name="razon_social" id="razon_social">
+                        </div>
+                    </div>
+
+                    <!-- Información Profesional -->
+                    <h6 class="mb-3 text-primary">Información Profesional</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Profesión</label>
+                            <input type="text" class="form-control" name="profesion" id="profesion" 
+                                   placeholder="Ej: Ingeniero Civil, Licenciado...">
+                            <small class="text-muted">Profesión del contacto para contratos</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Cargo en la Empresa</label>
+                            <input type="text" class="form-control" name="cargo_empresa" id="cargo_empresa" 
+                                   placeholder="Ej: Gerente General, Propietario...">
+                            <small class="text-muted">Cargo que desempeña en la empresa</small>
+                        </div>
+                    </div>
+
+                    <!-- Contacto -->
+                    <h6 class="mb-3 text-primary">Información de Contacto</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Nombre del Contacto</label>
+                            <input type="text" class="form-control" name="first_name" id="first_name">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Apellido del Contacto</label>
+                            <input type="text" class="form-control" name="last_name" id="last_name">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Correo Electrónico <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" name="email" id="email" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Teléfono <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="telefono" id="telefono" required>
+                        </div>
+                    </div>
+
+                    <!-- Ubicación -->
+                    <h6 class="mb-3 text-primary">Ubicación</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Ciudad <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="ciudad" id="ciudad" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Provincia/Estado <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="provincia" id="provincia" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Dirección Exacta</label>
+                            <textarea class="form-control" name="direccion_exacta" id="direccion_exacta" rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Información Comercial -->
+                    <h6 class="mb-3 text-primary">Información Comercial</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-12">
+                            <label class="form-label">Giro Comercial</label>
+                            <input type="text" class="form-control" name="giro_comercial" id="giro_comercial">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="guardarCliente()">
+                    <i class="fas fa-save me-2"></i>Guardar Cliente
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ver Detalles -->
+<div class="modal fade" id="modalDetalleCliente" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalles del Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalleClienteContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+let modalCliente;
+let modalDetalleCliente;
+
+document.addEventListener('DOMContentLoaded', function() {
+    modalCliente = new bootstrap.Modal(document.getElementById('modalCliente'));
+    modalDetalleCliente = new bootstrap.Modal(document.getElementById('modalDetalleCliente'));
+    
+    // Inicializar tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+});
+
+function abrirModalCrearCliente() {
+    document.getElementById('modalClienteTitulo').textContent = 'Nuevo Cliente';
+    document.getElementById('formCliente').reset();
+    document.getElementById('cliente_id').value = '';
+    modalCliente.show();
+}
+
+function editarCliente(clienteId) {
+    document.getElementById('modalClienteTitulo').textContent = 'Editar Cliente';
+    document.getElementById('cliente_id').value = clienteId;
+    
+    // Cargar datos del cliente
+    fetch(`/auth/vendedor/clientes/${clienteId}/detalle/`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('username').value = data.username;
+            document.getElementById('first_name').value = data.first_name || '';
+            document.getElementById('last_name').value = data.last_name || '';
+            document.getElementById('email').value = data.email;
+            document.getElementById('telefono').value = data.telefono || '';
+            document.getElementById('empresa').value = data.empresa || '';
+            document.getElementById('ruc_dni').value = data.ruc_dni || '';
+            document.getElementById('razon_social').value = data.razon_social || '';
+            document.getElementById('giro_comercial').value = data.giro_comercial || '';
+            document.getElementById('ciudad').value = data.ciudad || '';
+            document.getElementById('provincia').value = data.provincia || '';
+            document.getElementById('direccion_exacta').value = data.direccion_exacta || '';
+            document.getElementById('profesion').value = data.profesion || '';
+            document.getElementById('cargo_empresa').value = data.cargo_empresa || '';
+            
+            modalCliente.show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error al cargar los datos del cliente'
+            });
+        });
+}
+
+function guardarCliente() {
+    const clienteId = document.getElementById('cliente_id').value;
+    const form = document.getElementById('formCliente');
+    
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    modalCliente.hide();
+    
+    Swal.fire({
+        title: clienteId ? 'Actualizando...' : 'Guardando...',
+        html: '<div class="spinner-border text-primary" role="status"></div>',
+        allowOutsideClick: false,
+        showConfirmButton: false
+    });
+    
+    form.action = clienteId 
+        ? `/auth/vendedor/clientes/${clienteId}/editar/`
+        : '/auth/vendedor/clientes/crear/';
+    form.submit();
+}
+
+function verDetalleCliente(clienteId) {
+    modalDetalleCliente.show();
+    
+    fetch(`/auth/vendedor/clientes/${clienteId}/detalle/`)
+        .then(response => response.json())
+        .then(data => {
+            let infoProfesional = '';
+            if (data.profesion || data.cargo_empresa) {
+                infoProfesional = `
+                    <hr>
+                    <h6 class="mb-3">Información Profesional</h6>
+                    ${data.profesion ? `<p><strong>Profesión:</strong> <span class="profesion-badge">${data.profesion}</span></p>` : ''}
+                    ${data.cargo_empresa ? `<p><strong>Cargo:</strong> <span class="cargo-badge">${data.cargo_empresa}</span></p>` : ''}
+                `;
+            }
+            
+            const html = `
+                <div class="row">
+                    <div class="col-md-6 mb-3"><strong>Empresa:</strong><br>${data.empresa || '-'}</div>
+                    <div class="col-md-6 mb-3"><strong>RUC/Cédula:</strong><br>${data.ruc_dni || '-'}</div>
+                    <div class="col-md-6 mb-3"><strong>Contacto:</strong><br>${data.first_name} ${data.last_name}</div>
+                    <div class="col-md-6 mb-3"><strong>Email:</strong><br>${data.email}</div>
+                    <div class="col-md-6 mb-3"><strong>Teléfono:</strong><br>${data.telefono || '-'}</div>
+                    <div class="col-md-6 mb-3"><strong>Ciudad:</strong><br>${data.ciudad || '-'}</div>
+                    <div class="col-md-12 mb-3"><strong>Dirección:</strong><br>${data.direccion_exacta || '-'}</div>
+                </div>
+                ${infoProfesional}
+            `;
+            document.getElementById('detalleClienteContent').innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('detalleClienteContent').innerHTML = `
+                <div class="alert alert-danger">
+                    Error al cargar los detalles del cliente
+                </div>
+            `;
+        });
+}
+</script>
 {% endblock %}
