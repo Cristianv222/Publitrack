@@ -213,13 +213,22 @@ path('programacion-canal/categorias/<int:categoria_id>/eliminar-modal/', views.c
 path('api/categorias-programa/', views.api_categorias_programa, name='api_categorias_programa'),
 path('api/categorias-programa/<int:categoria_id>/', views.api_categoria_programa_detail, name='api_categoria_programa_detail'),
 path('api/categorias-programa/<int:categoria_id>/actualizar/', views.api_categoria_programa_update, name='api_categoria_programa_update'),
+   
     # ==================== GRILLA PUBLICITARIA ====================
     path('grilla-publicitaria/', views.grilla_publicitaria_list, name='grilla_publicitaria_list'),
     path('grilla-publicitaria/api/asignar/', views.grilla_asignar_cuna_api, name='grilla_asignar_cuna_api'),
     path('grilla-publicitaria/api/eliminar/<int:asignacion_id>/', views.grilla_eliminar_asignacion_api, name='grilla_eliminar_asignacion_api'),
     path('grilla-publicitaria/api/generar/<int:programacion_id>/', views.grilla_generar_automatica_api, name='grilla_generar_automatica_api'),
-    # En tus urls.py
+    
+    # URL CRÍTICA QUE FALTABA
+    path('grilla-publicitaria/api/ubicacion/<int:ubicacion_id>/detalle/', 
+         views.grilla_ubicacion_detalle_api, 
+         name='grilla_ubicacion_detalle_api'),
+    
     path('grilla-publicitaria/api/crear-ubicacion/', views.grilla_crear_ubicacion_api, name='grilla_crear_ubicacion_api'),
     path('grilla-publicitaria/api/generar-ubicaciones/', views.grilla_generar_ubicaciones_api, name='grilla_generar_ubicaciones_api'),
-
+    path('grilla-publicitaria/integrada/', views.grilla_publicitaria_integrada, name='grilla_publicitaria_integrada'),
+    path('grilla-publicitaria/api/eliminar-ubicacion/<int:ubicacion_id>/', 
+         views.grilla_eliminar_ubicacion_api, 
+         name='grilla_eliminar_ubicacion_api'),
 ]

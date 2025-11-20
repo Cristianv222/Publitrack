@@ -36,17 +36,18 @@ if MODELS_AVAILABLE:
         list_display = [
             'nombre', 
             'bloque_programacion_display', 
-            'tipo_pausa_badge', 
-            'hora_inicio_relativa', 
-            'duracion_disponible', 
+            'hora_pausa',
+            'tipo_pausa_badge',
+            'duracion_pausa',
             'capacidad_cuñas',
-            'asignaciones_count',
-            'activo_badge'
+            'espacios_disponibles_badge',
+            'cuñas_asignadas_count',
+            'acciones_rapidas'
         ]
         
         list_filter = [
-            'tipo_pausa', 
             'activo', 
+            'tipo_pausa',
             'bloque_programacion__programacion_semanal',
             'bloque_programacion__dia_semana'
         ]
@@ -57,20 +58,20 @@ if MODELS_AVAILABLE:
             'bloque_programacion__programacion_semanal__nombre'
         ]
         
-        readonly_fields = ['asignaciones_count']
+        readonly_fields = ['cuñas_asignadas_count', 'espacios_disponibles_badge']
         
         fieldsets = (
             ('Información Básica', {
                 'fields': (
                     'bloque_programacion', 
-                    'nombre', 
+                    'nombre',
                     'tipo_pausa'
                 )
             }),
             ('Configuración de Tiempo', {
                 'fields': (
-                    'hora_inicio_relativa',
-                    'duracion_disponible',
+                    'hora_pausa',
+                    'duracion_pausa',
                     'capacidad_cuñas'
                 )
             }),
@@ -81,40 +82,47 @@ if MODELS_AVAILABLE:
         
         def bloque_programacion_display(self, obj):
             return f"{obj.bloque_programacion.programa.nombre} - {obj.bloque_programacion.get_dia_semana_display()}"
-        bloque_programacion_display.short_description = 'Bloque de Programación'
+        bloque_programacion_display.short_description = 'Bloque'
         
         def tipo_pausa_badge(self, obj):
             colors = {
-                'corta': 'info',
-                'media': 'warning',
-                'larga': 'success',
-                'especial': 'danger'
+                'corta': 'success',
+                'media': 'warning', 
+                'larga': 'danger'
             }
             color = colors.get(obj.tipo_pausa, 'secondary')
             return format_html(
                 '<span class="badge bg-{}">{}</span>',
                 color, obj.get_tipo_pausa_display()
             )
-        tipo_pausa_badge.short_description = 'Tipo de Pausa'
+        tipo_pausa_badge.short_description = 'Tipo'
         
-        def asignaciones_count(self, obj):
+        def espacios_disponibles_badge(self, obj):
+            disponibles = obj.espacios_disponibles
+            color = 'success' if disponibles > 0 else 'warning'
+            return format_html(
+                '<span class="badge bg-{}">{}/{} espacios</span>',
+                color, disponibles, obj.capacidad_cuñas
+            )
+        espacios_disponibles_badge.short_description = 'Espacios'
+        
+        def cuñas_asignadas_count(self, obj):
             count = obj.asignaciones.count()
             return format_html(
                 '<span class="badge bg-{}">{}</span>',
                 'primary' if count > 0 else 'secondary', 
                 count
             )
-        asignaciones_count.short_description = 'Cuñas Asignadas'
+        cuñas_asignadas_count.short_description = 'Cuñas Asignadas'
         
-        def activo_badge(self, obj):
-            color = 'success' if obj.activo else 'secondary'
-            text = 'Activo' if obj.activo else 'Inactivo'
+        def acciones_rapidas(self, obj):
             return format_html(
-                '<span class="badge bg-{}">{}</span>',
-                color, text
+                '<a href="/admin/grilla_publicitaria/asignacioncuna/?ubicacion__id__exact={}" class="button">Ver Cuñas</a>',
+                obj.id
             )
-        activo_badge.short_description = 'Estado'
+        acciones_rapidas.short_description = 'Acciones'
 
+    # ✅ CORREGIDO: Este decorador debe estar al mismo nivel que los otros
     @admin.register(AsignacionCuña)
     class AsignacionCuñaAdmin(admin.ModelAdmin):
         list_display = [
@@ -131,7 +139,6 @@ if MODELS_AVAILABLE:
         list_filter = [
             'estado', 
             'fecha_emision', 
-            'ubicacion__tipo_pausa',
             'ubicacion__bloque_programacion__programacion_semanal'
         ]
         
