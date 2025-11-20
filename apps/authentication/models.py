@@ -43,6 +43,7 @@ class CustomUser(AbstractUser):
         ('admin', 'Administrador'),
         ('vendedor', 'Vendedor'),
         ('cliente', 'Cliente'),
+        ('productor', 'Productor'),
     ]
     
     # Estados del usuario
@@ -350,6 +351,11 @@ class CustomUser(AbstractUser):
         return self.rol == 'cliente'
     
     @property
+    def es_productor(self):
+        """Verifica si el usuario es productor"""
+        return self.rol == 'productor'
+    
+    @property
     def esta_activo(self):
         """Verifica si el usuario está activo"""
         return self.status == 'activo' and self.is_active
@@ -365,7 +371,7 @@ class CustomUser(AbstractUser):
     
     def puede_gestionar_cuñas(self):
         """Verifica si puede gestionar cuñas publicitarias"""
-        return self.rol in ['admin', 'vendedor']
+        return self.rol in ['admin', 'vendedor', 'productor']
     
     def puede_ver_reportes(self):
         """Verifica si puede ver reportes"""
@@ -406,11 +412,11 @@ class CustomUser(AbstractUser):
         # Por ahora, dar acceso basado en rol
         module_permissions = {
             'authentication': ['admin'],
-            'content_management': ['admin', 'vendedor'],
+            'content_management': ['admin', 'vendedor', 'productor'],
             'financial_management': ['admin'],
             'traffic_light_system': ['admin', 'vendedor'],
-            'transmission_control': ['admin', 'vendedor'],
-            'notifications': ['admin', 'vendedor'],
+            'transmission_control': ['admin', 'vendedor', 'productor'],
+            'notifications': ['admin', 'vendedor', 'productor'],
             'sales_management': ['admin', 'vendedor'],
             'reports_analytics': ['admin', 'vendedor'],
             'system_configuration': ['admin'],
@@ -452,7 +458,7 @@ class CustomUser(AbstractUser):
 
     def can_manage_content(self):
         """Verifica si puede gestionar contenido"""
-        return self.has_permission('manage_content') or self.rol in ['admin', 'vendedor']
+        return self.has_permission('manage_content') or self.rol in ['admin', 'vendedor', 'productor']
 
     def can_manage_finances(self):
         """Verifica si puede gestionar finanzas"""

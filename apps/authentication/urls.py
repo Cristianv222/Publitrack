@@ -27,11 +27,12 @@ urlpatterns = [
     path('users/<int:user_id>/toggle-status/', views.toggle_user_status, name='toggle_user_status'),
     
     # ============================================================================
-    # DASHBOARD Y VENDEDORES
+    # DASHBOARDS
     # ============================================================================
     path('dashboard/admin/', lambda request: redirect('/panel/'), name='admin_dashboard'),
     path('dashboard/vendedor/', views.vendedor_dashboard, name='vendedor_dashboard'),
     path('dashboard/cliente/', views.cliente_dashboard, name='cliente_dashboard'),
+    path('dashboard/productor/', views.productor_dashboard, name='productor_dashboard'),  # ← AGREGADO
     
     # ============================================================================
     # GESTIÓN DE CLIENTES PARA VENDEDORES

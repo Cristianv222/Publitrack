@@ -30,6 +30,14 @@ def is_vendedor_or_admin(user):
     """Verifica si el usuario es vendedor o admin"""
     return user.is_authenticated and user.rol in ['admin', 'vendedor']
 
+def is_productor(user):
+    """Verifica si el usuario es productor"""
+    return user.is_authenticated and user.rol == 'productor'
+
+def is_productor_or_admin(user):
+    """Verifica si el usuario es productor o admin"""
+    return user.is_authenticated and user.rol in ['admin', 'productor']
+
 def get_client_ip(request):
     """Obtiene la IP del cliente"""
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -46,10 +54,12 @@ def get_client_ip(request):
 def login_view(request):
     """Vista para el login de usuarios"""
     if request.user.is_authenticated:
-        if request.user.es_admin:  # CORREGIDO: request.user
+        if request.user.es_admin:
             return redirect('/panel/')
-        elif request.user.es_vendedor:  # CORREGIDO: request.user
+        elif request.user.es_vendedor:
             return redirect('authentication:vendedor_dashboard')
+        elif request.user.es_productor:
+            return redirect('authentication:productor_dashboard')
         else:
             return redirect('authentication:cliente_dashboard')
     
@@ -99,6 +109,8 @@ def login_view(request):
                         return redirect('/panel/')
                     elif user.es_vendedor:
                         return redirect('authentication:vendedor_dashboard')
+                    elif user.es_productor:
+                        return redirect('authentication:productor_dashboard')
                     else:
                         return redirect('authentication:cliente_dashboard')
                 else:
@@ -182,6 +194,10 @@ def profile_view(request):
         context.update({
             'vendedor': request.user.get_vendedor(),
             # TODO: Agregar estadísticas de cuñas, pagos, etc.
+        })
+    elif request.user.es_productor:
+        context.update({
+            # TODO: Agregar estadísticas de producción
         })
     
     return render(request, 'authentication/profile.html', context)
@@ -271,6 +287,7 @@ class UserListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
             'usuarios_activos': CustomUser.objects.filter(status='activo').count(),
             'vendedores': CustomUser.objects.filter(rol='vendedor').count(),
             'clientes': CustomUser.objects.filter(rol='cliente').count(),
+            'productores': CustomUser.objects.filter(rol='productor').count(),
         }
         
         return context
@@ -300,6 +317,10 @@ class UserDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         elif user.es_cliente:
             context['vendedor'] = user.get_vendedor()
             # TODO: Agregar cuñas, pagos pendientes, etc.
+        
+        elif user.es_productor:
+            # TODO: Agregar proyectos en producción, etc.
+            pass
         
         # Historial de conexiones (últimas 10)
         if is_admin(self.request.user) or self.request.user == user:
@@ -468,6 +489,7 @@ def vendedor_dashboard(request):
         })
     
     return render(request, 'dashboard/vendedor.html', context)
+
 @login_required
 def mis_clientes_view(request):
     """Lista de clientes del vendedor actual"""
@@ -535,7 +557,6 @@ def user_reports_view(request):
     }
     
     return render(request, 'authentication/user_reports.html', context)
-import json  # Agregar al inicio del archivo con los otros imports
 
 @login_required
 def admin_dashboard(request):
@@ -556,6 +577,7 @@ def admin_dashboard(request):
         'vendedores': CustomUser.objects.filter(rol='vendedor', status='activo').count(),
         'clientes': CustomUser.objects.filter(rol='cliente', status='activo').count(),
         'admins': CustomUser.objects.filter(rol='admin', status='activo').count(),
+        'productores': CustomUser.objects.filter(rol='productor', status='activo').count(),
         'nuevos_mes': CustomUser.objects.filter(created_at__gte=inicio_mes).count(),
         'conectados_hoy': UserLoginHistory.objects.filter(
             login_time__date=hoy
@@ -680,6 +702,89 @@ def cliente_dashboard(request):
         'vendedor': request.user.get_vendedor(),
     }
     return render(request, 'dashboard/cliente.html', context)
+
+# ============================================================================
+# VISTAS PARA PRODUCTORES
+# ============================================================================
+
+@login_required
+def productor_dashboard(request):
+    """Dashboard específico para productores con proyectos y cuñas"""
+    if not request.user.es_productor:
+        messages.error(request, 'No tienes permisos para ver esta página.')
+        return redirect('authentication:profile')
+    
+    # Importar modelos necesarios
+    try:
+        from apps.content_management.models import CuñaPublicitaria
+    except ImportError:
+        CuñaPublicitaria = None
+    
+    # Obtener fechas para filtros
+    hoy = timezone.now().date()
+    inicio_mes = hoy.replace(day=1)
+    
+    context = {
+        'user': request.user,
+        'hoy': hoy,
+        'inicio_mes': inicio_mes,
+    }
+    
+    # ========== ESTADÍSTICAS DE CUÑAS ==========
+    if CuñaPublicitaria:
+        # Cuñas asignadas al productor (si se implementa asignación de productor)
+        cuñas_en_produccion = CuñaPublicitaria.objects.filter(
+            estado='en_produccion'
+        ).count()
+        
+        cuñas_pendientes = CuñaPublicitaria.objects.filter(
+            estado='pendiente_revision'
+        ).count()
+        
+        cuñas_completadas_hoy = CuñaPublicitaria.objects.filter(
+            updated_at__date=hoy,
+            estado='aprobada'
+        ).count()
+        
+        cuñas_activas = CuñaPublicitaria.objects.filter(
+            estado='activa',
+            fecha_inicio__lte=hoy,
+            fecha_fin__gte=hoy
+        ).count()
+        
+        # Últimas cuñas
+        ultimas_cuñas = CuñaPublicitaria.objects.select_related(
+            'cliente', 'vendedor_asignado'
+        ).order_by('-created_at')[:10]
+        
+        # Cuñas por estado
+        cuñas_por_estado = {
+            'en_produccion': cuñas_en_produccion,
+            'pendientes': cuñas_pendientes,
+            'completadas_hoy': cuñas_completadas_hoy,
+            'activas': cuñas_activas,
+        }
+        
+        context.update({
+            'cuñas_en_produccion': cuñas_en_produccion,
+            'cuñas_pendientes': cuñas_pendientes,
+            'cuñas_completadas_hoy': cuñas_completadas_hoy,
+            'cuñas_activas': cuñas_activas,
+            'ultimas_cuñas': ultimas_cuñas,
+            'cuñas_por_estado': cuñas_por_estado,
+        })
+    else:
+        context.update({
+            'cuñas_en_produccion': 0,
+            'cuñas_pendientes': 0,
+            'cuñas_completadas_hoy': 0,
+            'cuñas_activas': 0,
+            'ultimas_cuñas': [],
+            'cuñas_por_estado': {},
+        })
+    
+    return render(request, 'dashboard/productor.html', context)
+
 # ============================================================================
 # VISTAS PARA GESTIÓN DE CLIENTES POR VENDEDORES
 # ============================================================================
@@ -819,6 +924,7 @@ def vendedor_detalle_cliente_api(request, cliente_id):
         return JsonResponse({'error': 'Cliente no encontrado'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
 # ============================================================================
 # VISTAS PARA GESTIÓN DE CONTRATOS POR VENDEDORES
 # ============================================================================
