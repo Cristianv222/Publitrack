@@ -8319,11 +8319,15 @@ def grilla_asignar_cuna_api(request):
         cuña = get_object_or_404(CuñaPublicitaria, id=cuña_id)
         ubicacion = get_object_or_404(UbicacionPublicitaria, id=ubicacion_id)
         
-        # Verificar que la cuña esté activa
-        if not cuña.activo or cuña.estado != 'activa':
+        print(f"🔍 Asignando cuña {cuña.codigo} a ubicación {ubicacion.nombre}")
+        print(f"📊 Estado de la cuña: {cuña.estado}")
+        
+        # Verificar que la cuña esté disponible - CORREGIDO: usar solo el campo 'estado'
+        # Ajusta el estado según lo que sea "disponible" en tu sistema
+        if cuña.estado != 'activa':  # Cambia 'activa' por el estado correcto si es necesario
             return JsonResponse({
                 'success': False, 
-                'error': 'La cuña no está disponible para asignación'
+                'error': f'La cuña no está disponible para asignación. Estado actual: {cuña.estado}'
             })
         
         # Verificar capacidad de la ubicación
@@ -8342,11 +8346,22 @@ def grilla_asignar_cuna_api(request):
                 'error': 'Esta cuña ya está asignada a esta ubicación'
             })
         
+        # Verificar que la cuña esté dentro del período válido
+        fecha_actual = timezone.now().date()
+        if cuña.fecha_inicio and fecha_actual < cuña.fecha_inicio:
+            return JsonResponse({
+                'success': False,
+                'error': f'La cuña no puede asignarse antes de su fecha de inicio: {cuña.fecha_inicio}'
+            })
+        
+        if cuña.fecha_fin and fecha_actual > cuña.fecha_fin:
+            return JsonResponse({
+                'success': False,
+                'error': f'La cuña ha expirado. Fecha fin: {cuña.fecha_fin}'
+            })
+        
         # Determinar el orden
         orden = asignaciones_existentes + 1
-        
-        # Usar la fecha actual para la emisión (puedes ajustar esto según tu lógica)
-        fecha_actual = timezone.now().date()
         
         # Crear asignación
         asignacion = AsignacionCuña.objects.create(
@@ -8359,13 +8374,17 @@ def grilla_asignar_cuna_api(request):
             estado='programada'
         )
         
+        print(f"✅ Cuña asignada exitosamente. Orden: {orden}")
+        
         # Actualizar estadísticas de la grilla si existe
         try:
             grilla = GrillaPublicitaria.objects.get(
                 programacion_semanal=ubicacion.bloque_programacion.programacion_semanal
             )
             grilla.actualizar_estadisticas()
+            print(f"📈 Estadísticas de grilla actualizadas")
         except GrillaPublicitaria.DoesNotExist:
+            print("ℹ️  No se encontró grilla para actualizar estadísticas")
             # Si no existe la grilla, no hay problema
             pass
         
@@ -8376,9 +8395,10 @@ def grilla_asignar_cuna_api(request):
         })
         
     except Exception as e:
+        import traceback
+        print(f"❌ Error en grilla_asignar_cuna_api: {str(e)}")
+        print(f"📋 Detalles:\n{traceback.format_exc()}")
         return JsonResponse({'success': False, 'error': str(e)})
-
-
 
 @user_passes_test(is_admin)
 @require_http_methods(["DELETE"])
@@ -8781,26 +8801,28 @@ def grilla_eliminar_ubicacion_api(request, ubicacion_id):
 @login_required
 @require_http_methods(["GET"])
 def grilla_ubicacion_detalle_api(request, ubicacion_id):
-    """API para obtener detalles de una ubicación - VERSIÓN CORREGIDA"""
+    """API para obtener detalles de una ubicación - VERSIÓN SIN FILTRO POR ESTADO"""
     try:
         from apps.grilla_publicitaria.models import UbicacionPublicitaria, AsignacionCuña
         from apps.content_management.models import CuñaPublicitaria
+        from datetime import timedelta
         
-        print(f"📍 Solicitando detalles de ubicación ID: {ubicacion_id}")
+        print(f"🔍 Solicitando detalles de ubicación ID: {ubicacion_id}")
         
-        # Obtener la ubicación con relaciones
+        # Obtener la ubicación con todas las relaciones necesarias
         ubicacion = UbicacionPublicitaria.objects.select_related(
             'bloque_programacion', 
             'bloque_programacion__programa'
         ).get(id=ubicacion_id)
         
-        print(f"📍 Ubicación encontrada: {ubicacion.nombre}")
+        print(f"✅ Ubicación encontrada: {ubicacion.nombre}")
         
-        # Calcular hora de fin de la pausa
-        from datetime import datetime, timedelta
+        # Calcular hora de fin
         hora_inicio = ubicacion.hora_pausa
         duracion_segundos = ubicacion.duracion_pausa.total_seconds()
         
+        # Calcular hora_fin
+        from datetime import datetime, time
         hora_fin_datetime = datetime.combine(datetime.today(), hora_inicio) + timedelta(seconds=duracion_segundos)
         hora_fin = hora_fin_datetime.time()
         
@@ -8808,39 +8830,53 @@ def grilla_ubicacion_detalle_api(request, ubicacion_id):
         asignaciones_data = []
         asignaciones = ubicacion.asignaciones.select_related('cuña', 'cuña__cliente').all()
         
-        print(f"📍 Asignaciones encontradas: {asignaciones.count()}")
-        
         for asignacion in asignaciones:
+            cliente_nombre = "Sin cliente"
+            if asignacion.cuña.cliente:
+                cliente_nombre = f"{asignacion.cuña.cliente.first_name} {asignacion.cuña.cliente.last_name}".strip()
+                if not cliente_nombre:
+                    cliente_nombre = asignacion.cuña.cliente.username
+            
             asignaciones_data.append({
                 'id': asignacion.id,
                 'cuna_codigo': asignacion.cuña.codigo,
                 'cuna_titulo': asignacion.cuña.titulo,
                 'cuna_duracion': asignacion.cuña.duracion_planeada,
-                'cuna_cliente': asignacion.cuña.cliente.get_full_name() if asignacion.cuña.cliente else 'Sin cliente',
+                'cuna_cliente': cliente_nombre,
             })
         
-        # Obtener cuñas disponibles
+        print(f"📊 Asignaciones encontradas: {len(asignaciones_data)}")
+        
+        # Obtener TODAS las cuñas sin filtrar por estado
         cunas_disponibles_data = []
         
-        # Buscar cuñas activas - ajusta estos filtros según tu modelo
-        cuñas_disponibles = CuñaPublicitaria.objects.filter(
-            activo=True, 
-            estado='activa'
-        )[:20]  # Limitar a 20 para no sobrecargar
+        # Obtener todas las cuñas
+        todas_las_cuñas = CuñaPublicitaria.objects.all().select_related('cliente')
         
-        print(f"📍 Cuñas disponibles: {cuñas_disponibles.count()}")
+        print(f"🔍 Buscando TODAS las cuñas (sin filtro de estado)")
+        print(f"📦 Total de cuñas en el sistema: {todas_las_cuñas.count()}")
         
-        for cuña in cuñas_disponibles:
+        for cuña in todas_las_cuñas:
             # Verificar que no esté ya asignada en esta ubicación
             if not AsignacionCuña.objects.filter(ubicacion=ubicacion, cuña=cuña).exists():
+                cliente_nombre = "Sin cliente"
+                if cuña.cliente:
+                    cliente_nombre = f"{cuña.cliente.first_name} {cuña.cliente.last_name}".strip()
+                    if not cliente_nombre:
+                        cliente_nombre = cuña.cliente.username
+                
                 cunas_disponibles_data.append({
                     'id': cuña.id,
                     'codigo': cuña.codigo,
                     'titulo': cuña.titulo,
                     'duracion_planeada': cuña.duracion_planeada,
-                    'cliente': cuña.cliente.get_full_name() if cuña.cliente else 'Sin cliente',
+                    'cliente': cliente_nombre,
+                    'estado': cuña.estado,  # Incluir el estado para debug
                 })
         
+        print(f"🎯 Cuñas disponibles para asignar: {len(cunas_disponibles_data)}")
+        
+        # Preparar datos de respuesta
         response_data = {
             'success': True,
             'ubicacion': {
@@ -8858,15 +8894,172 @@ def grilla_ubicacion_detalle_api(request, ubicacion_id):
             'cunas_disponibles': cunas_disponibles_data
         }
         
-        print(f"📍 Enviando respuesta con {len(asignaciones_data)} asignaciones y {len(cunas_disponibles_data)} cuñas disponibles")
-        
+        print(f"✅ Datos preparados para respuesta")
         return JsonResponse(response_data)
         
     except UbicacionPublicitaria.DoesNotExist:
         print(f"❌ Ubicación no encontrada: {ubicacion_id}")
-        return JsonResponse({'success': False, 'error': 'Ubicación no encontrada'})
+        return JsonResponse({
+            'success': False, 
+            'error': 'Ubicación no encontrada'
+        }, status=404)
+        
     except Exception as e:
         import traceback
+        error_details = traceback.format_exc()
         print(f"❌ Error en grilla_ubicacion_detalle_api: {str(e)}")
-        print(traceback.format_exc())
-        return JsonResponse({'success': False, 'error': f'Error del servidor: {str(e)}'})
+        print(f"📋 Detalles del error:\n{error_details}")
+        
+        return JsonResponse({
+            'success': False, 
+            'error': f'Error del servidor: {str(e)}'
+        }, status=500)
+# custom_admin/views.py - AGREGAR ESTA VISTA
+# custom_admin/views.py - AGREGAR ESTA VISTA
+
+@login_required
+def grilla_publicitaria_en_vivo(request):
+    """Vista en vivo que muestra lo que está programado en este momento"""
+    try:
+        from apps.programacion_canal.models import ProgramacionSemanal, BloqueProgramacion
+        from apps.grilla_publicitaria.models import UbicacionPublicitaria, AsignacionCuña
+        from apps.content_management.models import CuñaPublicitaria
+        from django.utils import timezone
+        from datetime import datetime, time, timedelta
+        
+        GRILLA_AVAILABLE = True
+    except ImportError as e:
+        GRILLA_AVAILABLE = False
+        messages.error(request, 'Módulo de Grilla Publicitaria no disponible')
+        return render(request, 'custom_admin/en_desarrollo.html', {'error': str(e)})
+    
+    # Obtener la hora actual
+    ahora = timezone.now()
+    hora_actual = ahora.time()
+    fecha_actual = ahora.date()
+    dia_semana_actual = ahora.weekday()  # 0=Lunes, 6=Domingo
+    
+    print(f"🕐 Hora actual: {hora_actual}")
+    print(f"📅 Fecha actual: {fecha_actual}")
+    print(f"📆 Día de la semana: {dia_semana_actual}")
+    
+    # Obtener programación actual (la más reciente)
+    programacion_actual = ProgramacionSemanal.objects.filter(
+        fecha_inicio_semana__lte=fecha_actual,
+        fecha_fin_semana__gte=fecha_actual
+    ).first()
+    
+    if not programacion_actual:
+        # Si no hay programación para hoy, tomar la más reciente
+        programacion_actual = ProgramacionSemanal.objects.order_by('-fecha_inicio_semana').first()
+    
+    # Variables para los resultados
+    bloque_actual = None
+    ubicaciones_actuales = []
+    asignaciones_por_ubicacion = {}  # Diccionario para agrupar asignaciones por ubicación
+    siguiente_bloque = None
+    siguiente_ubicacion = None
+    
+    if programacion_actual:
+        print(f"🎯 Programación encontrada: {programacion_actual.nombre}")
+        
+        # Buscar bloque actual
+        bloques_hoy = BloqueProgramacion.objects.filter(
+            programacion_semanal=programacion_actual,
+            dia_semana=dia_semana_actual
+        ).select_related('programa').order_by('hora_inicio')
+        
+        print(f"📊 Bloques para hoy: {bloques_hoy.count()}")
+        
+        for bloque in bloques_hoy:
+            print(f"   - {bloque.programa.nombre}: {bloque.hora_inicio} - {bloque.hora_fin}")
+            
+            # Verificar si este bloque está en curso
+            if bloque.hora_inicio <= hora_actual <= bloque.hora_fin:
+                bloque_actual = bloque
+                print(f"✅ Bloque actual encontrado: {bloque.programa.nombre}")
+                
+                # Buscar ubicaciones para este bloque que estén activas ahora
+                ubicaciones_bloque = UbicacionPublicitaria.objects.filter(
+                    bloque_programacion=bloque,
+                    activo=True
+                ).select_related('bloque_programacion', 'bloque_programacion__programa')
+                
+                for ubicacion in ubicaciones_bloque:
+                    # Verificar si esta ubicación está activa ahora
+                    if ubicacion.hora_pausa <= hora_actual:
+                        # Calcular hora de fin de la ubicación
+                        hora_fin_ubicacion = (
+                            datetime.combine(datetime.today(), ubicacion.hora_pausa) + 
+                            ubicacion.duracion_pausa
+                        ).time()
+                        
+                        if hora_actual <= hora_fin_ubicacion:
+                            ubicaciones_actuales.append(ubicacion)
+                            
+                            # Obtener asignaciones para esta ubicación hoy
+                            asignaciones_hoy = AsignacionCuña.objects.filter(
+                                ubicacion=ubicacion,
+                                fecha_emision=fecha_actual,
+                                estado__in=['programada', 'confirmada']
+                            ).select_related('cuña', 'cuña__cliente').order_by('orden_en_ubicacion')
+                            
+                            # Guardar en el diccionario usando el ID de la ubicación como clave
+                            asignaciones_por_ubicacion[ubicacion.id] = list(asignaciones_hoy)
+                
+                break
+        
+        # Buscar siguiente bloque y ubicación
+        for bloque in bloques_hoy:
+            if bloque.hora_inicio > hora_actual:
+                siguiente_bloque = bloque
+                
+                # Buscar siguiente ubicación en este bloque
+                siguiente_ubicacion = UbicacionPublicitaria.objects.filter(
+                    bloque_programacion=bloque,
+                    activo=True,
+                    hora_pausa__gte=bloque.hora_inicio
+                ).order_by('hora_pausa').first()
+                
+                break
+    
+    # Estadísticas del día
+    total_cuñas_hoy = 0
+    cuñas_emitidas_hoy = 0
+    cuñas_pendientes_hoy = 0
+    
+    if programacion_actual:
+        # Total de cuñas programadas para hoy
+        total_cuñas_hoy = AsignacionCuña.objects.filter(
+            ubicacion__bloque_programacion__programacion_semanal=programacion_actual,
+            fecha_emision=fecha_actual,
+            estado__in=['programada', 'confirmada']
+        ).count()
+        
+        # Cuñas ya emitidas hoy (asumiendo que se marcan como 'transmitida')
+        cuñas_emitidas_hoy = AsignacionCuña.objects.filter(
+            ubicacion__bloque_programacion__programacion_semanal=programacion_actual,
+            fecha_emision=fecha_actual,
+            estado='transmitida'
+        ).count()
+        
+        cuñas_pendientes_hoy = total_cuñas_hoy - cuñas_emitidas_hoy
+    
+    context = {
+        'grilla_available': GRILLA_AVAILABLE,
+        'programacion_actual': programacion_actual,
+        'fecha_actual': fecha_actual,
+        'hora_actual': hora_actual,
+        'dia_semana_actual': dia_semana_actual,
+        'bloque_actual': bloque_actual,
+        'ubicaciones_actuales': ubicaciones_actuales,
+        'asignaciones_por_ubicacion': asignaciones_por_ubicacion,  # Enviamos el diccionario
+        'siguiente_bloque': siguiente_bloque,
+        'siguiente_ubicacion': siguiente_ubicacion,
+        'total_cuñas_hoy': total_cuñas_hoy,
+        'cuñas_emitidas_hoy': cuñas_emitidas_hoy,
+        'cuñas_pendientes_hoy': cuñas_pendientes_hoy,
+        'dias_semana': ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
+    }
+    
+    return render(request, 'custom_admin/grilla_publicitaria/en_vivo.html', context)

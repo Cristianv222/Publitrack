@@ -1,0 +1,371 @@
+<!-- custom_admin/grilla_publicitaria/en_vivo.html -->
+{% extends 'custom_admin/base_admin.html' %}
+{% load static %}
+
+{% block title %}Modo En Vivo - PublicTrack{% endblock %}
+
+{% block header_title %}
+    <i class="fas fa-broadcast-tower me-2"></i>Modo En Vivo
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .en-vivo-card {
+        border-left: 4px solid #28a745;
+        background: linear-gradient(135deg, #f8fff9, #ffffff);
+    }
+    
+    .siguiente-card {
+        border-left: 4px solid #ffc107;
+        background: linear-gradient(135deg, #fffdf4, #ffffff);
+    }
+    
+    .sin-programacion-card {
+        border-left: 4px solid #dc3545;
+        background: linear-gradient(135deg, #fff5f5, #ffffff);
+    }
+    
+    .estadistica-card {
+        border-radius: 10px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 1rem;
+    }
+    
+    .estadistica-valor {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .estadistica-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .badge-live {
+        background: #dc3545;
+        color: white;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    
+    .programa-actual {
+        background: linear-gradient(135deg, #4dabf7, #339af0);
+        color: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .ubicacion-item {
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background: white;
+    }
+    
+    .cuna-item {
+        background: #f8f9fa;
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        border-left: 3px solid #51cf66;
+    }
+    
+    .hora-destacada {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #495057;
+    }
+    
+    .reloj-container {
+        background: #2c3e50;
+        color: #ecf0f1;
+        border-radius: 10px;
+        padding: 1rem;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    
+    .reloj-hora {
+        font-size: 2.5rem;
+        font-weight: bold;
+        font-family: 'Courier New', monospace;
+    }
+    
+    .reloj-fecha {
+        font-size: 1.1rem;
+        opacity: 0.9;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% if not grilla_available %}
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        El módulo de Grilla Publicitaria no está disponible.
+    </div>
+    {% else %}
+    
+    <!-- Header y Reloj -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h4 class="text-gray-800">
+                <i class="fas fa-broadcast-tower text-success me-2"></i>
+                Modo En Vivo
+            </h4>
+            <p class="text-muted mb-0">
+                Visualización en tiempo real de la programación actual
+            </p>
+        </div>
+        <div class="col-md-4">
+            <div class="reloj-container">
+                <div class="reloj-hora" id="reloj-hora">
+                    {{ hora_actual|time:"H:i:s" }}
+                </div>
+                <div class="reloj-fecha">
+                    {{ fecha_actual|date:"l, d F Y" }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas del Día -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="estadistica-card" style="border-left: 4px solid #4dabf7;">
+                <div class="estadistica-valor text-primary">{{ total_cuñas_hoy }}</div>
+                <div class="estadistica-label">Total Cuñas Hoy</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="estadistica-card" style="border-left: 4px solid #51cf66;">
+                <div class="estadistica-valor text-success">{{ cuñas_emitidas_hoy }}</div>
+                <div class="estadistica-label">Cuñas Emitidas</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="estadistica-card" style="border-left: 4px solid #ffd43b;">
+                <div class="estadistica-valor text-warning">{{ cuñas_pendientes_hoy }}</div>
+                <div class="estadistica-label">Cuñas Pendientes</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Programación Actual -->
+    <div class="row">
+        <div class="col-lg-8">
+            {% if bloque_actual %}
+            <div class="card en-vivo-card mb-4">
+                <div class="card-header bg-success text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-play-circle me-2"></i>
+                            EN VIVO AHORA
+                        </h5>
+                        <span class="badge badge-live">
+                            <i class="fas fa-circle me-1"></i>EN DIRECTO
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="programa-actual">
+                        <h3 class="text-white mb-2">{{ bloque_actual.programa.nombre }}</h3>
+                        <p class="text-white-50 mb-1">
+                            <i class="fas fa-clock me-2"></i>
+                            {{ bloque_actual.hora_inicio|time:"H:i" }} - {{ bloque_actual.hora_fin|time:"H:i" }}
+                        </p>
+                        <p class="text-white-50 mb-0">
+                            <i class="fas fa-calendar me-2"></i>
+                            {{ dias_semana.0 }}
+                        </p>
+                    </div>
+                    
+                    {% if ubicaciones_actuales %}
+                        <h6 class="mt-4 mb-3">
+                            <i class="fas fa-pause-circle me-2"></i>
+                            Pausas Publicitarias Activas
+                        </h6>
+                        
+                        {% for ubicacion in ubicaciones_actuales %}
+                        <div class="ubicacion-item">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="mb-0">{{ ubicacion.nombre }}</h6>
+                                <span class="badge bg-primary">
+                                    {{ ubicacion.hora_pausa|time:"H:i" }}
+                                </span>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>
+                                        Duración: {{ ubicacion.duracion_pausa }}
+                                    </small>
+                                </div>
+                                <div class="col-md-6 text-end">
+                                    <small class="text-muted">
+                                        <i class="fas fa-bullhorn me-1"></i>
+                                        {{ ubicacion.asignaciones.count }}/{{ ubicacion.capacidad_cuñas }} cuñas
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <!-- Cuñas asignadas a esta ubicación -->
+                            {% with asignaciones_ubicacion=asignaciones_por_ubicacion.ubicacion.id %}
+                            {% if asignaciones_ubicacion %}
+                            <div class="mt-3">
+                                <h6 class="small text-muted mb-2">CUÑAS PROGRAMADAS:</h6>
+                                {% for asignacion in asignaciones_ubicacion %}
+                                <div class="cuna-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong class="text-primary">{{ asignacion.cuña.codigo }}</strong>
+                                            <span class="ms-2">{{ asignacion.cuña.titulo }}</span>
+                                        </div>
+                                        <div class="text-end">
+                                            <small class="text-muted d-block">{{ asignacion.cuña.duracion_planeada }}s</small>
+                                            <small class="text-success">
+                                                {% if asignacion.cuña.cliente %}
+                                                    {{ asignacion.cuña.cliente.first_name }} {{ asignacion.cuña.cliente.last_name }}
+                                                {% else %}
+                                                    Sin cliente
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="alert alert-warning mt-3 mb-0 py-2">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                No hay cuñas programadas para esta pausa
+                            </div>
+                            {% endif %}
+                            {% endwith %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No hay pausas publicitarias activas en este momento
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="card sin-programacion-card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-pause-circle me-2"></i>
+                        SIN PROGRAMACIÓN ACTIVA
+                    </h5>
+                </div>
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-tv fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No hay programación activa en este momento</h4>
+                    <p class="text-muted">
+                        No se encontró ningún bloque de programación para el horario actual.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Panel Lateral - Siguiente Programación -->
+        <div class="col-lg-4">
+            {% if siguiente_bloque %}
+            <div class="card siguiente-card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-forward me-2"></i>
+                        SIGUIENTE EN PROGRAMACIÓN
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="text-warning">{{ siguiente_bloque.programa.nombre }}</h6>
+                    <p class="mb-2">
+                        <i class="fas fa-clock me-2 text-warning"></i>
+                        <strong>{{ siguiente_bloque.hora_inicio|time:"H:i" }}</strong>
+                    </p>
+                    
+                    {% if siguiente_ubicacion %}
+                    <div class="mt-3 p-3 bg-light rounded">
+                        <small class="text-muted d-block">PRÓXIMA PAUSA:</small>
+                        <strong>{{ siguiente_ubicacion.nombre }}</strong>
+                        <small class="text-muted d-block mt-1">
+                            {{ siguiente_ubicacion.hora_pausa|time:"H:i" }} 
+                            ({{ siguiente_ubicacion.duracion_pausa }})
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Información de la Programación -->
+            {% if programacion_actual %}
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Información de la Programación
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <h6>{{ programacion_actual.nombre }}</h6>
+                    <p class="small text-muted mb-2">
+                        <i class="fas fa-calendar me-2"></i>
+                        {{ programacion_actual.fecha_inicio_semana|date:"d/m/Y" }} - 
+                        {{ programacion_actual.fecha_fin_semana|date:"d/m/Y" }}
+                    </p>
+                    <a href="{% url 'custom_admin:grilla_publicitaria_list' %}?programacion_id={{ programacion_actual.id }}" 
+                       class="btn btn-outline-primary btn-sm w-100">
+                        <i class="fas fa-external-link-alt me-2"></i>
+                        Ver Grilla Completa
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Actualizar reloj en tiempo real
+function actualizarReloj() {
+    const ahora = new Date();
+    const horas = ahora.getHours().toString().padStart(2, '0');
+    const minutos = ahora.getMinutes().toString().padStart(2, '0');
+    const segundos = ahora.getSeconds().toString().padStart(2, '0');
+    
+    document.getElementById('reloj-hora').textContent = `${horas}:${minutos}:${segundos}`;
+}
+
+// Actualizar cada segundo
+setInterval(actualizarReloj, 1000);
+actualizarReloj();
+
+// Recargar la página cada 60 segundos para actualizar datos
+setTimeout(() => {
+    window.location.reload();
+}, 60000);
+</script>
+{% endblock %}

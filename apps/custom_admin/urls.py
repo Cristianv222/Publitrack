@@ -221,9 +221,7 @@ path('api/categorias-programa/<int:categoria_id>/actualizar/', views.api_categor
     path('grilla-publicitaria/api/generar/<int:programacion_id>/', views.grilla_generar_automatica_api, name='grilla_generar_automatica_api'),
     
     # URL CRÍTICA QUE FALTABA
-    path('grilla-publicitaria/api/ubicacion/<int:ubicacion_id>/detalle/', 
-         views.grilla_ubicacion_detalle_api, 
-         name='grilla_ubicacion_detalle_api'),
+   path('grilla-publicitaria/api/ubicacion/<int:ubicacion_id>/detalle/', views.grilla_ubicacion_detalle_api, name='grilla_ubicacion_detalle_api'),
     
     path('grilla-publicitaria/api/crear-ubicacion/', views.grilla_crear_ubicacion_api, name='grilla_crear_ubicacion_api'),
     path('grilla-publicitaria/api/generar-ubicaciones/', views.grilla_generar_ubicaciones_api, name='grilla_generar_ubicaciones_api'),
@@ -231,4 +229,6 @@ path('api/categorias-programa/<int:categoria_id>/actualizar/', views.api_categor
     path('grilla-publicitaria/api/eliminar-ubicacion/<int:ubicacion_id>/', 
          views.grilla_eliminar_ubicacion_api, 
          name='grilla_eliminar_ubicacion_api'),
+    # custom_admin/urls.py - AGREGAR ESTA RUTA
+path('grilla-publicitaria/en-vivo/', views.grilla_publicitaria_en_vivo, name='grilla_publicitaria_en_vivo'),
 ]

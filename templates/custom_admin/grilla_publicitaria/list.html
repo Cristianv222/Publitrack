@@ -62,50 +62,58 @@
         margin-bottom: 2px;
         border-left: 3px solid;
         position: relative;
-        min-height: 80px;
-        padding-bottom: 25px;
+        min-height: 60px;
     }
     
-    /* Puntos para gestionar ubicaciones */
-    .punto-gestion {
+    /* Contenedor para las bolitas - en la parte inferior */
+    .contenedor-bolitas {
         position: absolute;
-        width: 20px;
+        bottom: 2px;
+        left: 0;
+        right: 0;
         height: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 3px;
+        padding: 0 5px;
+    }
+    
+    /* Bolitas de ubicaciones */
+    .bolita-ubicacion {
+        width: 16px;
+        height: 16px;
         border-radius: 50%;
-        background: #ffd43b;
-        border: 2px solid white;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 10px;
-        color: #000;
-        z-index: 10;
-        transition: all 0.2s ease;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-    
-    .punto-gestion:hover {
-        transform: scale(1.3);
-        background: #ffc107;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-    }
-    
-    .punto-gestion.con-cunas {
-        background: #51cf66;
+        font-size: 9px;
         color: white;
+        font-weight: bold;
+        transition: all 0.2s ease;
+        border: 1px solid rgba(255,255,255,0.5);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        flex-shrink: 0;
     }
     
-    /* POSICIONAMIENTO AUTOMÁTICO CON CSS - SIN JAVASCRIPT */
-    .punto-gestion:nth-of-type(1) { bottom: 5px; right: 5px; }
-    .punto-gestion:nth-of-type(2) { bottom: 5px; right: 30px; }
-    .punto-gestion:nth-of-type(3) { bottom: 30px; right: 5px; }
-    .punto-gestion:nth-of-type(4) { bottom: 30px; right: 30px; }
-    .punto-gestion:nth-of-type(5) { bottom: 55px; right: 5px; }
-    .punto-gestion:nth-of-type(6) { bottom: 55px; right: 30px; }
-    .punto-gestion:nth-of-type(7) { bottom: 5px; right: 55px; }
-    .punto-gestion:nth-of-type(8) { bottom: 30px; right: 55px; }
-    .punto-gestion:nth-of-type(9) { bottom: 55px; right: 55px; }
+    .bolita-ubicacion:hover {
+        transform: scale(1.3);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    /* Colores para las bolitas */
+    .bolita-sin-cunas {
+        background: linear-gradient(135deg, #ffd43b, #fcc419);
+    }
+    
+    .bolita-con-cunas {
+        background: linear-gradient(135deg, #51cf66, #40c057);
+    }
+    
+    .bolita-ocupada {
+        background: linear-gradient(135deg, #fa5252, #e03131);
+    }
     
     /* Contador de ubicaciones */
     .contador-ubicaciones {
@@ -115,13 +123,22 @@
         background: rgba(0,0,0,0.7);
         color: white;
         border-radius: 50%;
-        width: 18px;
-        height: 18px;
-        font-size: 0.7rem;
+        width: 16px;
+        height: 16px;
+        font-size: 0.6rem;
         display: flex;
         align-items: center;
         justify-content: center;
         z-index: 5;
+    }
+    
+    /* Indicador de hora en las bolitas */
+    .hora-bolita {
+        position: absolute;
+        bottom: -15px;
+        font-size: 0.5rem;
+        color: #666;
+        white-space: nowrap;
     }
     
     /* Ubicaciones publicitarias */
@@ -257,6 +274,26 @@
         text-align: center;
         padding: 5px;
     }
+    
+    /* Tooltip personalizado para bolitas */
+    .bolita-tooltip {
+        position: relative;
+    }
+    
+    .bolita-tooltip:hover::after {
+        content: attr(title);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        white-space: nowrap;
+        z-index: 1000;
+    }
 </style>
 {% endblock %}
 
@@ -298,25 +335,6 @@
         </div>
     </div>
 
-    <!-- Estadísticas -->
-    <div class="estadisticas-grid">
-        <div class="estadistica-card">
-            <div class="estadistica-valor text-primary">{{ total_cuñas }}</div>
-            <div class="estadistica-label">Total Cuñas Activas</div>
-        </div>
-        <div class="estadistica-card success">
-            <div class="estadistica-valor text-success">{{ cuñas_programadas }}</div>
-            <div class="estadistica-label">Cuñas Programadas</div>
-        </div>
-        <div class="estadistica-card warning">
-            <div class="estadistica-valor text-warning">{{ cuñas_pendientes }}</div>
-            <div class="estadistica-label">Cuñas Pendientes</div>
-        </div>
-        <div class="estadistica-card info">
-            <div class="estadistica-valor text-info">${{ ingresos_totales|floatformat:2 }}</div>
-            <div class="estadistica-label">Ingresos Proyectados</div>
-        </div>
-    </div>
 
     <!-- Leyenda -->
     <div class="leyenda-superior">
@@ -326,13 +344,16 @@
                 <i class="fas fa-tv me-1"></i>Programación
             </span>
             <span class="badge" style="background: #ffd43b; color: black;">
-                <i class="fas fa-pause-circle me-1"></i>Pausa Publicitaria
+                <i class="fas fa-circle me-1"></i>Pausa Disponible
             </span>
             <span class="badge" style="background: #51cf66; color: white;">
-                <i class="fas fa-ad me-1"></i>Cuña Asignada
+                <i class="fas fa-circle me-1"></i>Con Cuñas
+            </span>
+            <span class="badge" style="background: #fa5252; color: white;">
+                <i class="fas fa-circle me-1"></i>Llena
             </span>
             <span class="text-muted small ms-2">
-                <i class="fas fa-info-circle me-1"></i>Haz clic en el bloque para crear ubicaciones, en los puntos para gestionar cuñas
+                <i class="fas fa-info-circle me-1"></i>Haz clic en el bloque para crear ubicaciones, en las bolitas para gestionar cuñas
             </span>
         </div>
     </div>
@@ -387,20 +408,29 @@
                                     <small>{{ bloque.hora_inicio|time:"H:i" }} - {{ bloque.hora_fin|time:"H:i" }}</small>
                                 </div>
                                 
-                                <!-- MÚLTIPLES PUNTOS DE GESTIÓN - UNO POR CADA UBICACIÓN -->
-                                {% for ubicacion in ubicaciones %}
-                                    {% if ubicacion.bloque_programacion.id == bloque.id %}
-                                    <div class="punto-gestion {% if ubicacion.asignaciones.exists %}con-cunas{% endif %}" 
-                                         onclick="event.stopPropagation(); abrirModalGestionUbicacion({{ ubicacion.id }})"
-                                         title="Gestionar: {{ ubicacion.nombre }} - {{ ubicacion.hora_pausa|time:'H:i' }} ({{ ubicacion.asignaciones.count }} cuñas)">
-                                        {% if ubicacion.asignaciones.exists %}
-                                            {{ ubicacion.asignaciones.count }}
-                                        {% else %}
-                                            +
+                                <!-- BOLITAS DE UBICACIONES - EN FILA HORIZONTAL -->
+                                <div class="contenedor-bolitas">
+                                    {% for ubicacion in ubicaciones %}
+                                        {% if ubicacion.bloque_programacion.id == bloque.id %}
+                                        {% with asignaciones_count=ubicacion.asignaciones.count %}
+                                        <div class="bolita-ubicacion bolita-tooltip 
+                                                    {% if asignaciones_count >= ubicacion.capacidad_cuñas %}bolita-ocupada
+                                                    {% elif asignaciones_count > 0 %}bolita-con-cunas
+                                                    {% else %}bolita-sin-cunas{% endif %}"
+                                             onclick="event.stopPropagation(); abrirModalGestionUbicacion({{ ubicacion.id }})"
+                                             title="{{ ubicacion.nombre }} - {{ ubicacion.hora_pausa|time:'H:i' }}
+{% if asignaciones_count > 0 %}({{ asignaciones_count }}/{{ ubicacion.capacidad_cuñas }} cuñas){% else %}(Disponible){% endif %}">
+                                            {% if asignaciones_count > 0 %}
+                                                {{ asignaciones_count }}
+                                            {% else %}
+                                                •
+                                            {% endif %}
+                                        </div>
+                                        {% endwith %}
                                         {% endif %}
-                                    </div>
-                                    {% endif %}
-                                {% endfor %}
+                                    {% endfor %}
+                                </div>
+                                
                             </div>
                             {% endif %}
                         {% endif %}
@@ -560,32 +590,56 @@ function abrirModalCrearUbicacion(dia, hora) {
     
     new bootstrap.Modal(document.getElementById('modalCrearUbicacion')).show();
 }
-
+// Versión alternativa con manejo de errores mejorado
 function abrirModalGestionUbicacion(ubicacionId) {
-    console.log('Cargando ubicación:', ubicacionId);
+    console.log('🔍 Iniciando carga de ubicación ID:', ubicacionId);
     
-    // USAR LA URL CORRECTA
-    fetch(`/admin/grilla-publicitaria/api/ubicacion/${ubicacionId}/detalle/`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Error en la respuesta del servidor: ' + response.status);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Datos recibidos:', data);
-            if (data.success) {
-                mostrarModalGestion(data.ubicacion, data.asignaciones, data.cunas_disponibles);
-            } else {
-                alert('Error al cargar la ubicación: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error completo:', error);
-            alert('Error al conectar con el servidor: ' + error.message);
-        });
+    try {
+        // Construir URL usando el template de Django
+        const urlTemplate = "{% url 'custom_admin:grilla_ubicacion_detalle_api' 999999 %}";
+        const url = urlTemplate.replace('999999', ubicacionId.toString());
+        
+        console.log('🌐 URL construida:', url);
+        
+        fetch(url)
+            .then(response => {
+                console.log('📡 Respuesta del servidor:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    url: response.url,
+                    ok: response.ok
+                });
+                
+                if (response.status === 404) {
+                    throw new Error(`URL no encontrada: ${response.url}`);
+                }
+                if (response.status === 500) {
+                    throw new Error(`Error interno del servidor`);
+                }
+                if (!response.ok) {
+                    throw new Error(`Error HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                return response.json();
+            })
+            .then(data => {
+                console.log('✅ Datos recibidos:', data);
+                if (data.success) {
+                    mostrarModalGestion(data.ubicacion, data.asignaciones, data.cunas_disponibles);
+                } else {
+                    alert('Error en los datos: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error en la petición:', error);
+                alert('No se pudo cargar la ubicación. Error: ' + error.message);
+            });
+            
+    } catch (error) {
+        console.error('❌ Error en la función:', error);
+        alert('Error al procesar la solicitud: ' + error.message);
+    }
 }
-
 function mostrarModalGestion(ubicacion, asignaciones, cunasDisponibles) {
     const titulo = document.getElementById('tituloGestionUbicacion');
     const contenido = document.getElementById('contenidoGestionUbicacion');
@@ -606,7 +660,6 @@ function mostrarModalGestion(ubicacion, asignaciones, cunasDisponibles) {
                         <p><strong>Nombre:</strong> ${ubicacion.nombre}</p>
                         <p><strong>Bloque:</strong> ${ubicacion.bloque_programacion}</p>
                         <p><strong>Hora Inicio:</strong> ${ubicacion.hora_inicio_pausa}</p>
-                        <p><strong>Hora Fin:</strong> ${ubicacion.hora_fin_pausa}</p>
                         <p><strong>Duración:</strong> ${Math.round(ubicacion.duracion_segundos / 60)} minutos</p>
                         <p><strong>Capacidad:</strong> ${ubicacion.cunas_asignadas_count}/${ubicacion.capacidad_cunas} cuñas</p>
                         <p><strong>Espacios disponibles:</strong> ${ubicacion.espacios_disponibles}</p>
