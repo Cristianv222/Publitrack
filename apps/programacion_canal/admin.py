@@ -1,10 +1,21 @@
 from django.contrib import admin
-from .models import Programa, ProgramacionSemanal, BloqueProgramacion
+from .models import Programa, ProgramacionSemanal, BloqueProgramacion, CategoriaPrograma
+
+@admin.register(CategoriaPrograma)
+class CategoriaProgramaAdmin(admin.ModelAdmin):
+    list_display = ['nombre', 'color', 'estado', 'orden', 'programas_count']
+    list_filter = ['estado']
+    search_fields = ['nombre', 'descripcion']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    def programas_count(self, obj):
+        return obj.programas.count()
+    programas_count.short_description = 'Nº Programas'
 
 @admin.register(Programa)
 class ProgramaAdmin(admin.ModelAdmin):
-    list_display = ['codigo', 'nombre', 'tipo', 'duracion_estandar', 'estado']
-    list_filter = ['tipo', 'estado', 'es_serie']
+    list_display = ['codigo', 'nombre', 'categoria', 'duracion_estandar', 'estado']
+    list_filter = ['categoria', 'estado', 'es_serie']
     search_fields = ['nombre', 'codigo', 'descripcion']
     readonly_fields = ['created_at', 'updated_at']
 

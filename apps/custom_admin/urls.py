@@ -203,7 +203,16 @@ urlpatterns = [
     path('api/programaciones/<int:programacion_id>/actualizar/', views.api_programacion_update, name='api_programacion_update'),
     path('api/bloques/<int:bloque_id>/', views.api_bloque_detail, name='api_bloque_detail'),
     path('api/bloques/<int:bloque_id>/actualizar/', views.api_bloque_update, name='api_bloque_update'),
-    
+    # =============================================================================
+# URLs PARA CATEGORÍAS DE PROGRAMAS
+# =============================================================================
+path('programacion-canal/categorias/', views.categorias_programa_list, name='categorias_programa_list'),
+path('programacion-canal/categorias/crear-modal/', views.categoria_programa_create_modal, name='categoria_programa_create_modal'),
+path('programacion-canal/categorias/<int:categoria_id>/editar-modal/', views.categoria_programa_update_modal, name='categoria_programa_update_modal'),
+path('programacion-canal/categorias/<int:categoria_id>/eliminar-modal/', views.categoria_programa_delete_modal, name='categoria_programa_delete_modal'),
+path('api/categorias-programa/', views.api_categorias_programa, name='api_categorias_programa'),
+path('api/categorias-programa/<int:categoria_id>/', views.api_categoria_programa_detail, name='api_categoria_programa_detail'),
+path('api/categorias-programa/<int:categoria_id>/actualizar/', views.api_categoria_programa_update, name='api_categoria_programa_update'),
     # ==================== GRILLA PUBLICITARIA ====================
     path('grilla-publicitaria/', views.grilla_publicitaria_list, name='grilla_publicitaria_list'),
     path('grilla-publicitaria/api/asignar/', views.grilla_asignar_cuna_api, name='grilla_asignar_cuna_api'),

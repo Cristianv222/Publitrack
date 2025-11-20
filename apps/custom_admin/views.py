@@ -29,7 +29,7 @@ from apps.content_management.models import ContratoGenerado
 import plotly.express as px
 import plotly.offline as pyo
 import plotly.io as pio
-from apps.programacion_canal.models import ProgramacionSemanal, BloqueProgramacion
+from apps.programacion_canal.models import ProgramacionSemanal, BloqueProgramacion,  CategoriaPrograma
 from apps.grilla_publicitaria.models import TipoUbicacionPublicitaria, UbicacionPublicitaria, AsignacionCuña, GrillaPublicitaria
 from apps.content_management.models import CuñaPublicitaria
 # Obtener el modelo de usuario correcto
@@ -211,6 +211,144 @@ except ImportError as e:
     AsignacionCuña = None
     UbicacionPublicitaria = None
     TipoUbicacionPublicitaria = None
+# =============================================================================
+# VISTAS PARA CATEGORÍAS DE PROGRAMAS
+# =============================================================================
+
+@login_required
+def categorias_programa_list(request):
+    """Vista para listar categorías de programas"""
+    categorias = CategoriaPrograma.objects.all().order_by('orden', 'nombre')
+    
+    context = {
+        'section': 'transmisiones',
+        'categorias': categorias,
+    }
+    return render(request, 'custom_admin/programacion_canal/categorias_list.html', context)
+
+@login_required
+def categoria_programa_create_modal(request):
+    """Crear categoría via modal"""
+    if request.method == 'POST':
+        from apps.programacion_canal.forms import CategoriaProgramaForm
+        form = CategoriaProgramaForm(request.POST)
+        if form.is_valid():
+            categoria = form.save()
+            return JsonResponse({
+                'success': True,
+                'message': f'Categoría "{categoria.nombre}" creada exitosamente',
+                'categoria_id': categoria.id,
+                'categoria_nombre': categoria.nombre,
+                'categoria_color': categoria.color
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'errors': form.errors
+            })
+    
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+@login_required
+def categoria_programa_update_modal(request, categoria_id):
+    """Actualizar categoría via modal"""
+    if request.method == 'POST':
+        from apps.programacion_canal.forms import CategoriaProgramaForm
+        categoria = get_object_or_404(CategoriaPrograma, id=categoria_id)
+        form = CategoriaProgramaForm(request.POST, instance=categoria)
+        if form.is_valid():
+            categoria = form.save()
+            return JsonResponse({
+                'success': True,
+                'message': f'Categoría "{categoria.nombre}" actualizada exitosamente',
+                'categoria_id': categoria.id
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'errors': form.errors
+            })
+    
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+@login_required
+def categoria_programa_delete_modal(request, categoria_id):
+    """Eliminar categoría via modal"""
+    if request.method == 'POST':
+        from apps.programacion_canal.models import CategoriaPrograma
+        categoria = get_object_or_404(CategoriaPrograma, id=categoria_id)
+        
+        # Verificar si hay programas usando esta categoría
+        programas_count = categoria.programas.count()
+        if programas_count > 0:
+            return JsonResponse({
+                'success': False,
+                'error': f'No se puede eliminar la categoría. Hay {programas_count} programa(s) usando esta categoría.'
+            })
+        
+        nombre_categoria = categoria.nombre
+        categoria.delete()
+        return JsonResponse({
+            'success': True,
+            'message': f'Categoría "{nombre_categoria}" eliminada exitosamente'
+        })
+    
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+@login_required
+def api_categorias_programa(request):
+    """API para obtener categorías activas (para combobox)"""
+    categorias = CategoriaPrograma.objects.filter(estado='activo').order_by('orden', 'nombre')
+    
+    categorias_data = []
+    for categoria in categorias:
+        categorias_data.append({
+            'id': categoria.id,
+            'nombre': categoria.nombre,
+            'color': categoria.color,
+            'descripcion': categoria.descripcion,
+        })
+    
+    return JsonResponse({
+        'success': True,
+        'categorias': categorias_data
+    })
+@login_required
+def api_categoria_programa_detail(request, categoria_id):
+    """API para obtener detalle de categoría"""
+    categoria = get_object_or_404(CategoriaPrograma, id=categoria_id)
+    return JsonResponse({
+        'success': True,
+        'categoria': {
+            'id': categoria.id,
+            'nombre': categoria.nombre,
+            'descripcion': categoria.descripcion,
+            'color': categoria.color,
+            'estado': categoria.estado,
+            'orden': categoria.orden,
+            'programas_count': categoria.programas.count(),
+        }
+    })
+
+@login_required
+def api_categoria_programa_update(request, categoria_id):
+    """API para actualizar categoría"""
+    if request.method == 'POST':
+        from apps.programacion_canal.forms import CategoriaProgramaForm
+        categoria = get_object_or_404(CategoriaPrograma, id=categoria_id)
+        form = CategoriaProgramaForm(request.POST, instance=categoria)
+        if form.is_valid():
+            categoria = form.save()
+            return JsonResponse({
+                'success': True,
+                'message': f'Categoría "{categoria.nombre}" actualizada exitosamente'
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'errors': form.errors
+            })
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
 # ==================== APIs PARA PANTEONES ====================
 
 @login_required
@@ -7698,7 +7836,7 @@ def programacion_list(request):
     Vista ÚNICA de programación con todo integrado - Modales
     """
     try:
-        from apps.programacion_canal.models import Programa, ProgramacionSemanal, BloqueProgramacion
+        from apps.programacion_canal.models import Programa, ProgramacionSemanal, BloqueProgramacion, CategoriaPrograma
         from apps.programacion_canal.forms import ProgramaForm, ProgramacionSemanalForm, BloqueProgramacionForm
         PROGRAMACION_AVAILABLE = True
     except ImportError:
@@ -7709,6 +7847,9 @@ def programacion_list(request):
     # Obtener datos para la vista
     programas = Programa.objects.all().order_by('nombre')
     programaciones = ProgramacionSemanal.objects.all().order_by('-fecha_inicio_semana')
+    
+    # OBTENER CATEGORÍAS ACTIVAS PARA EL COMBOBOX
+    categorias_activas = CategoriaPrograma.objects.filter(estado='activo').order_by('orden', 'nombre')
     
     # Obtener parámetro de semana
     programacion_id = request.GET.get('programacion_id')
@@ -7756,6 +7897,7 @@ def programacion_list(request):
         'dias_semana': dias_semana,
         'horas_dia': horas_dia,
         'PROGRAMACION_AVAILABLE': PROGRAMACION_AVAILABLE,
+        'categorias_activas': categorias_activas,  # AGREGAR CATEGORÍAS AL CONTEXTO
     }
     
     return render(request, 'custom_admin/programacion_canal/programacion_list.html', context)

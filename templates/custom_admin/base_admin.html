@@ -1009,30 +1009,33 @@
                 </div>
             </div>
             
-            <!-- TRANSMISIONES -->
-            <div class="menu-section">
-                <div class="menu-section-title">TRANSMISIONES</div>
-                <div class="accordion menu-accordion" id="transmissionAccordion">
-                    <div class="accordion-item">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#transmissionCollapse">
-                                <i class="fas fa-broadcast-tower menu-icon"></i>
-                                <span>Control de Emisión</span>
-                            </button>
-                        </h2>
-                        <div id="transmissionCollapse" class="accordion-collapse collapse" data-bs-parent="#transmissionAccordion">
-                            <div class="accordion-body">
-                                <a href="{% url 'custom_admin:programacion_list' %}" class="submenu-link">
-                                    <i class="fa-regular fa-calendar-days"></i>Programación
-                                </a>
-                                <a href="#" class="submenu-link">
-                                    <i class="fas fa-play-circle"></i>En Vivo
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+<!-- TRANSMISIONES -->
+<div class="menu-section">
+    <div class="menu-section-title">TRANSMISIONES</div>
+    <div class="accordion menu-accordion" id="transmissionAccordion">
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#transmissionCollapse">
+                    <i class="fas fa-broadcast-tower menu-icon"></i>
+                    <span>Control de Emisión</span>
+                </button>
+            </h2>
+            <div id="transmissionCollapse" class="accordion-collapse collapse" data-bs-parent="#transmissionAccordion">
+                <div class="accordion-body">
+                    <a href="{% url 'custom_admin:programacion_list' %}" class="submenu-link">
+                        <i class="fa-regular fa-calendar-days"></i>Programación Canal
+                    </a>
+                    <a href="{% url 'custom_admin:categorias_programa_list' %}" class="submenu-link">
+                        <i class="fas fa-tags"></i>Categorías Programas
+                    </a>
+                    <a href="#" class="submenu-link">
+                        <i class="fas fa-play-circle"></i>En Vivo
+                    </a>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
             
             <!-- SEMÁFOROS -->
             <div class="menu-section">
@@ -1052,13 +1055,7 @@
                 </a>
             </div>
             
-            <!-- CONFIGURACIÓN -->
-            <div class="menu-section">
-                <a href="/admin/" class="menu-link">
-                    <i class="fas fa-tools menu-icon"></i>
-                    <span>Django Admin</span>
-                </a>
-            </div>
+            
         </div>
     </nav>
     

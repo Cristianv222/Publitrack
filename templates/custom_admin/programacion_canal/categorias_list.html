@@ -1,0 +1,386 @@
+{% extends 'custom_admin/base_admin.html' %}
+{% load static %}
+
+{% block title %}Categorías de Programas - PublicTrack{% endblock %}
+
+{% block header_title %}
+    <i class="fas fa-tags me-2"></i>Categorías de Programas
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h4 class="text-gray-800">
+                <i class="fas fa-tags text-primary me-2"></i>
+                Gestión de Categorías
+            </h4>
+            <p class="text-muted mb-0">Administra las categorías para organizar los programas</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <button class="btn btn-agregar" data-bs-toggle="modal" data-bs-target="#nuevaCategoriaModal">
+                <i class="fas fa-plus me-2"></i>Nueva Categoría
+            </button>
+        </div>
+    </div>
+
+    <!-- Lista de Categorías -->
+    <div class="row">
+        {% for categoria in categorias %}
+        <div class="col-xl-4 col-lg-6 mb-4">
+            <div class="programa-card">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="mb-0">
+                        <span class="programa-color" style="background: {{ categoria.color }};"></span>
+                        {{ categoria.nombre }}
+                    </h5>
+                    <span class="badge bg-{% if categoria.estado == 'activo' %}success{% else %}warning{% endif %}">
+                        {{ categoria.get_estado_display }}
+                    </span>
+                </div>
+                
+                <p class="text-muted small mb-2">{{ categoria.descripcion|default:"Sin descripción"|truncatewords:20 }}</p>
+                
+                <div class="programa-info mb-2">
+                    <small class="text-muted">
+                        <i class="fas fa-sort-numeric-up me-1"></i>Orden: {{ categoria.orden }}
+                        <i class="fas fa-tv ms-2 me-1"></i>{{ categoria.programas.count }} programa(s)
+                    </small>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge bg-light text-dark">ID: {{ categoria.id }}</span>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-editar" onclick="editarCategoria({{ categoria.id }})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-eliminar" onclick="eliminarCategoria({{ categoria.id }})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="fas fa-tags fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No hay categorías registradas</h5>
+                <p class="text-muted">Comienza creando la primera categoría para organizar tus programas.</p>
+                <button class="btn btn-agregar" data-bs-toggle="modal" data-bs-target="#nuevaCategoriaModal">
+                    <i class="fas fa-plus me-2"></i>Crear Primera Categoría
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal Nueva Categoría -->
+<div class="modal fade" id="nuevaCategoriaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>Nueva Categoría
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="categoriaForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre de la Categoría *</label>
+                        <input type="text" class="form-control" name="nombre" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" name="descripcion" rows="3" placeholder="Descripción de la categoría..."></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Color</label>
+                                <input type="color" class="form-control" name="color" value="#3498db">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Orden</label>
+                                <input type="number" class="form-control" name="orden" value="0" min="0">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Estado</label>
+                        <select class="form-select" name="estado">
+                            <option value="activo">Activo</option>
+                            <option value="inactivo">Inactivo</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-agregar" id="btnGuardarCategoria">
+                        <i class="fas fa-save me-2"></i>Guardar Categoría
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Categoría -->
+<div class="modal fade" id="editarCategoriaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>Editar Categoría
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editarCategoriaForm">
+                {% csrf_token %}
+                <div class="modal-body" id="editarCategoriaBody">
+                    <!-- Se llena dinámicamente -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-editar" id="btnActualizarCategoria">
+                        <i class="fas fa-save me-2"></i>Actualizar Categoría
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Funciones para categorías
+function editarCategoria(categoriaId) {
+    fetch(`/panel/api/categorias-programa/${categoriaId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const categoria = data.categoria;
+                const modalBody = document.getElementById('editarCategoriaBody');
+                
+                modalBody.innerHTML = `
+                    <div class="mb-3">
+                        <label class="form-label">Nombre de la Categoría *</label>
+                        <input type="text" class="form-control" name="nombre" value="${categoria.nombre}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" name="descripcion" rows="3">${categoria.descripcion || ''}</textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Color</label>
+                                <input type="color" class="form-control" name="color" value="${categoria.color}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Orden</label>
+                                <input type="number" class="form-control" name="orden" value="${categoria.orden}" min="0">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Estado</label>
+                        <select class="form-select" name="estado">
+                            <option value="activo" ${categoria.estado === 'activo' ? 'selected' : ''}>Activo</option>
+                            <option value="inactivo" ${categoria.estado === 'inactivo' ? 'selected' : ''}>Inactivo</option>
+                        </select>
+                    </div>
+                    <input type="hidden" name="categoria_id" value="${categoriaId}">
+                `;
+                
+                const modal = new bootstrap.Modal(document.getElementById('editarCategoriaModal'));
+                modal.show();
+            } else {
+                Swal.fire('Error', data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error', 'No se pudo cargar la información de la categoría', 'error');
+        });
+}
+
+function eliminarCategoria(categoriaId) {
+    Swal.fire({
+        title: '¿Eliminar categoría?',
+        text: 'Esta acción no se puede deshacer',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`{% url "custom_admin:categoria_programa_delete_modal" 0 %}`.replace('0', categoriaId), {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Eliminada', data.message, 'success').then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Ocurrió un error al eliminar la categoría', 'error');
+            });
+        }
+    });
+}
+
+// Formulario nueva categoría
+document.getElementById('categoriaForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    guardarCategoria();
+});
+
+// Formulario editar categoría
+document.getElementById('editarCategoriaForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    actualizarCategoria();
+});
+
+function guardarCategoria() {
+    const form = document.getElementById('categoriaForm');
+    const formData = new FormData(form);
+    const btn = document.getElementById('btnGuardarCategoria');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+
+    fetch('{% url "custom_admin:categoria_programa_create_modal" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('nuevaCategoriaModal'));
+            modal.hide();
+            
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: data.message,
+                timer: 3000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            let errorMessage = 'Por favor corrige los errores en el formulario';
+            if (data.errors) {
+                errorMessage += '\n\n' + Object.values(data.errors).join('\n');
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMessage
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Ocurrió un error al guardar la categoría'
+        });
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Categoría';
+    });
+}
+
+function actualizarCategoria() {
+    const formData = new FormData(document.getElementById('editarCategoriaForm'));
+    const categoriaId = formData.get('categoria_id');
+    const btn = document.getElementById('btnActualizarCategoria');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Actualizando...';
+
+    fetch(`/panel/api/categorias-programa/${categoriaId}/actualizar/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editarCategoriaModal'));
+            modal.hide();
+            
+            Swal.fire({
+                icon: 'success',
+                title: '¡Actualizada!',
+                text: data.message,
+                timer: 3000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            let errorMessage = 'Por favor corrige los errores en el formulario';
+            if (data.errors) {
+                errorMessage += '\n\n' + Object.values(data.errors).join('\n');
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMessage
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Ocurrió un error al actualizar la categoría'
+        });
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-2"></i>Actualizar Categoría';
+    });
+}
+</script>
+{% endblock %}

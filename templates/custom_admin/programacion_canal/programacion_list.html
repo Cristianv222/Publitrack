@@ -441,7 +441,7 @@
     </div>
     {% endif %}
 
-    <!-- Tabs principales - SOLO CALENDARIO Y PROGRAMAS -->
+    <!-- Tabs principales - CALENDARIO, PROGRAMAS Y CATEGORÍAS -->
     <ul class="nav nav-tabs nav-tabs-custom mb-4" id="programacionTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="calendario-tab" data-bs-toggle="tab" data-bs-target="#calendario" type="button" role="tab">
@@ -451,6 +451,11 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="programas-tab" data-bs-toggle="tab" data-bs-target="#programas" type="button" role="tab">
                 <i class="fas fa-list me-2"></i>Programas ({{ programas.count }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="categorias-tab" data-bs-toggle="tab" data-bs-target="#categorias" type="button" role="tab">
+                <i class="fas fa-tags me-2"></i>Categorías
             </button>
         </li>
     </ul>
@@ -632,7 +637,11 @@
                         <div class="programa-info mb-2">
                             <small class="text-muted">
                                 <i class="fas fa-clock me-1"></i>{{ programa.duracion_estandar }}
+                                {% if programa.categoria %}
+                                <i class="fas fa-tag ms-2 me-1"></i>{{ programa.categoria.nombre }}
+                                {% else %}
                                 <i class="fas fa-tag ms-2 me-1"></i>{{ programa.get_tipo_display }}
+                                {% endif %}
                                 {% if programa.es_serie %}
                                 <i class="fas fa-tv ms-2 me-1"></i>S{{ programa.temporada }}E{{ programa.episodio }}
                                 {% endif %}
@@ -642,6 +651,11 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <span class="badge bg-light text-dark">{{ programa.codigo }}</span>
+                                {% if programa.categoria %}
+                                <span class="badge" style="background: {{ programa.categoria.color }}; color: white;">
+                                    {{ programa.categoria.nombre }}
+                                </span>
+                                {% endif %}
                             </div>
                             <div class="btn-group">
                                 <button class="btn btn-ver" onclick="verPrograma({{ programa.id }})">
@@ -665,6 +679,77 @@
                         <p class="text-muted">Comienza creando el primer programa del canal.</p>
                         <button class="btn btn-agregar" data-bs-toggle="modal" data-bs-target="#nuevoProgramaModal">
                             <i class="fas fa-plus me-2"></i>Crear Primer Programa
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- TAB 3: CATEGORÍAS -->
+        <div class="tab-pane fade" id="categorias" role="tabpanel">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h4 class="text-gray-800">
+                        <i class="fas fa-tags text-primary me-2"></i>
+                        Gestión de Categorías
+                    </h4>
+                    <p class="text-muted mb-0">Administra las categorías para organizar los programas</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <button class="btn btn-agregar" data-bs-toggle="modal" data-bs-target="#nuevaCategoriaModal">
+                        <i class="fas fa-plus me-2"></i>Nueva Categoría
+                    </button>
+                </div>
+            </div>
+
+            <!-- Lista de Categorías -->
+            <div class="row">
+                {% for categoria in categorias_activas %}
+                <div class="col-xl-4 col-lg-6 mb-4">
+                    <div class="programa-card">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="mb-0">
+                                <span class="programa-color" style="background: {{ categoria.color }};"></span>
+                                {{ categoria.nombre }}
+                            </h5>
+                            <span class="badge bg-{% if categoria.estado == 'activo' %}success{% else %}warning{% endif %}">
+                                {{ categoria.get_estado_display }}
+                            </span>
+                        </div>
+                        
+                        <p class="text-muted small mb-2">{{ categoria.descripcion|default:"Sin descripción"|truncatewords:20 }}</p>
+                        
+                        <div class="programa-info mb-2">
+                            <small class="text-muted">
+                                <i class="fas fa-sort-numeric-up me-1"></i>Orden: {{ categoria.orden }}
+                                <i class="fas fa-tv ms-2 me-1"></i>{{ categoria.programas.count }} programa(s)
+                            </small>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-light text-dark">ID: {{ categoria.id }}</span>
+                            </div>
+                            <div class="btn-group">
+                                <button class="btn btn-editar" onclick="editarCategoria({{ categoria.id }})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-eliminar" onclick="eliminarCategoria({{ categoria.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="text-center py-5">
+                        <i class="fas fa-tags fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No hay categorías registradas</h5>
+                        <p class="text-muted">Comienza creando la primera categoría para organizar tus programas.</p>
+                        <button class="btn btn-agregar" data-bs-toggle="modal" data-bs-target="#nuevaCategoriaModal">
+                            <i class="fas fa-plus me-2"></i>Crear Primera Categoría
                         </button>
                     </div>
                 </div>
@@ -707,20 +792,12 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Tipo *</label>
-                                <select class="form-select" name="tipo" required>
-                                    <option value="">Seleccionar tipo...</option>
-                                    <option value="noticiero">Noticiero</option>
-                                    <option value="entretenimiento">Entretenimiento</option>
-                                    <option value="deportivo">Deportivo</option>
-                                    <option value="cultural">Cultural</option>
-                                    <option value="educativo">Educativo</option>
-                                    <option value="musical">Musical</option>
-                                    <option value="variedades">Variedades</option>
-                                    <option value="pelicula">Película</option>
-                                    <option value="serie">Serie</option>
-                                    <option value="documental">Documental</option>
-                                    <option value="otros">Otros</option>
+                                <label class="form-label">Categoría *</label>
+                                <select class="form-select" name="categoria" required>
+                                    <option value="">Seleccionar categoría...</option>
+                                    {% for categoria in categorias_activas %}
+                                    <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+                                    {% endfor %}
                                 </select>
                             </div>
                         </div>
@@ -795,6 +872,63 @@
     </div>
 </div>
 
+<!-- Modal Nueva Categoría -->
+<div class="modal fade" id="nuevaCategoriaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>Nueva Categoría
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="categoriaForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre de la Categoría *</label>
+                        <input type="text" class="form-control" name="nombre" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" name="descripcion" rows="3" placeholder="Descripción de la categoría..."></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Color</label>
+                                <input type="color" class="form-control" name="color" value="#3498db">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Orden</label>
+                                <input type="number" class="form-control" name="orden" value="0" min="0">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Estado</label>
+                        <select class="form-select" name="estado">
+                            <option value="activo">Activo</option>
+                            <option value="inactivo">Inactivo</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-agregar" id="btnGuardarCategoria">
+                        <i class="fas fa-save me-2"></i>Guardar Categoría
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Editar Programa -->
 <div class="modal fade" id="editarProgramaModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -814,6 +948,32 @@
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-editar" id="btnActualizarPrograma">
                         <i class="fas fa-save me-2"></i>Actualizar Programa
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Categoría -->
+<div class="modal fade" id="editarCategoriaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>Editar Categoría
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editarCategoriaForm">
+                {% csrf_token %}
+                <div class="modal-body" id="editarCategoriaBody">
+                    <!-- Se llena dinámicamente -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-editar" id="btnActualizarCategoria">
+                        <i class="fas fa-save me-2"></i>Actualizar Categoría
                     </button>
                 </div>
             </form>
@@ -1054,7 +1214,11 @@
                                     <span class="programa-color-modal" style="background: {{ programa.color }};"></span>
                                     <strong>{{ programa.nombre }}</strong>
                                     <small class="text-muted d-block ms-4">
+                                        {% if programa.categoria %}
+                                        {{ programa.categoria.nombre }} - {{ programa.duracion_estandar }}
+                                        {% else %}
                                         {{ programa.get_tipo_display }} - {{ programa.duracion_estandar }}
+                                        {% endif %}
                                     </small>
                                 </div>
                             </div>
@@ -1104,7 +1268,6 @@
 </div>
 
 {% endblock %}
-
 {% block extra_js %}
 <script>
 // Variables globales para la selección
@@ -1121,7 +1284,7 @@ let seleccionActual = {
 };
 
 // =============================================================================
-// FUNCIONALIDAD DE SELECCIÓN RÁPIDA EN CALENDARIO - CORREGIDA
+// FUNCIONALIDAD DE SELECCIÓN RÁPIDA EN CALENDARIO
 // =============================================================================
 
 function seleccionarCelda(celda, hora, diaIndex) {
@@ -1311,107 +1474,218 @@ function guardarBloqueRapido() {
 }
 
 // =============================================================================
-// FUNCIONES EXISTENTES (se mantienen igual)
+// FUNCIONES PARA CATEGORÍAS
 // =============================================================================
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
+function editarCategoria(categoriaId) {
+    fetch(`/panel/api/categorias-programa/${categoriaId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const categoria = data.categoria;
+                const modalBody = document.getElementById('editarCategoriaBody');
+                
+                modalBody.innerHTML = `
+                    <div class="mb-3">
+                        <label class="form-label">Nombre de la Categoría *</label>
+                        <input type="text" class="form-control" name="nombre" value="${categoria.nombre}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" name="descripcion" rows="3">${categoria.descripcion || ''}</textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Color</label>
+                                <input type="color" class="form-control" name="color" value="${categoria.color}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Orden</label>
+                                <input type="number" class="form-control" name="orden" value="${categoria.orden}" min="0">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Estado</label>
+                        <select class="form-select" name="estado">
+                            <option value="activo" ${categoria.estado === 'activo' ? 'selected' : ''}>Activo</option>
+                            <option value="inactivo" ${categoria.estado === 'inactivo' ? 'selected' : ''}>Inactivo</option>
+                        </select>
+                    </div>
+                    <input type="hidden" name="categoria_id" value="${categoriaId}">
+                `;
+                
+                const modal = new bootstrap.Modal(document.getElementById('editarCategoriaModal'));
+                modal.show();
+            } else {
+                Swal.fire('Error', data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error', 'No se pudo cargar la información de la categoría', 'error');
+        });
+}
+
+function eliminarCategoria(categoriaId) {
+    Swal.fire({
+        title: '¿Eliminar categoría?',
+        text: 'Esta acción no se puede deshacer',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`{% url "custom_admin:categoria_programa_delete_modal" 0 %}`.replace('0', categoriaId), {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Eliminada', data.message, 'success').then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Ocurrió un error al eliminar la categoría', 'error');
+            });
+        }
     });
+}
+
+function guardarCategoria() {
+    const form = document.getElementById('categoriaForm');
+    const formData = new FormData(form);
+    const btn = document.getElementById('btnGuardarCategoria');
     
-    // Auto-calcular fecha fin cuando se selecciona fecha inicio
-    const fechaInicio = document.querySelector('input[name="fecha_inicio_semana"]');
-    const fechaFin = document.querySelector('input[name="fecha_fin_semana"]');
-    
-    if (fechaInicio && fechaFin) {
-        fechaInicio.addEventListener('change', function() {
-            if (this.value) {
-                const fecha = new Date(this.value);
-                // Sumar 6 días para llegar al domingo
-                fecha.setDate(fecha.getDate() + 6);
-                const fechaFinStr = fecha.toISOString().split('T')[0];
-                fechaFin.value = fechaFinStr;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+
+    fetch('{% url "custom_admin:categoria_programa_create_modal" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('nuevaCategoriaModal'));
+            modal.hide();
+            
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: data.message,
+                timer: 3000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            let errorMessage = 'Por favor corrige los errores en el formulario';
+            if (data.errors) {
+                errorMessage += '\n\n' + Object.values(data.errors).join('\n');
             }
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMessage
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Ocurrió un error al guardar la categoría'
         });
-    }
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Categoría';
+    });
+}
 
-    // Manejo de formularios via modales
-    const programaForm = document.getElementById('programaForm');
-    if (programaForm) {
-        programaForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            guardarPrograma();
-        });
-    }
-
-    const programacionForm = document.getElementById('programacionForm');
-    if (programacionForm) {
-        programacionForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            guardarProgramacion();
-        });
-    }
-
-    // Selector de semana
-    const selectorSemana = document.getElementById('selectorSemana');
-    if (selectorSemana) {
-        selectorSemana.addEventListener('change', function() {
-            const programacionId = this.value;
-            if (programacionId) {
-                window.location.href = `?programacion_id=${programacionId}`;
-            }
-        });
-    }
-
-    // Formularios de edición
-    const editarProgramaForm = document.getElementById('editarProgramaForm');
-    if (editarProgramaForm) {
-        editarProgramaForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            actualizarPrograma();
-        });
-    }
-
-    const editarProgramacionForm = document.getElementById('editarProgramacionForm');
-    if (editarProgramacionForm) {
-        editarProgramacionForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            actualizarProgramacion();
-        });
-    }
-
-    const editarBloqueForm = document.getElementById('editarBloqueForm');
-    if (editarBloqueForm) {
-        editarBloqueForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            actualizarBloque();
-        });
-    }
-
-    // Formulario copiar semana
-    const copiarSemanaForm = document.getElementById('copiarSemanaForm');
-    if (copiarSemanaForm) {
-        copiarSemanaForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            copiarProgramacion();
-        });
-    }
-
-    // Toggle campos de serie
-    const esSerieCheckbox = document.getElementById('esSerie');
-    const serieFields = document.getElementById('serieFields');
+function actualizarCategoria() {
+    const formData = new FormData(document.getElementById('editarCategoriaForm'));
+    const categoriaId = formData.get('categoria_id');
+    const btn = document.getElementById('btnActualizarCategoria');
     
-    if (esSerieCheckbox && serieFields) {
-        esSerieCheckbox.addEventListener('change', function() {
-            serieFields.style.display = this.checked ? 'block' : 'none';
-        });
-    }
-});
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Actualizando...';
 
-// ... (EL RESTO DE LAS FUNCIONES EXISTENTES SE MANTIENEN IGUAL)
-// Funciones para guardar, editar, eliminar, etc.
+    fetch(`/panel/api/categorias-programa/${categoriaId}/actualizar/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editarCategoriaModal'));
+            modal.hide();
+            
+            Swal.fire({
+                icon: 'success',
+                title: '¡Actualizada!',
+                text: data.message,
+                timer: 3000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            let errorMessage = 'Por favor corrige los errores en el formulario';
+            if (data.errors) {
+                errorMessage += '\n\n' + Object.values(data.errors).join('\n');
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMessage
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Ocurrió un error al actualizar la categoría'
+        });
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-2"></i>Actualizar Categoría';
+    });
+}
+
+// =============================================================================
+// FUNCIONES PARA PROGRAMAS
+// =============================================================================
 
 function guardarPrograma() {
     const form = document.getElementById('programaForm');
@@ -1470,64 +1744,6 @@ function guardarPrograma() {
     });
 }
 
-function guardarProgramacion() {
-    const form = document.getElementById('programacionForm');
-    const formData = new FormData(form);
-    const btn = document.getElementById('btnGuardarProgramacion');
-    
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
-
-    fetch('{% url "custom_admin:programacion_semanal_create_modal" %}', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': '{{ csrf_token }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('nuevaProgramacionModal'));
-            modal.hide();
-            
-            Swal.fire({
-                icon: 'success',
-                title: '¡Éxito!',
-                text: data.message,
-                timer: 3000,
-                showConfirmButton: false
-            }).then(() => {
-                location.reload();
-            });
-        } else {
-            let errorMessage = 'Por favor corrige los errores en el formulario';
-            if (data.errors) {
-                errorMessage += '\n\n' + Object.values(data.errors).join('\n');
-            }
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: errorMessage
-            });
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Ocurrió un error al guardar la programación'
-        });
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Programación';
-    });
-}
-
-// Funciones para ver programas
 function verPrograma(programaId) {
     fetch(`/panel/api/programas/${programaId}/`)
         .then(response => response.json())
@@ -1548,8 +1764,8 @@ function verPrograma(programaId) {
                                 <p><span class="badge bg-primary">${programa.codigo}</span></p>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label fw-bold">Tipo:</label>
-                                <p>${programa.tipo_display}</p>
+                                <label class="form-label fw-bold">Categoría:</label>
+                                <p>${programa.categoria ? programa.categoria_nombre : programa.tipo_display}</p>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Duración:</label>
@@ -1640,20 +1856,14 @@ function editarPrograma(programaId) {
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Tipo *</label>
-                                <select class="form-select" name="tipo" required>
-                                    <option value="">Seleccionar tipo...</option>
-                                    <option value="noticiero" ${programa.tipo === 'noticiero' ? 'selected' : ''}>Noticiero</option>
-                                    <option value="entretenimiento" ${programa.tipo === 'entretenimiento' ? 'selected' : ''}>Entretenimiento</option>
-                                    <option value="deportivo" ${programa.tipo === 'deportivo' ? 'selected' : ''}>Deportivo</option>
-                                    <option value="cultural" ${programa.tipo === 'cultural' ? 'selected' : ''}>Cultural</option>
-                                    <option value="educativo" ${programa.tipo === 'educativo' ? 'selected' : ''}>Educativo</option>
-                                    <option value="musical" ${programa.tipo === 'musical' ? 'selected' : ''}>Musical</option>
-                                    <option value="variedades" ${programa.tipo === 'variedades' ? 'selected' : ''}>Variedades</option>
-                                    <option value="pelicula" ${programa.tipo === 'pelicula' ? 'selected' : ''}>Película</option>
-                                    <option value="serie" ${programa.tipo === 'serie' ? 'selected' : ''}>Serie</option>
-                                    <option value="documental" ${programa.tipo === 'documental' ? 'selected' : ''}>Documental</option>
-                                    <option value="otros" ${programa.tipo === 'otros' ? 'selected' : ''}>Otros</option>
+                                <label class="form-label">Categoría *</label>
+                                <select class="form-select" name="categoria" required>
+                                    <option value="">Seleccionar categoría...</option>
+                                    {% for categoria in categorias_activas %}
+                                    <option value="{{ categoria.id }}" ${programa.categoria_id == {{ categoria.id }} ? 'selected' : ''}>
+                                        {{ categoria.nombre }}
+                                    </option>
+                                    {% endfor %}
                                 </select>
                             </div>
                         </div>
@@ -1705,7 +1915,7 @@ function editarPrograma(programaId) {
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label class="form-label">Episodio</label>
-                                    <input type="number" class="formControl" name="episodio" value="${programa.episodio || ''}" min="1">
+                                    <input type="number" class="form-control" name="episodio" value="${programa.episodio || ''}" min="1">
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -1797,7 +2007,6 @@ function actualizarPrograma() {
     });
 }
 
-// Funciones para eliminar
 function eliminarPrograma(programaId) {
     Swal.fire({
         title: '¿Eliminar programa?',
@@ -1831,6 +2040,67 @@ function eliminarPrograma(programaId) {
                 Swal.fire('Error', 'Ocurrió un error al eliminar el programa', 'error');
             });
         }
+    });
+}
+
+// =============================================================================
+// FUNCIONES PARA PROGRAMACIÓN SEMANAL
+// =============================================================================
+
+function guardarProgramacion() {
+    const form = document.getElementById('programacionForm');
+    const formData = new FormData(form);
+    const btn = document.getElementById('btnGuardarProgramacion');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+
+    fetch('{% url "custom_admin:programacion_semanal_create_modal" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('nuevaProgramacionModal'));
+            modal.hide();
+            
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: data.message,
+                timer: 3000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            let errorMessage = 'Por favor corrige los errores en el formulario';
+            if (data.errors) {
+                errorMessage += '\n\n' + Object.values(data.errors).join('\n');
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMessage
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Ocurrió un error al guardar la programación'
+        });
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Programación';
     });
 }
 
@@ -1870,43 +2140,10 @@ function eliminarProgramacion(programacionId) {
     });
 }
 
-function eliminarBloque(bloqueId) {
-    Swal.fire({
-        title: '¿Eliminar bloque?',
-        text: 'Esta acción no se puede deshacer',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch(`{% url "custom_admin:bloque_programacion_delete_modal" 0 %}`.replace('0', bloqueId), {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Eliminado', data.message, 'success').then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire('Error', data.error, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire('Error', 'Ocurrió un error al eliminar el bloque', 'error');
-            });
-        }
-    });
-}
+// =============================================================================
+// FUNCIONES PARA BLOQUES DE PROGRAMACIÓN
+// =============================================================================
 
-// Funciones para bloques del calendario
 function mostrarAccionesBloque(elemento, bloqueId) {
     const acciones = elemento.querySelector('.acciones-bloque');
     if (acciones) {
@@ -1948,7 +2185,7 @@ function editarBloque(bloqueId) {
                             <option value="">Seleccionar programa...</option>
                             {% for programa in programas %}
                             <option value="{{ programa.id }}" ${bloque.programa_id == {{ programa.id }} ? 'selected' : ''}>
-                                {{ programa.nombre }} ({{ programa.get_tipo_display }})
+                                {{ programa.nombre }} ({{ programa.categoria.nombre|default:programa.get_tipo_display }})
                             </option>
                             {% endfor %}
                         </select>
@@ -2064,6 +2301,46 @@ function actualizarBloque() {
     });
 }
 
+function eliminarBloque(bloqueId) {
+    Swal.fire({
+        title: '¿Eliminar bloque?',
+        text: 'Esta acción no se puede deshacer',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`{% url "custom_admin:bloque_programacion_delete_modal" 0 %}`.replace('0', bloqueId), {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Eliminado', data.message, 'success').then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Ocurrió un error al eliminar el bloque', 'error');
+            });
+        }
+    });
+}
+
+// =============================================================================
+// FUNCIONES PARA COPIAR PROGRAMACIÓN
+// =============================================================================
+
 function abrirModalCopiarSemana(programacionId) {
     // Obtener información de la programación origen
     const programacionOrigen = document.querySelector(`#selectorSemana option[value="${programacionId}"]`);
@@ -2130,6 +2407,122 @@ function copiarProgramacion() {
     });
 }
 
+// =============================================================================
+// INICIALIZACIÓN Y EVENT LISTENERS
+// =============================================================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Auto-calcular fecha fin cuando se selecciona fecha inicio
+    const fechaInicio = document.querySelector('input[name="fecha_inicio_semana"]');
+    const fechaFin = document.querySelector('input[name="fecha_fin_semana"]');
+    
+    if (fechaInicio && fechaFin) {
+        fechaInicio.addEventListener('change', function() {
+            if (this.value) {
+                const fecha = new Date(this.value);
+                // Sumar 6 días para llegar al domingo
+                fecha.setDate(fecha.getDate() + 6);
+                const fechaFinStr = fecha.toISOString().split('T')[0];
+                fechaFin.value = fechaFinStr;
+            }
+        });
+    }
+
+    // Manejo de formularios via modales
+    const programaForm = document.getElementById('programaForm');
+    if (programaForm) {
+        programaForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            guardarPrograma();
+        });
+    }
+
+    const programacionForm = document.getElementById('programacionForm');
+    if (programacionForm) {
+        programacionForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            guardarProgramacion();
+        });
+    }
+
+    const categoriaForm = document.getElementById('categoriaForm');
+    if (categoriaForm) {
+        categoriaForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            guardarCategoria();
+        });
+    }
+
+    // Selector de semana
+    const selectorSemana = document.getElementById('selectorSemana');
+    if (selectorSemana) {
+        selectorSemana.addEventListener('change', function() {
+            const programacionId = this.value;
+            if (programacionId) {
+                window.location.href = `?programacion_id=${programacionId}`;
+            }
+        });
+    }
+
+    // Formularios de edición
+    const editarProgramaForm = document.getElementById('editarProgramaForm');
+    if (editarProgramaForm) {
+        editarProgramaForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            actualizarPrograma();
+        });
+    }
+
+    const editarProgramacionForm = document.getElementById('editarProgramacionForm');
+    if (editarProgramacionForm) {
+        editarProgramacionForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            actualizarProgramacion();
+        });
+    }
+
+    const editarCategoriaForm = document.getElementById('editarCategoriaForm');
+    if (editarCategoriaForm) {
+        editarCategoriaForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            actualizarCategoria();
+        });
+    }
+
+    const editarBloqueForm = document.getElementById('editarBloqueForm');
+    if (editarBloqueForm) {
+        editarBloqueForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            actualizarBloque();
+        });
+    }
+
+    // Formulario copiar semana
+    const copiarSemanaForm = document.getElementById('copiarSemanaForm');
+    if (copiarSemanaForm) {
+        copiarSemanaForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            copiarProgramacion();
+        });
+    }
+
+    // Toggle campos de serie
+    const esSerieCheckbox = document.getElementById('esSerie');
+    const serieFields = document.getElementById('serieFields');
+    
+    if (esSerieCheckbox && serieFields) {
+        esSerieCheckbox.addEventListener('change', function() {
+            serieFields.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+});
+
 // Limpiar formularios cuando se cierren los modales
 document.addEventListener('hidden.bs.modal', function (event) {
     const modal = event.target;
@@ -2150,5 +2543,4 @@ document.addEventListener('hidden.bs.modal', function (event) {
     }
 });
 </script>
-
 {% endblock %}

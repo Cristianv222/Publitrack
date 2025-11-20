@@ -5,7 +5,36 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
-
+class CategoriaPrograma(models.Model):
+    ESTADO_CHOICES = [
+        ('activo', 'Activo'),
+        ('inactivo', 'Inactivo'),
+    ]
+    
+    nombre = models.CharField(_('Nombre de la Categoría'), max_length=100, unique=True)
+    descripcion = models.TextField(_('Descripción'), blank=True)
+    color = models.CharField(_('Color'), max_length=7, default='#3498db', help_text='Color hexadecimal para identificar la categoría', blank=True)
+    estado = models.CharField(_('Estado'), max_length=10, choices=ESTADO_CHOICES, default='activo')
+    orden = models.PositiveIntegerField(_('Orden'), default=0, help_text='Orden de visualización', blank=True, null=True)
+    
+    # Metadatos
+    created_at = models.DateTimeField(_('Creado'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('Actualizado'), auto_now=True)
+    
+    class Meta:
+        verbose_name = _('Categoría de Programa')
+        verbose_name_plural = _('Categorías de Programas')
+        ordering = ['orden', 'nombre']
+    
+    def __str__(self):
+        return self.nombre
+    
+    def save(self, *args, **kwargs):
+        # Si no se especifica orden, asignar el siguiente disponible
+        if self.orden is None:
+            max_orden = CategoriaPrograma.objects.aggregate(models.Max('orden'))['orden__max']
+            self.orden = (max_orden or 0) + 1
+        super().save(*args, **kwargs)
 class Programa(models.Model):
     TIPO_PROGRAMA_CHOICES = [
         ('noticiero', 'Noticiero'),
@@ -30,6 +59,18 @@ class Programa(models.Model):
     # Información básica
     nombre = models.CharField(_('Nombre del Programa'), max_length=200)
     descripcion = models.TextField(_('Descripción'), blank=True)
+    
+    # Categoría personalizada (nuevo campo)
+    categoria = models.ForeignKey(
+        CategoriaPrograma,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='programas',
+        verbose_name=_('Categoría')
+    )
+    
+    # Tipo como respaldo (mantener para compatibilidad)
     tipo = models.CharField(_('Tipo'), max_length=20, choices=TIPO_PROGRAMA_CHOICES, default='entretenimiento')
     
     # Duración y características
@@ -128,6 +169,7 @@ class ProgramacionSemanal(models.Model):
     
         # Código más corto: PRG + Fecha(YYMMDD) + Timestamp(4)
         return f"PRG{fecha_str}{timestamp}"
+    
     def clean(self):
         if self.fecha_fin_semana <= self.fecha_inicio_semana:
             raise ValidationError('La fecha de fin debe ser posterior a la fecha de inicio.')
@@ -139,6 +181,7 @@ class ProgramacionSemanal(models.Model):
         # Verificar que sea un domingo
         if self.fecha_fin_semana.weekday() != 6:
             raise ValidationError('La fecha de fin debe ser un domingo.')
+
 class BloqueProgramacion(models.Model):
     DIA_SEMANA_CHOICES = [
         (0, _('Lunes')),
