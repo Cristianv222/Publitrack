@@ -21,8 +21,8 @@ AUTH_USER_MODEL = 'authentication.CustomUser'
 # =============================================================================
 
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-production')
-DEBUG = config('DEBUG', default=False, cast=bool)  # CAMBIADO: False por defecto
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='publictrack.fronteratech.ec,localhost,127.0.0.1', cast=Csv())  # CAMBIADO: tu dominio
+DEBUG = config('DEBUG', default=False, cast=bool)
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='publictrack.fronteratech.ec,localhost,127.0.0.1,146.190.217.68', cast=Csv())
 
 # =============================================================================
 # APPLICATION DEFINITION
@@ -65,7 +65,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # IMPORTANTE: Debe ir después de SecurityMiddleware
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -104,32 +104,29 @@ WSGI_APPLICATION = 'publictrack.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': config('DB_ENGINE', default='django.db.backends.postgresql'),
-        'NAME': config('DB_NAME', default='publictrack_prod'),  # CAMBIADO: _prod
+        'NAME': config('DB_NAME', default='publictrack_prod'),
         'USER': config('DB_USER', default='publictrack_user'),
-        'PASSWORD': config('DB_PASSWORD', default=''),  # OBLIGATORIO en producción
+        'PASSWORD': config('DB_PASSWORD', default=''),
         'HOST': config('DB_HOST', default='db'),
         'PORT': config('DB_PORT', default='5432'),
-        'CONN_MAX_AGE': 60,  # NUEVO: Conexiones persistentes
+        'CONN_MAX_AGE': 60,
     }
 }
 
 # =============================================================================
-# CONFIGURACIÓN DE CACHE
+# CONFIGURACIÓN DE CACHE - CORREGIDA
 # =============================================================================
 
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
         'LOCATION': config('REDIS_URL', default='redis://redis:6379/1'),
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        },
         'KEY_PREFIX': 'publictrack',
         'TIMEOUT': 300,
     }
 }
 
-SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'  # MEJORADO: cached_db
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 SESSION_CACHE_ALIAS = 'default'
 
 # =============================================================================
@@ -148,7 +145,7 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='https://publictrack.fronteratech.ec', cast=Csv())  # NUEVO
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='https://publictrack.fronteratech.ec', cast=Csv())
 
 # =============================================================================
 # VALIDACIÓN DE CONTRASEÑAS - REFORZADA
@@ -160,7 +157,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-        'OPTIONS': {'min_length': 10},  # AUMENTADO: 10 caracteres
+        'OPTIONS': {'min_length': 10},
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -175,7 +172,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # =============================================================================
 
 LANGUAGE_CODE = config('LANGUAGE_CODE', default='es-es')
-TIME_ZONE = config('TIME_ZONE', default='America/Guayaquil')  # CAMBIADO: Ecuador
+TIME_ZONE = config('TIME_ZONE', default='America/Guayaquil')
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
@@ -192,7 +189,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # CONFIGURACIÓN WHITENOISE MEJORADA
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-WHITENOISE_MAX_AGE = 31536000  # 1 año en segundos
+WHITENOISE_MAX_AGE = 31536000
 WHITENOISE_USE_FINDERS = True
 WHITENOISE_MANIFEST_STRICT = False
 WHITENOISE_ALLOW_ALL_ORIGINS = True
@@ -200,12 +197,12 @@ WHITENOISE_ALLOW_ALL_ORIGINS = True
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
-DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 FILE_UPLOAD_PERMISSIONS = 0o644
 
 # =============================================================================
-# CONFIGURACIÓN PWA
+# CONFIGURACIÓN PWA - CORREGIDA
 # =============================================================================
 
 PWA_APP_NAME = 'PublicTrack'
@@ -228,6 +225,12 @@ PWA_APP_ICONS = [
         'src': '/static/icons/icon-512x512.png',
         'sizes': '512x512',
         'type': 'image/png'
+    }
+]
+PWA_APP_ICONS_APPLE = [
+    {
+        'src': '/static/icons/icon-192x192.png',
+        'sizes': '192x192',
     }
 ]
 PWA_SERVICE_WORKER_PATH = os.path.join(BASE_DIR, 'static', 'serviceworker.js')
@@ -259,7 +262,7 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    SECURE_HSTS_SECONDS = 31536000  # 1 año
+    SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -267,6 +270,11 @@ if not DEBUG:
 # =============================================================================
 # LOGGING - CONFIGURADO PARA PRODUCCIÓN
 # =============================================================================
+
+# Crear directorio de logs si no existe
+LOGS_DIR = os.path.join(BASE_DIR, 'logs')
+if not os.path.exists(LOGS_DIR):
+    os.makedirs(LOGS_DIR)
 
 LOGGING = {
     'version': 1,
@@ -343,6 +351,8 @@ if DEBUG:
         "http://127.0.0.1:3000",
         "http://localhost:8000", 
         "http://127.0.0.1:8000",
+        "http://localhost:8001",
+        "http://127.0.0.1:8001",
     ])
 
 CORS_ALLOW_CREDENTIALS = True
@@ -368,11 +378,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Mensaje de confirmación
 if DEBUG:
+    print("=" * 80)
     print(" Settings de PubliTrack - MODO DESARROLLO")
     print(" PWA configurada")
     print(" Whitenoise activado para archivos estáticos")
+    print("=" * 80)
 else:
+    print("=" * 80)
     print(" Settings de PubliTrack - MODO PRODUCCIÓN")
-    print(" onfiguraciones de seguridad activadas")
+    print(" Configuraciones de seguridad activadas")
     print(" Email configurado para SMTP")
     print(" Dominio: publictrack.fronteratech.ec")
+    print("=" * 80)
