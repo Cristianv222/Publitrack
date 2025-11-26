@@ -2,104 +2,868 @@
 
 {% block title %}Dashboard - PublicTrack Admin{% endblock %}
 
+{% block extra_css %}
+<style>
+    .welcome-section {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        border: 1px solid #e2e8f0;
+    }
+    
+    .clock-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 30px;
+    }
+    
+    .flip-clock {
+        display: flex;
+        gap: 15px;
+        background: transparent;
+        padding: 0;
+    }
+    
+    .time-unit {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .time-label {
+        color: #64748b;
+        font-size: 0.8rem;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+    
+    .flip-card {
+        width: 80px;
+        height: 100px;
+        position: relative;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: 600;
+        font-family: 'Courier New', monospace;
+        color: #1e293b;
+        overflow: visible;
+        perspective: 1000px;
+    }
+    
+    .flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1;
+    }
+    
+    .flip-card-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: white;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transform-origin: top center;
+        transform-style: preserve-3d;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: 600;
+        font-family: 'Courier New', monospace;
+        color: #1e293b;
+        opacity: 0;
+        pointer-events: none;
+    }
+    
+    .flip-card-overlay.flipping {
+        opacity: 1;
+        animation: flipDown 0.8s ease-in forwards;
+    }
+    
+    @keyframes flipDown {
+        0% {
+            transform: rotateX(0deg);
+            opacity: 1;
+        }
+        100% {
+            transform: rotateX(90deg);
+            opacity: 0;
+        }
+    }
+    
+    .separator {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: #64748b;
+        font-size: 2.5rem;
+        font-weight: 500;
+        margin: 0 5px;
+        height: 100px;
+        padding-bottom: 25px;
+    }
+    
+    .separator span {
+        margin: 0;
+    }
+    
+    .greeting-section {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+    
+    .greeting-text {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 10px;
+    }
+    
+    .date-display {
+        font-size: 1.1rem;
+        color: #64748b;
+        margin-bottom: 5px;
+    }
+    
+    .modules-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-top: 30px;
+    }
+    
+    .module-card {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+    
+    .module-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        border-color: #3b82f6;
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    .module-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .module-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        color: white;
+        font-size: 1.3rem;
+    }
+    
+    .module-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0;
+    }
+    
+    .module-description {
+        color: #64748b;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        margin: 0;
+    }
+    
+    .welcome-message {
+        text-align: center;
+        margin-top: 40px;
+        padding: 25px;
+        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .message-text {
+        font-size: 1.1rem;
+        color: #475569;
+        font-style: italic;
+        margin: 0;
+        line-height: 1.6;
+    }
+    
+    .charts-section {
+        margin-top: 40px;
+    }
+    
+    .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 25px;
+        margin-top: 20px;
+    }
+    
+    .chart-card {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        border: 1px solid #e2e8f0;
+    }
+    
+    .chart-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f1f5f9;
+    }
+    
+    .chart-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        color: white;
+        font-size: 1.1rem;
+    }
+    
+    .chart-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<h2 class="mb-4">Dashboard</h2>
+<!-- Sección de Bienvenida -->
+<div class="welcome-section">
+    <!-- Reloj Flip -->
+    <div class="clock-container">
+        <div class="flip-clock">
+            <!-- Horas -->
+            <div class="time-unit">
+                <div class="time-label">Horas</div>
+                <div class="flip-card">
+                    <div class="flip-card-inner" id="hours-current">00</div>
+                    <div class="flip-card-overlay" id="hours-overlay">00</div>
+                </div>
+            </div>
+            
+            <div class="separator">
+                <span>:</span>
+            </div>
+            
+            <!-- Minutos -->
+            <div class="time-unit">
+                <div class="time-label">Minutos</div>
+                <div class="flip-card">
+                    <div class="flip-card-inner" id="minutes-current">00</div>
+                    <div class="flip-card-overlay" id="minutes-overlay">00</div>
+                </div>
+            </div>
+            
+            <div class="separator">
+                <span>:</span>
+            </div>
+            
+            <!-- Segundos -->
+            <div class="time-unit">
+                <div class="time-label">Segundos</div>
+                <div class="flip-card">
+                    <div class="flip-card-inner" id="seconds-current">00</div>
+                    <div class="flip-card-overlay" id="seconds-overlay">00</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Fecha actual -->
+    <div style="text-align: center; margin-bottom: 20px;">
+        <div class="date-display" id="current-date">Cargando...</div>
+    </div>
+    
+    <!-- Saludo -->
+    <div class="greeting-section">
+        <div class="greeting-text" id="greetingText">
+            Hola, {{ request.user.get_full_name|default:request.user.username }}
+        </div>
+    </div>
+    
+    <!-- Módulos de Trabajo -->
+    <div class="modules-grid">
+        <!-- Gestión de Usuarios -->
+        <a href="{% url 'custom_admin:usuarios_list' %}" class="module-card">
+            <div class="module-header">
+                <div class="module-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3 class="module-title">Gestión de Usuarios</h3>
+            </div>
+            <p class="module-description">
+                Administra usuarios, roles y permisos del sistema.
+            </p>
+        </a>
+        
+        <!-- Gestión de Clientes -->
+        <a href="{% url 'custom_admin:clientes_list' %}" class="module-card">
+            <div class="module-header">
+                <div class="module-icon">
+                    <i class="fas fa-handshake"></i>
+                </div>
+                <h3 class="module-title">Gestión de Clientes</h3>
+            </div>
+            <p class="module-description">
+                Gestiona la información de clientes y sus contratos.
+            </p>
+        </a>
+        
+        <!-- Contratos Publicitarios -->
+        <a href="{% url 'custom_admin:contratos_generados_list' %}" class="module-card">
+            <div class="module-header">
+                <div class="module-icon">
+                    <i class="fas fa-file-contract"></i>
+                </div>
+                <h3 class="module-title">Contratos</h3>
+            </div>
+            <p class="module-description">
+                Genera y gestiona contratos publicitarios automáticamente.
+            </p>
+        </a>
+        
+        <!-- Cuñas Publicitarias -->
+        <a href="{% url 'custom_admin:cunas_list' %}" class="module-card">
+            <div class="module-header">
+                <div class="module-icon">
+                    <i class="fas fa-bullhorn"></i>
+                </div>
+                <h3 class="module-title">Cuñas Publicitarias</h3>
+            </div>
+            <p class="module-description">
+                Crea y gestiona cuñas publicitarias para transmisión.
+            </p>
+        </a>
+        
+        <!-- Control de Emisión -->
+        <a href="{% url 'custom_admin:grilla_publicitaria_en_vivo' %}" class="module-card">
+            <div class="module-header">
+                <div class="module-icon">
+                    <i class="fas fa-broadcast-tower"></i>
+                </div>
+                <h3 class="module-title">Control de Emisión</h3>
+            </div>
+            <p class="module-description">
+                Monitorea y controla la programación en vivo del canal.
+            </p>
+        </a>
+        
+        <!-- Sistema de Semáforos -->
+        <a href="{% url 'custom_admin:semaforos_list' %}" class="module-card">
+            <div class="module-header">
+                <div class="module-icon">
+                    <i class="fas fa-traffic-light"></i>
+                </div>
+                <h3 class="module-title">Sistema de Semáforos</h3>
+            </div>
+            <p class="module-description">
+                Monitorea el estado de las cuñas y contratos con alertas.
+            </p>
+        </a>
 
-<!-- Tarjetas de estadísticas -->
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="stat-card primary">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h6 class="text-muted mb-2">Total Usuarios</h6>
-                    <h3 class="mb-0">{{ total_usuarios }}</h3>
+        <!-- Órdenes de Producción -->
+        <a href="{% url 'custom_admin:ordenes_produccion_list' %}" class="module-card">
+            <div class="module-header">
+                <div class="module-icon">
+                    <i class="fas fa-cogs"></i>
                 </div>
-                <div class="text-primary opacity-50">
-                    <i class="fas fa-users fa-2x"></i>
-                </div>
+                <h3 class="module-title">Órdenes de Producción</h3>
             </div>
-        </div>
+            <p class="module-description">
+                Gestiona las órdenes de producción para contenido publicitario.
+            </p>
+        </a>
+
+        <!-- Reportes y Analytics -->
+        <a href="{% url 'custom_admin:reportes_dashboard' %}" class="module-card">
+            <div class="module-header">
+                <div class="module-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <h3 class="module-title">Reportes y Analytics</h3>
+            </div>
+            <p class="module-description">
+                Genera reportes detallados y análisis de campañas.
+            </p>
+        </a>
     </div>
     
-    <div class="col-md-3">
-        <div class="stat-card success">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h6 class="text-muted mb-2">Usuarios Activos</h6>
-                    <h3 class="mb-0">{{ usuarios_activos }}</h3>
-                </div>
-                <div class="text-success opacity-50">
-                    <i class="fas fa-user-check fa-2x"></i>
-                </div>
-            </div>
-        </div>
+    <!-- Mensaje de Bienvenida -->
+    <div class="welcome-message">
+        <p class="message-text" id="welcomeMessage">
+            Bienvenido al sistema PublicTrack. Estamos listos para ayudarte a gestionar tus campañas publicitarias.
+        </p>
     </div>
     
-    <div class="col-md-3">
-        <div class="stat-card warning">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h6 class="text-muted mb-2">Cuñas Activas</h6>
-                    <h3 class="mb-0">{{ cunas_activas }}</h3>
-                    <small class="text-muted">Total: {{ total_cunas }}</small>
+    <!-- Sección de Gráficos -->
+    <div class="charts-section">
+        <div class="charts-grid">
+            <!-- Gráfico de Contratos por Mes -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3 class="chart-title">Contratos por Mes</h3>
                 </div>
-                <div class="text-warning opacity-50">
-                    <i class="fas fa-bullhorn fa-2x"></i>
+                <div class="chart-container">
+                    <canvas id="contractsChart"></canvas>
                 </div>
             </div>
-        </div>
-    </div>
-    
-    <div class="col-md-3">
-        <div class="stat-card danger">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h6 class="text-muted mb-2">Alertas Pendientes</h6>
-                    <h3 class="mb-0">{{ alertas_pendientes }}</h3>
+            
+            <!-- Gráfico de Cuñas Activas vs Vencidas -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-icon">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <h3 class="chart-title">Estado de Cuñas</h3>
                 </div>
-                <div class="text-danger opacity-50">
-                    <i class="fas fa-exclamation-triangle fa-2x"></i>
+                <div class="chart-container">
+                    <canvas id="cunasChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Gráfico de Ingresos Mensuales -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <h3 class="chart-title">Ingresos Mensuales</h3>
+                </div>
+                <div class="chart-container">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Gráfico de Clientes por Categoría -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3 class="chart-title">Clientes por Categoría</h3>
+                </div>
+                <div class="chart-container">
+                    <canvas id="clientsChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
-<!-- Actividad Reciente y Accesos Rápidos -->
-<div class="row">
-    <div class="col-md-8">
-        <div class="admin-card">
-            <div class="admin-card-header">
-                <h5 class="admin-card-title">Actividad Reciente</h5>
-            </div>
-            <div class="admin-card-body">
-                <p class="text-muted">No hay actividad reciente que mostrar.</p>
-            </div>
-        </div>
-    </div>
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// Variables para almacenar los valores anteriores
+let previousHours = '00';
+let previousMinutes = '00';
+let previousSeconds = '00';
+
+// Función para formatear números con ceros a la izquierda
+function formatTime(number) {
+    return number < 10 ? '0' + number : number;
+}
+
+// Función para animar la mitad superior que cae
+function animateDigit(unit, newValue, oldValue) {
+    if (newValue !== oldValue) {
+        const currentElement = document.getElementById(unit + '-current');
+        const overlayElement = document.getElementById(unit + '-overlay');
+        
+        // Mostrar el valor viejo en la mitad que va a caer
+        overlayElement.textContent = oldValue;
+        
+        // Iniciar animación de caída
+        overlayElement.classList.add('flipping');
+        
+        // Al mismo tiempo, actualizar el número de abajo
+        setTimeout(function() {
+            currentElement.textContent = newValue;
+        }, 100);
+        
+        // Limpiar después de la animación
+        setTimeout(function() {
+            overlayElement.classList.remove('flipping');
+            overlayElement.textContent = newValue;
+        }, 800);
+    }
+}
+
+// Función para actualizar el reloj
+function updateClock() {
+    const now = new Date();
     
-    <div class="col-md-4">
-        <div class="admin-card">
-            <div class="admin-card-header">
-                <h5 class="admin-card-title">Accesos Rápidos</h5>
-            </div>
-            <div class="admin-card-body">
-                <div class="d-grid gap-2">
-                    <a href="{% url 'custom_admin:cunas_list' %}" class="btn btn-admin-primary">
-                        <i class="fas fa-plus me-2"></i>Nueva Cuña
-                    </a>
-                    <a href="#" class="btn btn-admin-primary">
-                        <i class="fas fa-plus me-2"></i>Nueva Transmisión
-                    </a>
-<a href="{% url 'custom_admin:usuarios_list' %}" class="btn btn-admin-primary">
-    <i class="fas fa-plus me-2"></i>Nuevo Usuario
-</a>
-                    <a href="/admin/" class="btn btn-secondary">
-                        <i class="fas fa-tools me-2"></i>Django Admin
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+    // Obtener horas, minutos y segundos
+    const hours = formatTime(now.getHours());
+    const minutes = formatTime(now.getMinutes());
+    const seconds = formatTime(now.getSeconds());
+    
+    // Animar los cambios
+    animateDigit('hours', hours, previousHours);
+    animateDigit('minutes', minutes, previousMinutes);
+    animateDigit('seconds', seconds, previousSeconds);
+    
+    // Actualizar valores anteriores
+    previousHours = hours;
+    previousMinutes = minutes;
+    previousSeconds = seconds;
+    
+    // Actualizar fecha
+    const dateOptions = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    };
+    const dateString = now.toLocaleDateString('es-ES', dateOptions);
+    document.getElementById('current-date').textContent = 
+        dateString.charAt(0).toUpperCase() + dateString.slice(1);
+    
+    // Actualizar saludo según la hora
+    updateGreeting(now.getHours());
+}
+
+// Función para actualizar el saludo según la hora del día
+function updateGreeting(hour) {
+    const greetingElement = document.getElementById('greetingText');
+    let greeting = '';
+    
+    if (hour >= 5 && hour < 12) {
+        greeting = 'Buenos días, {{ request.user.get_full_name|default:request.user.username }}';
+    } else if (hour >= 12 && hour < 18) {
+        greeting = 'Buenas tardes, {{ request.user.get_full_name|default:request.user.username }}';
+    } else {
+        greeting = 'Buenas noches, {{ request.user.get_full_name|default:request.user.username }}';
+    }
+    
+    if (greetingElement) {
+        greetingElement.textContent = greeting;
+    }
+}
+
+// Frases de bienvenida aleatorias
+const welcomeMessages = [
+    "Bienvenido al sistema PublicTrack. Estamos listos para ayudarte a gestionar tus campañas publicitarias.",
+    "Tu trabajo hoy construye el éxito del mañana. Empecemos.",
+    "Cada campaña cuenta una historia única. Listo para crear la siguiente.",
+    "La innovación comienza con una idea simple. Hoy es un gran día para crear.",
+    "Tu dedicación hace la diferencia en cada transmisión.",
+    "Cada cliente es una nueva oportunidad de impacto publicitario."
+];
+
+function updateWelcomeMessage() {
+    const randomMessage = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
+    document.getElementById('welcomeMessage').textContent = randomMessage;
+}
+
+// Función para inicializar los gráficos
+function initCharts() {
+    // Configuración común para todos los gráficos
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 15,
+                    font: {
+                        size: 12,
+                        family: "'Inter', sans-serif"
+                    }
+                }
+            }
+        }
+    };
+    
+    // Gráfico 1: Contratos por Mes (Línea)
+    const contractsCtx = document.getElementById('contractsChart').getContext('2d');
+    new Chart(contractsCtx, {
+        type: 'line',
+        data: {
+            labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'],
+            datasets: [{
+                label: 'Contratos Generados',
+                data: [12, 19, 15, 25, 22, 30],
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                pointBackgroundColor: '#3b82f6',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: commonOptions.plugins,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: '#f1f5f9'
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Gráfico 2: Estado de Cuñas (Dona)
+    const cunasCtx = document.getElementById('cunasChart').getContext('2d');
+    new Chart(cunasCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Activas', 'Vencidas', 'Pendientes'],
+            datasets: [{
+                data: [45, 15, 10],
+                backgroundColor: [
+                    '#10b981',
+                    '#ef4444',
+                    '#f59e0b'
+                ],
+                borderWidth: 3,
+                borderColor: '#fff',
+                hoverOffset: 10
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        padding: 15,
+                        font: {
+                            size: 12,
+                            family: "'Inter', sans-serif"
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Gráfico 3: Ingresos Mensuales (Barras)
+    const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+    new Chart(revenueCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'],
+            datasets: [{
+                label: 'Ingresos ($)',
+                data: [15000, 22000, 18000, 28000, 24000, 32000],
+                backgroundColor: [
+                    'rgba(59, 130, 246, 0.8)',
+                    'rgba(16, 185, 129, 0.8)',
+                    'rgba(245, 158, 11, 0.8)',
+                    'rgba(139, 92, 246, 0.8)',
+                    'rgba(236, 72, 153, 0.8)',
+                    'rgba(239, 68, 68, 0.8)'
+                ],
+                borderColor: [
+                    '#3b82f6',
+                    '#10b981',
+                    '#f59e0b',
+                    '#8b5cf6',
+                    '#ec4899',
+                    '#ef4444'
+                ],
+                borderWidth: 2,
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: commonOptions.plugins,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: '#f1f5f9'
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        },
+                        callback: function(value) {
+                            return '$' + value.toLocaleString();
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Gráfico 4: Clientes por Categoría (Polar)
+    const clientsCtx = document.getElementById('clientsChart').getContext('2d');
+    new Chart(clientsCtx, {
+        type: 'polarArea',
+        data: {
+            labels: ['Retail', 'Servicios', 'Tecnología', 'Alimentos', 'Otros'],
+            datasets: [{
+                data: [25, 18, 15, 22, 12],
+                backgroundColor: [
+                    'rgba(59, 130, 246, 0.7)',
+                    'rgba(16, 185, 129, 0.7)',
+                    'rgba(245, 158, 11, 0.7)',
+                    'rgba(139, 92, 246, 0.7)',
+                    'rgba(236, 72, 153, 0.7)'
+                ],
+                borderColor: [
+                    '#3b82f6',
+                    '#10b981',
+                    '#f59e0b',
+                    '#8b5cf6',
+                    '#ec4899'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: commonOptions.plugins,
+            scales: {
+                r: {
+                    grid: {
+                        color: '#f1f5f9'
+                    },
+                    ticks: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Inicializar cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar con la hora actual
+    const now = new Date();
+    previousHours = formatTime(now.getHours());
+    previousMinutes = formatTime(now.getMinutes());
+    previousSeconds = formatTime(now.getSeconds());
+    
+    // Establecer valores iniciales
+    document.getElementById('hours-current').textContent = previousHours;
+    document.getElementById('minutes-current').textContent = previousMinutes;
+    document.getElementById('seconds-current').textContent = previousSeconds;
+    
+    document.getElementById('hours-overlay').textContent = previousHours;
+    document.getElementById('minutes-overlay').textContent = previousMinutes;
+    document.getElementById('seconds-overlay').textContent = previousSeconds;
+    
+    // Actualizar inmediatamente
+    updateClock();
+    updateWelcomeMessage();
+    
+    // Actualizar el reloj cada segundo
+    setInterval(updateClock, 1000);
+    
+    // Cambiar mensaje de bienvenida cada 30 segundos
+    setInterval(updateWelcomeMessage, 30000);
+    
+    // Efectos de animación para las tarjetas
+    const moduleCards = document.querySelectorAll('.module-card');
+    moduleCards.forEach(function(card, index) {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(function() {
+            card.style.transition = 'all 0.5s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+    
+    // Inicializar gráficos
+    initCharts();
+});
+</script>
 {% endblock %}

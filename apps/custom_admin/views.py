@@ -635,11 +635,37 @@ def contratos_generados_list(request):
     return render(request, 'custom_admin/contratos/list.html', context)
 @login_required
 @user_passes_test(is_admin)
+@require_http_methods(["GET"])  # ← CAMBIAR A GET
+def api_categorias_publicitarias(request):
+    """API para obtener todas las categorías publicitarias activas"""
+    try:
+        from apps.content_management.models import CategoriaPublicitaria
+        
+        categorias = CategoriaPublicitaria.objects.filter(
+            is_active=True
+        ).order_by('nombre')
+        
+        data = []
+        for categoria in categorias:
+            data.append({
+                'id': categoria.id,
+                'nombre': categoria.nombre,
+                'descripcion': categoria.descripcion or '',
+                'color_codigo': categoria.color_codigo,
+                'tarifa_base': str(categoria.tarifa_base),
+            })
+        
+        return JsonResponse({'success': True, 'categorias': data})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+@login_required
+@user_passes_test(is_admin)
 @require_http_methods(["POST"])
 def contrato_generar_api(request):
-    """API para generar un contrato desde una plantilla - VERSIÓN MEJORADA"""
+    """API para generar un contrato desde una plantilla - CON CATEGORÍA"""
     try:
-        from apps.content_management.models import ContratoGenerado
+        from apps.content_management.models import ContratoGenerado, CategoriaPublicitaria
         from datetime import datetime
         
         data = json.loads(request.body)
@@ -651,6 +677,15 @@ def contrato_generar_api(request):
         # ✅ OBTENER VENDEDOR ASIGNADO DEL CLIENTE
         vendedor_asignado = getattr(cliente, 'vendedor_asignado', None)
         
+        # ✅ OBTENER CATEGORÍA SI SE PROPORCIONA
+        categoria_id = data.get('categoria_id')
+        categoria = None
+        if categoria_id:
+            try:
+                categoria = CategoriaPublicitaria.objects.get(id=categoria_id, is_active=True)
+            except CategoriaPublicitaria.DoesNotExist:
+                pass
+        
         # Validar que la plantilla tenga archivo
         if not plantilla.archivo_plantilla:
             return JsonResponse({
@@ -658,11 +693,11 @@ def contrato_generar_api(request):
                 'error': 'La plantilla no tiene un archivo asociado'
             }, status=400)
         
-        # ✅ CREAR CONTRATO CON VENDEDOR ASIGNADO
+        # ✅ CREAR CONTRATO CON VENDEDOR ASIGNADO Y CATEGORÍA
         contrato = ContratoGenerado.objects.create(
             plantilla_usada=plantilla,
             cliente=cliente,
-            vendedor_asignado=vendedor_asignado,  # ✅ NUEVO CAMPO
+            vendedor_asignado=vendedor_asignado,
             nombre_cliente=cliente.empresa or cliente.get_full_name(),
             ruc_dni_cliente=cliente.ruc_dni or '',
             valor_sin_iva=Decimal(str(data['valor_total'])),
@@ -670,7 +705,7 @@ def contrato_generar_api(request):
             estado='borrador'
         )
         
-        # ✅ GUARDAR DATOS PARA USAR DESPUÉS AL CREAR LA CUÑA
+        # ✅ GUARDAR DATOS PARA USAR DESPUÉS AL CREAR LA CUÑA (INCLUYENDO CATEGORÍA)
         contrato.datos_generacion = {
             'FECHA_INICIO_RAW': data['fecha_inicio'],
             'FECHA_FIN_RAW': data['fecha_fin'],
@@ -678,8 +713,10 @@ def contrato_generar_api(request):
             'DURACION_SPOT': data.get('duracion_spot', 30),
             'VALOR_POR_SEGUNDO': data.get('valor_por_segundo', 0),
             'OBSERVACIONES': data.get('observaciones', ''),
-            'VENDEDOR_ASIGNADO_ID': vendedor_asignado.id if vendedor_asignado else None,  # ✅ GUARDAR ID DEL VENDEDOR
-            'VENDEDOR_ASIGNADO_NOMBRE': vendedor_asignado.get_full_name() if vendedor_asignado else None
+            'VENDEDOR_ASIGNADO_ID': vendedor_asignado.id if vendedor_asignado else None,
+            'VENDEDOR_ASIGNADO_NOMBRE': vendedor_asignado.get_full_name() if vendedor_asignado else None,
+            'CATEGORIA_ID': categoria.id if categoria else None,  # ✅ NUEVO: Guardar ID de categoría
+            'CATEGORIA_NOMBRE': categoria.nombre if categoria else None  # ✅ NUEVO: Guardar nombre de categoría
         }
         contrato.save()
         
@@ -690,7 +727,8 @@ def contrato_generar_api(request):
                 'message': 'Contrato generado exitosamente',
                 'contrato_id': contrato.id,
                 'numero_contrato': contrato.numero_contrato,
-                'vendedor_asignado': vendedor_asignado.get_full_name() if vendedor_asignado else 'No asignado',  # ✅ INFORMAR VENDEDOR
+                'vendedor_asignado': vendedor_asignado.get_full_name() if vendedor_asignado else 'No asignado',
+                'categoria_asignada': categoria.nombre if categoria else 'No asignada',  # ✅ NUEVO: Informar categoría
                 'archivo_url': contrato.archivo_contrato_pdf.url if contrato.archivo_contrato_pdf else None
             })
         else:

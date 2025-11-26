@@ -12,9 +12,9 @@
             <!-- Logo y Título -->
             <div class="text-center mb-4">
                 <div class="mb-3">
-                    <i class="fas fa-broadcast-tower text-primary" style="font-size: 4rem;"></i>
+                    <img src="{% static 'img/logo_publictrack_completo.PNG' %}" alt="PublicTrack" style="height: 80px; width: auto;">
                 </div>
-                <h2 class="fw-bold">PublicTrack</h2>
+                
                 <p class="text-muted">Sistema de Gestión de Publicidad Radial</p>
             </div>
             
@@ -125,15 +125,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const togglePassword = document.getElementById('togglePassword');
     const passwordField = document.getElementById('{{ form.password.id_for_label }}');
     
-    togglePassword.addEventListener('click', function() {
-        const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
-        passwordField.setAttribute('type', type);
-        
-        // Cambiar icono
-        const icon = this.querySelector('i');
-        icon.classList.toggle('fa-eye');
-        icon.classList.toggle('fa-eye-slash');
-    });
+    if (togglePassword && passwordField) {
+        togglePassword.addEventListener('click', function() {
+            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordField.setAttribute('type', type);
+            
+            // Cambiar icono
+            const icon = this.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
+        });
+    }
     
     // Form submission animation
     const loginForm = document.getElementById('loginForm');
@@ -141,11 +145,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const loginBtnText = document.getElementById('loginBtnText');
     const loginBtnLoading = document.getElementById('loginBtnLoading');
     
-    loginForm.addEventListener('submit', function() {
-        loginBtn.disabled = true;
-        loginBtnText.style.display = 'none';
-        loginBtnLoading.style.display = 'inline-block';
-    });
+    if (loginForm && loginBtn && loginBtnText && loginBtnLoading) {
+        loginForm.addEventListener('submit', function() {
+            loginBtn.disabled = true;
+            loginBtnText.style.display = 'none';
+            loginBtnLoading.style.display = 'inline-block';
+        });
+    }
     
     // Auto-focus en el primer campo vacío
     const usernameField = document.getElementById('{{ form.username.id_for_label }}');
