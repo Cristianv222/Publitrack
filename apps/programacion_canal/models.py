@@ -35,6 +35,7 @@ class CategoriaPrograma(models.Model):
             max_orden = CategoriaPrograma.objects.aggregate(models.Max('orden'))['orden__max']
             self.orden = (max_orden or 0) + 1
         super().save(*args, **kwargs)
+        
 class Programa(models.Model):
     TIPO_PROGRAMA_CHOICES = [
         ('noticiero', 'Noticiero'),

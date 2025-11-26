@@ -102,6 +102,14 @@
         font-size: 0.75rem;
         font-weight: 600;
     }
+    .categoria-badge {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
     .btn-group-sm .btn {
         padding: 0.25rem 0.5rem;
         font-size: 0.775rem;
@@ -123,6 +131,15 @@
     }
     .stat-card.pending {
         border-left: 4px solid #f59e0b;
+    }
+    .categoria-color-indicator {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+        border: 2px solid #fff;
+        box-shadow: 0 0 2px rgba(0,0,0,0.3);
     }
 </style>
 {% endblock %}
@@ -369,6 +386,29 @@
                     </div>
                     <div class="col-md-4">
                         <div class="mb-3">
+                            <label class="form-label">Categoría Publicitaria</label>
+                            <select class="form-select" id="categoriaSelect">
+                                <option value="">-- Seleccione una categoría (Opcional) --</option>
+                                <!-- Las categorías se cargarán dinámicamente -->
+                            </select>
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Categoría para clasificar la cuña publicitaria
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="mb-3">
+                            <label class="form-label">Observaciones (Opcional)</label>
+                            <textarea class="form-control" id="observaciones" rows="3" 
+                                      placeholder="Notas adicionales sobre el contrato..."></textarea>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
                             <label class="form-label">Total Calculado</label>
                             <div class="calculation-display" id="totalCalculado">
                                 <strong>S/ 0.00</strong>
@@ -383,12 +423,6 @@
                 
                 <!-- Campo oculto para enviar el valor total -->
                 <input type="hidden" id="valorTotal" name="valorTotal">
-                
-                <div class="mb-3">
-                    <label class="form-label">Observaciones (Opcional)</label>
-                    <textarea class="form-control" id="observaciones" rows="3" 
-                              placeholder="Notas adicionales sobre el contrato..."></textarea>
-                </div>
             </div>
             
             <!-- Botones de Acción -->
@@ -446,6 +480,7 @@
                         <th>Valor</th>
                         <th>Estado</th>
                         <th>Cuña</th>
+                        <th>Categoría</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -482,6 +517,15 @@
                                 <br><small>{{ contrato.cuña.codigo }}</small>
                             {% else %}
                                 <span class="badge bg-secondary">No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if contrato.cuña and contrato.cuña.categoria %}
+                                <span class="categoria-badge">
+                                    {{ contrato.cuña.categoria.nombre }}
+                                </span>
+                            {% else %}
+                                <span class="badge bg-light text-dark">Sin categoría</span>
                             {% endif %}
                         </td>
                         <td>
@@ -523,7 +567,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="text-center text-muted py-4">
+                        <td colspan="9" class="text-center text-muted py-4">
                             <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
                             No hay contratos generados aún
                         </td>
@@ -655,8 +699,8 @@
                                     <tr>
                                         <th>Repeticiones/día:</th>
                                         <td id="modalCuñaRepeticiones"></td>
-                                        <th></th>
-                                        <td></td>
+                                        <th>Categoría:</th>
+                                        <td id="modalCuñaCategoria"></td>
                                     </tr>
                                 </table>
                             </div>
@@ -700,12 +744,56 @@
 let plantillaSeleccionada = null;
 let clienteSeleccionado = null;
 let filtroActual = 'todos';
+let categoriasDisponibles = [];
 
 // Cargar plantillas al iniciar
 document.addEventListener('DOMContentLoaded', function() {
     cargarPlantillas();
     cargarClientes();
+    cargarCategorias();
 });
+
+// ✅ NUEVA FUNCIÓN: Cargar categorías publicitarias
+function cargarCategorias() {
+    fetch('/panel/api/categorias-publicitarias/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                categoriasDisponibles = data.categorias;
+                const select = document.getElementById('categoriaSelect');
+                
+                // Limpiar opciones existentes (excepto la primera)
+                while (select.options.length > 1) {
+                    select.remove(1);
+                }
+                
+                // Agregar categorías
+                data.categorias.forEach(categoria => {
+                    const option = document.createElement('option');
+                    option.value = categoria.id;
+                    option.textContent = categoria.nombre;
+                    option.dataset.color = categoria.color_codigo;
+                    option.dataset.descripcion = categoria.descripcion;
+                    option.dataset.tarifa = categoria.tarifa_base;
+                    
+                    // Agregar indicador de color
+                    const colorIndicator = document.createElement('span');
+                    colorIndicator.className = 'categoria-color-indicator';
+                    colorIndicator.style.backgroundColor = categoria.color_codigo;
+                    
+                    option.textContent = categoria.nombre;
+                    select.appendChild(option);
+                });
+                
+                console.log('Categorías cargadas:', data.categorias.length);
+            } else {
+                console.error('Error cargando categorías:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error cargando categorías:', error);
+        });
+}
 
 // Función para filtrar contratos
 function filtrarContratos(filtro) {
@@ -847,6 +935,12 @@ function verDetalleContrato(contratoId) {
             document.getElementById('modalCuñaFechaFin').textContent = contratoData.cuña_fecha_fin || 'N/A';
             document.getElementById('modalCuñaDuracion').textContent = contratoData.cuña_duracion || 'N/A';
             document.getElementById('modalCuñaRepeticiones').textContent = contratoData.cuña_repeticiones || 'N/A';
+            
+            // ✅ NUEVO: Mostrar categoría de la cuña
+            const categoriaNombre = contratoData.datos_generacion?.CATEGORIA_NOMBRE || 'No asignada';
+            document.getElementById('modalCuñaCategoria').innerHTML = categoriaNombre !== 'No asignada' ? 
+                `<span class="categoria-badge">${categoriaNombre}</span>` : 
+                '<span class="badge bg-light text-dark">Sin categoría</span>';
         } else {
             cuñaSection.style.display = 'none';
         }
@@ -857,7 +951,12 @@ function verDetalleContrato(contratoId) {
             let html = '<table class="table table-sm table-borderless">';
             for (const [key, value] of Object.entries(contratoData.datos_generacion)) {
                 if (value && !key.includes('_RAW')) {
-                    html += `<tr><td width="30%"><strong>${key.replace(/_/g, ' ').toUpperCase()}:</strong></td><td>${value}</td></tr>`;
+                    // ✅ NUEVO: Mostrar categoría en datos de generación
+                    if (key === 'CATEGORIA_NOMBRE') {
+                        html += `<tr><td width="30%"><strong>${key.replace(/_/g, ' ').toUpperCase()}:</strong></td><td><span class="categoria-badge">${value}</span></td></tr>`;
+                    } else {
+                        html += `<tr><td width="30%"><strong>${key.replace(/_/g, ' ').toUpperCase()}:</strong></td><td>${value}</td></tr>`;
+                    }
                 }
             }
             html += '</table>';
@@ -1149,6 +1248,7 @@ document.getElementById('contratoForm').addEventListener('submit', function(e) {
     const valorPorSegundo = document.getElementById('valorPorSegundo').value;
     const spotsDia = document.getElementById('spotsDia').value;
     const duracionSpot = document.getElementById('duracionSpot').value;
+    const categoriaId = document.getElementById('categoriaSelect').value;
     
     if (!fechaInicio || !fechaFin || !valorPorSegundo || !spotsDia || !duracionSpot) {
         Swal.fire({
@@ -1179,7 +1279,7 @@ document.getElementById('contratoForm').addEventListener('submit', function(e) {
         return;
     }
     
-    // Preparar datos para enviar
+    // ✅ PREPARAR DATOS CON CATEGORÍA
     const formData = {
         plantilla_id: plantillaSeleccionada,
         cliente_id: clienteSeleccionado,
@@ -1189,7 +1289,8 @@ document.getElementById('contratoForm').addEventListener('submit', function(e) {
         valor_total: totalCalculado, // Usamos el valor calculado
         spots_dia: parseInt(spotsDia),
         duracion_spot: parseInt(duracionSpot),
-        observaciones: document.getElementById('observaciones').value || ''
+        observaciones: document.getElementById('observaciones').value || '',
+        categoria_id: categoriaId || null  // ✅ NUEVO: Incluir categoría
     };
     
     console.log('Datos a enviar:', formData);
@@ -1202,6 +1303,7 @@ document.getElementById('contratoForm').addEventListener('submit', function(e) {
                Valor: S/ ${valorPorSegundo} por segundo<br>
                Duración: ${duracionSpot} segundos<br>
                Spots/día: ${spotsDia}<br>
+               Categoría: ${categoriaId ? 'Seleccionada' : 'No seleccionada'}<br>
                Total: S/ ${totalCalculado.toFixed(2)}
                </small>`,
         allowOutsideClick: false,
@@ -1233,6 +1335,7 @@ document.getElementById('contratoForm').addEventListener('submit', function(e) {
                     Duración spot: ${duracionSpot} segundos<br>
                     Spots por día: ${spotsDia}<br>
                     Días contrato: ${calcularDiasContrato(fechaInicio, fechaFin)}<br>
+                    Categoría: ${data.categoria_asignada || 'No asignada'}<br>
                     <strong>Total: S/ ${totalCalculado.toFixed(2)}</strong>
                     </small>
                 `,

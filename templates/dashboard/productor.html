@@ -1,916 +1,760 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load static %}
 
-{% block title %}Dashboard Productor - PublicTrack{% endblock %}
+{% block title %}Dashboard Productor{% endblock %}
 
+{# ================================================== #}
+{# ESTILOS ESPECÍFICOS - AHORA EN BLOQUE extra_css    #}
+{# ================================================== #}
 {% block extra_css %}
 <style>
-    :root {
-        --primary-color: #2563eb;
-        --primary-dark: #1e40af;
-        --secondary-color: #64748b;
-        --success-color: #10b981;
-        --warning-color: #f59e0b;
-        --danger-color: #ef4444;
-        --info-color: #06b6d4;
-        --light-bg: #f8fafc;
-        --border-color: #e2e8f0;
-        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    /* Estilos del calendario (igual que programación del canal) */
+    .calendario-grid {
+        display: grid;
+        grid-template-columns: 80px repeat(7, 1fr);
+        gap: 1px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
     }
-
-    body {
-        background-color: var(--light-bg);
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    }
-
-    /* Header */
-    .page-header {
-        background: white;
-        border-bottom: 1px solid var(--border-color);
-        padding: 1.5rem 0;
-        margin-bottom: 2rem;
-    }
-
-    .page-title {
-        font-size: 1.875rem;
-        font-weight: 700;
-        color: #1e293b;
-        margin: 0;
-    }
-
-    .page-subtitle {
-        color: var(--secondary-color);
-        font-size: 0.875rem;
-        margin: 0.25rem 0 0 0;
-    }
-
-    /* Stat Cards */
-    .stat-card {
-        background: white;
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        transition: all 0.2s ease;
-        height: 100%;
-    }
-
-    .stat-card:hover {
-        box-shadow: var(--shadow-lg);
-        border-color: #cbd5e1;
-    }
-
-    .stat-card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 1rem;
-    }
-
-    .stat-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
-    }
-
-    .stat-icon.primary {
-        background-color: #eff6ff;
-        color: var(--primary-color);
-    }
-
-    .stat-icon.warning {
-        background-color: #fffbeb;
-        color: var(--warning-color);
-    }
-
-    .stat-icon.success {
-        background-color: #f0fdf4;
-        color: var(--success-color);
-    }
-
-    .stat-icon.info {
-        background-color: #ecfeff;
-        color: var(--info-color);
-    }
-
-    .stat-label {
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: var(--secondary-color);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 0.5rem;
-    }
-
-    .stat-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #0f172a;
-        line-height: 1;
-        margin-bottom: 0.25rem;
-    }
-
-    .stat-description {
-        font-size: 0.875rem;
-        color: var(--secondary-color);
-    }
-
-    .stat-trend {
-        display: inline-flex;
-        align-items: center;
-        font-size: 0.75rem;
-        font-weight: 600;
-        padding: 0.25rem 0.5rem;
-        border-radius: 6px;
-        margin-top: 0.5rem;
-    }
-
-    .stat-trend.up {
-        background-color: #f0fdf4;
-        color: var(--success-color);
-    }
-
-    .stat-trend.down {
-        background-color: #fef2f2;
-        color: var(--danger-color);
-    }
-
-    /* Main Card */
-    .main-card {
-        background: white;
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        overflow: hidden;
-    }
-
-    .card-header-pro {
-        padding: 1.25rem 1.5rem;
-        border-bottom: 1px solid var(--border-color);
-        background: white;
-    }
-
-    .card-title-pro {
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #0f172a;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .card-body-pro {
-        padding: 0;
-    }
-
-    /* Project Items */
-    .project-item {
-        padding: 1.25rem 1.5rem;
-        border-bottom: 1px solid var(--border-color);
-        transition: all 0.2s ease;
-        cursor: pointer;
-    }
-
-    .project-item:last-child {
-        border-bottom: none;
-    }
-
-    .project-item:hover {
-        background-color: #f8fafc;
-    }
-
-    .project-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 0.75rem;
-    }
-
-    .project-title {
-        font-size: 1rem;
-        font-weight: 600;
-        color: #0f172a;
-        margin: 0 0 0.5rem 0;
-    }
-
-    .project-meta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 1rem;
-        font-size: 0.875rem;
-        color: var(--secondary-color);
-    }
-
-    .project-meta-item {
-        display: flex;
-        align-items: center;
-        gap: 0.375rem;
-    }
-
-    .project-meta-item i {
-        font-size: 0.75rem;
-    }
-
-    /* Status Badges */
-    .status-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.375rem;
-        padding: 0.375rem 0.75rem;
-        border-radius: 6px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-
-    .status-badge.produccion {
-        background-color: #eff6ff;
-        color: var(--primary-color);
-        border: 1px solid #bfdbfe;
-    }
-
-    .status-badge.pendiente {
-        background-color: #fffbeb;
-        color: #d97706;
-        border: 1px solid #fde68a;
-    }
-
-    .status-badge.aprobada {
-        background-color: #f0fdf4;
-        color: var(--success-color);
-        border: 1px solid #bbf7d0;
-    }
-
-    .status-badge.activa {
-        background-color: #ecfeff;
-        color: var(--info-color);
-        border: 1px solid #a5f3fc;
-    }
-
-    /* Action Buttons */
-    .action-buttons {
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .action-btn {
-        width: 36px;
-        height: 36px;
-        padding: 0;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
-        background: white;
-        color: var(--secondary-color);
-        transition: all 0.2s ease;
-        cursor: pointer;
-    }
-
-    .action-btn:hover {
-        background-color: var(--primary-color);
+    
+    .calendario-header {
+        background: #6c757d;
         color: white;
-        border-color: var(--primary-color);
-        transform: translateY(-1px);
+        padding: 12px 8px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 0.85rem;
     }
-
-    /* Filter Pills */
-    .filter-pills {
-        display: flex;
-        gap: 0.5rem;
+    
+    .calendario-hora {
+        background: #f8f9fa;
+        padding: 8px;
+        text-align: center;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #495057;
+        border-right: 1px solid #dee2e6;
     }
-
-    .filter-pill {
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
+    
+    .calendario-celda {
         background: white;
-        color: var(--secondary-color);
-        font-size: 0.875rem;
-        font-weight: 500;
+        min-height: 80px;
+        padding: 4px;
+        border-right: 1px solid #dee2e6;
+        border-bottom: 1px solid #dee2e6;
+        position: relative;
         cursor: pointer;
-        transition: all 0.2s ease;
     }
-
-    .filter-pill:hover {
-        border-color: var(--primary-color);
-        color: var(--primary-color);
+    
+    .calendario-celda:hover {
+        background-color: #f8f9fa !important;
     }
-
-    .filter-pill.active {
-        background-color: var(--primary-color);
+    
+    /* Bloques de programación */
+    .bloque-programacion {
+        background: #4dabf7;
         color: white;
-        border-color: var(--primary-color);
+        padding: 4px 6px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        margin-bottom: 2px;
+        border-left: 3px solid;
+        position: relative;
+        min-height: 60px;
     }
-
-    /* Quick Actions */
-    .quick-action-btn {
+    
+    /* Contenedor para las bolitas - en la parte inferior */
+    .contenedor-bolitas {
+        position: absolute;
+        bottom: 2px;
+        left: 0;
+        right: 0;
+        height: 20px;
         display: flex;
+        justify-content: center;
         align-items: center;
-        gap: 0.75rem;
-        padding: 0.875rem 1rem;
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
-        background: white;
-        color: #0f172a;
-        font-weight: 500;
-        transition: all 0.2s ease;
-        text-decoration: none;
+        gap: 3px;
+        padding: 0 5px;
     }
-
-    .quick-action-btn:hover {
-        background-color: var(--light-bg);
-        border-color: var(--primary-color);
-        color: var(--primary-color);
-        transform: translateX(4px);
-    }
-
-    .quick-action-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 8px;
+    
+    /* Bolitas de ubicaciones */
+    .bolita-ubicacion {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.125rem;
+        font-size: 9px;
+        color: white;
+        font-weight: bold;
+        transition: all 0.2s ease;
+        border: 1px solid rgba(255,255,255,0.5);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
         flex-shrink: 0;
     }
-
-    .quick-action-icon.primary {
-        background-color: #eff6ff;
-        color: var(--primary-color);
+    
+    .bolita-ubicacion:hover {
+        transform: scale(1.3);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
     }
-
-    .quick-action-icon.success {
-        background-color: #f0fdf4;
-        color: var(--success-color);
+    
+    /* Colores para las bolitas */
+    .bolita-sin-cunas {
+        background: linear-gradient(135deg, #ffd43b, #fcc419);
     }
-
-    .quick-action-icon.info {
-        background-color: #ecfeff;
-        color: var(--info-color);
+    
+    .bolita-con-cunas {
+        background: linear-gradient(135deg, #51cf66, #40c057);
     }
-
-    .quick-action-icon.secondary {
-        background-color: #f1f5f9;
-        color: var(--secondary-color);
+    
+    .bolita-ocupada {
+        background: linear-gradient(135deg, #fa5252, #e03131);
     }
-
-    /* Progress Bars */
-    .progress-container {
-        margin-top: 0.75rem;
+    
+    /* Contador de ubicaciones */
+    .contador-ubicaciones {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        background: rgba(0,0,0,0.7);
+        color: white;
+        border-radius: 50%;
+        width: 16px;
+        height: 16px;
+        font-size: 0.6rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 5;
     }
-
-    .progress-header {
+    
+    /* Indicador de hora en las bolitas */
+    .hora-bolita {
+        position: absolute;
+        bottom: -15px;
+        font-size: 0.5rem;
+        color: #666;
+        white-space: nowrap;
+    }
+    
+    /* Ubicaciones publicitarias */
+    .ubicacion-publicitaria {
+        background: #fff9db;
+        border: 1px solid #ffd43b;
+        border-radius: 4px;
+        padding: 4px 6px;
+        margin-bottom: 2px;
+        font-size: 0.7rem;
+        position: relative;
+    }
+    
+    .ubicacion-header {
+        font-weight: bold;
+        color: #000;
+        font-size: 0.7rem;
+    }
+    
+    .ubicacion-info {
+        color: #666;
+        font-size: 0.65rem;
+    }
+    
+    /* Asignaciones de cuñas */
+    .asignacion-cuna {
+        background: #51cf66;
+        color: white;
+        border-radius: 3px;
+        padding: 2px 4px;
+        margin-top: 2px;
+        font-size: 0.65rem;
+        border-left: 2px solid #2b8a3e;
+    }
+    
+    .cuna-info {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 0.5rem;
     }
-
-    .progress-label {
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #475569;
+    
+    .cuna-codigo {
+        font-weight: bold;
     }
-
-    .progress-value {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: #0f172a;
+    
+    .cuna-duracion {
+        font-size: 0.6rem;
+        opacity: 0.9;
     }
-
-    .progress-bar-custom {
-        height: 8px;
-        background-color: #f1f5f9;
-        border-radius: 4px;
-        overflow: hidden;
-    }
-
-    .progress-fill {
-        height: 100%;
-        border-radius: 4px;
-        transition: width 0.5s ease;
-    }
-
-    .progress-fill.primary {
-        background-color: var(--primary-color);
-    }
-
-    .progress-fill.success {
-        background-color: var(--success-color);
-    }
-
-    .progress-fill.warning {
-        background-color: var(--warning-color);
-    }
-
-    .progress-fill.info {
-        background-color: var(--info-color);
-    }
-
-    /* Empty State */
-    .empty-state {
-        padding: 4rem 2rem;
-        text-align: center;
-    }
-
-    .empty-state-icon {
-        width: 80px;
-        height: 80px;
-        margin: 0 auto 1.5rem;
-        background-color: #f8fafc;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 2rem;
-        color: var(--secondary-color);
-    }
-
-    .empty-state-title {
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #0f172a;
-        margin-bottom: 0.5rem;
-    }
-
-    .empty-state-description {
-        font-size: 0.875rem;
-        color: var(--secondary-color);
-    }
-
-    /* Date Badge */
-    .date-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1rem;
-        background-color: white;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        font-size: 0.875rem;
-        color: var(--secondary-color);
-    }
-
-    /* Notification Badge */
-    .notification-badge {
-        position: relative;
-        display: inline-flex;
-    }
-
-    .notification-count {
-        position: absolute;
-        top: -8px;
-        right: -8px;
-        min-width: 20px;
-        height: 20px;
-        padding: 0 6px;
-        background-color: var(--danger-color);
+    
+    .btn-asignar {
+        background: #51cf66;
+        border: none;
         color: white;
-        border-radius: 10px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 0.6rem;
+        cursor: pointer;
+        margin-top: 2px;
+        width: 100%;
     }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-        .page-header {
-            padding: 1rem 0;
-        }
-
-        .page-title {
-            font-size: 1.5rem;
-        }
-
-        .stat-value {
-            font-size: 1.75rem;
-        }
-
-        .filter-pills {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
+    
+    .btn-asignar:hover {
+        background: #40c057;
+    }
+    
+    .btn-eliminar-asignacion {
+        background: #fa5252;
+        border: none;
+        color: white;
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-size: 0.6rem;
+        cursor: pointer;
+        margin-left: 2px;
+    }
+    
+    .btn-eliminar-asignacion:hover {
+        background: #e03131;
+    }
+    
+    /* Leyenda */
+    .leyenda-superior {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-bottom: 16px;
+        border: 1px solid #e9ecef;
+    }
+    
+    .estadisticas-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .estadistica-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #4dabf7;
+    }
+    
+    .estadistica-card.success {
+        border-left-color: #51cf66;
+    }
+    
+    .estadistica-card.warning {
+        border-left-color: #ffd43b;
+    }
+    
+    .estadistica-card.info {
+        border-left-color: #339af0;
+    }
+    
+    .estadistica-valor {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .estadistica-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    
+    .celda-vacia {
+        color: #6c757d;
+        font-size: 0.7rem;
+        text-align: center;
+        padding: 5px;
+    }
+    
+    /* Tooltip personalizado para bolitas */
+    .bolita-tooltip {
+        position: relative;
+    }
+    
+    .bolita-tooltip:hover::after {
+        content: attr(title);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        white-space: nowrap;
+        z-index: 1000;
     }
 </style>
-{% endblock %}
+{% endblock extra_css %}
 
+{# ================================================== #}
+{# CONTENIDO PRINCIPAL - ÚNICO BLOQUE content         #}
+{# ================================================== #}
 {% block content %}
-<div class="container-fluid px-4 py-4">
-    <!-- Page Header -->
-    <div class="page-header">
-        <div class="row align-items-center">
-            <div class="col-md-6">
-                <h1 class="page-title">
-                    <i class="fas fa-video me-2" style="color: var(--primary-color);"></i>
-                    Dashboard de Producción
-                </h1>
-                <p class="page-subtitle">
-                    Bienvenido, <strong>{{ user.get_full_name }}</strong> • {{ user.email }}
-                </p>
-            </div>
-            <div class="col-md-6 text-md-end mt-3 mt-md-0">
-                <div class="date-badge">
-                    <i class="far fa-calendar-alt"></i>
-                    <span>{{ hoy|date:"l, d F Y" }}</span>
-                </div>
-                <div class="date-badge ms-2">
-                    <i class="far fa-clock"></i>
-                    <span id="reloj-tiempo-real"></span>
-                </div>
-            </div>
+<div class="container-fluid">
+    {% if not grilla_available %}
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        El módulo de Grilla Publicitaria no está disponible.
+    </div>
+    {% else %}
+    
+    <!-- Header y Filtros -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h4 class="text-gray-800">
+                <i class="fas fa-calendar-alt text-primary me-2"></i>
+                Grilla Publicitaria
+            </h4>
+            {% if programacion_actual %}
+            <p class="text-muted mb-0">
+                {{ programacion_actual.nombre }} - 
+                Del {{ programacion_actual.fecha_inicio_semana|date:"d/m/Y" }} al {{ programacion_actual.fecha_fin_semana|date:"d/m/Y" }}
+            </p>
+            {% endif %}
+        </div>
+        <div class="col-md-6 text-end">
+            <form method="get" class="d-inline">
+                <select name="programacion_id" class="form-select d-inline-block w-auto" onchange="this.form.submit()">
+                    <option value="">Seleccionar programación...</option>
+                    {% for programacion in programaciones %}
+                    <option value="{{ programacion.id }}" 
+                            {% if programacion_actual and programacion.id == programacion_actual.id %}selected{% endif %}>
+                        {{ programacion.nombre }} ({{ programacion.fecha_inicio_semana|date:"d/m/Y" }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </form>
         </div>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="row g-4 mb-4">
-        <!-- En Producción -->
-        <div class="col-xl-3 col-md-6">
-            <div class="stat-card">
-                <div class="card-body p-4">
-                    <div class="stat-card-header">
-                        <div class="flex-grow-1">
-                            <p class="stat-label">En Producción</p>
-                            <h2 class="stat-value">{{ cuñas_en_produccion }}</h2>
-                            <p class="stat-description mb-0">Proyectos activos</p>
-                        </div>
-                        <div class="stat-icon primary">
-                            <i class="fas fa-cogs"></i>
-                        </div>
-                    </div>
-                    <div class="stat-trend up">
-                        <i class="fas fa-arrow-up me-1"></i> Activo
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Pendientes -->
-        <div class="col-xl-3 col-md-6">
-            <div class="stat-card">
-                <div class="card-body p-4">
-                    <div class="stat-card-header">
-                        <div class="flex-grow-1">
-                            <p class="stat-label">Pendientes</p>
-                            <h2 class="stat-value">{{ cuñas_pendientes }}</h2>
-                            <p class="stat-description mb-0">Requieren atención</p>
-                        </div>
-                        <div class="stat-icon warning">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                    </div>
-                    <div class="stat-trend down">
-                        <i class="fas fa-arrow-down me-1"></i> Urgente
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Completados Hoy -->
-        <div class="col-xl-3 col-md-6">
-            <div class="stat-card">
-                <div class="card-body p-4">
-                    <div class="stat-card-header">
-                        <div class="flex-grow-1">
-                            <p class="stat-label">Completados Hoy</p>
-                            <h2 class="stat-value">{{ cuñas_completadas_hoy }}</h2>
-                            <p class="stat-description mb-0">Finalizados</p>
-                        </div>
-                        <div class="stat-icon success">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                    </div>
-                    <div class="stat-trend up">
-                        <i class="fas fa-arrow-up me-1"></i> +12%
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Al Aire -->
-        <div class="col-xl-3 col-md-6">
-            <div class="stat-card">
-                <div class="card-body p-4">
-                    <div class="stat-card-header">
-                        <div class="flex-grow-1">
-                            <p class="stat-label">Al Aire</p>
-                            <h2 class="stat-value">{{ cuñas_activas }}</h2>
-                            <p class="stat-description mb-0">Transmitiendo</p>
-                        </div>
-                        <div class="stat-icon info">
-                            <i class="fas fa-broadcast-tower"></i>
-                        </div>
-                    </div>
-                    <div class="stat-trend up">
-                        <i class="fas fa-signal me-1"></i> En vivo
-                    </div>
-                </div>
-            </div>
+    <!-- Leyenda -->
+    <div class="leyenda-superior">
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+            <span class="text-muted small fw-bold">Leyenda:</span>
+            <span class="badge" style="background: #4dabf7; color: white;">
+                <i class="fas fa-tv me-1"></i>Programación
+            </span>
+            <span class="badge" style="background: #ffd43b; color: black;">
+                <i class="fas fa-circle me-1"></i>Pausa Disponible
+            </span>
+            <span class="badge" style="background: #51cf66; color: white;">
+                <i class="fas fa-circle me-1"></i>Con Cuñas
+            </span>
+            <span class="badge" style="background: #fa5252; color: white;">
+                <i class="fas fa-circle me-1"></i>Llena
+            </span>
+            <span class="text-muted small ms-2">
+                <i class="fas fa-info-circle me-1"></i>Haz clic en el bloque para crear ubicaciones, en las bolitas para gestionar cuñas
+            </span>
         </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="row g-4">
-        <!-- Projects List -->
-        <div class="col-lg-8">
-            <div class="main-card">
-                <div class="card-header-pro">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h3 class="card-title-pro">
-                            <i class="fas fa-list-ul"></i>
-                            Proyectos Recientes
-                        </h3>
-                        <div class="filter-pills">
-                            <button class="filter-pill active" data-filter="todos">Todos</button>
-                            <button class="filter-pill" data-filter="produccion">En producción</button>
-                            <button class="filter-pill" data-filter="pendientes">Pendientes</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-body-pro">
-                    {% if ultimas_cuñas %}
-                        {% for cuña in ultimas_cuñas %}
-                        <div class="project-item">
-                            <div class="project-header">
-                                <div class="flex-grow-1">
-                                    <h4 class="project-title">{{ cuña.nombre }}</h4>
-                                    <div class="project-meta">
-                                        <span class="project-meta-item">
-                                            <i class="fas fa-building"></i>
-                                            <strong>{{ cuña.cliente.empresa|default:cuña.cliente.get_full_name }}</strong>
-                                        </span>
-                                        <span class="project-meta-item">
-                                            <i class="far fa-clock"></i>
-                                            {{ cuña.duracion }} segundos
-                                        </span>
-                                        <span class="project-meta-item">
-                                            <i class="far fa-calendar"></i>
-                                            {{ cuña.fecha_inicio|date:"d/m/Y" }} - {{ cuña.fecha_fin|date:"d/m/Y" }}
-                                        </span>
-                                        {% if cuña.vendedor_asignado %}
-                                        <span class="project-meta-item">
-                                            <i class="fas fa-user"></i>
-                                            {{ cuña.vendedor_asignado.get_full_name }}
-                                        </span>
+    <!-- Calendario Integrado -->
+    <div class="admin-card">
+        <div class="admin-card-body p-0">
+            <div class="calendario-grid">
+                <!-- Header de horas -->
+                <div class="calendario-header">HORA</div>
+                {% for dia in dias_semana %}
+                <div class="calendario-header">{{ dia|upper }}</div>
+                {% endfor %}
+
+                <!-- Filas de horas (cada 30 minutos) -->
+                {% for hora in horas_dia %}
+                <div class="calendario-hora">{{ hora }}</div>
+                
+                {% for dia_index in "0123456" %}
+                {% with dia_num=dia_index|add:"0" %}
+                <div class="calendario-celda" 
+                     onclick="abrirModalCrearUbicacion({{ dia_num }}, '{{ hora }}')">
+                    
+                    <!-- Bloques de Programación -->
+                    {% for bloque in bloques_semana %}
+                        {% if bloque.dia_semana == dia_num %}
+                            {% if bloque.hora_inicio|date:"H:i" <= hora and bloque.hora_fin|date:"H:i" > hora %}
+                            <div class="bloque-programacion" 
+                                 style="background: {{ bloque.programa.color }}; border-left-color: {{ bloque.programa.color }};"
+                                 data-bs-toggle="tooltip" 
+                                 title="{{ bloque.programa.nombre }} - {{ bloque.hora_inicio|time:'H:i' }} a {{ bloque.hora_fin|time:'H:i' }}">
+                                
+                                <!-- Contador de ubicaciones -->
+                                {% with ubicaciones_count=0 %}
+                                    {% for ubicacion in ubicaciones %}
+                                        {% if ubicacion.bloque_programacion.id == bloque.id %}
+                                            {% with ubicaciones_count=ubicaciones_count|add:1 %}{% endwith %}
                                         {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if ubicaciones_count > 0 %}
+                                    <div class="contador-ubicaciones" title="{{ ubicaciones_count }} ubicación(es) publicitaria(s)">
+                                        {{ ubicaciones_count }}
                                     </div>
-                                </div>
-                                <div class="d-flex align-items-start gap-3">
-                                    {% if cuña.estado == 'en_produccion' %}
-                                    <span class="status-badge produccion">
-                                        <i class="fas fa-spinner fa-spin"></i> En Producción
-                                    </span>
-                                    {% elif cuña.estado == 'pendiente_revision' %}
-                                    <span class="status-badge pendiente">
-                                        <i class="fas fa-clock"></i> Pendiente
-                                    </span>
-                                    {% elif cuña.estado == 'aprobada' %}
-                                    <span class="status-badge aprobada">
-                                        <i class="fas fa-check"></i> Aprobada
-                                    </span>
-                                    {% elif cuña.estado == 'activa' %}
-                                    <span class="status-badge activa">
-                                        <i class="fas fa-broadcast-tower"></i> Al Aire
-                                    </span>
                                     {% endif %}
-                                    <div class="action-buttons">
-                                        <button class="action-btn" title="Ver detalles">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="action-btn" title="Editar">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="action-btn" title="Descargar">
-                                            <i class="fas fa-download"></i>
-                                        </button>
-                                    </div>
+                                {% endwith %}
+                                
+                                <div class="small text-white">
+                                    <strong>{{ bloque.programa.nombre|truncatechars:15 }}</strong>
+                                    <br>
+                                    <small>{{ bloque.hora_inicio|time:"H:i" }} - {{ bloque.hora_fin|time:"H:i" }}</small>
+                                </div>
+                                
+                                <!-- BOLITAS DE UBICACIONES - EN FILA HORIZONTAL -->
+                                <div class="contenedor-bolitas">
+                                    {% for ubicacion in ubicaciones %}
+                                        {% if ubicacion.bloque_programacion.id == bloque.id %}
+                                        {% with asignaciones_count=ubicacion.asignaciones.count %}
+                                        <div class="bolita-ubicacion bolita-tooltip 
+                                                    {% if asignaciones_count >= ubicacion.capacidad_cuñas %}bolita-ocupada
+                                                    {% elif asignaciones_count > 0 %}bolita-con-cunas
+                                                    {% else %}bolita-sin-cunas{% endif %}"
+                                             onclick="event.stopPropagation(); abrirModalGestionUbicacion({{ ubicacion.id }})"
+                                             title="{{ ubicacion.nombre }} - {{ ubicacion.hora_pausa|time:'H:i' }}
+{% if asignaciones_count > 0 %}({{ asignaciones_count }}/{{ ubicacion.capacidad_cuñas }} cuñas){% else %}(Disponible){% endif %}">
+                                            {% if asignaciones_count > 0 %}
+                                                {{ asignaciones_count }}
+                                            {% else %}
+                                                •
+                                            {% endif %}
+                                        </div>
+                                        {% endwith %}
+                                        {% endif %}
+                                    {% endfor %}
                                 </div>
                             </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="empty-state">
-                            <div class="empty-state-icon">
-                                <i class="fas fa-folder-open"></i>
-                            </div>
-                            <h3 class="empty-state-title">No hay proyectos asignados</h3>
-                            <p class="empty-state-description">
-                                Los proyectos aparecerán aquí cuando sean asignados a producción
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <!-- Si no hay nada en la celda -->
+                    {% if not bloques_semana %}
+                    <div class="celda-vacia">
+                        <i class="fas fa-plus"></i><br>
+                        <small>Crear ubicación</small>
+                    </div>
+                    {% endif %}
+                    
+                </div>
+                {% endwith %}
+                {% endfor %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Cuñas Disponibles -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-list me-2"></i>
+                Cuñas Disponibles para Programar
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for cuña in cuñas_disponibles %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100 border-success">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <span class="badge" style="background: {{ cuña.categoria.color_codigo|default:'#007bff' }}; color: white;">
+                                    {{ cuña.codigo }}
+                                </span>
+                                {{ cuña.titulo }}
+                            </h6>
+                            <p class="card-text small mb-1">
+                                <strong>Cliente:</strong> {{ cuña.cliente.get_full_name }}<br>
+                                <strong>Duración:</strong> {{ cuña.duracion_planeada }}s<br>
+                                <strong>Precio:</strong> ${{ cuña.precio_total }}<br>
+                                <strong>Período:</strong> {{ cuña.fecha_inicio }} - {{ cuña.fecha_fin }}
                             </p>
                         </div>
-                    {% endif %}
+                    </div>
                 </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No hay cuñas disponibles para programar
+                    </div>
+                </div>
+                {% endfor %}
             </div>
         </div>
+    </div>
+    
+    {% endif %}
+</div>
 
-        <!-- Sidebar -->
-        <div class="col-lg-4">
-            <!-- Quick Actions -->
-            <div class="main-card mb-4">
-                <div class="card-header-pro">
-                    <h3 class="card-title-pro">
-                        <i class="fas fa-bolt"></i>
-                        Acciones Rápidas
-                    </h3>
-                </div>
-                <div class="card-body p-3">
-                    <div class="d-grid gap-2">
-                        <a href="#" class="quick-action-btn">
-                            <div class="quick-action-icon primary">
-                                <i class="fas fa-plus"></i>
-                            </div>
-                            <span class="flex-grow-1 text-start">Nuevo Proyecto</span>
-                            <i class="fas fa-arrow-right"></i>
-                        </a>
-                        <a href="#" class="quick-action-btn">
-                            <div class="quick-action-icon success">
-                                <i class="fas fa-microphone"></i>
-                            </div>
-                            <span class="flex-grow-1 text-start">Grabar Audio</span>
-                            <i class="fas fa-arrow-right"></i>
-                        </a>
-                        <a href="#" class="quick-action-btn">
-                            <div class="quick-action-icon info">
-                                <i class="fas fa-upload"></i>
-                            </div>
-                            <span class="flex-grow-1 text-start">Subir Archivo</span>
-                            <i class="fas fa-arrow-right"></i>
-                        </a>
-                        <a href="#" class="quick-action-btn">
-                            <div class="quick-action-icon secondary">
-                                <i class="fas fa-folder"></i>
-                            </div>
-                            <span class="flex-grow-1 text-start">Biblioteca de Audio</span>
-                            <i class="fas fa-arrow-right"></i>
-                        </a>
-                    </div>
-                </div>
+<!-- Modal para crear ubicación -->
+<div class="modal fade" id="modalCrearUbicacion" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Crear Ubicación Publicitaria</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-
-            <!-- Notifications -->
-            <div class="main-card mb-4">
-                <div class="card-header-pro">
-                    <h3 class="card-title-pro">
-                        <div class="notification-badge">
-                            <i class="fas fa-bell"></i>
-                            <span class="notification-count">0</span>
-                        </div>
-                        Notificaciones
-                    </h3>
-                </div>
-                <div class="card-body-pro">
-                    <div class="empty-state py-4">
-                        <div class="empty-state-icon" style="width: 60px; height: 60px; font-size: 1.5rem;">
-                            <i class="far fa-bell-slash"></i>
-                        </div>
-                        <p class="empty-state-description mb-0">
-                            No hay notificaciones nuevas
-                        </p>
+            <div class="modal-body">
+                <form id="formCrearUbicacion">
+                    <input type="hidden" id="crear_dia_semana" name="dia_semana">
+                    <input type="hidden" id="crear_hora_emision" name="hora_emision">
+                    
+                    <div class="mb-3">
+                        <label for="nombre_ubicacion" class="form-label">Nombre de la Ubicación *</label>
+                        <input type="text" id="nombre_ubicacion" name="nombre" class="form-control" required 
+                               placeholder="Ej: Pausa Publicitaria Mañana">
                     </div>
-                </div>
+                    
+                    <div class="mb-3">
+                        <label for="hora_inicio_pausa" class="form-label">Hora Inicio Pausa *</label>
+                        <input type="time" id="hora_inicio_pausa" name="hora_inicio_pausa" class="form-control" required 
+                               step="300">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="duracion_minutos" class="form-label">Duración de la Pausa (minutos) *</label>
+                        <select id="duracion_minutos" name="duracion_minutos" class="form-select" required>
+                            <option value="1">1 minuto</option>
+                            <option value="2" selected>2 minutos</option>
+                            <option value="3">3 minutos</option>
+                            <option value="5">5 minutos</option>
+                            <option value="10">10 minutos</option>
+                        </select>
+                        <div class="form-text">Tiempo total de la pausa publicitaria</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="capacidad" class="form-label">Capacidad de Cuñas *</label>
+                        <input type="number" id="capacidad" name="capacidad" class="form-control" 
+                               min="1" max="10" value="3" required>
+                        <div class="form-text">Número máximo de cuñas que caben en esta pausa</div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <span id="infoCrearUbicacion"></span>
+                    </div>
+                </form>
             </div>
-
-            <!-- Monthly Stats -->
-            <div class="main-card">
-                <div class="card-header-pro">
-                    <h3 class="card-title-pro">
-                        <i class="fas fa-chart-bar"></i>
-                        Estadísticas del Mes
-                    </h3>
-                </div>
-                <div class="card-body p-3">
-                    <div class="progress-container mb-3">
-                        <div class="progress-header">
-                            <span class="progress-label">Completados</span>
-                            <span class="progress-value">{{ cuñas_completadas_hoy }}</span>
-                        </div>
-                        <div class="progress-bar-custom">
-                            <div class="progress-fill success" style="width: 75%;"></div>
-                        </div>
-                    </div>
-
-                    <div class="progress-container mb-3">
-                        <div class="progress-header">
-                            <span class="progress-label">En Proceso</span>
-                            <span class="progress-value">{{ cuñas_en_produccion }}</span>
-                        </div>
-                        <div class="progress-bar-custom">
-                            <div class="progress-fill primary" style="width: 60%;"></div>
-                        </div>
-                    </div>
-
-                    <div class="progress-container mb-3">
-                        <div class="progress-header">
-                            <span class="progress-label">Pendientes</span>
-                            <span class="progress-value">{{ cuñas_pendientes }}</span>
-                        </div>
-                        <div class="progress-bar-custom">
-                            <div class="progress-fill warning" style="width: 40%;"></div>
-                        </div>
-                    </div>
-
-                    <div class="progress-container mb-0">
-                        <div class="progress-header">
-                            <span class="progress-label">Al Aire</span>
-                            <span class="progress-value">{{ cuñas_activas }}</span>
-                        </div>
-                        <div class="progress-bar-custom">
-                            <div class="progress-fill info" style="width: 85%;"></div>
-                        </div>
-                    </div>
-                </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="crearUbicacion()">Crear Ubicación</button>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
+<!-- Modal para gestionar ubicación -->
+<div class="modal fade" id="modalGestionUbicacion" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="tituloGestionUbicacion">Gestionar Ubicación Publicitaria</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="contenidoGestionUbicacion">
+                    <!-- Contenido dinámico se carga aquí -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{# ================================================== #}
+{# JAVASCRIPT - EN BLOQUE extra_js                    #}
+{# ================================================== #}
 {% block extra_js %}
 <script>
-$(document).ready(function() {
-    console.log('Dashboard de Productor - Versión Profesional cargado');
+// Funciones para la grilla
+function abrirModalCrearUbicacion(dia, hora) {
+    document.getElementById('crear_dia_semana').value = dia;
+    document.getElementById('crear_hora_emision').value = hora;
+    document.getElementById('hora_inicio_pausa').value = hora + ':00';
+    document.getElementById('infoCrearUbicacion').textContent = 
+        `Creando ubicación para ${getDiaNombre(dia)} en el bloque de las ${hora}`;
+    new bootstrap.Modal(document.getElementById('modalCrearUbicacion')).show();
+}
+
+function abrirModalGestionUbicacion(ubicacionId) {
+    console.log('Iniciando carga de ubicación ID:', ubicacionId);
+    const urlTemplate = "{% url 'custom_admin:grilla_ubicacion_detalle_api' 999999 %}";
+    const url = urlTemplate.replace('999999', ubicacionId.toString());
     
-    // ========== RELOJ EN TIEMPO REAL ==========
-    function actualizarReloj() {
-        const ahora = new Date();
-        const horas = String(ahora.getHours()).padStart(2, '0');
-        const minutos = String(ahora.getMinutes()).padStart(2, '0');
-        const segundos = String(ahora.getSeconds()).padStart(2, '0');
-        $('#reloj-tiempo-real').text(`${horas}:${minutos}:${segundos}`);
-    }
-    
-    setInterval(actualizarReloj, 1000);
-    actualizarReloj();
-    
-    // ========== FILTROS DE PROYECTOS ==========
-    $('.filter-pill').on('click', function() {
-        // Remover clase active de todos
-        $('.filter-pill').removeClass('active');
-        // Agregar clase active al clickeado
-        $(this).addClass('active');
-        
-        const filtro = $(this).data('filter');
-        console.log('Filtro seleccionado:', filtro);
-        
-        // Aquí puedes implementar la lógica de filtrado
-        // Por ejemplo, mostrar/ocultar proyectos según el estado
-        if (filtro === 'todos') {
-            $('.project-item').show();
-        } else if (filtro === 'produccion') {
-            $('.project-item').hide();
-            $('.project-item:has(.status-badge.produccion)').show();
-        } else if (filtro === 'pendientes') {
-            $('.project-item').hide();
-            $('.project-item:has(.status-badge.pendiente)').show();
-        }
-    });
-    
-    // ========== ANIMACIONES DE ENTRADA ==========
-    function animateStats() {
-        $('.stat-card').each(function(index) {
-            $(this).css({
-                'opacity': '0',
-                'transform': 'translateY(20px)'
-            }).delay(index * 100).animate({
-                opacity: 1
-            }, 400, function() {
-                $(this).css('transform', 'translateY(0)');
-            });
+    fetch(url)
+        .then(response => {
+            if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                mostrarModalGestion(data.ubicacion, data.asignaciones, data.cunas_disponibles);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('No se pudo cargar la ubicación: ' + error.message);
         });
+}
+
+function mostrarModalGestion(ubicacion, asignaciones, cunasDisponibles) {
+    const titulo = document.getElementById('tituloGestionUbicacion');
+    const contenido = document.getElementById('contenidoGestionUbicacion');
+    
+    titulo.textContent = `Gestionar: ${ubicacion.nombre}`;
+    
+    let html = `
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">Información de la Ubicación</h6>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Nombre:</strong> ${ubicacion.nombre}</p>
+                        <p><strong>Bloque:</strong> ${ubicacion.bloque_programacion}</p>
+                        <p><strong>Hora Inicio:</strong> ${ubicacion.hora_inicio_pausa}</p>
+                        <p><strong>Duración:</strong> ${Math.round(ubicacion.duracion_segundos / 60)} minutos</p>
+                        <p><strong>Capacidad:</strong> ${ubicacion.cunas_asignadas_count}/${ubicacion.capacidad_cunas} cuñas</p>
+                        <p><strong>Espacios disponibles:</strong> ${ubicacion.espacios_disponibles}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">Asignar Nueva Cuña</h6>
+                    </div>
+                    <div class="card-body">
+    `;
+
+    if (ubicacion.espacios_disponibles > 0 && cunasDisponibles.length > 0) {
+        html += `
+            <form id="formAsignarCuna">
+                <input type="hidden" name="ubicacion_id" value="${ubicacion.id}">
+                <div class="mb-3">
+                    <label for="cuna_id" class="form-label">Seleccionar Cuña</label>
+                    <select id="cuna_id" name="cuna_id" class="form-select" required>
+                        <option value="">Seleccionar cuña...</option>
+        `;
+        cunasDisponibles.forEach(cuna => {
+            html += `<option value="${cuna.id}">${cuna.codigo} - ${cuna.titulo} (${cuna.duracion_planeada}s)</option>`;
+        });
+        html += `
+                    </select>
+                </div>
+                <button type="button" class="btn btn-success btn-sm" onclick="asignarCunaDesdeGestion()">Asignar Cuña</button>
+            </form>
+        `;
+    } else if (ubicacion.espacios_disponibles <= 0) {
+        html += `<div class="alert alert-warning mb-0">No hay espacios disponibles en esta ubicación.</div>`;
+    } else {
+        html += `<div class="alert alert-info mb-0">No hay cuñas disponibles para asignar.</div>`;
     }
+
+    html += `
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">Cuñas Asignadas (${asignaciones.length})</h6>
+            </div>
+            <div class="card-body">
+    `;
+
+    if (asignaciones.length > 0) {
+        html += `<div class="table-responsive"><table class="table table-sm table-striped">
+            <thead><tr><th>Cuña</th><th>Duración</th><th>Cliente</th><th>Acciones</th></tr></thead><tbody>`;
+        asignaciones.forEach(asignacion => {
+            html += `<tr>
+                <td><strong>${asignacion.cuna_codigo}</strong><br><small>${asignacion.cuna_titulo}</small></td>
+                <td>${asignacion.cuna_duracion}s</td>
+                <td>${asignacion.cuna_cliente}</td>
+                <td><button class="btn btn-danger btn-sm" onclick="eliminarAsignacion(${asignacion.id})" title="Eliminar"><i class="fas fa-trash"></i></button></td>
+            </tr>`;
+        });
+        html += `</tbody></table></div>`;
+    } else {
+        html += `<div class="alert alert-info text-center mb-0">No hay cuñas asignadas a esta ubicación.</div>`;
+    }
+
+    html += `</div></div>`;
+    contenido.innerHTML = html;
+    new bootstrap.Modal(document.getElementById('modalGestionUbicacion')).show();
+}
+
+function asignarCunaDesdeGestion() {
+    const form = document.getElementById('formAsignarCuna');
+    const formData = new FormData(form);
+    if (!formData.get('cuna_id')) return alert('Selecciona una cuña');
     
-    animateStats();
+    fetch("{% url 'custom_admin:grilla_asignar_cuna_api' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ ubicacion_id: formData.get('ubicacion_id'), cuña_id: formData.get('cuna_id') })
+    })
+    .then(r => r.json())
+    .then(data => data.success ? location.reload() : alert('Error: ' + data.error));
+}
+
+function crearUbicacion() {
+    const formData = {
+        dia_semana: document.getElementById('crear_dia_semana').value,
+        hora_emision: document.getElementById('crear_hora_emision').value,
+        nombre: document.getElementById('nombre_ubicacion').value,
+        hora_inicio_pausa: document.getElementById('hora_inicio_pausa').value,
+        duracion_minutos: document.getElementById('duracion_minutos').value,
+        capacidad: document.getElementById('capacidad').value
+    };
     
-    // ========== TOOLTIPS ==========
-    $('[title]').tooltip({
-        placement: 'top',
-        trigger: 'hover'
-    });
-    
-    // ========== ACCIÓN DE BOTONES ==========
-    $('.action-btn').on('click', function(e) {
-        e.preventDefault();
-        const title = $(this).attr('title');
-        console.log('Acción:', title);
-        // Aquí puedes agregar la lógica para cada acción
-    });
-    
-    // ========== QUICK ACTIONS ==========
-    $('.quick-action-btn').on('click', function(e) {
-        e.preventDefault();
-        const action = $(this).find('span').text().trim();
-        console.log('Quick action:', action);
-        // Implementar lógica de acciones rápidas
+    fetch("{% url 'custom_admin:grilla_crear_ubicacion_api' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify(formData)
+    })
+    .then(r => r.json())
+    .then(data => data.success ? location.reload() : alert('Error: ' + data.error));
+}
+
+function eliminarAsignacion(asignacionId) {
+    if (confirm('¿Eliminar esta asignación?')) {
+        fetch(`{% url 'custom_admin:grilla_eliminar_asignacion_api' 0 %}`.replace('0', asignacionId), {
+            method: 'DELETE',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        })
+        .then(r => r.json())
+        .then(data => data.success ? location.reload() : alert('Error: ' + data.error));
+    }
+}
+
+function getDiaNombre(diaIndex) {
+    const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    return dias[parseInt(diaIndex)];
+}
+
+// Inicializar tooltips de Bootstrap
+document.addEventListener('DOMContentLoaded', function () {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 });
 </script>
-{% endblock %}
+{% endblock extra_js %}

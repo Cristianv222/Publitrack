@@ -97,6 +97,11 @@
         padding: 15px;
         margin-top: 10px;
     }
+    
+    /* Ocultar campo de usuario */
+    .username-field {
+        display: none !important;
+    }
 </style>
 {% endblock %}
 
@@ -303,19 +308,19 @@
                     {% csrf_token %}
                     <input type="hidden" id="cliente_id" name="cliente_id">
                     
+                    <!-- Campo de usuario oculto con valor generado automáticamente -->
+                    <div class="username-field">
+                        <input type="text" class="form-control" name="username" id="username" required readonly>
+                    </div>
+                    
                     <!-- Información Básica -->
                     <h6 class="mb-3 text-primary">Información Básica</h6>
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
-                            <label class="form-label">Usuario <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="username" id="username" required>
-                            <small class="text-muted">Identificador único del cliente</small>
-                        </div>
-                        <div class="col-md-6">
                             <label class="form-label">RUC/Cédula <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" name="ruc_dni" id="ruc_dni" required>
                         </div>
-                        <div class="col-md-12">
+                        <div class="col-md-6">
                             <label class="form-label">Nombre de la Empresa <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" name="empresa" id="empresa" required>
                         </div>
@@ -454,17 +459,109 @@
 let modalCliente;
 let modalDetalleCliente;
 
+// Generador de usuarios aleatorios
+function generarUsuarioAleatorio() {
+    const prefijos = ['cli', 'client', 'usr', 'user', 'cust', 'customer'];
+    const sufijos = ['tv', 'media', 'adv', 'pub', 'channel', 'broadcast'];
+    const numeros = Math.floor(1000 + Math.random() * 9000);
+    
+    const prefijo = prefijos[Math.floor(Math.random() * prefijos.length)];
+    const sufijo = sufijos[Math.floor(Math.random() * sufijos.length)];
+    
+    return `${prefijo}_${sufijo}_${numeros}`;
+}
+
+// Generador de usuarios basado en información del cliente
+function generarUsuarioDesdeInfo(empresa, ruc, email) {
+    if (empresa && empresa.trim() !== '') {
+        // Crear usuario desde el nombre de la empresa
+        const empresaSlug = empresa
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '_')
+            .replace(/_+/g, '_')
+            .substring(0, 15);
+        
+        const numeros = Math.floor(100 + Math.random() * 900);
+        return `${empresaSlug}_${numeros}`;
+    } else if (ruc && ruc.trim() !== '') {
+        // Usar RUC/DNI si está disponible
+        return `cli_${ruc}`;
+    } else if (email && email.trim() !== '') {
+        // Usar parte del email antes del @
+        const usuarioEmail = email.split('@')[0]
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '_')
+            .replace(/_+/g, '_')
+            .substring(0, 12);
+        
+        const numeros = Math.floor(100 + Math.random() * 900);
+        return `${usuarioEmail}_${numeros}`;
+    } else {
+        // Generar usuario completamente aleatorio
+        return generarUsuarioAleatorio();
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     modalCliente = new bootstrap.Modal(document.getElementById('modalCliente'));
     modalDetalleCliente = new bootstrap.Modal(document.getElementById('modalDetalleCliente'));
+    
+    // Generar usuario automáticamente cuando se abre el modal para crear
+    document.getElementById('modalCliente').addEventListener('show.bs.modal', function() {
+        const clienteId = document.getElementById('cliente_id').value;
+        if (!clienteId) {
+            // Solo generar para nuevos clientes, no para edición
+            const usuarioGenerado = generarUsuarioAleatorio();
+            document.getElementById('username').value = usuarioGenerado;
+            console.log('Usuario generado automáticamente:', usuarioGenerado);
+        }
+    });
+    
+    // Generar usuario basado en información cuando se llenan campos
+    document.getElementById('empresa').addEventListener('blur', function() {
+        const clienteId = document.getElementById('cliente_id').value;
+        if (!clienteId) {
+            const empresa = document.getElementById('empresa').value;
+            const ruc = document.getElementById('ruc_dni').value;
+            const email = document.getElementById('email').value;
+            
+            if (empresa || ruc || email) {
+                const usuarioGenerado = generarUsuarioDesdeInfo(empresa, ruc, email);
+                document.getElementById('username').value = usuarioGenerado;
+                console.log('Usuario generado desde info:', usuarioGenerado);
+            }
+        }
+    });
+    
+    document.getElementById('ruc_dni').addEventListener('blur', function() {
+        const clienteId = document.getElementById('cliente_id').value;
+        if (!clienteId) {
+            const empresa = document.getElementById('empresa').value;
+            const ruc = document.getElementById('ruc_dni').value;
+            const email = document.getElementById('email').value;
+            
+            if (ruc && (!empresa || empresa.trim() === '')) {
+                const usuarioGenerado = generarUsuarioDesdeInfo(empresa, ruc, email);
+                document.getElementById('username').value = usuarioGenerado;
+                console.log('Usuario generado desde RUC:', usuarioGenerado);
+            }
+        }
+    });
 });
 
 function abrirModalCrear() {
     document.getElementById('modalClienteTitulo').textContent = 'Nuevo Cliente';
     document.getElementById('formCliente').reset();
     document.getElementById('cliente_id').value = '';
+    
+    // Generar usuario automáticamente al abrir el modal
+    const usuarioGenerado = generarUsuarioAleatorio();
+    document.getElementById('username').value = usuarioGenerado;
+    console.log('Usuario generado al abrir modal:', usuarioGenerado);
+    
     modalCliente.show();
 }
+
 function editarCliente(clienteId) {
     document.getElementById('modalClienteTitulo').textContent = 'Editar Cliente';
     document.getElementById('cliente_id').value = clienteId;
@@ -514,12 +611,14 @@ function editarCliente(clienteId) {
             });
         });
 }
+
 function guardarCliente() {
     const clienteId = document.getElementById('cliente_id').value;
     const form = document.getElementById('formCliente');
     
     // DEBUG: Mostrar datos antes de enviar
     console.log("=== DEBUG FRONTEND ANTES DE ENVIAR ===");
+    console.log("Usuario generado:", document.getElementById('username').value);
     const formData = new FormData(form);
     for (let [key, value] of formData.entries()) {
         console.log(`📝 ${key}: '${value}'`);
@@ -767,6 +866,7 @@ function debugUltimoCliente() {
                 html: `
                     <div class="text-left">
                         <p><strong>Empresa:</strong> ${data.empresa || '-'}</p>
+                        <p><strong>Usuario:</strong> ${data.username || '-'}</p>
                         <p><strong>Profesión:</strong> ${data.profesion || '-'}</p>
                         <p><strong>Cargo:</strong> ${data.cargo_empresa || '-'}</p>
                         <p><strong>Tiene profesión:</strong> ${data.profesion ? 'Sí' : 'No'}</p>

@@ -167,7 +167,7 @@ urlpatterns = [
     path('reports/contratos/estado/', views.reports_estado_contratos, name='reports_estado_contratos'),
     path('reports/contratos/vencimiento/', views.reports_vencimiento_contratos, name='reports_vencimiento_contratos'),
     path('reports/contratos/ingresos/', views.reports_ingresos_contratos, name='reports_ingresos_contratos'),
-    
+    path('api/categorias-publicitarias/', views.api_categorias_publicitarias, name='api_categorias_publicitarias'),
     # ==================== REPORTES DE VENDEDORES ====================
     path('reports/vendedores/dashboard/', views.reports_dashboard_vendedores, name='reports_dashboard_vendedores'),
     path('reports/vendedores/<int:vendedor_id>/detalle/', views.reports_detalle_vendedor, name='reports_detalle_vendedor'),

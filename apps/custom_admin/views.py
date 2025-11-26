@@ -635,11 +635,37 @@ def contratos_generados_list(request):
     return render(request, 'custom_admin/contratos/list.html', context)
 @login_required
 @user_passes_test(is_admin)
+@require_http_methods(["GET"])  # ← CAMBIAR A GET
+def api_categorias_publicitarias(request):
+    """API para obtener todas las categorías publicitarias activas"""
+    try:
+        from apps.content_management.models import CategoriaPublicitaria
+        
+        categorias = CategoriaPublicitaria.objects.filter(
+            is_active=True
+        ).order_by('nombre')
+        
+        data = []
+        for categoria in categorias:
+            data.append({
+                'id': categoria.id,
+                'nombre': categoria.nombre,
+                'descripcion': categoria.descripcion or '',
+                'color_codigo': categoria.color_codigo,
+                'tarifa_base': str(categoria.tarifa_base),
+            })
+        
+        return JsonResponse({'success': True, 'categorias': data})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+@login_required
+@user_passes_test(is_admin)
 @require_http_methods(["POST"])
 def contrato_generar_api(request):
-    """API para generar un contrato desde una plantilla - VERSIÓN MEJORADA"""
+    """API para generar un contrato desde una plantilla - CON CATEGORÍA"""
     try:
-        from apps.content_management.models import ContratoGenerado
+        from apps.content_management.models import ContratoGenerado, CategoriaPublicitaria
         from datetime import datetime
         
         data = json.loads(request.body)
@@ -651,6 +677,15 @@ def contrato_generar_api(request):
         # ✅ OBTENER VENDEDOR ASIGNADO DEL CLIENTE
         vendedor_asignado = getattr(cliente, 'vendedor_asignado', None)
         
+        # ✅ OBTENER CATEGORÍA SI SE PROPORCIONA
+        categoria_id = data.get('categoria_id')
+        categoria = None
+        if categoria_id:
+            try:
+                categoria = CategoriaPublicitaria.objects.get(id=categoria_id, is_active=True)
+            except CategoriaPublicitaria.DoesNotExist:
+                pass
+        
         # Validar que la plantilla tenga archivo
         if not plantilla.archivo_plantilla:
             return JsonResponse({
@@ -658,11 +693,11 @@ def contrato_generar_api(request):
                 'error': 'La plantilla no tiene un archivo asociado'
             }, status=400)
         
-        # ✅ CREAR CONTRATO CON VENDEDOR ASIGNADO
+        # ✅ CREAR CONTRATO CON VENDEDOR ASIGNADO Y CATEGORÍA
         contrato = ContratoGenerado.objects.create(
             plantilla_usada=plantilla,
             cliente=cliente,
-            vendedor_asignado=vendedor_asignado,  # ✅ NUEVO CAMPO
+            vendedor_asignado=vendedor_asignado,
             nombre_cliente=cliente.empresa or cliente.get_full_name(),
             ruc_dni_cliente=cliente.ruc_dni or '',
             valor_sin_iva=Decimal(str(data['valor_total'])),
@@ -670,7 +705,7 @@ def contrato_generar_api(request):
             estado='borrador'
         )
         
-        # ✅ GUARDAR DATOS PARA USAR DESPUÉS AL CREAR LA CUÑA
+        # ✅ GUARDAR DATOS PARA USAR DESPUÉS AL CREAR LA CUÑA (INCLUYENDO CATEGORÍA)
         contrato.datos_generacion = {
             'FECHA_INICIO_RAW': data['fecha_inicio'],
             'FECHA_FIN_RAW': data['fecha_fin'],
@@ -678,8 +713,10 @@ def contrato_generar_api(request):
             'DURACION_SPOT': data.get('duracion_spot', 30),
             'VALOR_POR_SEGUNDO': data.get('valor_por_segundo', 0),
             'OBSERVACIONES': data.get('observaciones', ''),
-            'VENDEDOR_ASIGNADO_ID': vendedor_asignado.id if vendedor_asignado else None,  # ✅ GUARDAR ID DEL VENDEDOR
-            'VENDEDOR_ASIGNADO_NOMBRE': vendedor_asignado.get_full_name() if vendedor_asignado else None
+            'VENDEDOR_ASIGNADO_ID': vendedor_asignado.id if vendedor_asignado else None,
+            'VENDEDOR_ASIGNADO_NOMBRE': vendedor_asignado.get_full_name() if vendedor_asignado else None,
+            'CATEGORIA_ID': categoria.id if categoria else None,  # ✅ NUEVO: Guardar ID de categoría
+            'CATEGORIA_NOMBRE': categoria.nombre if categoria else None  # ✅ NUEVO: Guardar nombre de categoría
         }
         contrato.save()
         
@@ -690,7 +727,8 @@ def contrato_generar_api(request):
                 'message': 'Contrato generado exitosamente',
                 'contrato_id': contrato.id,
                 'numero_contrato': contrato.numero_contrato,
-                'vendedor_asignado': vendedor_asignado.get_full_name() if vendedor_asignado else 'No asignado',  # ✅ INFORMAR VENDEDOR
+                'vendedor_asignado': vendedor_asignado.get_full_name() if vendedor_asignado else 'No asignado',
+                'categoria_asignada': categoria.nombre if categoria else 'No asignada',  # ✅ NUEVO: Informar categoría
                 'archivo_url': contrato.archivo_contrato_pdf.url if contrato.archivo_contrato_pdf else None
             })
         else:
@@ -4624,6 +4662,7 @@ def orden_produccion_obtener_plantillas_api(request, order_id):
         print(f"❌ ERROR en orden_produccion_obtener_plantillas_api: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 # ==================== VISTAS PARA PARTE MORTORIOS ====================
+# ==================== VISTAS PARA PARTE MORTORIOS ====================
 
 @login_required
 @user_passes_test(is_admin)
@@ -4676,10 +4715,9 @@ def parte_mortorios_list(request):
         
         # Estadísticas
         total_partes = partes.count()
-        partes_solicitados = partes.filter(estado='solicitado').count()
-        partes_programados = partes.filter(estado='programado').count()
-        partes_transmitidos = partes.filter(estado='transmitido').count()
-        partes_cancelados = partes.filter(estado='cancelado').count()
+        partes_pendientes = partes.filter(estado='pendiente').count()
+        partes_al_aire = partes.filter(estado='al_aire').count()
+        partes_finalizados = partes.filter(estado='finalizado').count()
         
         # Obtener clientes para filtro
         clientes = CustomUser.objects.filter(
@@ -4698,13 +4736,23 @@ def parte_mortorios_list(request):
         except EmptyPage:
             partes_paginadas = paginator.page(paginator.num_pages)
         
+        # ✅ PARA CADA PARTE, OBTENER CUÑAS ASOCIADAS
+        for parte in partes_paginadas:
+            try:
+                from apps.content_management.models import CuñaPublicitaria
+                parte.cunas_asociadas = CuñaPublicitaria.objects.filter(
+                    tags__contains=f"parte_mortorio,{parte.codigo}"
+                )
+            except Exception as e:
+                parte.cunas_asociadas = []
+                print(f"⚠️ Error obteniendo cuñas para parte {parte.codigo}: {str(e)}")
+        
         context = {
             'partes': partes_paginadas,
             'total_partes': total_partes,
-            'partes_solicitados': partes_solicitados,
-            'partes_programados': partes_programados,
-            'partes_transmitidos': partes_transmitidos,
-            'partes_cancelados': partes_cancelados,
+            'partes_pendientes': partes_pendientes,
+            'partes_al_aire': partes_al_aire,
+            'partes_finalizados': partes_finalizados,
             'search': search,
             'estado_filter': estado_filter,
             'urgencia_filter': urgencia_filter,
@@ -4726,10 +4774,9 @@ def parte_mortorios_list(request):
         context = {
             'partes': [],
             'total_partes': 0,
-            'partes_solicitados': 0,
-            'partes_programados': 0,
-            'partes_transmitidos': 0,
-            'partes_cancelados': 0,
+            'partes_pendientes': 0,
+            'partes_al_aire': 0,
+            'partes_finalizados': 0,
             'search': search if 'search' in locals() else '',
             'estado_filter': estado_filter if 'estado_filter' in locals() else '',
             'urgencia_filter': urgencia_filter if 'urgencia_filter' in locals() else '',
@@ -4737,10 +4784,10 @@ def parte_mortorios_list(request):
             'fecha_filter': fecha_filter if 'fecha_filter' in locals() else '',
             'clientes': CustomUser.objects.filter(rol='cliente', is_active=True).order_by('first_name', 'last_name')[:10],
             'estados': [
-                ('solicitado', 'Solicitado'),
-                ('programado', 'Programado'),
-                ('transmitido', 'Transmitido'),
-                ('cancelado', 'Cancelado'),
+                ('pendiente', 'Pendiente'),
+                ('al_aire', 'Al Aire'),
+                ('pausado', 'Pausado'),
+                ('finalizado', 'Finalizado'),
             ],
             'urgencias': [
                 ('normal', 'Normal'),
@@ -4749,16 +4796,38 @@ def parte_mortorios_list(request):
             ],
         }
         return render(request, 'custom_admin/parte_mortorios/list.html', context)
+
 @login_required
 @user_passes_test(is_admin)
 def parte_mortorio_detail_api(request, parte_id):
-    """API para obtener detalles de un parte mortorio - VERSIÓN CORREGIDA"""
+    """API para obtener detalles de un parte mortorio - VERSIÓN CORREGIDA CON CUÑAS ASOCIADAS"""
     
     if not PARTE_MORTORIO_MODELS_AVAILABLE:
         return JsonResponse({'error': 'Módulo de Parte Mortorios no disponible'}, status=503)
     
     try:
         parte = get_object_or_404(ParteMortorio, pk=parte_id)
+        
+        # Obtener cuñas asociadas
+        cunas_asociadas = []
+        try:
+            from apps.content_management.models import CuñaPublicitaria
+            cunas = CuñaPublicitaria.objects.filter(
+                tags__contains=f"parte_mortorio,{parte.codigo}"
+            )
+            for cuna in cunas:
+                cunas_asociadas.append({
+                    'id': cuna.id,
+                    'codigo': cuna.codigo,
+                    'titulo': cuna.titulo,
+                    'estado': cuna.estado,
+                    'estado_display': cuna.get_estado_display(),
+                    'fecha_inicio': cuna.fecha_inicio.strftime('%d/%m/%Y') if cuna.fecha_inicio else '',
+                    'fecha_fin': cuna.fecha_fin.strftime('%d/%m/%Y') if cuna.fecha_fin else '',
+                    'repeticiones_dia': cuna.repeticiones_dia
+                })
+        except Exception as e:
+            print(f"⚠️ Error obteniendo cuñas asociadas: {str(e)}")
         
         data = {
             'id': parte.id,
@@ -4800,6 +4869,8 @@ def parte_mortorio_detail_api(request, parte_id):
             'mensaje_personalizado': parte.mensaje_personalizado,
             'fecha_solicitud': parte.fecha_solicitud.strftime('%d/%m/%Y %H:%M'),
             'creado_por_nombre': parte.creado_por.get_full_name() if parte.creado_por else '',
+            # ✅ CUÑAS ASOCIADAS
+            'cunas_asociadas': cunas_asociadas
         }
         
         return JsonResponse(data)
@@ -4811,11 +4882,12 @@ def parte_mortorio_detail_api(request, parte_id):
 @user_passes_test(is_admin)
 @require_http_methods(["POST"])
 def parte_mortorio_create_api(request):
-    """API para crear un nuevo parte mortorio - VERSIÓN CORREGIDA SIN precio_por_segundo"""
+    """API para crear un nuevo parte mortorio - VERSIÓN CORREGIDA SIN precio_por_segundo Y CON CREACIÓN DE CUÑA"""
     try:
         # ✅ IMPORTACIÓN CORRECTA
         from apps.parte_mortorios.models import ParteMortorio
-        from datetime import datetime
+        from apps.content_management.models import CuñaPublicitaria
+        from datetime import datetime, timedelta
         from decimal import Decimal
         
         data = json.loads(request.body)
@@ -4860,7 +4932,7 @@ def parte_mortorio_create_api(request):
             duracion_transmision=int(data.get('duracion_transmision', 1)),
             repeticiones_dia=int(data.get('repeticiones_dia', 1)),
             # Configuración
-            estado=data.get('estado', 'solicitado'),
+            estado=data.get('estado', 'pendiente'),
             urgencia=data.get('urgencia', 'normal'),
             observaciones=data.get('observaciones'),
             mensaje_personalizado=data.get('mensaje_personalizado'),
@@ -4882,12 +4954,26 @@ def parte_mortorio_create_api(request):
         
         if data.get('fecha_inicio_transmision'):
             parte.fecha_inicio_transmision = datetime.strptime(data['fecha_inicio_transmision'], '%Y-%m-%d').date()
+        else:
+            # Si no se proporciona fecha de inicio, usar fecha actual
+            parte.fecha_inicio_transmision = timezone.now().date()
         
         if data.get('fecha_fin_transmision'):
             parte.fecha_fin_transmision = datetime.strptime(data['fecha_fin_transmision'], '%Y-%m-%d').date()
+        else:
+            # Si no se proporciona fecha de fin, usar 7 días después de la fecha de inicio
+            parte.fecha_fin_transmision = parte.fecha_inicio_transmision + timedelta(days=7)
         
         parte.lugar_misa = data.get('lugar_misa')
         parte.save()
+        
+        # ✅ CREAR CUÑA AUTOMÁTICAMENTE LIGADA AL PARTE MORTORIO
+        try:
+            cuña = crear_cuña_desde_parte_mortorio(parte, request.user)
+            print(f"✅ Cuña creada automáticamente: {cuña.codigo}")
+        except Exception as e:
+            print(f"⚠️ Error creando cuña automática: {str(e)}")
+            # No fallar la creación del parte mortorio si hay error en la cuña
         
         # Registrar en historial
         from django.contrib.admin.models import LogEntry, ADDITION
@@ -4907,7 +4993,8 @@ def parte_mortorio_create_api(request):
             'message': 'Parte mortorio creado exitosamente',
             'parte_id': parte.id,
             'codigo': parte.codigo,
-            'precio_total': str(parte.precio_total)
+            'precio_total': str(parte.precio_total),
+            'cuña_creada': cuña.codigo if 'cuña' in locals() else None
         })
         
     except Exception as e:
@@ -4918,6 +5005,66 @@ def parte_mortorio_create_api(request):
             'success': False,
             'error': f'Error al crear el parte mortorio: {str(e)}'
         }, status=500)
+
+def crear_cuña_desde_parte_mortorio(parte_mortorio, usuario):
+    """
+    Función para crear automáticamente una cuña publicitaria desde un parte mortorio
+    """
+    from apps.content_management.models import CuñaPublicitaria
+    from decimal import Decimal
+    
+    # Calcular duración en segundos (usar duración de transmisión del parte mortorio)
+    duracion_segundos = parte_mortorio.duracion_transmision or 30
+    
+    # Calcular precio por segundo basado en el precio total del parte mortorio
+    precio_por_segundo = parte_mortorio.precio_total / Decimal(str(duracion_segundos))
+    
+    # Crear título descriptivo para la cuña
+    titulo_cuña = f"Parte Mortorio - {parte_mortorio.nombre_fallecido}"
+    
+    # Crear descripción con información del fallecido
+    descripcion = f"Transmisión por fallecimiento de {parte_mortorio.nombre_fallecido}"
+    if parte_mortorio.edad_fallecido:
+        descripcion += f", {parte_mortorio.edad_fallecido} años"
+    if parte_mortorio.nombre_esposa:
+        descripcion += f". Esposa: {parte_mortorio.nombre_esposa}"
+    
+    # Crear la cuña publicitaria
+    cuña = CuñaPublicitaria.objects.create(
+        titulo=titulo_cuña,
+        descripcion=descripcion,
+        cliente=parte_mortorio.cliente,
+        vendedor_asignado=parte_mortorio.creado_por if parte_mortorio.creado_por else None,
+        duracion_planeada=duracion_segundos,
+        repeticiones_dia=parte_mortorio.repeticiones_dia or 1,
+        fecha_inicio=parte_mortorio.fecha_inicio_transmision or timezone.now().date(),
+        fecha_fin=parte_mortorio.fecha_fin_transmision or (timezone.now().date() + timedelta(days=7)),
+        precio_por_segundo=precio_por_segundo,
+        precio_total=parte_mortorio.precio_total,
+        estado='activa',  # La cuña se crea activa por defecto
+        observaciones=f"Cuña generada automáticamente desde parte mortorio {parte_mortorio.codigo}",
+        created_by=usuario
+    )
+    
+    # Agregar tags para identificar que fue creada desde parte mortorio
+    cuña.tags = f"parte_mortorio,transmision_fallecimiento,{parte_mortorio.codigo}"
+    cuña.save()
+    
+    # Registrar en historial de la cuña
+    from django.contrib.admin.models import LogEntry, ADDITION
+    from django.contrib.contenttypes.models import ContentType
+    
+    LogEntry.objects.log_action(
+        user_id=usuario.pk,
+        content_type_id=ContentType.objects.get_for_model(cuña).pk,
+        object_id=cuña.pk,
+        object_repr=f"Cuña creada desde parte mortorio: {cuña.titulo}",
+        action_flag=ADDITION,
+        change_message=f'Cuña creada automáticamente desde parte mortorio {parte_mortorio.codigo}'
+    )
+    
+    return cuña
+
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["PUT", "POST"])
@@ -5023,6 +5170,12 @@ def parte_mortorio_update_api(request, parte_id):
         
         parte.save()
         
+        # ✅ ACTUALIZAR CUÑA ASOCIADA SI EXISTE
+        try:
+            actualizar_cuña_desde_parte_mortorio(parte, request.user)
+        except Exception as e:
+            print(f"⚠️ Error actualizando cuña asociada: {str(e)}")
+        
         # Registrar en historial
         LogEntry.objects.log_action(
             user_id=request.user.pk,
@@ -5045,16 +5198,69 @@ def parte_mortorio_update_api(request, parte_id):
             'success': False,
             'error': f'Error al actualizar el parte mortorio: {str(e)}'
         }, status=500)
+
+def actualizar_cuña_desde_parte_mortorio(parte_mortorio, usuario):
+    """
+    Función para actualizar la cuña asociada a un parte mortorio
+    """
+    from apps.content_management.models import CuñaPublicitaria
+    
+    # Buscar cuñas asociadas a este parte mortorio (por tags o título)
+    cuñas_asociadas = CuñaPublicitaria.objects.filter(
+        tags__contains=f"parte_mortorio,{parte_mortorio.codigo}"
+    )
+    
+    if cuñas_asociadas.exists():
+        cuña = cuñas_asociadas.first()
+        
+        # Actualizar información de la cuña
+        cuña.titulo = f"Parte Mortorio - {parte_mortorio.nombre_fallecido}"
+        cuña.descripcion = f"Transmisión por fallecimiento de {parte_mortorio.nombre_fallecido}"
+        if parte_mortorio.edad_fallecido:
+            cuña.descripcion += f", {parte_mortorio.edad_fallecido} años"
+        if parte_mortorio.nombre_esposa:
+            cuña.descripcion += f". Esposa: {parte_mortorio.nombre_esposa}"
+        
+        cuña.duracion_planeada = parte_mortorio.duracion_transmision or 30
+        cuña.repeticiones_dia = parte_mortorio.repeticiones_dia or 1
+        cuña.fecha_inicio = parte_mortorio.fecha_inicio_transmision or cuña.fecha_inicio
+        cuña.fecha_fin = parte_mortorio.fecha_fin_transmision or cuña.fecha_fin
+        cuña.precio_total = parte_mortorio.precio_total
+        
+        # Recalcular precio por segundo
+        if cuña.duracion_planeada > 0:
+            cuña.precio_por_segundo = parte_mortorio.precio_total / Decimal(str(cuña.duracion_planeada))
+        
+        cuña.save()
+        
+        print(f"✅ Cuña actualizada: {cuña.codigo}")
+        return cuña
+    
+    return None
+
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["DELETE", "POST"])
 def parte_mortorio_delete_api(request, parte_id):
-    """API para eliminar un parte mortorio"""
+    """API para eliminar un parte mortorio - CON ELIMINACIÓN DE CUÑA ASOCIADA"""
     try:
         from .models import ParteMortorio
+        from apps.content_management.models import CuñaPublicitaria
         
         parte = get_object_or_404(ParteMortorio, pk=parte_id)
         codigo = parte.codigo
+        
+        # ✅ ELIMINAR CUÑAS ASOCIADAS
+        try:
+            cuñas_asociadas = CuñaPublicitaria.objects.filter(
+                tags__contains=f"parte_mortorio,{codigo}"
+            )
+            if cuñas_asociadas.exists():
+                cuñas_count = cuñas_asociadas.count()
+                cuñas_asociadas.delete()
+                print(f"✅ Eliminadas {cuñas_count} cuñas asociadas al parte mortorio {codigo}")
+        except Exception as e:
+            print(f"⚠️ Error eliminando cuñas asociadas: {str(e)}")
         
         # Registrar en historial antes de eliminar
         LogEntry.objects.log_action(
@@ -5063,14 +5269,14 @@ def parte_mortorio_delete_api(request, parte_id):
             object_id=parte.pk,
             object_repr=f"Parte mortorio eliminado: {codigo}",
             action_flag=DELETION,
-            change_message=f'Parte mortorio {codigo} eliminado'
+            change_message=f'Parte mortorio {codigo} eliminado junto con sus cuñas asociadas'
         )
         
         parte.delete()
         
         return JsonResponse({
             'success': True,
-            'message': 'Parte mortorio eliminado exitosamente'
+            'message': 'Parte mortorio y cuñas asociadas eliminados exitosamente'
         })
         
     except Exception as e:
@@ -5078,7 +5284,6 @@ def parte_mortorio_delete_api(request, parte_id):
             'success': False,
             'error': f'Error al eliminar el parte mortorio: {str(e)}'
         }, status=500)
-
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["POST"])
@@ -8210,12 +8415,13 @@ def api_bloque_update(request, bloque_id):
 @login_required
 def grilla_publicitaria_list(request):
     """Grilla que combina programación del canal y cuñas publicitarias - VERSIÓN MEJORADA"""
+    GRILLA_AVAILABLE = True
     try:
         from apps.programacion_canal.models import ProgramacionSemanal, BloqueProgramacion
         from apps.grilla_publicitaria.models import UbicacionPublicitaria, AsignacionCuña
         from apps.content_management.models import CuñaPublicitaria
         
-        GRILLA_AVAILABLE = True
+        
     except ImportError as e:
         print(f"Error importando módulos de grilla: {e}")
         GRILLA_AVAILABLE = False

@@ -1366,23 +1366,31 @@ class ContratoGenerado(models.Model):
         except Exception as e:
             print(f'Error generando contrato: {e}')
             return False
-
     def validar_y_crear_cuna(self, user=None):
-        from apps.content_management.models import CuñaPublicitaria
+        from apps.content_management.models import CuñaPublicitaria, CategoriaPublicitaria
         from django.utils import timezone
         try:
             if self.cuña:
                 return {'success': False, 'error': 'Este contrato ya tiene una cuña asociada'}
-    
+
             datos = self.datos_generacion or {}
-    
-            # ✅ CREAR CUÑA CON VENDEDOR ASIGNADO
+
+            # ✅ OBTENER CATEGORÍA SI EXISTE EN LOS DATOS
+            categoria = None
+            if datos.get('CATEGORIA_ID'):
+                try:
+                    categoria = CategoriaPublicitaria.objects.get(id=datos['CATEGORIA_ID'])
+                except CategoriaPublicitaria.DoesNotExist:
+                    pass
+
+            # ✅ CREAR CUÑA CON VENDEDOR ASIGNADO Y CATEGORÍA
             cuna = CuñaPublicitaria.objects.create(
                 codigo=f"CÑ-{self.numero_contrato}",
                 titulo=datos.get('TITULO_CUÑA', f"Cuña {self.nombre_cliente}"),
                 descripcion=f"Cuña generada automáticamente desde contrato {self.numero_contrato}",
                 cliente=self.cliente,
-                vendedor_asignado=self.vendedor_asignado,  # ✅ COPIAR VENDEDOR DEL CONTRATO
+                vendedor_asignado=self.vendedor_asignado,
+                categoria=categoria,  # ✅ ASIGNAR CATEGORÍA
                 duracion_planeada=int(datos.get('DURACION_SPOT', 30)),
                 repeticiones_dia=int(datos.get('SPOTS_DIA', 1)),
                 fecha_inicio=str_to_date(self.datos_generacion.get('FECHA_INICIO_RAW')),
@@ -1393,23 +1401,23 @@ class ContratoGenerado(models.Model):
                 observaciones=self.observaciones,
                 created_by=user
             )
-    
+
             self.cuña = cuna
             self.estado = 'validado'
             self.fecha_validacion = timezone.now()
             self.validado_por = user
             self.save()
-    
+
             return {
                 'success': True, 
                 'cuna_id': cuna.id, 
                 'message': 'Cuña creada exitosamente en estado pendiente',
-                'vendedor_asignado': self.vendedor_asignado.get_full_name() if self.vendedor_asignado else 'No asignado'  # ✅ INFORMAR VENDEDOR
+                'vendedor_asignado': self.vendedor_asignado.get_full_name() if self.vendedor_asignado else 'No asignado',
+                'categoria_asignada': categoria.nombre if categoria else 'No asignada'  # ✅ INFORMAR CATEGORÍA
             }
-    
+
         except Exception as e:
             return {'success': False, 'error': str(e)}
-
     def marcar_como_enviado(self):
         self.estado = 'enviado'
         self.fecha_envio = timezone.now()

@@ -791,7 +791,6 @@ class ContratoGeneradoAdmin(admin.ModelAdmin):
         'created_at',
         'updated_at',
         'descargar_archivo',
-        'puede_regenerar'
     ]
     
     ordering = ['-fecha_generacion']

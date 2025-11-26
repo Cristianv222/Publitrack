@@ -134,6 +134,24 @@
         font-size: 1.5rem;
         margin-right: 10px;
     }
+
+    /* Estilos para información de cuña asociada */
+    .cuna-asociada-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        margin-left: 5px;
+    }
+    .cuna-info {
+        background: #f8f9fa;
+        border-left: 4px solid #667eea;
+        padding: 10px;
+        margin-top: 5px;
+        border-radius: 4px;
+    }
 </style>
 {% endblock %}
 
@@ -202,6 +220,7 @@
                             <th>Precio</th>
                             <th>Urgencia</th>
                             <th>Estado</th>
+                            <th>Cuña Asociada</th>
                             <th>Documentos</th>
                             <th>Acciones</th>
                         </tr>
@@ -266,6 +285,23 @@
                                 </span>
                             </td>
                             <td>
+                                {% with parte.cunas_asociadas as cunas %}
+                                    {% if cunas %}
+                                        {% for cuna in cunas|slice:":1" %}
+                                            <span class="cuna-asociada-badge" 
+                                                  title="Cuña {{ cuna.codigo }} - {{ cuna.estado }}">
+                                                {{ cuna.codigo }}
+                                            </span>
+                                            {% if cunas.count > 1 %}
+                                            <small class="text-muted">+{{ cunas.count|add:"-1" }}</small>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
                                 {% if parte.partes_generados.exists %}
                                     {% for parte_gen in parte.partes_generados.all|slice:":1" %}
                                     <div class="mb-1">
@@ -319,7 +355,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="11" class="text-center py-4">
+                            <td colspan="12" class="text-center py-4">
                                 <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                                 <p class="text-muted">No se encontraron partes mortorios</p>
                                 <button class="btn btn-primary" onclick="abrirModalCrear()">
@@ -568,6 +604,12 @@
                                 <input type="number" class="form-control" name="precio_total" id="precio_total" step="0.01" min="0" value="0.00" required>
                             </div>
                             <small class="text-muted">Ingrese el precio total a cobrar por este parte mortorio</small>
+                            <div class="alert alert-info mt-2">
+                                <small>
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Se creará automáticamente una cuña publicitaria asociada con este precio.
+                                </small>
+                            </div>
                         </div>
                     </div>
                     
@@ -1070,10 +1112,26 @@ function guardarParteMortorio() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            let mensaje = data.message;
+            if (data.cuña_creada) {
+                mensaje += `\nSe creó automáticamente la cuña: ${data.cuña_creada}`;
+            }
+            
             Swal.fire({
                 icon: 'success',
                 title: '¡Éxito!',
-                text: data.message,
+                html: `
+                    <div class="text-center">
+                        <p>${data.message}</p>
+                        ${data.cuña_creada ? 
+                            `<div class="alert alert-info mt-2">
+                                <i class="fas fa-broadcast-tower me-2"></i>
+                                Se creó automáticamente la cuña: <strong>${data.cuña_creada}</strong>
+                            </div>` : 
+                            ''
+                        }
+                    </div>
+                `,
                 confirmButtonColor: '#28a745'
             }).then(() => {
                 window.location.reload();
@@ -1149,6 +1207,26 @@ function verDetalleParte(parteId) {
                 `;
             }
             
+            // Información de cuñas asociadas
+            let cunasHtml = '';
+            if (data.cunas_asociadas && data.cunas_asociadas.length > 0) {
+                cunasHtml = `
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h6 class="text-primary mb-3">Cuñas Asociadas</h6>
+                            ${data.cunas_asociadas.map(cuna => `
+                                <div class="cuna-info mb-2">
+                                    <strong>Código:</strong> ${cuna.codigo}<br>
+                                    <strong>Estado:</strong> ${cuna.estado_display}<br>
+                                    <strong>Fechas:</strong> ${cuna.fecha_inicio} al ${cuna.fecha_fin}<br>
+                                    <strong>Repeticiones:</strong> ${cuna.repeticiones_dia} por día
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
             const html = `
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -1210,6 +1288,7 @@ function verDetalleParte(parteId) {
                     ` : ''}
                 </div>
                 ${infoFamiliarHtml}
+                ${cunasHtml}
                 ${data.mensaje_personalizado ? `
                 <div class="row mt-4">
                     <div class="col-12">
