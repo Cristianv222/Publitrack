@@ -8377,12 +8377,13 @@ def api_bloque_update(request, bloque_id):
 @login_required
 def grilla_publicitaria_list(request):
     """Grilla que combina programación del canal y cuñas publicitarias - VERSIÓN MEJORADA"""
+    GRILLA_AVAILABLE = True
     try:
         from apps.programacion_canal.models import ProgramacionSemanal, BloqueProgramacion
         from apps.grilla_publicitaria.models import UbicacionPublicitaria, AsignacionCuña
         from apps.content_management.models import CuñaPublicitaria
         
-        GRILLA_AVAILABLE = True
+        
     except ImportError as e:
         print(f"Error importando módulos de grilla: {e}")
         GRILLA_AVAILABLE = False
