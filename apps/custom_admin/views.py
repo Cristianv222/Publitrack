@@ -8089,20 +8089,50 @@ def programacion_list(request):
     # Configuración del calendario
     dias_semana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
     horas_dia = []
-    for hora in range(6, 24):
+    for hora in range(0, 24):
         for minuto in [0, 30]:
             horas_dia.append(f"{hora:02d}:{minuto:02d}")
+            
+    # PRE-CALCULO DE LA GRILLA para manejar cruces de medianoche y optimizar template
+    calendario_data = []
+    
+    # Cachear bloques por día para evitar iteraciones innecesarias
+    bloques_por_dia = {i: [] for i in range(7)}
+    for b in bloques_semana:
+        bloques_por_dia[b.dia_semana].append(b)
+        
+    for hora in horas_dia:
+        row = {'hora': hora, 'dias': []}
+        for dia_index in range(7):
+            bloques_celda = []
+            for bloque in bloques_por_dia[dia_index]:
+                # Lógica de comparación de horas con soporte para medianoche
+                start = bloque.hora_inicio.strftime("%H:%M")
+                end = bloque.hora_fin.strftime("%H:%M")
+                
+                # Caso normal: start < end (ej: 08:00 - 09:00)
+                if start < end:
+                    if start <= hora < end:
+                        bloques_celda.append(bloque)
+                # Caso medianoche: start > end (ej: 23:00 - 01:00)
+                else: 
+                    if start <= hora or hora < end:
+                        bloques_celda.append(bloque)
+            
+            row['dias'].append({'dia_index': dia_index, 'bloques': bloques_celda})
+        calendario_data.append(row)
     
     context = {
         'section': 'transmisiones',
         'programas': programas,
         'programaciones': programaciones,
         'programacion_actual': programacion_actual,
-        'bloques_semana': bloques_semana,
+        'bloques_semana': bloques_semana, # Mantener para otros usos si es necesario
+        'calendario_data': calendario_data, # Nueva estructura estructurada
         'dias_semana': dias_semana,
         'horas_dia': horas_dia,
         'PROGRAMACION_AVAILABLE': PROGRAMACION_AVAILABLE,
-        'categorias_activas': categorias_activas,  # AGREGAR CATEGORÍAS AL CONTEXTO
+        'categorias_activas': categorias_activas,
     }
     
     return render(request, 'custom_admin/programacion_canal/programacion_list.html', context)
@@ -8482,7 +8512,7 @@ def grilla_publicitaria_list(request):
     
     # Horas en intervalos de 30 minutos (de 6:00 AM a 11:30 PM)
     horas_dia = []
-    for hora in range(6, 24):
+    for hora in range(0, 24):
         for minuto in [0, 30]:
             horas_dia.append(f"{hora:02d}:{minuto:02d}")
     
