@@ -23,7 +23,6 @@
         font-size: 0.9rem;
     }
     
-    /* ESTILOS SIMPLIFICADOS PARA ESTADOS */
     .estado-texto {
         padding: 6px 12px;
         border-radius: 20px;
@@ -31,26 +30,10 @@
         font-weight: 500;
         display: inline-block;
     }
-    .estado-pendiente {
-        background-color: #fff3cd;
-        color: #856404;
-        border: 1px solid #ffc107;
-    }
-    .estado-al-aire {
-        background-color: #d4edda;
-        color: #155724;
-        border: 1px solid #28a745;
-    }
-    .estado-pausado {
-        background-color: #e2e3e5;
-        color: #383d41;
-        border: 1px solid #6c757d;
-    }
-    .estado-finalizado {
-        background-color: #f8d7da;
-        color: #721c24;
-        border: 1px solid #dc3545;
-    }
+    .estado-pendiente { background-color: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+    .estado-al-aire { background-color: #d4edda; color: #155724; border: 1px solid #28a745; }
+    .estado-pausado { background-color: #e2e3e5; color: #383d41; border: 1px solid #6c757d; }
+    .estado-finalizado { background-color: #f8d7da; color: #721c24; border: 1px solid #dc3545; }
     
     .badge-urgencia {
         padding: 5px 12px;
@@ -58,62 +41,17 @@
         font-size: 0.85rem;
         font-weight: 500;
     }
-    .badge-normal {
-        background-color: #d4edda;
-        color: #155724;
-    }
-    .badge-urgente {
-        background-color: #fff3cd;
-        color: #856404;
-    }
-    .badge-muy_urgente {
-        background-color: #f8d7da;
-        color: #721c24;
-    }
     
-    .parte-number {
-        font-weight: 600;
-        color: #2c5aa0;
-    }
-    .precio-total {
-        font-weight: 600;
-        color: #28a745;
-    }
-    .familia-info {
-        font-size: 0.85rem;
-        color: #666;
-    }
-    .btn-action {
-        padding: 5px 8px;
-        font-size: 0.8rem;
-        margin: 1px;
-    }
-    .table-hover tbody tr:hover {
-        background-color: #f8f9fa;
-    }
+    .parte-number { font-weight: 600; color: #2c5aa0; }
+    .precio-total { font-weight: 600; color: #28a745; }
+    .btn-action { padding: 5px 8px; font-size: 0.8rem; margin: 1px; }
     
-    /* Estilos para botones de documentos */
-    .btn-descargar {
-        background-color: #17a2b8;
-        border-color: #17a2b8;
-        color: white;
-    }
-    .btn-descargar:hover {
-        background-color: #138496;
-        border-color: #117a8b;
-    }
+    .btn-descargar { background-color: #17a2b8; border-color: #17a2b8; color: white; }
+    .btn-descargar:hover { background-color: #138496; color: white; }
     
-    .btn-generar {
-        background-color: #6f42c1;
-        border-color: #6f42c1;
-        color: white;
-    }
-    .btn-generar:hover {
-        background-color: #5a359c;
-        border-color: #523092;
-    }
+    .btn-generar { background-color: #6f42c1; border-color: #6f42c1; color: white; }
+    .btn-generar:hover { background-color: #5a359c; color: white; }
     
-    /* Modal de cambio de estado */
     .estado-option {
         padding: 15px;
         margin: 10px 0;
@@ -122,48 +60,16 @@
         cursor: pointer;
         transition: all 0.3s ease;
     }
-    .estado-option:hover {
-        border-color: #007bff;
-        background-color: #f8f9fa;
-    }
-    .estado-option.selected {
-        border-color: #007bff;
-        background-color: #e7f3ff;
-    }
-    .estado-icon {
-        font-size: 1.5rem;
-        margin-right: 10px;
-    }
-
-    /* Estilos para información de cuña asociada */
-    .cuna-asociada-badge {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-size: 0.7rem;
-        font-weight: 600;
-        margin-left: 5px;
-    }
-    .cuna-info {
-        background: #f8f9fa;
-        border-left: 4px solid #667eea;
-        padding: 10px;
-        margin-top: 5px;
-        border-radius: 4px;
-    }
+    .estado-option:hover { border-color: #007bff; background-color: #f8f9fa; }
+    .estado-option.selected { border-color: #007bff; background-color: #e7f3ff; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
-    
-    <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="mb-1">
-                <i class="fas fa-cross me-2"></i>Gestión de Partes Mortorios
-            </h2>
+            <h2 class="mb-1"><i class="fas fa-cross me-2"></i>Gestión de Partes Mortorios</h2>
             <p class="text-muted mb-0">Administra las transmisiones por fallecimiento</p>
         </div>
         <div>
@@ -176,291 +82,86 @@
         </div>
     </div>
 
-    <!-- Estadísticas SIMPLIFICADAS -->
     <div class="row mb-4">
         <div class="col-md-3">
-            <div class="stats-card">
+            <div class="stats-card text-center">
                 <h3 class="text-primary">{{ total_partes }}</h3>
                 <p>Total de Partes</p>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="stats-card">
+            <div class="stats-card text-center">
                 <h3 class="text-warning">{{ partes_pendientes }}</h3>
                 <p>Pendientes</p>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="stats-card">
+            <div class="stats-card text-center">
                 <h3 class="text-success">{{ partes_al_aire }}</h3>
                 <p>Al Aire</p>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="stats-card">
+            <div class="stats-card text-center">
                 <h3 class="text-danger">{{ partes_finalizados }}</h3>
                 <p>Finalizados</p>
             </div>
         </div>
     </div>
 
-    <!-- Tabla de Partes Mortorios SIMPLIFICADA -->
-    <div class="card">
+    <div class="card shadow-sm">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover align-middle">
                     <thead class="table-light">
                         <tr>
                             <th>Código</th>
                             <th>Fallecido</th>
-                            <th>Información Familiar</th>
                             <th>Cliente</th>
                             <th>F. Fallecimiento</th>
-                            <th>Transmisión</th>
                             <th>Precio</th>
-                            <th>Urgencia</th>
                             <th>Estado</th>
-                            <th>Cuña Asociada</th>
-                            <th>Documentos</th>
+                            <th>Doc.</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for parte in partes %}
                         <tr>
-                            <td>
-                                <span class="parte-number">{{ parte.codigo }}</span>
-                                {% if parte.partes_generados.exists %}
-                                <br>
-                                <small class="text-muted">
-                                    <i class="fas fa-file-pdf text-danger"></i>
-                                    {{ parte.partes_generados.count }} doc.
-                                </small>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <strong>{{ parte.nombre_fallecido }}</strong>
-                                {% if parte.edad_fallecido %}
-                                <br><small class="text-muted">{{ parte.edad_fallecido }} años</small>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="familia-info">
-                                    {% if parte.nombre_esposa %}
-                                    <div><i class="fas fa-ring me-1"></i> {{ parte.nombre_esposa }}</div>
-                                    {% endif %}
-                                    {% if parte.cantidad_hijos > 0 %}
-                                    <div><i class="fas fa-child me-1"></i> {{ parte.cantidad_hijos }} hijos</div>
-                                    {% endif %}
-                                </div>
-                            </td>
-                            <td>
-                                {{ parte.cliente.get_full_name|default:parte.cliente.username }}
-                            </td>
-                            <td>
-                                {{ parte.fecha_fallecimiento|date:"d/m/Y" }}
-                            </td>
-                            <td>
-                                {% if parte.fecha_inicio_transmision %}
-                                {{ parte.fecha_inicio_transmision|date:"d/m/Y" }}
-                                {% if parte.fecha_fin_transmision and parte.fecha_fin_transmision != parte.fecha_inicio_transmision %}
-                                <br><small>al {{ parte.fecha_fin_transmision|date:"d/m/Y" }}</small>
-                                {% endif %}
-                                {% else %}
-                                <span class="text-muted">No programado</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <span class="precio-total">$ {{ parte.precio_total|floatformat:2 }}</span>
-                            </td>
-                            <td>
-                                <span class="badge-urgencia badge-{{ parte.urgencia }}">
-                                    {{ parte.get_urgencia_display }}
-                                </span>
-                            </td>
-                            <td>
-                                <!-- SOLO TEXTO DEL ESTADO ACTUAL -->
-                                <span class="estado-texto estado-{{ parte.estado }}">
-                                    {{ parte.get_estado_display }}
-                                </span>
-                            </td>
-                            <td>
-                                {% with parte.cunas_asociadas as cunas %}
-                                    {% if cunas %}
-                                        {% for cuna in cunas|slice:":1" %}
-                                            <span class="cuna-asociada-badge" 
-                                                  title="Cuña {{ cuna.codigo }} - {{ cuna.estado }}">
-                                                {{ cuna.codigo }}
-                                            </span>
-                                            {% if cunas.count > 1 %}
-                                            <small class="text-muted">+{{ cunas.count|add:"-1" }}</small>
-                                            {% endif %}
-                                        {% endfor %}
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                {% endwith %}
-                            </td>
+                            <td><span class="parte-number">{{ parte.codigo }}</span></td>
+                            <td><strong>{{ parte.nombre_fallecido }}</strong></td>
+                            <td>{{ parte.cliente.get_full_name|default:parte.cliente.username }}</td>
+                            <td>{{ parte.fecha_fallecimiento|date:"d/m/Y" }}</td>
+                            <td><span class="precio-total">$ {{ parte.precio_total|floatformat:2 }}</span></td>
+                            <td><span class="estado-texto estado-{{ parte.estado }}">{{ parte.get_estado_display }}</span></td>
                             <td>
                                 {% if parte.partes_generados.exists %}
-                                    {% for parte_gen in parte.partes_generados.all|slice:":1" %}
-                                    <div class="mb-1">
-                                        {% if parte_gen.archivo_parte_pdf %}
-                                        <button class="btn btn-descargar btn-action" 
-                                                onclick="descargarParteGenerado({{ parte_gen.id }})"
-                                                title="Descargar PDF">
-                                            <i class="fas fa-download"></i>
-                                        </button>
-                                        {% endif %}
-                                    </div>
-                                    {% endfor %}
-                                    {% if parte.partes_generados.count > 1 %}
-                                    <small class="text-muted">+{{ parte.partes_generados.count|add:"-1" }} más</small>
-                                    {% endif %}
-                                {% else %}
-                                <span class="text-muted">-</span>
-                                {% endif %}
+                                    <button class="btn btn-descargar btn-action" onclick="descargarParteGenerado({{ parte.partes_generados.first.id }})">
+                                        <i class="fas fa-download"></i>
+                                    </button>
+                                {% else %}-{% endif %}
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <!-- Botón Ver -->
-                                    <button class="btn btn-info btn-action" 
-                                            onclick="verDetalleParte({{ parte.id }})"
-                                            title="Ver detalles">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    
-                                    <!-- Botón Cambiar Estado -->
-                                    <button class="btn btn-warning btn-action" 
-                                            onclick="cambiarEstadoParte({{ parte.id }})"
-                                            title="Cambiar estado">
-                                        <i class="fas fa-exchange-alt"></i>
-                                    </button>
-                                    
-                                    <!-- Botón Generar Documento -->
-                                    <button class="btn btn-generar btn-action" 
-                                            onclick="generarDocumentoParte({{ parte.id }})"
-                                            title="Generar Documento">
-                                        <i class="fas fa-file-pdf"></i>
-                                    </button>
-                                    
-                                    <!-- Botón Editar -->
-                                    <button class="btn btn-secondary btn-action" 
-                                            onclick="editarParte({{ parte.id }})"
-                                            title="Editar">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
+                                    <button class="btn btn-info btn-action" onclick="verDetalleParte({{ parte.id }})" title="Ver"><i class="fas fa-eye"></i></button>
+                                    <button class="btn btn-warning btn-action" onclick="cambiarEstadoParte({{ parte.id }})" title="Estado"><i class="fas fa-exchange-alt"></i></button>
+                                    <button class="btn btn-generar btn-action" onclick="generarDocumentoParte({{ parte.id }})" title="PDF"><i class="fas fa-file-pdf"></i></button>
+                                    <button class="btn btn-secondary btn-action" onclick="editarParte({{ parte.id }})" title="Editar"><i class="fas fa-edit"></i></button>
                                 </div>
                             </td>
                         </tr>
                         {% empty %}
-                        <tr>
-                            <td colspan="12" class="text-center py-4">
-                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                                <p class="text-muted">No se encontraron partes mortorios</p>
-                                <button class="btn btn-primary" onclick="abrirModalCrear()">
-                                    <i class="fas fa-plus me-2"></i>Crear Primer Parte Mortorio
-                                </button>
-                            </td>
-                        </tr>
+                        <tr><td colspan="8" class="text-center py-4 text-muted">No hay partes registrados.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
-
 </div>
 
-<!-- Modal para cambiar estado -->
-<div class="modal fade" id="modalCambiarEstado" tabindex="-1">
-    <div class="modal-dialog modal-sm">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Cambiar Estado</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="opcionesEstado">
-                    <!-- Las opciones se cargan dinámicamente -->
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-2"></i>Cancelar
-                </button>
-                <button type="button" class="btn btn-primary" onclick="confirmarCambioEstado()">
-                    <i class="fas fa-check me-2"></i>Cambiar Estado
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para generar documento -->
-<div class="modal fade" id="modalGenerarDocumento" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Generar Documento de Parte Mortorio</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="formGenerarDocumento">
-                    {% csrf_token %}
-                    <input type="hidden" id="parte_id_generar" name="parte_id">
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Seleccionar Plantilla <span class="text-danger">*</span></label>
-                        <select class="form-select" name="plantilla_id" id="plantilla_id" required>
-                            <option value="">Cargando plantillas...</option>
-                        </select>
-                        <small class="text-muted">Selecciona la plantilla que se usará para generar el documento</small>
-                    </div>
-                    
-                    <div class="alert alert-info">
-                        <small>
-                            <i class="fas fa-info-circle me-1"></i>
-                            Se generará un documento PDF con la información del parte mortorio usando la plantilla seleccionada.
-                        </small>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-2"></i>Cancelar
-                </button>
-                <button type="button" class="btn btn-primary" onclick="confirmarGenerarDocumento()">
-                    <i class="fas fa-file-pdf me-2"></i>Generar Documento
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para ver detalles -->
-<div class="modal fade" id="modalDetalleParte" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Detalles del Parte Mortorio</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="detalleParteContent">
-                <!-- Contenido se carga dinámicamente -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-2"></i>Cerrar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para crear/editar parte mortorio -->
 <div class="modal fade" id="modalParteMortorio" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="modalParteTitulo">Nuevo Parte Mortorio</h5>
@@ -471,207 +172,75 @@
                     {% csrf_token %}
                     <input type="hidden" id="parte_id" name="parte_id">
                     
-                    <!-- Información del Fallecido -->
-                    <h6 class="mb-3 text-primary"><i class="fas fa-user-alt me-2"></i>Información del Fallecido</h6>
-                    <div class="row g-3 mb-4">
-                        <div class="col-12">
-                            <label class="form-label">Nombre del Fallecido <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="nombre_fallecido" id="nombre_fallecido" required>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nombre del Fallecido <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="nombre_fallecido" required>
                     </div>
-                    
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label">Fecha de Nacimiento</label>
-                            <input type="date" class="form-control" name="fecha_nacimiento" id="fecha_nacimiento">
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fecha Fallecimiento <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="fecha_fallecimiento" required>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Fecha de Fallecimiento <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" name="fecha_fallecimiento" id="fecha_fallecimiento" required>
-                        </div>
-                    </div>
-                    
-                    <!-- Información Familiar -->
-                    <h6 class="mb-3 text-primary"><i class="fas fa-users me-2"></i>Información Familiar</h6>
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label">Nombre de la Esposa/Esposo</label>
-                            <input type="text" class="form-control" name="nombre_esposa" id="nombre_esposa" placeholder="Nombre del cónyuge">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Cantidad de Hijos</label>
-                            <input type="number" class="form-control" name="cantidad_hijos" id="cantidad_hijos" value="0" min="0">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Hijos Vivos</label>
-                            <input type="number" class="form-control" name="hijos_vivos" id="hijos_vivos" value="0" min="0">
-                        </div>
-                    </div>
-                    
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label">Hijos Fallecidos</label>
-                            <input type="number" class="form-control" name="hijos_fallecidos" id="hijos_fallecidos" value="0" min="0">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Nombres de los Hijos</label>
-                            <input type="text" class="form-control" name="nombres_hijos" id="nombres_hijos" placeholder="Separados por comas">
-                        </div>
-                    </div>
-                    
-                    <div class="row g-3 mb-4">
-                        <div class="col-12">
-                            <label class="form-label">Familiares Adicionales</label>
-                            <textarea class="form-control" name="familiares_adicionales" id="familiares_adicionales" rows="2" 
-                                      placeholder="Otros familiares importantes (hermanos, padres, etc.)"></textarea>
-                        </div>
-                    </div>
-                    
-                    <!-- Información de la Ceremonia -->
-                    <h6 class="mb-3 text-primary"><i class="fas fa-church me-2"></i>Información de la Ceremonia</h6>
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label">Tipo de Ceremonia</label>
-                            <select class="form-select" name="tipo_ceremonia" id="tipo_ceremonia">
-                                <option value="misa">Misa</option>
-                                <option value="velatorio">Velatorio</option>
-                                <option value="ambos">Misa y Velatorio</option>
-                                <option value="otro">Otro</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Cliente/Familiar <span class="text-danger">*</span></label>
-                            <select class="form-select" name="cliente_id" id="cliente_id" required>
-                                <option value="">Seleccionar cliente...</option>
-                                <!-- Se cargarán dinámicamente -->
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label">Fecha de Misa/Velatorio</label>
-                            <input type="date" class="form-control" name="fecha_misa" id="fecha_misa">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Hora de Misa/Velatorio</label>
-                            <input type="time" class="form-control" name="hora_misa" id="hora_misa">
-                        </div>
-                    </div>
-                    
-                    <div class="row g-3 mb-4">
-                        <div class="col-12">
-                            <label class="form-label">Lugar de Misa/Velatorio</label>
-                            <input type="text" class="form-control" name="lugar_misa" id="lugar_misa" placeholder="Dirección del lugar de la ceremonia">
-                        </div>
-                    </div>
-                    
-                    <!-- Información de Transmisión -->
-                    <h6 class="mb-3 text-primary"><i class="fas fa-broadcast-tower me-2"></i>Información de Transmisión</h6>
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label">Fecha de Inicio Transmisión</label>
-                            <input type="date" class="form-control" name="fecha_inicio_transmision" id="fecha_inicio_transmision">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Fecha de Fin Transmisión</label>
-                            <input type="date" class="form-control" name="fecha_fin_transmision" id="fecha_fin_transmision">
-                        </div>
-                    </div>
-                    
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-4">
-                            <label class="form-label">Hora de Transmisión</label>
-                            <input type="time" class="form-control" name="hora_transmision" id="hora_transmision">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Duración (minutos)</label>
-                            <input type="number" class="form-control" name="duracion_transmision" id="duracion_transmision" value="1" min="1">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Repeticiones por día</label>
-                            <input type="number" class="form-control" name="repeticiones_dia" id="repeticiones_dia" value="1" min="1">
-                        </div>
-                    </div>
-                    
-                    <!-- Precio Total -->
-                    <h6 class="mb-3 text-primary"><i class="fas fa-dollar-sign me-2"></i>Precio Total</h6>
-                    <div class="row g-3 mb-4">
-                        <div class="col-12">
+                        <div class="col-md-6 mb-3">
                             <label class="form-label">Precio Total ($) <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                <input type="number" class="form-control" name="precio_total" id="precio_total" step="0.01" min="0" value="0.00" required>
-                            </div>
-                            <small class="text-muted">Ingrese el precio total a cobrar por este parte mortorio</small>
-                            <div class="alert alert-info mt-2">
-                                <small>
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    Se creará automáticamente una cuña publicitaria asociada con este precio.
-                                </small>
-                            </div>
+                            <input type="number" class="form-control" id="precio_total" step="0.01" min="0" value="0.00" required>
                         </div>
                     </div>
-                    
-                    <!-- Configuración -->
-                    <h6 class="mb-3 text-primary"><i class="fas fa-cog me-2"></i>Configuración</h6>
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label">Urgencia</label>
-                            <select class="form-select" name="urgencia" id="urgencia">
-                                <option value="normal">Normal</option>
-                                <option value="urgente">Urgente</option>
-                                <option value="muy_urgente">Muy Urgente</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Estado</label>
-                            <select class="form-select" name="estado" id="estado">
-                                <option value="pendiente">🟡 Pendiente</option>
-                                <option value="al_aire">🟢 Al Aire</option>
-                                <option value="pausado">⏸️ Pausado</option>
-                                <option value="finalizado">🔴 Finalizado</option>
-                            </select>
-                        </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Cliente Ligado <span class="text-danger">*</span></label>
+                        <select class="form-select" id="cliente_id" required>
+                            <option value="">Seleccionar cliente...</option>
+                        </select>
                     </div>
-                    
-                    <div class="row g-3 mb-4">
-                        <div class="col-12">
-                            <label class="form-label">Mensaje Personalizado</label>
-                            <textarea class="form-control" name="mensaje_personalizado" id="mensaje_personalizado" rows="3" 
-                                      placeholder="Mensaje especial para la transmisión..."></textarea>
-                        </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Observaciones</label>
+                        <textarea class="form-control" id="observaciones" rows="3" placeholder="Notas..."></textarea>
                     </div>
-                    
-                    <div class="row g-3 mb-4">
-                        <div class="col-12">
-                            <label class="form-label">Observaciones</label>
-                            <textarea class="form-control" name="observaciones" id="observaciones" rows="2"></textarea>
-                        </div>
+
+                    <div style="display: none;">
+                        <input type="date" id="fecha_nacimiento" value="2000-01-01">
+                        <input type="text" id="nombre_esposa" value="No registra">
+                        <input type="number" id="cantidad_hijos" value="0">
+                        <input type="number" id="hijos_vivos" value="0">
+                        <input type="number" id="hijos_fallecidos" value="0">
+                        <input type="text" id="nombres_hijos" value="N/A">
+                        <textarea id="familiares_adicionales">N/A</textarea>
+                        <select id="tipo_ceremonia"><option value="misa" selected>Misa</option></select>
+                        <input type="date" id="fecha_misa" value="2025-01-01">
+                        <input type="time" id="hora_misa" value="00:00">
+                        <input type="text" id="lugar_misa" value="Por definir">
+                        <input type="date" id="fecha_inicio_transmision" value="2025-01-01">
+                        <input type="date" id="fecha_fin_transmision" value="2025-01-01">
+                        <input type="time" id="hora_transmision" value="00:00">
+                        <input type="number" id="duracion_transmision" value="1">
+                        <input type="number" id="repeticiones_dia" value="1">
+                        <select id="urgencia"><option value="normal" selected>Normal</option></select>
+                        <select id="estado"><option value="pendiente" selected>Pendiente</option></select>
+                        <textarea id="mensaje_personalizado">N/A</textarea>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-2"></i>Cancelar
-                </button>
-                <button type="button" class="btn btn-primary" onclick="guardarParteMortorio()">
-                    <i class="fas fa-save me-2"></i>Guardar Parte Mortorio
-                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarParteMortorio()">Guardar</button>
             </div>
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="modalCambiarEstado" tabindex="-1"><div class="modal-dialog modal-sm"><div class="modal-content"><div class="modal-header"><h5>Estado</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body" id="opcionesEstado"></div><div class="modal-footer"><button class="btn btn-primary w-100" onclick="confirmarCambioEstado()">Confirmar</button></div></div></div></div>
+<div class="modal fade" id="modalGenerarDocumento" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5>PDF</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><select class="form-select" id="plantilla_id"></select></div><div class="modal-footer"><button class="btn btn-primary" onclick="confirmarGenerarDocumento()">Generar</button></div></div></div></div>
+<div class="modal fade" id="modalDetalleParte" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5>Detalle</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body" id="detalleParteContent"></div></div></div></div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
-let modalParteMortorio;
-let modalDetalleParte;
-let modalGenerarDocumento;
-let modalCambiarEstado;
-let parteActualId = null;
-let estadoSeleccionado = null;
+let modalParteMortorio, modalDetalleParte, modalGenerarDocumento, modalCambiarEstado;
+let parteActualId = null, estadoSeleccionado = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     modalParteMortorio = new bootstrap.Modal(document.getElementById('modalParteMortorio'));
@@ -680,678 +249,152 @@ document.addEventListener('DOMContentLoaded', function() {
     modalCambiarEstado = new bootstrap.Modal(document.getElementById('modalCambiarEstado'));
 });
 
-// ==================== FUNCIÓN SIMPLIFICADA PARA CAMBIAR ESTADO ====================
-
-function cambiarEstadoParte(parteId) {
-    parteActualId = parteId;
-    estadoSeleccionado = null;
-    
-    // Cargar opciones de estado
-    const opcionesEstado = document.getElementById('opcionesEstado');
-    opcionesEstado.innerHTML = `
-        <div class="estado-option" onclick="seleccionarEstado('pendiente')">
-            <span class="estado-icon">🟡</span>
-            <strong>Pendiente</strong>
-            <p class="text-muted mb-0">Estado inicial del parte</p>
-        </div>
-        <div class="estado-option" onclick="seleccionarEstado('al_aire')">
-            <span class="estado-icon">🟢</span>
-            <strong>Al Aire</strong>
-            <p class="text-muted mb-0">En transmisión actualmente</p>
-        </div>
-        <div class="estado-option" onclick="seleccionarEstado('pausado')">
-            <span class="estado-icon">⏸️</span>
-            <strong>Pausado</strong>
-            <p class="text-muted mb-0">Transmisión pausada temporalmente</p>
-        </div>
-        <div class="estado-option" onclick="seleccionarEstado('finalizado')">
-            <span class="estado-icon">🔴</span>
-            <strong>Finalizado</strong>
-            <p class="text-muted mb-0">Transmisión completada</p>
-        </div>
-    `;
-    
-    modalCambiarEstado.show();
-}
-
-function seleccionarEstado(estado) {
-    estadoSeleccionado = estado;
-    
-    // Remover selección anterior
-    document.querySelectorAll('.estado-option').forEach(option => {
-        option.classList.remove('selected');
-    });
-    
-    // Agregar selección actual
-    event.currentTarget.classList.add('selected');
-}
-
-function confirmarCambioEstado() {
-    if (!estadoSeleccionado) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Selecciona un estado',
-            text: 'Por favor selecciona un estado antes de continuar',
-            confirmButtonColor: '#3085d6'
-        });
-        return;
-    }
-    
-    modalCambiarEstado.hide();
-    
-    const mensajes = {
-        'pendiente': 'Pendiente',
-        'al_aire': 'Al Aire', 
-        'pausado': 'Pausado',
-        'finalizado': 'Finalizado'
-    };
-    
-    Swal.fire({
-        title: '¿Cambiar estado?',
-        html: `
-            <div class="text-center mb-3">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">
-                    ${estadoSeleccionado === 'pendiente' ? '🟡' : 
-                      estadoSeleccionado === 'al_aire' ? '🟢' : 
-                      estadoSeleccionado === 'pausado' ? '⏸️' : '🔴'}
-                </div>
-                <p class="mb-2">¿Estás seguro de cambiar el estado a:</p>
-                <h5 class="mb-2">${mensajes[estadoSeleccionado]}</h5>
-            </div>
-        `,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="fas fa-check me-2"></i>Sí, cambiar',
-        cancelButtonText: '<i class="fas fa-times me-2"></i>Cancelar',
-        reverseButtons: true
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Mostrar loading
-            Swal.fire({
-                title: 'Cambiando estado...',
-                html: `
-                    <div class="text-center py-3">
-                        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
-                            <span class="visually-hidden">Cambiando...</span>
-                        </div>
-                        <p class="text-muted mb-0">Actualizando estado del parte mortorio</p>
-                    </div>
-                `,
-                allowOutsideClick: false,
-                showConfirmButton: false
-            });
-            
-            // Llamar a la API para cambiar estado
-            fetch(`/panel/parte-mortorios/${parteActualId}/cambiar-estado/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({
-                    estado: estadoSeleccionado
-                })
-            })
-            .then(response => {
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    throw new Error('El servidor devolvió una respuesta no JSON');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: '¡Estado Actualizado!',
-                        html: `
-                            <div class="text-center">
-                                <div style="font-size: 2.5rem; margin-bottom: 1rem;">
-                                    ${estadoSeleccionado === 'pendiente' ? '🟡' : 
-                                      estadoSeleccionado === 'al_aire' ? '🟢' : 
-                                      estadoSeleccionado === 'pausado' ? '⏸️' : '🔴'}
-                                </div>
-                                <p class="mb-0">${data.message}</p>
-                            </div>
-                        `,
-                        confirmButtonColor: '#28a745',
-                        timer: 2000,
-                        showConfirmButton: true
-                    }).then(() => {
-                        window.location.reload();
-                    });
-                } else {
-                    throw new Error(data.error || 'Error al cambiar estado');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                let errorMessage = error.message;
-                
-                if (error.message.includes('JSON')) {
-                    errorMessage = 'Error de configuración: La URL no existe o hay un problema en el servidor';
-                }
-                
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: errorMessage,
-                    confirmButtonColor: '#dc3545'
-                });
-            });
-        }
-    });
-}
-
-// ==================== FUNCIONES PARA DOCUMENTOS ====================
-
-function generarDocumentoParte(parteId) {
-    document.getElementById('parte_id_generar').value = parteId;
-    
-    // Cargar plantillas disponibles
-    cargarPlantillasParteMortorio();
-    
-    modalGenerarDocumento.show();
-}
-
-function cargarPlantillasParteMortorio() {
-    const selectPlantilla = document.getElementById('plantilla_id');
-    selectPlantilla.innerHTML = '<option value="">Cargando plantillas...</option>';
-    
-    fetch('/panel/parte-mortorios/api/plantillas/')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.plantillas) {
-                selectPlantilla.innerHTML = '<option value="">Seleccionar plantilla...</option>';
-                
-                data.plantillas.forEach(plantilla => {
-                    const option = document.createElement('option');
-                    option.value = plantilla.id;
-                    option.textContent = `${plantilla.nombre} (${plantilla.tipo_parte_display}) - v${plantilla.version}`;
-                    if (plantilla.is_default) {
-                        option.textContent += ' ★';
-                    }
-                    selectPlantilla.appendChild(option);
-                });
-            } else {
-                selectPlantilla.innerHTML = '<option value="">No hay plantillas disponibles</option>';
-            }
-        })
-        .catch(error => {
-            console.error('Error cargando plantillas:', error);
-            selectPlantilla.innerHTML = '<option value="">Error al cargar plantillas</option>';
-        });
-}
-
-function confirmarGenerarDocumento() {
-    const parteId = document.getElementById('parte_id_generar').value;
-    const plantillaId = document.getElementById('plantilla_id').value;
-    
-    if (!plantillaId) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Plantilla requerida',
-            text: 'Por favor selecciona una plantilla',
-            confirmButtonColor: '#3085d6'
-        });
-        return;
-    }
-    
-    modalGenerarDocumento.hide();
-    
-    Swal.fire({
-        title: 'Generando documento...',
-        html: `
-            <div class="text-center py-3">
-                <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
-                    <span class="visually-hidden">Generando...</span>
-                </div>
-                <p class="text-muted mb-0">Creando documento PDF, por favor espere...</p>
-            </div>
-        `,
-        allowOutsideClick: false,
-        showConfirmButton: false
-    });
-    
-    fetch(`/panel/parte-mortorios/${parteId}/generar/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        },
-        body: JSON.stringify({
-            plantilla_id: plantillaId
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            Swal.fire({
-                icon: 'success',
-                title: '¡Documento Generado!',
-                html: `
-                    <div class="text-center">
-                        <i class="fas fa-file-pdf text-danger fa-3x mb-3"></i>
-                        <p>El documento se ha generado correctamente.</p>
-                        <p class="text-muted">Número de parte: <strong>${data.numero_parte}</strong></p>
-                        ${data.archivo_url ? 
-                            `<a href="${data.archivo_url}" target="_blank" class="btn btn-success mt-2">
-                                <i class="fas fa-download me-2"></i>Descargar PDF
-                            </a>` : 
-                            ''
-                        }
-                    </div>
-                `,
-                confirmButtonColor: '#28a745',
-                showCancelButton: true,
-                cancelButtonText: 'Cerrar',
-                confirmButtonText: 'Ver Lista'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.reload();
-                }
-            });
-        } else {
-            throw new Error(data.error || 'Error al generar el documento');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: error.message || 'Error al generar el documento',
-            confirmButtonColor: '#dc3545'
-        });
-    });
-}
-
-function descargarParteGenerado(parteGeneradoId) {
-    Swal.fire({
-        title: 'Preparando descarga...',
-        html: `
-            <div class="text-center py-3">
-                <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
-                    <span class="visually-hidden">Preparando...</span>
-                </div>
-                <p class="text-muted mb-0">Verificando archivo PDF...</p>
-            </div>
-        `,
-        allowOutsideClick: false,
-        showConfirmButton: false
-    });
-
-    // Verificar primero si el archivo existe
-    fetch(`/panel/parte-mortorios/generados/${parteGeneradoId}/verificar/`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.archivo_url) {
-                // Descargar directamente
-                window.open(data.archivo_url, '_blank');
-                Swal.close();
-            } else {
-                throw new Error('No se encontró el archivo PDF');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: error.message || 'No se pudo descargar el PDF',
-                confirmButtonColor: '#dc3545'
-            });
-        });
-}
-
-// ==================== FUNCIONES EXISTENTES ====================
-
 function abrirModalCrear() {
     document.getElementById('modalParteTitulo').textContent = 'Nuevo Parte Mortorio';
     document.getElementById('formParteMortorio').reset();
     document.getElementById('parte_id').value = '';
-    document.getElementById('estado').value = 'pendiente';
-    document.getElementById('urgencia').value = 'normal';
-    
     cargarClientes();
     modalParteMortorio.show();
 }
 
 function cargarClientes() {
     fetch('/panel/api/clientes-activos/')
-        .then(response => response.json())
+        .then(r => r.json())
         .then(data => {
-            const selectCliente = document.getElementById('cliente_id');
-            selectCliente.innerHTML = '<option value="">Seleccionar cliente...</option>';
-            
-            if (data.success && data.clientes) {
-                data.clientes.forEach(cliente => {
-                    const option = document.createElement('option');
-                    option.value = cliente.id;
-                    option.textContent = cliente.nombre_completo || cliente.empresa || cliente.username;
-                    selectCliente.appendChild(option);
+            const select = document.getElementById('cliente_id');
+            select.innerHTML = '<option value="">Seleccionar cliente...</option>';
+            if (data.success) {
+                data.clientes.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.nombre_completo || c.empresa || c.username;
+                    select.appendChild(opt);
                 });
             }
-        })
-        .catch(error => {
-            console.error('Error cargando clientes:', error);
         });
 }
 
 function guardarParteMortorio() {
     const parteId = document.getElementById('parte_id').value;
     const form = document.getElementById('formParteMortorio');
-    
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-    }
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+
+    const today = new Date().toISOString().split('T')[0];
     
     const formData = {
+        // VISIBLES
         cliente_id: document.getElementById('cliente_id').value,
         nombre_fallecido: document.getElementById('nombre_fallecido').value,
         fecha_fallecimiento: document.getElementById('fecha_fallecimiento').value,
-        fecha_nacimiento: document.getElementById('fecha_nacimiento').value,
-        edad_fallecido: document.getElementById('edad_fallecido')?.value,
-        dni_fallecido: document.getElementById('dni_fallecido')?.value,
-        nombre_esposa: document.getElementById('nombre_esposa').value,
-        cantidad_hijos: document.getElementById('cantidad_hijos').value,
-        hijos_vivos: document.getElementById('hijos_vivos').value,
-        hijos_fallecidos: document.getElementById('hijos_fallecidos').value,
-        nombres_hijos: document.getElementById('nombres_hijos').value,
-        familiares_adicionales: document.getElementById('familiares_adicionales').value,
-        tipo_ceremonia: document.getElementById('tipo_ceremonia').value,
-        fecha_misa: document.getElementById('fecha_misa').value,
-        hora_misa: document.getElementById('hora_misa').value,
-        lugar_misa: document.getElementById('lugar_misa').value,
-        fecha_inicio_transmision: document.getElementById('fecha_inicio_transmision').value,
-        fecha_fin_transmision: document.getElementById('fecha_fin_transmision').value,
-        hora_transmision: document.getElementById('hora_transmision').value,
-        duracion_transmision: document.getElementById('duracion_transmision').value,
-        repeticiones_dia: document.getElementById('repeticiones_dia').value,
         precio_total: document.getElementById('precio_total').value,
-        estado: document.getElementById('estado').value,
-        urgencia: document.getElementById('urgencia').value,
-        mensaje_personalizado: document.getElementById('mensaje_personalizado').value,
-        observaciones: document.getElementById('observaciones').value
+        observaciones: document.getElementById('observaciones').value,
+        
+        // GENERICOS PARA EL BACKEND
+        fecha_nacimiento: today,
+        nombre_esposa: "No registra",
+        cantidad_hijos: 0,
+        hijos_vivos: 0,
+        hijos_fallecidos: 0,
+        nombres_hijos: "N/A",
+        familiares_adicionales: "N/A",
+        tipo_ceremonia: "misa",
+        fecha_misa: today,
+        hora_misa: "00:00",
+        lugar_misa: "Por definir",
+        fecha_inicio_transmision: today,
+        fecha_fin_transmision: today,
+        hora_transmision: "00:00",
+        duracion_transmision: 1,
+        repeticiones_dia: 1,
+        estado: "pendiente",
+        urgencia: "normal",
+        mensaje_personalizado: "N/A"
     };
-    
-    modalParteMortorio.hide();
-    
-    Swal.fire({
-        title: parteId ? 'Actualizando...' : 'Guardando...',
-        html: `
-            <div class="text-center py-3">
-                <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
-                    <span class="visually-hidden">Guardando...</span>
-                </div>
-                <p class="text-muted mb-0">Por favor espere un momento</p>
-            </div>
-        `,
-        allowOutsideClick: false,
-        showConfirmButton: false
-    });
-    
-    const url = parteId 
-        ? `/panel/parte-mortorios/${parteId}/editar/`
-        : '/panel/parte-mortorios/crear/';
-    
-    const method = parteId ? 'PUT' : 'POST';
-    
-    fetch(url, {
-        method: method,
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        },
+
+    fetch(parteId ? `/panel/parte-mortorios/${parteId}/editar/` : '/panel/parte-mortorios/crear/', {
+        method: parteId ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
         body: JSON.stringify(formData)
     })
-    .then(response => response.json())
+    .then(r => r.json())
     .then(data => {
-        if (data.success) {
-            let mensaje = data.message;
-            if (data.cuña_creada) {
-                mensaje += `\nSe creó automáticamente la cuña: ${data.cuña_creada}`;
-            }
-            
-            Swal.fire({
-                icon: 'success',
-                title: '¡Éxito!',
-                html: `
-                    <div class="text-center">
-                        <p>${data.message}</p>
-                        ${data.cuña_creada ? 
-                            `<div class="alert alert-info mt-2">
-                                <i class="fas fa-broadcast-tower me-2"></i>
-                                Se creó automáticamente la cuña: <strong>${data.cuña_creada}</strong>
-                            </div>` : 
-                            ''
-                        }
-                    </div>
-                `,
-                confirmButtonColor: '#28a745'
-            }).then(() => {
-                window.location.reload();
-            });
-        } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: data.error || 'Error al guardar el parte mortorio',
-                confirmButtonColor: '#dc3545'
-            });
-            modalParteMortorio.show();
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Error de conexión al guardar',
-            confirmButtonColor: '#dc3545'
-        });
-        modalParteMortorio.show();
+        if (data.success) Swal.fire('Éxito', 'Guardado correctamente', 'success').then(() => window.location.reload());
+        else Swal.fire('Error', data.error, 'error');
     });
 }
 
-function verDetalleParte(parteId) {
-    const loadingHtml = `
-        <div class="text-center py-4">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Cargando...</span>
-            </div>
-        </div>
+function cambiarEstadoParte(id) {
+    parteActualId = id;
+    document.getElementById('opcionesEstado').innerHTML = `
+        <div class="estado-option" onclick="seleccionarEstado('pendiente')">🟡 Pendiente</div>
+        <div class="estado-option" onclick="seleccionarEstado('al_aire')">🟢 Al Aire</div>
+        <div class="estado-option" onclick="seleccionarEstado('finalizado')">🔴 Finalizado</div>
     `;
-    document.getElementById('detalleParteContent').innerHTML = loadingHtml;
-    modalDetalleParte.show();
-    
-    fetch(`/panel/parte-mortorios/${parteId}/detalle/`)
-        .then(response => response.json())
-        .then(data => {
-            let infoFamiliarHtml = '';
-            if (data.nombre_esposa || data.cantidad_hijos > 0) {
-                infoFamiliarHtml = `
-                    <div class="info-familiar mt-3">
-                        <h6 class="text-primary mb-3">Información Familiar</h6>
-                        <div class="row">
-                            ${data.nombre_esposa ? `
-                            <div class="col-md-6 mb-2">
-                                <strong>Esposa/Esposo:</strong><br>
-                                <span class="info-value">${data.nombre_esposa}</span>
-                            </div>
-                            ` : ''}
-                            ${data.cantidad_hijos > 0 ? `
-                            <div class="col-md-6 mb-2">
-                                <strong>Hijos:</strong><br>
-                                <span class="info-value">${data.cantidad_hijos} total (${data.hijos_vivos} vivos, ${data.hijos_fallecidos} fallecidos)</span>
-                            </div>
-                            ` : ''}
-                            ${data.nombres_hijos ? `
-                            <div class="col-12 mt-2">
-                                <strong>Nombres de hijos:</strong><br>
-                                <span class="info-value">${data.nombres_hijos}</span>
-                            </div>
-                            ` : ''}
-                            ${data.familiares_adicionales ? `
-                            <div class="col-12 mt-2">
-                                <strong>Familiares adicionales:</strong><br>
-                                <span class="info-value">${data.familiares_adicionales}</span>
-                            </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                `;
-            }
-            
-            // Información de cuñas asociadas
-            let cunasHtml = '';
-            if (data.cunas_asociadas && data.cunas_asociadas.length > 0) {
-                cunasHtml = `
-                    <div class="row mt-4">
-                        <div class="col-12">
-                            <h6 class="text-primary mb-3">Cuñas Asociadas</h6>
-                            ${data.cunas_asociadas.map(cuna => `
-                                <div class="cuna-info mb-2">
-                                    <strong>Código:</strong> ${cuna.codigo}<br>
-                                    <strong>Estado:</strong> ${cuna.estado_display}<br>
-                                    <strong>Fechas:</strong> ${cuna.fecha_inicio} al ${cuna.fecha_fin}<br>
-                                    <strong>Repeticiones:</strong> ${cuna.repeticiones_dia} por día
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-            }
-            
-            const html = `
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <strong>Nombre del Fallecido:</strong><br>
-                        ${data.nombre_fallecido}
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <strong>Código:</strong><br>
-                        <span class="parte-number">${data.codigo}</span>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <strong>Fecha de Fallecimiento:</strong><br>
-                        ${data.fecha_fallecimiento}
-                    </div>
-                    ${data.fecha_nacimiento ? `
-                    <div class="col-md-6 mb-3">
-                        <strong>Fecha de Nacimiento:</strong><br>
-                        ${data.fecha_nacimiento}
-                    </div>
-                    ` : ''}
-                    <div class="col-md-6 mb-3">
-                        <strong>Cliente:</strong><br>
-                        ${data.cliente_nombre}
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <strong>Tipo de Ceremonia:</strong><br>
-                        ${data.tipo_ceremonia_display}
-                    </div>
-                    ${data.fecha_misa ? `
-                    <div class="col-md-6 mb-3">
-                        <strong>Fecha Ceremonia:</strong><br>
-                        ${data.fecha_misa} ${data.hora_misa ? 'a las ' + data.hora_misa : ''}
-                    </div>
-                    ` : ''}
-                    ${data.lugar_misa ? `
-                    <div class="col-md-6 mb-3">
-                        <strong>Lugar Ceremonia:</strong><br>
-                        ${data.lugar_misa}
-                    </div>
-                    ` : ''}
-                    <div class="col-md-6 mb-3">
-                        <strong>Precio Total:</strong><br>
-                        <span class="precio-total">$ ${data.precio_total}</span>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <strong>Estado:</strong><br>
-                        <span class="estado-texto estado-${data.estado}">${data.estado_display}</span>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <strong>Urgencia:</strong><br>
-                        <span class="badge-urgencia badge-${data.urgencia}">${data.urgencia_display}</span>
-                    </div>
-                    ${data.fecha_inicio_transmision ? `
-                    <div class="col-md-6 mb-3">
-                        <strong>Transmisión:</strong><br>
-                        ${data.fecha_inicio_transmision} al ${data.fecha_fin_transmision}<br>
-                        <small>${data.hora_transmision} - ${data.duracion_transmision} min × ${data.repeticiones_dia} rep/día</small>
-                    </div>
-                    ` : ''}
-                </div>
-                ${infoFamiliarHtml}
-                ${cunasHtml}
-                ${data.mensaje_personalizado ? `
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <h6 class="text-primary mb-3">Mensaje Personalizado</h6>
-                        <div class="alert alert-info">
-                            ${data.mensaje_personalizado}
-                        </div>
-                    </div>
-                </div>
-                ` : ''}
-                ${data.observaciones ? `
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <h6 class="text-primary mb-3">Observaciones</h6>
-                        <p class="info-value">${data.observaciones}</p>
-                    </div>
-                </div>
-                ` : ''}
-            `;
-            document.getElementById('detalleParteContent').innerHTML = html;
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            document.getElementById('detalleParteContent').innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-circle me-2"></i>
-                    Error al cargar los detalles del parte mortorio
-                </div>
-            `;
-        });
+    modalCambiarEstado.show();
 }
 
-function editarParte(parteId) {
-    document.getElementById('modalParteTitulo').textContent = 'Editar Parte Mortorio';
-    document.getElementById('parte_id').value = parteId;
-    
-    fetch(`/panel/parte-mortorios/${parteId}/detalle/`)
-        .then(response => response.json())
-        .then(data => {
-            // Llenar el formulario con los datos existentes
-            Object.keys(data).forEach(key => {
-                const input = document.getElementById(key);
-                if (input) {
-                    if (input.type === 'checkbox') {
-                        input.checked = data[key];
-                    } else {
-                        input.value = data[key] || '';
-                    }
-                }
-            });
-            
-            cargarClientes();
-            modalParteMortorio.show();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Error al cargar los datos del parte mortorio',
-                confirmButtonColor: '#3085d6'
-            });
-        });
+function seleccionarEstado(est) { 
+    estadoSeleccionado = est; 
+    document.querySelectorAll('.estado-option').forEach(o => o.classList.remove('selected'));
+    event.currentTarget.classList.add('selected');
+}
+
+function confirmarCambioEstado() {
+    if (!estadoSeleccionado) return;
+    fetch(`/panel/parte-mortorios/${parteActualId}/cambiar-estado/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ estado: estadoSeleccionado })
+    }).then(() => window.location.reload());
+}
+
+function verDetalleParte(id) {
+    modalDetalleParte.show();
+    fetch(`/panel/parte-mortorios/${id}/detalle/`).then(r => r.json()).then(data => {
+        document.getElementById('detalleParteContent').innerHTML = `
+            <p><strong>Fallecido:</strong> ${data.nombre_fallecido}</p>
+            <p><strong>Precio:</strong> $${data.precio_total}</p>
+            <p><strong>Cliente:</strong> ${data.cliente_nombre}</p>
+            <p><strong>Observaciones:</strong> ${data.observaciones || 'Sin notas'}</p>
+        `;
+    });
+}
+
+function generarDocumentoParte(id) {
+    fetch('/panel/parte-mortorios/api/plantillas/').then(r => r.json()).then(data => {
+        const s = document.getElementById('plantilla_id');
+        s.innerHTML = data.plantillas.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+        parteActualId = id;
+        modalGenerarDocumento.show();
+    });
+}
+
+function confirmarGenerarDocumento() {
+    const pId = document.getElementById('plantilla_id').value;
+    fetch(`/panel/parte-mortorios/${parteActualId}/generar/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ plantilla_id: pId })
+    }).then(() => window.location.reload());
+}
+
+function descargarParteGenerado(id) {
+    fetch(`/panel/parte-mortorios/generados/${id}/verificar/`).then(r => r.json()).then(data => {
+        if (data.archivo_url) window.open(data.archivo_url, '_blank');
+    });
+}
+
+function editarParte(id) {
+    document.getElementById('modalParteTitulo').textContent = 'Editar Parte';
+    document.getElementById('parte_id').value = id;
+    fetch(`/panel/parte-mortorios/${id}/detalle/`).then(r => r.json()).then(data => {
+        document.getElementById('nombre_fallecido').value = data.nombre_fallecido;
+        document.getElementById('fecha_fallecimiento').value = data.fecha_fallecimiento;
+        document.getElementById('precio_total').value = data.precio_total;
+        document.getElementById('observaciones').value = data.observaciones || '';
+        cargarClientes();
+        modalParteMortorio.show();
+    });
 }
 </script>
 {% endblock %}

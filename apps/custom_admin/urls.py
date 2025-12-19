@@ -226,9 +226,11 @@ path('api/categorias-programa/<int:categoria_id>/actualizar/', views.api_categor
     path('grilla-publicitaria/api/crear-ubicacion/', views.grilla_crear_ubicacion_api, name='grilla_crear_ubicacion_api'),
     path('grilla-publicitaria/api/generar-ubicaciones/', views.grilla_generar_ubicaciones_api, name='grilla_generar_ubicaciones_api'),
     path('grilla-publicitaria/integrada/', views.grilla_publicitaria_integrada, name='grilla_publicitaria_integrada'),
-    path('grilla-publicitaria/api/eliminar-ubicacion/<int:ubicacion_id>/', 
-         views.grilla_eliminar_ubicacion_api, 
-         name='grilla_eliminar_ubicacion_api'),
+    path('grilla-publicitaria/api/eliminar-ubicacion/<int:ubicacion_id>/', views.grilla_eliminar_ubicacion_api, name='grilla_eliminar_ubicacion_api'),
+         
+    # Detalles y edición de asignaciones
+    path('grilla-publicitaria/api/asignacion/<int:asignacion_id>/detalle/', views.grilla_detalle_asignacion_api, name='grilla_detalle_asignacion_api'),
+    path('grilla-publicitaria/api/asignacion/<int:asignacion_id>/actualizar/', views.grilla_editar_asignacion_api, name='grilla_editar_asignacion_api'),
     # custom_admin/urls.py - AGREGAR ESTA RUTA
 path('grilla-publicitaria/en-vivo/', views.grilla_publicitaria_en_vivo, name='grilla_publicitaria_en_vivo'),
 ]

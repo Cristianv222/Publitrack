@@ -8545,8 +8545,7 @@ def grilla_asignar_cuna_api(request):
         
         data = json.loads(request.body)
         
-        cuña_id = data.get('cuña_id')
-        ubicacion_id = data.get('ubicacion_id')
+        cantidad_repeticiones = int(data.get('cantidad_repeticiones', 1))
         
         # Validaciones mínimas
         if not all([cuña_id, ubicacion_id]):
@@ -8555,34 +8554,16 @@ def grilla_asignar_cuna_api(request):
         cuña = get_object_or_404(CuñaPublicitaria, id=cuña_id)
         ubicacion = get_object_or_404(UbicacionPublicitaria, id=ubicacion_id)
         
-        print(f"🔍 Asignando cuña {cuña.codigo} a ubicación {ubicacion.nombre}")
-        print(f"📊 Estado de la cuña: {cuña.estado}")
+        print(f"🔍 Asignando cuña {cuña.codigo} a ubicación {ubicacion.nombre}. Repeticiones: {cantidad_repeticiones}")
         
-        # Verificar que la cuña esté disponible - CORREGIDO: usar solo el campo 'estado'
-        # Ajusta el estado según lo que sea "disponible" en tu sistema
-        if cuña.estado != 'activa':  # Cambia 'activa' por el estado correcto si es necesario
+        # Verificar que la cuña esté disponible
+        if cuña.estado != 'activa':
             return JsonResponse({
                 'success': False, 
                 'error': f'La cuña no está disponible para asignación. Estado actual: {cuña.estado}'
             })
-        
-        # Verificar capacidad de la ubicación
-        asignaciones_existentes = AsignacionCuña.objects.filter(ubicacion=ubicacion).count()
-        
-        if asignaciones_existentes >= ubicacion.capacidad_cuñas:
-            return JsonResponse({
-                'success': False,
-                'error': f'La ubicación ya tiene {asignaciones_existentes} cuñas asignadas (máximo: {ubicacion.capacidad_cuñas})'
-            })
-        
-        # Verificar que la cuña no esté ya asignada a esta ubicación
-        if AsignacionCuña.objects.filter(ubicacion=ubicacion, cuña=cuña).exists():
-            return JsonResponse({
-                'success': False,
-                'error': 'Esta cuña ya está asignada a esta ubicación'
-            })
-        
-        # Verificar que la cuña esté dentro del período válido
+            
+        # Verificar fechas
         fecha_actual = timezone.now().date()
         if cuña.fecha_inicio and fecha_actual < cuña.fecha_inicio:
             return JsonResponse({
@@ -8595,22 +8576,35 @@ def grilla_asignar_cuna_api(request):
                 'success': False,
                 'error': f'La cuña ha expirado. Fecha fin: {cuña.fecha_fin}'
             })
+
+        # Bucle para crear las repeticiones
+        asignaciones_creadas = 0
+        errores = []
         
-        # Determinar el orden
-        orden = asignaciones_existentes + 1
+        for i in range(cantidad_repeticiones):
+            # Recalcular capacidad en cada iteración
+            asignaciones_existentes = AsignacionCuña.objects.filter(ubicacion=ubicacion).count()
+            
+            if asignaciones_existentes >= ubicacion.capacidad_cuñas:
+                errores.append(f"Capacidad alcanzada en la repetición {i+1}")
+                break
+                
+            # Determinar orden
+            orden = asignaciones_existentes + 1
+            
+            # Crear asignación (se permite repetir misma cuña en misma ubicación si es diferente orden)
+            AsignacionCuña.objects.create(
+                ubicacion=ubicacion,
+                cuña=cuña,
+                fecha_emision=fecha_actual,
+                hora_emision=ubicacion.hora_pausa,
+                orden_en_ubicacion=orden,
+                creado_por=request.user,
+                estado='programada'
+            )
+            asignaciones_creadas += 1
         
-        # Crear asignación
-        asignacion = AsignacionCuña.objects.create(
-            ubicacion=ubicacion,
-            cuña=cuña,
-            fecha_emision=fecha_actual,
-            hora_emision=ubicacion.hora_pausa,
-            orden_en_ubicacion=orden,
-            creado_por=request.user,
-            estado='programada'
-        )
-        
-        print(f"✅ Cuña asignada exitosamente. Orden: {orden}")
+        print(f"✅ Se crearon {asignaciones_creadas} asignaciones de {cantidad_repeticiones} solicitadas")
         
         # Actualizar estadísticas de la grilla si existe
         try:
@@ -8618,18 +8612,24 @@ def grilla_asignar_cuna_api(request):
                 programacion_semanal=ubicacion.bloque_programacion.programacion_semanal
             )
             grilla.actualizar_estadisticas()
-            print(f"📈 Estadísticas de grilla actualizadas")
         except GrillaPublicitaria.DoesNotExist:
-            print("ℹ️  No se encontró grilla para actualizar estadísticas")
-            # Si no existe la grilla, no hay problema
             pass
         
-        return JsonResponse({
-            'success': True,
-            'message': 'Cuña asignada exitosamente',
-            'asignacion_id': asignacion.id
-        })
-        
+        if asignaciones_creadas > 0:
+            msg = f'Se asignaron {asignaciones_creadas} repeticiones exitosamente'
+            if asignaciones_creadas < cantidad_repeticiones:
+                 msg += f'. No se pudieron completar todas por falta de espacio.'
+            
+            return JsonResponse({
+                'success': True,
+                'message': msg
+            })
+        else:
+             return JsonResponse({
+                'success': False,
+                'error': 'No hay espacio suficiente en la ubicación para asignar la cuña'
+            })
+            
     except Exception as e:
         import traceback
         print(f"❌ Error en grilla_asignar_cuna_api: {str(e)}")
@@ -8707,56 +8707,102 @@ def grilla_crear_ubicacion_api(request):
         if not programacion_actual:
             return JsonResponse({'success': False, 'error': 'No hay programaciones disponibles'})
         
-        # Buscar bloque en ese día y hora - FORMA MÁS SIMPLE
-        hora_emision_time = parse_time(hora_emision + ':00')
-        
-        print(f"Buscando bloque: dia_semana={dia_semana}, hora_emision={hora_emision_time}")
-        
-        # Buscar cualquier bloque que coincida con el día
-        bloque = BloqueProgramacion.objects.filter(
-            programacion_semanal=programacion_actual,
-            dia_semana=dia_semana
-        ).first()  # Solo toma el primer bloque del día
-        
-        if not bloque:
-            return JsonResponse({
-                'success': False, 
-                'error': f'No hay bloque de programación para el día {dia_semana}'
-            })
-        
-        print(f"Bloque encontrado: {bloque.programa.nombre} - {bloque.hora_inicio} a {bloque.hora_fin}")
-        
-        # Convertir hora a objeto time
+        # Convertir hora a objeto time para la búsqueda
         try:
             hora_inicio_obj = parse_time(hora_inicio_pausa)
             if not hora_inicio_obj:
                 raise ValueError("Hora inválida")
-                
         except Exception as e:
             return JsonResponse({'success': False, 'error': f'Formato de hora inválido: {str(e)}'})
+
+        print(f"Buscando bloque: dia_semana={dia_semana}, hora_inicio_pausa={hora_inicio_obj}")
         
-        # VERIFICACIÓN SIMPLIFICADA - solo chequear que esté dentro del bloque
-        # Calculamos la hora fin aproximada de la pausa
-        from datetime import datetime, time
+        # Buscar el bloque correcto que contenga esta hora
+        # Nota: Esto asume bloques que no cruzan medianoche por ahora, o lógica simple
+        possible_bloques = BloqueProgramacion.objects.filter(
+            programacion_semanal=programacion_actual,
+            dia_semana=dia_semana
+        )
         
-        # Crear datetime para calcular la hora fin
+        bloque = None
+        for b in possible_bloques:
+            # Caso normal: inicio < fin
+            if b.hora_inicio <= b.hora_fin:
+                if b.hora_inicio <= hora_inicio_obj < b.hora_fin:
+                    bloque = b
+                    break
+            # Caso cruza medianoche: inicio > fin (ej: 23:00 a 01:00)
+            else:
+                if b.hora_inicio <= hora_inicio_obj or hora_inicio_obj < b.hora_fin:
+                    bloque = b
+                    break
+        
+        if not bloque:
+            # Fallback: intentar encontrar si está justo en el borde o tolerancia
+            bloque = possible_bloques.filter(hora_inicio=hora_inicio_obj).first()
+            
+        if not bloque:
+            return JsonResponse({
+                'success': False, 
+                'error': f'No se encontró un bloque de programación para el día {dia_semana} a las {hora_inicio_obj}'
+            })
+        
+        # VERIFICACIÓN ROBUSTA DE HORARIOS
+        # Manejo de cruce de medianoche para el bloque
+        bloque_cruza_medianoche = bloque.hora_inicio > bloque.hora_fin
+        
+        # Calcular fin de pausa
         hoy = datetime.today()
         inicio_pausa_dt = datetime.combine(hoy, hora_inicio_obj)
         fin_pausa_dt = inicio_pausa_dt + timedelta(minutes=duracion_minutos)
         hora_fin_pausa = fin_pausa_dt.time()
+        pausa_cruza_medianoche = fin_pausa_dt.date() > inicio_pausa_dt.date()
+
+        print(f"Pausa: {hora_inicio_obj} a {hora_fin_pausa} (dur: {duracion_minutos}min). Cruza: {pausa_cruza_medianoche}")
+        print(f"Bloque: {bloque.hora_inicio} a {bloque.hora_fin}. Cruza: {bloque_cruza_medianoche}")
+
+        # Validar inicio
+        inicio_valido = False
+        if not bloque_cruza_medianoche:
+             # Bloque normal: pausas deben estar entre inicio y fin
+            if bloque.hora_inicio <= hora_inicio_obj < bloque.hora_fin:
+                inicio_valido = True
+        else:
+            # Bloque cruzado: pausa puede ser tarde noche (>= inicio) o madrugada (< fin)
+            if hora_inicio_obj >= bloque.hora_inicio or hora_inicio_obj < bloque.hora_fin:
+                inicio_valido = True
         
-        print(f"Pausa: {hora_inicio_obj} a {hora_fin_pausa} (duración: {duracion_minutos}min)")
-        print(f"Bloque: {bloque.hora_inicio} a {bloque.hora_fin}")
-        
-        # Verificación básica de horarios
-        if hora_inicio_obj < bloque.hora_inicio:
-            return JsonResponse({
+        if not inicio_valido:
+             return JsonResponse({
                 'success': False, 
-                'error': f'La pausa no puede empezar antes del bloque que inicia a las {bloque.hora_inicio.strftime("%H:%M")}'
+                'error': f'La hora de inicio de la pausa ({hora_inicio_obj}) no está dentro del bloque ({bloque.hora_inicio} - {bloque.hora_fin})'
             })
-        
-        # Si el bloque tiene hora_fin, verificamos, sino omitimos
-        if hasattr(bloque, 'hora_fin') and hora_fin_pausa > bloque.hora_fin:
+
+        # Validar fin
+        fin_valido = False
+        if not bloque_cruza_medianoche:
+            # Normal: si la pausa cruza medianoche, ya está mal (porque bloque no cruza)
+            if pausa_cruza_medianoche:
+                fin_valido = False
+            else:
+                fin_valido = hora_fin_pausa <= bloque.hora_fin
+        else:
+            # Bloque cruza medianoche
+            if not pausa_cruza_medianoche:
+                # Pausa no cruza. 
+                # Si empieza tarde noche, puede terminar tarde noche (ok) o madrugada (imposible sin cruzar)
+                # Si empieza madrugada, debe terminar madrugada antes del fin del bloque
+                if hora_inicio_obj >= bloque.hora_inicio:
+                    fin_valido = True # Termina el mismo día, ok
+                else:
+                    # Empezó madrugada, debe terminar antes del fin bloque
+                    fin_valido = hora_fin_pausa <= bloque.hora_fin
+            else:
+                # Pausa sí cruza medianoche (empezó noche, terminó madrugada)
+                # Solo válida si termina antes del fin del bloque
+                fin_valido = hora_fin_pausa <= bloque.hora_fin
+
+        if not fin_valido:
             return JsonResponse({
                 'success': False, 
                 'error': f'La pausa excede el horario del bloque que termina a las {bloque.hora_fin.strftime("%H:%M")}'
@@ -8785,7 +8831,72 @@ def grilla_crear_ubicacion_api(request):
         import traceback
         print(f"Error completo en grilla_crear_ubicacion_api: {str(e)}")
         print(traceback.format_exc())
-        return JsonResponse({'success': False, 'error': f'Error del servidor: {str(e)}'})
+
+# =============================================================================
+# EXTENSIONES DE GRILLA PUBLICITARIA
+# =============================================================================
+
+@login_required
+@require_http_methods(["GET"])
+def grilla_detalle_asignacion_api(request, asignacion_id):
+    """API para obtener detalles de una asignación específica"""
+    try:
+        from apps.grilla_publicitaria.models import AsignacionCuña
+        
+        asignacion = get_object_or_404(AsignacionCuña, id=asignacion_id)
+        
+        data = {
+            'success': True,
+            'id': asignacion.id,
+            'cuna_nombre': asignacion.cuña.titulo,
+            'cuna_codigo': asignacion.cuña.codigo,
+            'cliente': asignacion.cuña.cliente.nombre_comercial if asignacion.cuña.cliente else "Sin cliente",
+            'duracion': asignacion.cuña.duracion,
+            'orden': asignacion.orden_en_ubicacion,
+            'estado': asignacion.estado,
+            'fecha_asignacion': asignacion.fecha_creacion.strftime('%d/%m/%Y %H:%M'),
+            'creado_por': asignacion.creado_por.username if asignacion.creado_por else "Sistema"
+        }
+        
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+@require_http_methods(["POST"])
+def grilla_editar_asignacion_api(request, asignacion_id):
+    """API para editar una asignación (orden, estado)"""
+    try:
+        from apps.grilla_publicitaria.models import AsignacionCuña, GrillaPublicitaria
+        import json
+        
+        asignacion = get_object_or_404(AsignacionCuña, id=asignacion_id)
+        data = json.loads(request.body)
+        
+        # Actualizar campos permitidos
+        if 'orden' in data:
+            nuevo_orden = int(data['orden'])
+            # Lógica simple de reordenamiento podría ir aquí si fuera necesaria
+            asignacion.orden_en_ubicacion = nuevo_orden
+            
+        if 'estado' in data:
+            asignacion.estado = data['estado']
+            
+        asignacion.save()
+        
+        # Actualizar estadísticas
+        try:
+             grilla = GrillaPublicitaria.objects.get(
+                programacion_semanal=asignacion.ubicacion.bloque_programacion.programacion_semanal
+            )
+             grilla.actualizar_estadisticas()
+        except:
+            pass
+            
+        return JsonResponse({'success': True, 'message': 'Asignación actualizada correctamente'})
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
 @login_required
 @user_passes_test(is_admin)
 @require_http_methods(["POST"])
