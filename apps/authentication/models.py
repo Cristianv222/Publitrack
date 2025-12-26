@@ -35,7 +35,7 @@ class CustomUserManager(BaseUserManager):
 class CustomUser(AbstractUser):
     """
     Modelo de usuario personalizado para PubliTrack
-    Sistema completo de gestión de publicidad radial
+    Sistema completo de gestión de publicidad radial/TV
     """
     
     # Opciones de roles
@@ -44,6 +44,7 @@ class CustomUser(AbstractUser):
         ('vendedor', 'Vendedor'),
         ('cliente', 'Cliente'),
         ('productor', 'Productor'),
+        ('btr', 'BTR'),
     ]
     
     # Estados del usuario
@@ -150,7 +151,6 @@ class CustomUser(AbstractUser):
         help_text='Nombre de la empresa del cliente'
     )
     
-    # NUEVOS CAMPOS AÑADIDOS
     cargo_empresa = models.CharField(
         'Cargo en la Empresa',
         max_length=100,
@@ -312,15 +312,13 @@ class CustomUser(AbstractUser):
     
     def save(self, *args, **kwargs):
         """Sobrescribir save para validaciones personalizadas"""
-        # Actualizar email si cambió
         if self.pk:
             old_user = CustomUser.objects.get(pk=self.pk)
             if old_user.email != self.email:
                 self.fecha_verificacion = None
         
-        # Validaciones según el rol
         if self.rol == 'vendedor' and not self.comision_porcentaje:
-            self.comision_porcentaje = Decimal('10.00')  # Comisión por defecto
+            self.comision_porcentaje = Decimal('10.00')
         
         super().save(*args, **kwargs)
     
@@ -354,6 +352,11 @@ class CustomUser(AbstractUser):
     def es_productor(self):
         """Verifica si el usuario es productor"""
         return self.rol == 'productor'
+
+    @property
+    def es_btr(self):
+        """Verifica si el usuario es BTR"""
+        return self.rol == 'btr'
     
     @property
     def esta_activo(self):
@@ -371,7 +374,7 @@ class CustomUser(AbstractUser):
     
     def puede_gestionar_cuñas(self):
         """Verifica si puede gestionar cuñas publicitarias"""
-        return self.rol in ['admin', 'vendedor', 'productor']
+        return self.rol in ['admin', 'vendedor', 'productor', 'btr']
     
     def puede_ver_reportes(self):
         """Verifica si puede ver reportes"""
@@ -387,11 +390,9 @@ class CustomUser(AbstractUser):
         if not self.is_active or self.status != 'activo':
             return False
         
-        # Superusuarios tienen todos los permisos
         if self.is_superuser:
             return True
         
-        # Verificar permisos por rol
         try:
             role = Role.objects.get(codename=self.rol, is_active=True)
             return role.permissions.filter(
@@ -409,14 +410,13 @@ class CustomUser(AbstractUser):
         if self.is_superuser:
             return True
         
-        # Por ahora, dar acceso basado en rol
         module_permissions = {
             'authentication': ['admin'],
-            'content_management': ['admin', 'vendedor', 'productor'],
+            'content_management': ['admin', 'vendedor', 'productor', 'btr'],
             'financial_management': ['admin'],
             'traffic_light_system': ['admin', 'vendedor'],
-            'transmission_control': ['admin', 'vendedor', 'productor'],
-            'notifications': ['admin', 'vendedor', 'productor'],
+            'transmission_control': ['admin', 'vendedor', 'productor', 'btr'],
+            'notifications': ['admin', 'vendedor', 'productor', 'btr'],
             'sales_management': ['admin', 'vendedor'],
             'reports_analytics': ['admin', 'vendedor'],
             'system_configuration': ['admin'],
@@ -458,7 +458,7 @@ class CustomUser(AbstractUser):
 
     def can_manage_content(self):
         """Verifica si puede gestionar contenido"""
-        return self.has_permission('manage_content') or self.rol in ['admin', 'vendedor', 'productor']
+        return self.has_permission('manage_content') or self.rol in ['admin', 'vendedor', 'productor', 'btr']
 
     def can_manage_finances(self):
         """Verifica si puede gestionar finanzas"""
@@ -498,12 +498,10 @@ class CustomUser(AbstractUser):
     
     def get_ventas_mes_actual(self):
         """Ventas del mes actual (implementar con el modelo de ventas)"""
-        # TODO: Implementar cuando tengamos el modelo de cuñas/ventas
         return Decimal('0.00')
     
     def get_comisiones_mes_actual(self):
         """Comisiones del mes actual (implementar con el modelo de comisiones)"""
-        # TODO: Implementar cuando tengamos el modelo de comisiones
         return Decimal('0.00')
     
     def get_porcentaje_meta(self):
@@ -518,19 +516,16 @@ class CustomUser(AbstractUser):
         """Validaciones personalizadas"""
         from django.core.exceptions import ValidationError
         
-        # Validar email único
         if self.email and CustomUser.objects.filter(
             email=self.email
         ).exclude(pk=self.pk).exists():
             raise ValidationError({'email': 'Ya existe un usuario con este email.'})
         
-        # Validar RUC/DNI único
         if self.ruc_dni and CustomUser.objects.filter(
             ruc_dni=self.ruc_dni
         ).exclude(pk=self.pk).exists():
             raise ValidationError({'ruc_dni': 'Ya existe un usuario con este RUC/DNI.'})
         
-        # Validar campos según rol
         if self.rol == 'cliente':
             if not self.empresa and not self.ruc_dni:
                 raise ValidationError('Los clientes deben tener empresa o RUC/DNI.')
@@ -564,7 +559,6 @@ class CustomUser(AbstractUser):
         self.save(update_fields=['status', 'is_active'])
 
 
-# Modelo para historial de conexiones
 class UserLoginHistory(models.Model):
     """Historial de conexiones de usuarios"""
     
@@ -601,7 +595,6 @@ class Permission(models.Model):
     Sistema de permisos granular para PubliTrack
     """
     
-    # Módulos del sistema
     MODULE_CHOICES = [
         ('authentication', 'Autenticación y Usuarios'),
         ('content_management', 'Gestión de Contenido'),
@@ -614,7 +607,6 @@ class Permission(models.Model):
         ('system_configuration', 'Configuración del Sistema'),
     ]
     
-    # Acciones disponibles
     ACTION_CHOICES = [
         ('view', 'Ver'),
         ('add', 'Agregar'),

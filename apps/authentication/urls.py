@@ -33,6 +33,8 @@ urlpatterns = [
     path('dashboard/vendedor/', views.vendedor_dashboard, name='vendedor_dashboard'),
     path('dashboard/cliente/', views.cliente_dashboard, name='cliente_dashboard'),
     path('dashboard/productor/', views.productor_dashboard, name='productor_dashboard'),  # ← AGREGADO
+        # NUEVO: Panel exclusivo para el rol BTR
+    path('dashboard/btr/', views.btr_dashboard, name='btr_dashboard'),
     
     # ============================================================================
     # GESTIÓN DE CLIENTES PARA VENDEDORES
@@ -53,4 +55,5 @@ urlpatterns = [
     # ============================================================================
     path('reports/', views.user_reports_view, name='user_reports'),
     path('api/stats/', views.user_stats_api, name='user_stats_api'),
+
 ]

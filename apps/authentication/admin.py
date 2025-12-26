@@ -3,28 +3,28 @@ from django.contrib.auth.admin import UserAdmin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-from .models import CustomUser, UserLoginHistory
+from .models import CustomUser, UserLoginHistory, Role, Permission, RolePermission
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
     """Administración personalizada para CustomUser"""
     
-    # Campos que se muestran en la lista - ACTUALIZADO
+    # Campos que se muestran en la lista
     list_display = (
         'username', 'get_full_name', 'email', 'rol', 'status_badge', 
         'empresa', 'cargo_empresa', 'profesion', 'vendedor_asignado', 'ultima_conexion', 'created_at'
     )
     
-    # Filtros laterales - ACTUALIZADO
+    # Filtros laterales
     list_filter = (
         'rol', 'status', 'is_active', 'is_staff', 'created_at', 'ultima_conexion',
-        'cargo_empresa', 'profesion'  # Nuevos filtros
+        'cargo_empresa', 'profesion'
     )
     
-    # Campos de búsqueda - ACTUALIZADO
+    # Campos de búsqueda
     search_fields = (
         'username', 'first_name', 'last_name', 'email', 
-        'empresa', 'ruc_dni', 'telefono', 'cargo_empresa', 'profesion'  # Nuevos campos de búsqueda
+        'empresa', 'ruc_dni', 'telefono', 'cargo_empresa', 'profesion'
     )
     
     # Campos para ordenar
@@ -36,13 +36,13 @@ class CustomUserAdmin(UserAdmin):
         'date_joined', 'last_login'
     )
     
-    # Configuración de fieldsets para el formulario - ACTUALIZADO
+    # Configuración de fieldsets para el formulario
     fieldsets = (
         ('Información Básica', {
             'fields': ('username', 'password', 'first_name', 'last_name', 'email')
         }),
         ('Información de Contacto', {
-            'fields': ('telefono', 'direccion')
+            'fields': ('telefono', 'direccion', 'ciudad', 'provincia', 'direccion_exacta')
         }),
         ('Rol y Estado', {
             'fields': ('rol', 'status', 'is_active', 'is_staff', 'is_superuser')
@@ -78,7 +78,7 @@ class CustomUserAdmin(UserAdmin):
         }),
     )
     
-    # *** CORRECCIÓN: Fieldsets para agregar usuario con campos obligatorios *** - ACTUALIZADO
+    # Fieldsets para agregar usuario nuevo
     add_fieldsets = (
         ('Información Básica', {
             'classes': ('wide',),
@@ -104,16 +104,13 @@ class CustomUserAdmin(UserAdmin):
         }),
     )
     
-    # Acciones personalizadas
     actions = ['activar_usuarios', 'desactivar_usuarios', 'marcar_como_pendientes']
     
     def get_full_name(self, obj):
-        """Muestra el nombre completo"""
         return obj.nombre_completo
     get_full_name.short_description = 'Nombre Completo'
     
     def status_badge(self, obj):
-        """Muestra el estado con colores"""
         colors = {
             'activo': 'success',
             'inactivo': 'secondary',
@@ -128,38 +125,19 @@ class CustomUserAdmin(UserAdmin):
         )
     status_badge.short_description = 'Estado'
     
-    # Métodos para mostrar los nuevos campos en la lista
-    def cargo_empresa_display(self, obj):
-        """Muestra el cargo de la empresa"""
-        return obj.cargo_empresa or '-'
-    cargo_empresa_display.short_description = 'Cargo'
-    
-    def profesion_display(self, obj):
-        """Muestra la profesión"""
-        return obj.profesion or '-'
-    profesion_display.short_description = 'Profesión'
-    
     def get_queryset(self, request):
-        """Optimiza las consultas"""
         return super().get_queryset(request).select_related(
             'vendedor_asignado', 'supervisor'
         )
     
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        """Filtra las opciones de foreign keys"""
         if db_field.name == "vendedor_asignado":
-            kwargs["queryset"] = CustomUser.objects.filter(
-                rol='vendedor', status='activo'
-            )
+            kwargs["queryset"] = CustomUser.objects.filter(rol='vendedor', status='activo')
         elif db_field.name == "supervisor":
-            kwargs["queryset"] = CustomUser.objects.filter(
-                rol='admin', status='activo'
-            )
+            kwargs["queryset"] = CustomUser.objects.filter(rol='admin', status='activo')
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
     
-    # *** MÉTODO ADICIONAL: Validación personalizada en el admin ***
     def save_model(self, request, obj, form, change):
-        """Validación adicional antes de guardar"""
         if obj.rol == 'cliente':
             if not obj.empresa and not obj.ruc_dni:
                 from django.core.exceptions import ValidationError
@@ -168,143 +146,69 @@ class CustomUserAdmin(UserAdmin):
     
     # Acciones personalizadas
     def activar_usuarios(self, request, queryset):
-        """Activa los usuarios seleccionados"""
         count = 0
         for user in queryset:
             if user.status != 'activo':
                 user.activar()
                 count += 1
-        
-        self.message_user(
-            request,
-            f'{count} usuario(s) activado(s) exitosamente.'
-        )
+        self.message_user(request, f'{count} usuario(s) activado(s) exitosamente.')
     activar_usuarios.short_description = "Activar usuarios seleccionados"
     
     def desactivar_usuarios(self, request, queryset):
-        """Desactiva los usuarios seleccionados"""
         count = 0
         for user in queryset:
             if user.status == 'activo' and not user.es_admin:
                 user.desactivar()
                 count += 1
-        
-        self.message_user(
-            request,
-            f'{count} usuario(s) desactivado(s) exitosamente.'
-        )
+        self.message_user(request, f'{count} usuario(s) desactivado(s) exitosamente.')
     desactivar_usuarios.short_description = "Desactivar usuarios seleccionados"
     
     def marcar_como_pendientes(self, request, queryset):
-        """Marca usuarios como pendientes"""
         count = queryset.update(status='pendiente')
-        self.message_user(
-            request,
-            f'{count} usuario(s) marcado(s) como pendientes.'
-        )
+        self.message_user(request, f'{count} usuario(s) marcado(s) como pendientes.')
     marcar_como_pendientes.short_description = "Marcar como pendientes"
-    
-    def get_readonly_fields(self, request, obj=None):
-        """Define campos de solo lectura según el usuario"""
-        readonly = list(self.readonly_fields)
-        
-        # Si no es superuser, algunos campos son de solo lectura
-        if not request.user.is_superuser:
-            readonly.extend(['is_superuser', 'user_permissions', 'groups'])
-        
-        return readonly
 
 @admin.register(UserLoginHistory)
 class UserLoginHistoryAdmin(admin.ModelAdmin):
-    """Administración del historial de conexiones"""
-    
-    list_display = (
-        'user', 'login_time', 'logout_time', 'duracion_badge', 
-        'ip_address', 'get_device_info'
-    )
-    
-    list_filter = (
-        'login_time', 'logout_time'
-    )
-    
-    search_fields = (
-        'user__username', 'user__first_name', 'user__last_name',
-        'ip_address'
-    )
-    
-    readonly_fields = (
-        'user', 'login_time', 'logout_time', 'ip_address', 
-        'user_agent', 'session_key', 'duracion_sesion'
-    )
-    
+    list_display = ('user', 'login_time', 'logout_time', 'duracion_badge', 'ip_address', 'get_device_info')
+    list_filter = ('login_time', 'logout_time')
+    search_fields = ('user__username', 'ip_address')
+    readonly_fields = ('user', 'login_time', 'logout_time', 'ip_address', 'user_agent', 'session_key', 'duracion_sesion')
     date_hierarchy = 'login_time'
     
-    ordering = ('-login_time',)
-    
-    def has_add_permission(self, request):
-        """No permitir agregar manualmente"""
-        return False
-    
-    def has_change_permission(self, request, obj=None):
-        """Solo lectura"""
-        return False
-    
     def duracion_badge(self, obj):
-        """Muestra la duración de la sesión"""
         duracion = obj.duracion_sesion
         if duracion:
             total_seconds = int(duracion.total_seconds())
-            hours = total_seconds // 3600
             minutes = (total_seconds % 3600) // 60
-            
-            if hours > 0:
-                texto = f"{hours}h {minutes}m"
-                color = "info"
-            elif minutes > 30:
-                texto = f"{minutes}m"
-                color = "success"
-            else:
-                texto = f"{minutes}m"
-                color = "warning"
-            
-            return format_html(
-                '<span class="badge badge-{}">{}</span>',
-                color, texto
-            )
-        elif obj.logout_time is None:
-            return format_html(
-                '<span class="badge badge-primary">Activa</span>'
-            )
-        return format_html(
-            '<span class="badge badge-secondary">-</span>'
-        )
+            return format_html('<span class="badge badge-info">{}m</span>', minutes)
+        return "-"
     duracion_badge.short_description = 'Duración'
-    
+
     def get_device_info(self, obj):
-        """Extrae información del dispositivo del user agent"""
-        if obj.user_agent:
-            ua = obj.user_agent.lower()
-            if 'mobile' in ua or 'android' in ua or 'iphone' in ua:
-                return format_html(
-                    '<i class="fas fa-mobile-alt" title="Móvil"></i>'
-                )
-            elif 'tablet' in ua or 'ipad' in ua:
-                return format_html(
-                    '<i class="fas fa-tablet-alt" title="Tablet"></i>'
-                )
-            else:
-                return format_html(
-                    '<i class="fas fa-desktop" title="Desktop"></i>'
-                )
-        return '-'
-    get_device_info.short_description = 'Dispositivo'
+        return "Desktop" # Simplificado para el ejemplo
     
-    def get_queryset(self, request):
-        """Optimiza las consultas"""
-        return super().get_queryset(request).select_related('user')
+    def has_add_permission(self, request): return False
 
+# --- REGISTRO DE MODELOS DE ROLES Y PERMISOS ---
+@admin.register(Permission)
+class PermissionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'codename', 'module', 'action', 'is_active')
+    list_filter = ('module', 'action', 'is_active')
+    search_fields = ('name', 'codename')
 
-# Personalizar el título del admin
+class RolePermissionInline(admin.TabularInline):
+    model = RolePermission
+    extra = 1
+
+@admin.register(Role)
+class RoleAdmin(admin.ModelAdmin):
+    list_display = ('name', 'codename', 'is_system_role', 'is_active')
+    list_filter = ('is_system_role', 'is_active')
+    search_fields = ('name', 'codename')
+    inlines = [RolePermissionInline]
+
+# Configuración del sitio
 admin.site.site_header = "PubliTrack - Administración"
 admin.site.site_title = "PubliTrack Admin"
 admin.site.index_title = "Panel de Administración"

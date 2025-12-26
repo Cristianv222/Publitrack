@@ -37,7 +37,9 @@ def is_productor(user):
 def is_productor_or_admin(user):
     """Verifica si el usuario es productor o admin"""
     return user.is_authenticated and user.rol in ['admin', 'productor']
-
+def is_btr(user):
+    """Verifica si el usuario es BTR"""
+    return user.is_authenticated and user.rol == 'btr'
 def get_client_ip(request):
     """Obtiene la IP del cliente"""
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -50,17 +52,18 @@ def get_client_ip(request):
 # ============================================================================
 # VISTAS DE AUTENTICACIÓN
 # ============================================================================
-
 def login_view(request):
-    """Vista para el login de usuarios"""
+    """Login con redirección directa a los paneles correspondientes"""
     if request.user.is_authenticated:
-        if request.user.es_admin:
+        if request.user.es_admin: 
             return redirect('/panel/')
-        elif request.user.es_vendedor:
+        elif request.user.es_vendedor: 
             return redirect('authentication:vendedor_dashboard')
-        elif request.user.es_productor:
+        elif request.user.es_productor: 
             return redirect('authentication:productor_dashboard')
-        else:
+        elif request.user.es_btr: 
+            return redirect('authentication:btr_dashboard')
+        else: 
             return redirect('authentication:cliente_dashboard')
     
     if request.method == 'POST':
@@ -68,65 +71,37 @@ def login_view(request):
         if form.is_valid():
             username = form.cleaned_data['username']
             password = form.cleaned_data['password']
-            remember_me = form.cleaned_data.get('remember_me', False)
-            
-            # Intentar autenticación
             user = authenticate(request, username=username, password=password)
             
             if user is not None:
                 if user.is_active and user.esta_activo:
                     login(request, user)
-                    
-                    # Registrar el login en el historial
                     UserLoginHistory.objects.create(
                         user=user,
                         ip_address=get_client_ip(request),
                         user_agent=request.META.get('HTTP_USER_AGENT', ''),
                         session_key=request.session.session_key
                     )
-                    
-                    # Actualizar última conexión
                     user.marcar_ultima_conexion()
                     
-                    # Configurar duración de sesión
-                    if not remember_me:
-                        request.session.set_expiry(0)  # Cerrar al cerrar navegador
-                    else:
-                        request.session.set_expiry(1209600)  # 2 semanas
-                    
-                    messages.success(
-                        request, 
-                        f'¡Bienvenido, {user.nombre_completo}!'
-                    )
-                    
-                    # Redirigir según el rol
-                    next_url = request.GET.get('next')
-                    if next_url:
-                        return redirect(next_url)
-                    
-                    # CORREGIDO: cada rol a su dashboard correspondiente
-                    if user.es_admin:
+                    # Redirección según rol
+                    if user.es_admin: 
                         return redirect('/panel/')
-                    elif user.es_vendedor:
+                    elif user.es_vendedor: 
                         return redirect('authentication:vendedor_dashboard')
-                    elif user.es_productor:
+                    elif user.es_productor: 
                         return redirect('authentication:productor_dashboard')
-                    else:
+                    elif user.es_btr: 
+                        return redirect('authentication:btr_dashboard')
+                    else: 
                         return redirect('authentication:cliente_dashboard')
                 else:
-                    if user.status == 'suspendido':
-                        messages.error(request, 'Tu cuenta ha sido suspendida. Contacta al administrador.')
-                    elif user.status == 'pendiente':
-                        messages.error(request, 'Tu cuenta está pendiente de verificación.')
-                    else:
-                        messages.error(request, 'Tu cuenta está inactiva. Contacta al administrador.')
+                    messages.error(request, 'Cuenta inactiva o suspendida.')
             else:
                 messages.error(request, 'Usuario o contraseña incorrectos.')
     else:
         form = LoginForm()
-    
     return render(request, 'authentication/login.html', {'form': form})
-
 @login_required
 def logout_view(request):
     """Vista para cerrar sesión"""
@@ -1108,3 +1083,12 @@ def vendedor_plantilla_detalle_api(request, plantilla_id):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+@login_required
+@user_passes_test(is_btr)
+def btr_dashboard(request):
+    """NUEVO: Panel exclusivo para BTR"""
+    context = {
+        'user': request.user,
+        'hoy': timezone.now().date(),
+    }
+    return render(request, 'dashboard/btr.html', context)

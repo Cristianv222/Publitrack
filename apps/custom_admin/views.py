@@ -1433,6 +1433,8 @@ def usuario_create_api(request):
                     usuario.rol = 'vendedor'
                 elif 'admin' in grupo_nombre or 'administrador' in grupo_nombre:
                     usuario.rol = 'admin'
+                elif 'btr' in grupo_nombre or 'btr' in grupo_nombre:
+                    usuario.rol = 'btr'
                 else:
                     usuario.rol = 'cliente'
             except Group.DoesNotExist:
