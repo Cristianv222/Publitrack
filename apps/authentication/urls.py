@@ -49,7 +49,8 @@ urlpatterns = [
     path('vendedor/contratos/crear/', views.vendedor_crear_contrato, name='vendedor_crear_contrato'),
     path('vendedor/api/plantillas/', views.vendedor_plantillas_api, name='vendedor_plantillas_api'),
     path('vendedor/api/plantilla/<int:plantilla_id>/detalle/', views.vendedor_plantilla_detalle_api, name='vendedor_plantilla_detalle_api'),
-    
+    # En tu archivo urls.py, añade esta URL:
+    path('vendedor/api/categorias/', views.vendedor_categorias_api, name='vendedor_categorias_api'),
     # ============================================================================
     # REPORTES Y API
     # ============================================================================

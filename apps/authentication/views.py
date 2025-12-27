@@ -807,23 +807,54 @@ def productor_dashboard(request):
 # ============================================================================
 # VISTAS PARA GESTIÓN DE CLIENTES POR VENDEDORES
 # ============================================================================
-
 @login_required
 @user_passes_test(is_vendedor_or_admin)
 def vendedor_crear_cliente(request):
-    """Crear un nuevo cliente (vendedor o admin)"""
+    """Crear un nuevo cliente (vendedor o admin) - MODIFICADA"""
     if request.method == 'POST':
         try:
+            # DETECTAR SI ES UNA PETICIÓN AJAX (desde el modal)
+            is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json'
+            
             with transaction.atomic():
                 # Generar contraseña aleatoria
                 import random
                 import string
                 password = ''.join(random.choices(string.ascii_letters + string.digits, k=12))
                 
+                # Obtener datos
+                username = request.POST.get('username')
+                email = request.POST.get('email')
+                ruc_dni = request.POST.get('ruc_dni')
+                
+                # VALIDAR UNICIDAD DE RUC/DNI
+                if ruc_dni and CustomUser.objects.filter(ruc_dni=ruc_dni).exists():
+                    error_msg = 'El RUC/DNI ya está registrado'
+                    if is_ajax:
+                        return JsonResponse({
+                            'success': False,
+                            'message': error_msg
+                        }, status=400)
+                    else:
+                        messages.error(request, error_msg)
+                        return redirect('authentication:vendedor_dashboard')
+                
+                # VALIDAR UNICIDAD DE EMAIL
+                if email and CustomUser.objects.filter(email=email).exists():
+                    error_msg = 'El correo electrónico ya está registrado'
+                    if is_ajax:
+                        return JsonResponse({
+                            'success': False,
+                            'message': error_msg
+                        }, status=400)
+                    else:
+                        messages.error(request, error_msg)
+                        return redirect('authentication:vendedor_dashboard')
+                
                 # Crear usuario
                 cliente = CustomUser.objects.create_user(
-                    username=request.POST.get('username'),
-                    email=request.POST.get('email'),
+                    username=username,
+                    email=email,
                     password=password,
                     first_name=request.POST.get('first_name', ''),
                     last_name=request.POST.get('last_name', ''),
@@ -834,14 +865,12 @@ def vendedor_crear_cliente(request):
                 # Asignar campos adicionales
                 cliente.telefono = request.POST.get('telefono', '')
                 cliente.empresa = request.POST.get('empresa', '')
-                cliente.ruc_dni = request.POST.get('ruc_dni', '')
+                cliente.ruc_dni = ruc_dni
                 cliente.razon_social = request.POST.get('razon_social', '')
                 cliente.giro_comercial = request.POST.get('giro_comercial', '')
                 cliente.ciudad = request.POST.get('ciudad', '')
                 cliente.provincia = request.POST.get('provincia', '')
                 cliente.direccion_exacta = request.POST.get('direccion_exacta', '')
-                
-                # IMPORTANTE: Asignar información profesional
                 cliente.profesion = request.POST.get('profesion', '')
                 cliente.cargo_empresa = request.POST.get('cargo_empresa', '')
                 
@@ -851,59 +880,128 @@ def vendedor_crear_cliente(request):
                 
                 cliente.save()
                 
-                messages.success(
-                    request,
-                    f'Cliente {cliente.empresa} creado exitosamente. '
-                    f'Contraseña temporal: {password}'
-                )
+                # MENSAJE SIMPLIFICADO
+                success_msg = f'Cliente {cliente.empresa} creado exitosamente'
+                
+                if is_ajax:
+                    return JsonResponse({
+                        'success': True,
+                        'message': success_msg,
+                        'cliente_id': cliente.id
+                    })
+                else:
+                    messages.success(request, success_msg)
                 
         except Exception as e:
-            messages.error(request, f'Error al crear el cliente: {str(e)}')
+            error_msg = f'Error al crear el cliente: {str(e)}'
+            if is_ajax:
+                return JsonResponse({
+                    'success': False,
+                    'message': error_msg
+                }, status=500)
+            else:
+                messages.error(request, error_msg)
     
+    # Si es GET, redirigir al dashboard
     return redirect('authentication:vendedor_dashboard')
-
-
 @login_required
 @user_passes_test(is_vendedor_or_admin)
 def vendedor_editar_cliente(request, cliente_id):
-    """Editar un cliente existente"""
+    """Editar un cliente existente - MODIFICADA"""
     cliente = get_object_or_404(CustomUser, pk=cliente_id, rol='cliente')
     
     # Verificar permisos
     if request.user.es_vendedor and cliente.vendedor_asignado != request.user:
-        messages.error(request, 'No tienes permisos para editar este cliente.')
-        return redirect('authentication:vendedor_dashboard')
+        error_msg = 'No tienes permisos para editar este cliente.'
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': False,
+                'message': error_msg
+            }, status=403)
+        else:
+            messages.error(request, error_msg)
+            return redirect('authentication:vendedor_dashboard')
     
     if request.method == 'POST':
         try:
+            is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+            
             with transaction.atomic():
+                # VALIDAR UNICIDAD DE RUC/DNI (excluyendo cliente actual)
+                ruc_dni = request.POST.get('ruc_dni')
+                if ruc_dni and CustomUser.objects.filter(
+                    ruc_dni=ruc_dni
+                ).exclude(pk=cliente_id).exists():
+                    error_msg = 'El RUC/DNI ya está registrado por otro cliente'
+                    if is_ajax:
+                        return JsonResponse({
+                            'success': False,
+                            'message': error_msg
+                        }, status=400)
+                    else:
+                        messages.error(request, error_msg)
+                        return redirect('authentication:vendedor_dashboard')
+                
+                # VALIDAR UNICIDAD DE EMAIL (excluyendo cliente actual)
+                email = request.POST.get('email')
+                if email and CustomUser.objects.filter(
+                    email=email
+                ).exclude(pk=cliente_id).exists():
+                    error_msg = 'El correo electrónico ya está registrado por otro cliente'
+                    if is_ajax:
+                        return JsonResponse({
+                            'success': False,
+                            'message': error_msg
+                        }, status=400)
+                    else:
+                        messages.error(request, error_msg)
+                        return redirect('authentication:vendedor_dashboard')
+                
                 # Actualizar datos básicos
-                cliente.username = request.POST.get('username', cliente.username)
                 cliente.first_name = request.POST.get('first_name', '')
                 cliente.last_name = request.POST.get('last_name', '')
-                cliente.email = request.POST.get('email', cliente.email)
+                cliente.email = email
                 cliente.telefono = request.POST.get('telefono', '')
                 cliente.empresa = request.POST.get('empresa', '')
-                cliente.ruc_dni = request.POST.get('ruc_dni', '')
+                cliente.ruc_dni = ruc_dni
                 cliente.razon_social = request.POST.get('razon_social', '')
                 cliente.giro_comercial = request.POST.get('giro_comercial', '')
                 cliente.ciudad = request.POST.get('ciudad', '')
                 cliente.provincia = request.POST.get('provincia', '')
                 cliente.direccion_exacta = request.POST.get('direccion_exacta', '')
-                
-                # IMPORTANTE: Actualizar información profesional
                 cliente.profesion = request.POST.get('profesion', '')
                 cliente.cargo_empresa = request.POST.get('cargo_empresa', '')
                 
                 cliente.save()
                 
-                messages.success(request, f'Cliente {cliente.empresa} actualizado exitosamente.')
+                success_msg = f'Cliente {cliente.empresa} actualizado exitosamente.'
+                
+                if is_ajax:
+                    return JsonResponse({
+                        'success': True,
+                        'message': success_msg
+                    })
+                else:
+                    messages.success(request, success_msg)
                 
         except Exception as e:
-            messages.error(request, f'Error al actualizar el cliente: {str(e)}')
+            error_msg = f'Error al actualizar el cliente: {str(e)}'
+            if is_ajax:
+                return JsonResponse({
+                    'success': False,
+                    'message': error_msg
+                }, status=500)
+            else:
+                messages.error(request, error_msg)
     
-    return redirect('authentication:vendedor_dashboard')
-
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': False,
+            'message': 'Método no permitido'
+        }, status=405)
+    else:
+        return redirect('authentication:vendedor_dashboard')
+    
 
 @login_required
 @user_passes_test(is_vendedor_or_admin)
@@ -1021,7 +1119,31 @@ def vendedor_crear_contrato(request):
             }, status=500)
     
     return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
-
+@login_required
+@user_passes_test(is_vendedor_or_admin)
+def vendedor_categorias_api(request):
+    """API para obtener categorías publicitarias (para vendedor)"""
+    try:
+        from apps.content_management.models import CategoriaPublicitaria
+        
+        categorias = CategoriaPublicitaria.objects.filter(
+            is_active=True
+        ).order_by('nombre')
+        
+        data = []
+        for categoria in categorias:
+            data.append({
+                'id': categoria.id,
+                'nombre': categoria.nombre,
+                'descripcion': categoria.descripcion or '',
+                'color_codigo': categoria.color_codigo,
+                'tarifa_base': str(categoria.tarifa_base),
+            })
+        
+        return JsonResponse({'success': True, 'categorias': data})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @login_required
 @user_passes_test(is_vendedor_or_admin)

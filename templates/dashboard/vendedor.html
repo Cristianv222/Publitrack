@@ -574,6 +574,23 @@
         color: #1e40af;
     }
 
+    /* Estilos para categorías */
+    .categoria-badge {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+        padding: 3px 8px;
+        border-radius: 10px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        display: inline-block;
+    }
+
+    .categoria-badge.alimentos { background: linear-gradient(135deg, #FF9A9E 0%, #FAD0C4 100%); }
+    .categoria-badge.automoviles { background: linear-gradient(135deg, #A1C4FD 0%, #C2E9FB 100%); }
+    .categoria-badge.educacion { background: linear-gradient(135deg, #FFECD2 0%, #FCB69F 100%); }
+    .categoria-badge.salud { background: linear-gradient(135deg, #84FAB0 0%, #8FD3F4 100%); }
+    .categoria-badge.entretenimiento { background: linear-gradient(135deg, #D4FC79 0%, #96E6A1 100%); }
+
     /* Action Buttons */
     .action-btn {
         width: 36px;
@@ -874,6 +891,42 @@
     .info-badge.cargo {
         background-color: #fce7f3;
         color: #be185d;
+    }
+
+    /* Date Display */
+    .date-display {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background-color: #f1f5f9;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    /* View All Button */
+    .view-all-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        background: #f8fafc;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        color: var(--primary-color);
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+
+    .view-all-btn:hover {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+        transform: translateY(-2px);
     }
 
     /* Responsive */
@@ -1233,7 +1286,7 @@
             margin-top: 6px;
         }
         
-        .action-buttons {
+        .action-buttones {
             width: 100%;
             flex-direction: column;
             gap: 8px;
@@ -1617,42 +1670,6 @@
             padding: 16px;
         }
     }
-
-    /* Date Display */
-    .date-display {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
-        background-color: #f1f5f9;
-        border-radius: 6px;
-        font-size: 13px;
-        color: #64748b;
-        font-weight: 600;
-    }
-
-    /* View All Button */
-    .view-all-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 20px;
-        background: #f8fafc;
-        border: 2px solid var(--border-color);
-        border-radius: 8px;
-        color: var(--primary-color);
-        font-weight: 600;
-        font-size: 14px;
-        transition: all 0.2s ease;
-        text-decoration: none;
-    }
-
-    .view-all-btn:hover {
-        background: var(--primary-color);
-        color: white;
-        border-color: var(--primary-color);
-        transform: translateY(-2px);
-    }
 </style>
 {% endblock %}
 
@@ -2023,6 +2040,7 @@
                                 <th>Número</th>
                                 <th>Cliente</th>
                                 <th>Cuña</th>
+                                <th>Categoría</th>
                                 <th>Periodo</th>
                                 <th>Valor</th>
                                 <th>Estado Cuña</th>
@@ -2047,6 +2065,13 @@
                                         <small style="color: #64748b;">{{ contrato.cuña.titulo }}</small>
                                     {% else %}
                                         —
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if contrato.cuña and contrato.cuña.categoria %}
+                                        <span class="categoria-badge">{{ contrato.cuña.categoria.nombre }}</span>
+                                    {% else %}
+                                        <small style="color: #64748b;">Sin categoría</small>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -2131,6 +2156,8 @@
                 <form id="formCliente" method="POST">
                     {% csrf_token %}
                     <input type="hidden" id="cliente_id" name="cliente_id">
+                    <!-- Campo de usuario oculto que se generará automáticamente -->
+                    <input type="hidden" id="username" name="username">
                     
                     <div class="form-section">
                         <h6 class="form-section-title">
@@ -2139,14 +2166,10 @@
                         </h6>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Usuario <span style="color: var(--danger-color);">*</span></label>
-                                <input type="text" class="form-control" name="username" id="username" required>
-                            </div>
-                            <div class="col-md-6">
                                 <label class="form-label">RUC/Cédula <span style="color: var(--danger-color);">*</span></label>
                                 <input type="text" class="form-control" name="ruc_dni" id="ruc_dni" required>
                             </div>
-                            <div class="col-md-12">
+                            <div class="col-md-6">
                                 <label class="form-label">Nombre de la Empresa <span style="color: var(--danger-color);">*</span></label>
                                 <input type="text" class="form-control" name="empresa" id="empresa" required>
                             </div>
@@ -2400,18 +2423,29 @@
                                 <input type="number" class="form-control" id="contratoDuracionSpot" 
                                        min="1" value="30" required>
                             </div>
+                            <!-- NUEVO: Campo para categoría -->
+                            <div class="col-md-4">
+                                <label class="form-label">Categoría Publicitaria (Opcional)</label>
+                                <select class="form-select" id="contratoCategoriaSelect">
+                                    <option value="">-- Seleccione categoría --</option>
+                                    <!-- Las categorías se cargarán dinámicamente -->
+                                </select>
+                                <small class="text-muted" style="font-size: 11px;">Clasifica la cuña publicitaria</small>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-2">
+                            <div class="col-md-8">
+                                <label class="form-label">Observaciones (Opcional)</label>
+                                <textarea class="form-control" id="contratoObservaciones" rows="3" 
+                                          placeholder="Añade notas o comentarios adicionales sobre este contrato..."></textarea>
+                            </div>
                             <div class="col-md-4">
                                 <label class="form-label">Total Calculado</label>
                                 <div class="calculation-box">
                                     <div class="calculation-value" id="contratoTotalCalculado">S/ 0.00</div>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div class="mt-3">
-                            <label class="form-label">Observaciones (Opcional)</label>
-                            <textarea class="form-control" id="contratoObservaciones" rows="3" 
-                                      placeholder="Añade notas o comentarios adicionales sobre este contrato..."></textarea>
                         </div>
                     </div>
                 </form>
@@ -2429,9 +2463,7 @@
         </div>
     </div>
 </div>
-
 {% endblock %}
-
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -2444,6 +2476,12 @@ document.addEventListener('DOMContentLoaded', function() {
     modalCliente = new bootstrap.Modal(document.getElementById('modalCliente'));
     modalDetalleCliente = new bootstrap.Modal(document.getElementById('modalDetalleCliente'));
     modalContrato = new bootstrap.Modal(document.getElementById('modalContrato'));
+    
+    // Configurar eventos para generación automática de usuario
+    configurarEventosUsuario();
+    
+    // Mostrar mensajes del servidor al cargar la página
+    mostrarMensajesServidor();
 });
 
 // ==================== FUNCIONES DE TABS ====================
@@ -2465,11 +2503,116 @@ function cambiarTab(tabId, button) {
     button.classList.add('active');
 }
 
+// ==================== FUNCIONES PARA GENERAR USUARIO AUTOMÁTICO ====================
+
+// Generador de usuarios aleatorios
+function generarUsuarioAleatorio() {
+    const prefijos = ['cli', 'client', 'usr', 'user', 'cust', 'customer'];
+    const sufijos = ['tv', 'media', 'adv', 'pub', 'channel', 'broadcast'];
+    const numeros = Math.floor(1000 + Math.random() * 9000);
+    
+    const prefijo = prefijos[Math.floor(Math.random() * prefijos.length)];
+    const sufijo = sufijos[Math.floor(Math.random() * sufijos.length)];
+    
+    return `${prefijo}_${sufijo}_${numeros}`;
+}
+
+// Generador de usuarios basado en información del cliente
+function generarUsuarioDesdeInfo(empresa, ruc, email) {
+    if (empresa && empresa.trim() !== '') {
+        // Crear usuario desde el nombre de la empresa
+        const empresaSlug = empresa
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '_')
+            .replace(/_+/g, '_')
+            .substring(0, 15);
+        
+        const numeros = Math.floor(100 + Math.random() * 900);
+        return `${empresaSlug}_${numeros}`;
+    } else if (ruc && ruc.trim() !== '') {
+        // Usar RUC/DNI si está disponible
+        return `cli_${ruc}`;
+    } else if (email && email.trim() !== '') {
+        // Usar parte del email antes del @
+        const usuarioEmail = email.split('@')[0]
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '_')
+            .replace(/_+/g, '_')
+            .substring(0, 12);
+        
+        const numeros = Math.floor(100 + Math.random() * 900);
+        return `${usuarioEmail}_${numeros}`;
+    } else {
+        // Generar usuario completamente aleatorio
+        return generarUsuarioAleatorio();
+    }
+}
+
+function configurarEventosUsuario() {
+    // Generar usuario cuando se abre el modal para crear cliente
+    document.getElementById('modalCliente')?.addEventListener('show.bs.modal', function() {
+        const clienteId = document.getElementById('cliente_id').value;
+        if (!clienteId) {
+            // Solo generar para nuevos clientes
+            const usuarioGenerado = generarUsuarioAleatorio();
+            document.getElementById('username').value = usuarioGenerado;
+        }
+    });
+    
+    // Generar usuario basado en información cuando se llenan campos
+    document.getElementById('empresa')?.addEventListener('blur', function() {
+        const clienteId = document.getElementById('cliente_id').value;
+        if (!clienteId) {
+            const empresa = document.getElementById('empresa').value;
+            const ruc = document.getElementById('ruc_dni').value;
+            const email = document.getElementById('email').value;
+            
+            if (empresa || ruc || email) {
+                const usuarioGenerado = generarUsuarioDesdeInfo(empresa, ruc, email);
+                document.getElementById('username').value = usuarioGenerado;
+            }
+        }
+    });
+    
+    document.getElementById('ruc_dni')?.addEventListener('blur', function() {
+        const clienteId = document.getElementById('cliente_id').value;
+        if (!clienteId) {
+            const empresa = document.getElementById('empresa').value;
+            const ruc = document.getElementById('ruc_dni').value;
+            const email = document.getElementById('email').value;
+            
+            if (ruc && (!empresa || empresa.trim() === '')) {
+                const usuarioGenerado = generarUsuarioDesdeInfo(empresa, ruc, email);
+                document.getElementById('username').value = usuarioGenerado;
+            }
+        }
+    });
+    
+    document.getElementById('email')?.addEventListener('blur', function() {
+        const clienteId = document.getElementById('cliente_id').value;
+        if (!clienteId) {
+            const empresa = document.getElementById('empresa').value;
+            const ruc = document.getElementById('ruc_dni').value;
+            const email = document.getElementById('email').value;
+            
+            if (email && (!empresa || empresa.trim() === '') && (!ruc || ruc.trim() === '')) {
+                const usuarioGenerado = generarUsuarioDesdeInfo(empresa, ruc, email);
+                document.getElementById('username').value = usuarioGenerado;
+            }
+        }
+    });
+}
+
 // ==================== FUNCIONES DE CLIENTES ====================
 function abrirModalCrearCliente() {
     document.getElementById('modalClienteTitulo').innerHTML = '<i class="fas fa-user-plus"></i> Nuevo Cliente';
     document.getElementById('formCliente').reset();
     document.getElementById('cliente_id').value = '';
+    
+    // Generar usuario automáticamente
+    const usuarioGenerado = generarUsuarioAleatorio();
+    document.getElementById('username').value = usuarioGenerado;
+    
     modalCliente.show();
 }
 
@@ -2480,7 +2623,7 @@ function editarCliente(clienteId) {
     fetch(`/auth/vendedor/clientes/${clienteId}/detalle/`)
         .then(response => response.json())
         .then(data => {
-            document.getElementById('username').value = data.username;
+            // En edición, no tocamos el campo de usuario (ya existe)
             document.getElementById('first_name').value = data.first_name || '';
             document.getElementById('last_name').value = data.last_name || '';
             document.getElementById('email').value = data.email;
@@ -2498,7 +2641,7 @@ function editarCliente(clienteId) {
             modalCliente.show();
         })
         .catch(error => {
-            Swal.fire('Error', 'Error al cargar datos del cliente', 'error');
+            mostrarAlerta('Error', 'Error al cargar datos del cliente', 'error');
         });
 }
 
@@ -2511,19 +2654,46 @@ function guardarCliente() {
         return;
     }
     
+    const formData = new FormData(form);
+    
     modalCliente.hide();
     
-    Swal.fire({
-        title: clienteId ? 'Actualizando...' : 'Guardando...',
-        html: '<div class="spinner-border text-primary"></div>',
-        allowOutsideClick: false,
-        showConfirmButton: false
-    });
+    mostrarAlerta('Procesando...', 'Por favor espere', 'info', false);
     
-    form.action = clienteId 
+    const url = clienteId 
         ? `/auth/vendedor/clientes/${clienteId}/editar/`
         : '/auth/vendedor/clientes/crear/';
-    form.submit();
+    
+    fetch(url, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            mostrarAlerta('Éxito', data.message || 'Operación completada correctamente', 'success');
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            // Mostrar mensaje de error sin HTML
+            let mensajeError = data.message || 'Error al guardar el cliente';
+            mostrarAlerta('Error', mensajeError, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        mostrarAlerta('Error', 'Error de conexión con el servidor', 'error');
+    });
 }
 
 function verDetalleCliente(clienteId) {
@@ -2584,6 +2754,37 @@ function verDetalleCliente(clienteId) {
 }
 
 // ==================== FUNCIONES DE CONTRATOS ====================
+
+// Nueva función para cargar categorías
+function cargarCategoriasContrato() {
+    fetch('/auth/vendedor/api/categorias/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const select = document.getElementById('contratoCategoriaSelect');
+                select.innerHTML = '<option value="">-- Seleccione categoría --</option>';
+                
+                data.categorias.forEach(categoria => {
+                    const option = document.createElement('option');
+                    option.value = categoria.id;
+                    option.textContent = categoria.nombre;
+                    option.dataset.color = categoria.color_codigo || '#4facfe';
+                    option.dataset.tarifa = categoria.tarifa_base || '0';
+                    select.appendChild(option);
+                });
+            } else {
+                console.error('Error cargando categorías:', data.error);
+                const select = document.getElementById('contratoCategoriaSelect');
+                select.innerHTML = '<option value="">-- No hay categorías disponibles --</option>';
+            }
+        })
+        .catch(error => {
+            console.error('Error cargando categorías:', error);
+            const select = document.getElementById('contratoCategoriaSelect');
+            select.innerHTML = '<option value="">-- Error cargando categorías --</option>';
+        });
+}
+
 function abrirModalCrearContrato() {
     document.getElementById('formContrato').reset();
     plantillaSeleccionada = null;
@@ -2602,6 +2803,7 @@ function abrirModalCrearContrato() {
     
     cargarPlantillasContrato();
     cargarClientesContrato();
+    cargarCategoriasContrato();
     
     modalContrato.show();
 }
@@ -2610,40 +2812,46 @@ function cargarPlantillasContrato() {
     fetch('/auth/vendedor/api/plantillas/')
         .then(response => response.json())
         .then(data => {
-            const select = document.getElementById('contratoPlantillaSelect');
-            select.innerHTML = '<option value="">-- Seleccione plantilla --</option>';
-            
-            data.plantillas.forEach(p => {
-                const option = document.createElement('option');
-                option.value = p.id;
-                option.textContent = p.nombre + (p.is_default ? ' ★' : '');
-                option.dataset.nombre = p.nombre;
-                option.dataset.tipo = p.tipo_contrato_display;
-                option.dataset.version = p.version;
-                select.appendChild(option);
-            });
+            if (data.success) {
+                const select = document.getElementById('contratoPlantillaSelect');
+                select.innerHTML = '<option value="">-- Seleccione plantilla --</option>';
+                
+                data.plantillas.forEach(p => {
+                    const option = document.createElement('option');
+                    option.value = p.id;
+                    option.textContent = p.nombre + (p.is_default ? ' ★' : '');
+                    option.dataset.nombre = p.nombre;
+                    option.dataset.tipo = p.tipo_contrato_display;
+                    option.dataset.version = p.version;
+                    select.appendChild(option);
+                });
+            } else {
+                console.error('Error cargando plantillas:', data.error);
+                mostrarAlerta('Error', 'No se pudieron cargar las plantillas', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error cargando plantillas:', error);
+            mostrarAlerta('Error', 'Error al cargar las plantillas', 'error');
         });
 }
 
 function cargarClientesContrato() {
-    fetch('/auth/vendedor/clientes/crear/')
-        .then(response => response.text())
-        .then(() => {
-            const select = document.getElementById('contratoClienteSelect');
-            select.innerHTML = '<option value="">-- Seleccione cliente --</option>';
-            
-            {% for cliente in clientes_recientes %}
-            const opt{{ forloop.counter }} = document.createElement('option');
-            opt{{ forloop.counter }}.value = {{ cliente.pk }};
-            opt{{ forloop.counter }}.textContent = '{{ cliente.empresa|default:cliente.get_full_name|escapejs }} ({{ cliente.ruc_dni|escapejs }})';
-            opt{{ forloop.counter }}.dataset.nombre = '{{ cliente.empresa|default:cliente.get_full_name|escapejs }}';
-            opt{{ forloop.counter }}.dataset.ruc = '{{ cliente.ruc_dni|escapejs }}';
-            select.appendChild(opt{{ forloop.counter }});
-            {% endfor %}
-        });
+    // Esta función se basa en los datos ya cargados en el template
+    const select = document.getElementById('contratoClienteSelect');
+    select.innerHTML = '<option value="">-- Seleccione cliente --</option>';
+    
+    {% for cliente in clientes_recientes %}
+    const opt{{ forloop.counter }} = document.createElement('option');
+    opt{{ forloop.counter }}.value = {{ cliente.pk }};
+    opt{{ forloop.counter }}.textContent = '{{ cliente.empresa|default:cliente.get_full_name|escapejs }} ({{ cliente.ruc_dni|escapejs }})';
+    opt{{ forloop.counter }}.dataset.nombre = '{{ cliente.empresa|default:cliente.get_full_name|escapejs }}';
+    opt{{ forloop.counter }}.dataset.ruc = '{{ cliente.ruc_dni|escapejs }}';
+    select.appendChild(opt{{ forloop.counter }});
+    {% endfor %}
 }
 
-// Event listeners
+// Event listeners para contrato
 document.getElementById('contratoPlantillaSelect')?.addEventListener('change', function() {
     const plantillaId = this.value;
     
@@ -2681,13 +2889,24 @@ document.getElementById('contratoClienteSelect')?.addEventListener('change', fun
         
         document.getElementById('btnGenerarContrato').disabled = false;
         
+        // Establecer fechas por defecto
         const today = new Date().toISOString().split('T')[0];
+        const nextMonth = new Date();
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        const nextMonthStr = nextMonth.toISOString().split('T')[0];
+        
         document.getElementById('contratoFechaInicio').value = today;
+        document.getElementById('contratoFechaFin').value = nextMonthStr;
+        
+        // Recalcular total
+        calcularTotalContrato();
     }
 });
 
 // Cálculo automático
 function calcularDiasContrato(fechaInicio, fechaFin) {
+    if (!fechaInicio || !fechaFin) return 0;
+    
     const inicio = new Date(fechaInicio);
     const fin = new Date(fechaFin);
     return Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24)) + 1;
@@ -2717,23 +2936,19 @@ document.getElementById('contratoFechaFin')?.addEventListener('change', calcular
 
 function generarContrato() {
     if (!plantillaSeleccionada || !clienteSeleccionado) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Datos Incompletos',
-            text: 'Debe seleccionar plantilla y cliente'
-        });
+        mostrarAlerta('Datos incompletos', 'Debe seleccionar plantilla y cliente', 'warning');
         return;
     }
     
     const valorTotal = calcularTotalContrato();
     if (valorTotal <= 0) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error en el Valor',
-            text: 'El valor total debe ser mayor a cero'
-        });
+        mostrarAlerta('Error en el valor', 'El valor total debe ser mayor a cero', 'error');
         return;
     }
+    
+    // Obtener categoría seleccionada
+    const categoriaSelect = document.getElementById('contratoCategoriaSelect');
+    const categoriaId = categoriaSelect.value || null;
     
     const data = {
         plantilla_id: plantillaSeleccionada,
@@ -2744,17 +2959,13 @@ function generarContrato() {
         valor_total: valorTotal,
         spots_dia: parseInt(document.getElementById('contratoSpotsDia').value),
         duracion_spot: parseInt(document.getElementById('contratoDuracionSpot').value),
-        observaciones: document.getElementById('contratoObservaciones').value
+        observaciones: document.getElementById('contratoObservaciones').value,
+        categoria_id: categoriaId
     };
     
     modalContrato.hide();
     
-    Swal.fire({
-        title: 'Generando Contrato',
-        html: '<div class="spinner-border" style="color: var(--success-color);"></div><br><p style="margin-top: 16px;">Por favor espere...</p>',
-        allowOutsideClick: false,
-        showConfirmButton: false
-    });
+    mostrarAlerta('Generando contrato', 'Por favor espere...', 'info', false);
     
     fetch('/auth/vendedor/contratos/crear/', {
         method: 'POST',
@@ -2764,16 +2975,21 @@ function generarContrato() {
         },
         body: JSON.stringify(data)
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             Swal.fire({
                 icon: 'success',
-                title: '¡Contrato Generado!',
+                title: '¡Contrato generado!',
                 html: `<p style="font-size: 16px; margin-top: 12px;">Número: <strong>${data.numero_contrato}</strong></p>`,
                 showCancelButton: true,
-                confirmButtonText: '<i class="fas fa-download"></i> Descargar Ahora',
-                cancelButtonText: 'Ver Después',
+                confirmButtonText: '<i class="fas fa-download"></i> Descargar ahora',
+                cancelButtonText: 'Ver después',
                 confirmButtonColor: 'var(--success-color)',
                 cancelButtonColor: 'var(--secondary-color)'
             }).then((result) => {
@@ -2783,20 +2999,221 @@ function generarContrato() {
                 location.reload();
             });
         } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: data.error || 'No se pudo generar el contrato'
-            });
+            // Manejo de errores específicos
+            let mensajeError = 'No se pudo generar el contrato';
+            
+            if (data.error && data.error.includes('RUC/DNI')) {
+                mensajeError = 'El RUC/DNI ya está registrado';
+            } else if (data.error && data.error.includes('email')) {
+                mensajeError = 'El correo electrónico ya está registrado';
+            } else if (data.error) {
+                // Limpiar HTML del error
+                mensajeError = data.error.replace(/<[^>]*>/g, '');
+            }
+            
+            mostrarAlerta('Error', mensajeError, 'error');
         }
     })
     .catch(error => {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Ocurrió un error al generar el contrato'
-        });
+        console.error('Error:', error);
+        mostrarAlerta('Error', 'Ocurrió un error al generar el contrato', 'error');
     });
+}
+
+// ==================== FUNCIÓN PARA MOSTRAR ALERTAS ====================
+function mostrarAlerta(titulo, texto, tipo = 'info', mostrarConfirmar = true) {
+    // LIMPIAR HTML DEL TEXTO (remover etiquetas HTML)
+    texto = texto.replace(/<[^>]*>/g, '');
+    
+    const iconos = {
+        'success': 'success',
+        'error': 'error',
+        'warning': 'warning',
+        'info': 'info'
+    };
+    
+    const icono = iconos[tipo] || 'info';
+    const color = tipo === 'success' ? 'var(--success-color)' : 
+                  tipo === 'error' ? 'var(--danger-color)' : 
+                  tipo === 'warning' ? 'var(--warning-color)' : 
+                  'var(--info-color)';
+    
+    if (!mostrarConfirmar) {
+        Swal.fire({
+            title: titulo,
+            text: texto,
+            icon: icono,
+            showConfirmButton: false,
+            allowOutsideClick: false,
+            timerProgressBar: true,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        return;
+    }
+    
+    Swal.fire({
+        title: titulo,
+        text: texto,
+        icon: icono,
+        confirmButtonColor: color,
+        confirmButtonText: 'Aceptar',
+        timer: tipo === 'success' ? 2000 : undefined,
+        timerProgressBar: tipo === 'success',
+    });
+}
+
+// ==================== FUNCIÓN PARA MOSTRAR MENSAJES DEL SERVIDOR ====================
+function mostrarMensajesServidor() {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    if (urlParams.has('success')) {
+        const mensaje = urlParams.get('success');
+        mostrarAlerta('Éxito', mensaje.replace(/<[^>]*>/g, ''), 'success');
+        
+        // Limpiar parámetros de la URL
+        const url = new URL(window.location);
+        url.searchParams.delete('success');
+        window.history.replaceState({}, document.title, url.toString());
+    }
+    
+    if (urlParams.has('error')) {
+        const mensaje = urlParams.get('error');
+        
+        // Traducir mensajes de error comunes
+        let mensajeTraducido = mensaje.replace(/<[^>]*>/g, '');
+        
+        if (mensaje.includes('already exists') || mensaje.includes('duplicate')) {
+            if (mensaje.includes('username')) {
+                mensajeTraducido = 'El nombre de usuario ya existe';
+            } else if (mensaje.includes('email')) {
+                mensajeTraducido = 'El correo electrónico ya está registrado';
+            } else if (mensaje.includes('ruc_dni')) {
+                mensajeTraducido = 'El RUC/DNI ya está registrado';
+            } else {
+                mensajeTraducido = 'El registro ya existe en el sistema';
+            }
+        } else if (mensaje.includes('required') || mensaje.includes('blank')) {
+            mensajeTraducido = 'Complete todos los campos requeridos';
+        } else if (mensaje.includes('invalid')) {
+            mensajeTraducido = 'Datos inválidos ingresados';
+        }
+        
+        mostrarAlerta('Error', mensajeTraducido, 'error');
+        
+        // Limpiar parámetros de la URL
+        const url = new URL(window.location);
+        url.searchParams.delete('error');
+        window.history.replaceState({}, document.title, url.toString());
+    }
+    
+    if (urlParams.has('cliente_creado')) {
+        mostrarAlerta('Cliente creado', 'El cliente se ha creado correctamente', 'success');
+        
+        // Limpiar parámetros de la URL
+        const url = new URL(window.location);
+        url.searchParams.delete('cliente_creado');
+        window.history.replaceState({}, document.title, url.toString());
+    }
+    
+    if (urlParams.has('cliente_actualizado')) {
+        mostrarAlerta('Cliente actualizado', 'El cliente se ha actualizado correctamente', 'success');
+        
+        // Limpiar parámetros de la URL
+        const url = new URL(window.location);
+        url.searchParams.delete('cliente_actualizado');
+        window.history.replaceState({}, document.title, url.toString());
+    }
+    
+    if (urlParams.has('contrato_creado')) {
+        mostrarAlerta('Contrato generado', 'El contrato se ha generado correctamente', 'success');
+        
+        // Limpiar parámetros de la URL
+        const url = new URL(window.location);
+        url.searchParams.delete('contrato_creado');
+        window.history.replaceState({}, document.title, url.toString());
+    }
+}
+
+// ==================== FUNCIÓN PARA MOSTRAR CONFIRMACIÓN ====================
+function mostrarConfirmacion(titulo, texto, callbackConfirmar) {
+    Swal.fire({
+        title: titulo,
+        text: texto,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: 'var(--primary-color)',
+        cancelButtonColor: 'var(--secondary-color)',
+        confirmButtonText: 'Sí',
+        cancelButtonText: 'No'
+    }).then((result) => {
+        if (result.isConfirmed && callbackConfirmar) {
+            callbackConfirmar();
+        }
+    });
+}
+
+// ==================== VALIDACIÓN DE FORMULARIOS ====================
+function validarRUC(ruc) {
+    // Validación básica de RUC/DNI
+    if (!ruc) return false;
+    
+    // Eliminar espacios y guiones
+    const rucLimpio = ruc.replace(/\s+/g, '').replace(/-/g, '');
+    
+    // Validar que sea numérico
+    if (!/^\d+$/.test(rucLimpio)) return false;
+    
+    // Validar longitud (DNI: 8, RUC: 11)
+    if (rucLimpio.length !== 8 && rucLimpio.length !== 11) return false;
+    
+    return true;
+}
+
+function validarEmail(email) {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+}
+
+// Validar RUC/DNI en tiempo real
+document.getElementById('ruc_dni')?.addEventListener('blur', function() {
+    const ruc = this.value;
+    if (ruc && !validarRUC(ruc)) {
+        mostrarAlerta('RUC/DNI inválido', 'Por favor ingrese un RUC o DNI válido (8 o 11 dígitos numéricos)', 'warning');
+        this.focus();
+    }
+});
+
+// Validar email en tiempo real
+document.getElementById('email')?.addEventListener('blur', function() {
+    const email = this.value;
+    if (email && !validarEmail(email)) {
+        mostrarAlerta('Email inválido', 'Por favor ingrese un correo electrónico válido', 'warning');
+        this.focus();
+    }
+});
+
+// ==================== FUNCIÓN PARA LIMPIAR FORMULARIOS ====================
+function limpiarFormulario(formId) {
+    const form = document.getElementById(formId);
+    if (form) {
+        form.reset();
+        
+        // Limpiar selectores
+        const selects = form.querySelectorAll('select');
+        selects.forEach(select => {
+            select.selectedIndex = 0;
+        });
+        
+        // Limpiar campos ocultos
+        const hiddenInputs = form.querySelectorAll('input[type="hidden"]');
+        hiddenInputs.forEach(input => {
+            if (input.id !== 'csrfmiddlewaretoken') {
+                input.value = '';
+            }
+        });
+    }
 }
 </script>
 {% endblock %}

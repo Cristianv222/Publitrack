@@ -1,1 +1,269 @@
-<h1>hola btr </h1>  
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Panel Operativo BTR - PublicTrack{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Estética de tarjetas Pastel */
+    .stat-card {
+        border: none;
+        border-radius: 15px;
+        transition: all 0.3s ease;
+        background-color: #fff;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.05) !important;
+    }
+    
+    /* Colores Pastel para bordes y fondos ligeros */
+    .border-pastel-blue { border-left: 5px solid #a2d2ff !important; }
+    .border-pastel-green { border-left: 5px solid #b9fbc0 !important; }
+    .border-pastel-yellow { border-left: 5px solid #fbf8cc !important; }
+    .border-pastel-purple { border-left: 5px solid #cfbaf0 !important; }
+    .border-pastel-red { border-left: 5px solid #ffcfd2 !important; }
+
+    .bg-pastel-blue { background-color: #eaf4ff; }
+    .bg-pastel-green { background-color: #f0fff1; }
+    .bg-pastel-yellow { background-color: #fffdf0; }
+
+    /* Monitor BTR */
+    .monitor-btr {
+        background: #2d3436;
+        color: #fab1a0;
+        padding: 20px;
+        border-radius: 15px;
+        font-family: 'Digital-7', 'Courier New', monospace;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+    }
+
+    .on-air-text {
+        color: #ff7675;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        animation: blink 1.5s infinite;
+    }
+
+    @keyframes blink {
+        0% { opacity: 1; }
+        50% { opacity: 0.4; }
+        100% { opacity: 1; }
+    }
+
+    .table-pastel thead th {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #e9ecef;
+        color: #636e72;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+    }
+
+    .btn-pastel {
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row align-items-center mb-4">
+        <div class="col-md-7">
+            <h1 class="h3 mb-1 fw-bold text-dark">
+                <i class="fas fa-play-circle me-2 text-info"></i>Panel de Control BTR
+            </h1>
+            <p class="text-muted">Operador: {{ user.get_full_name }} | Estación de Trabajo BTR-01</p>
+        </div>
+        <div class="col-md-5">
+            <div class="monitor-btr d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="on-air-text"><i class="fas fa-circle me-1"></i> Ready for Air</span>
+                </div>
+                <div class="text-end">
+                    <h2 class="mb-0 fw-bold" id="clock" style="color: #55efc4;">00:00:00</h2>
+                    <small class="text-uppercase" style="font-size: 0.7rem; color: #b2bec3;">{{ hoy|date:"D d M Y" }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card border-pastel-blue shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-xs fw-bold text-primary text-uppercase mb-1">Tomas Pendientes</div>
+                    <div class="h4 mb-0 fw-bold text-gray-800">{{ ordenes_toma_recientes.count|default:0 }}</div>
+                    <div class="mt-2">
+                        <span class="badge bg-pastel-blue text-primary">Esperando validación</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card border-pastel-purple shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-xs fw-bold text-purple text-uppercase mb-1" style="color: #6c5ce7;">En Producción</div>
+                    <div class="h4 mb-0 fw-bold text-gray-800">{{ produccion_activa.count|default:0 }}</div>
+                    <div class="mt-2">
+                        <span class="badge" style="background-color: #f3f0ff; color: #6c5ce7;">Editando material</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card border-pastel-green shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-xs fw-bold text-success text-uppercase mb-1">Listos para Emisión</div>
+                    <div class="h4 mb-0 fw-bold text-gray-800">{{ material_listo.count|default:0 }}</div>
+                    <div class="mt-2">
+                        <span class="badge bg-pastel-green text-success">Validado por BTR</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card border-pastel-yellow shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-xs fw-bold text-warning text-uppercase mb-1">Cuñas para Hoy</div>
+                    <div class="h4 mb-0 fw-bold text-gray-800">{{ cuñas_hoy.count|default:0 }}</div>
+                    <div class="mt-2">
+                        <span class="badge bg-pastel-yellow text-warning">Total programado</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm border-0" style="border-radius: 15px;">
+                <div class="card-header bg-white py-3 border-0">
+                    <h6 class="m-0 fw-bold text-primary"><i class="fas fa-file-import me-2"></i>Tomas Recientes</h6>
+                </div>
+                <div class="table-responsive p-3">
+                    <table class="table table-pastel align-middle">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Cliente</th>
+                                <th>Estado</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for orden in ordenes_toma_recientes %}
+                            <tr>
+                                <td><span class="fw-bold">{{ orden.codigo }}</span></td>
+                                <td class="small">{{ orden.nombre_cliente }}</td>
+                                <td>
+                                    <span class="badge bg-pastel-blue text-primary">{{ orden.get_estado_display }}</span>
+                                </td>
+                                <td>
+                                    <button onclick="verDetalle({{ orden.id }})" class="btn btn-sm btn-light btn-pastel border">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center text-muted">No hay tomas pendientes</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm border-0" style="border-radius: 15px;">
+                <div class="card-header bg-white py-3 border-0">
+                    <h6 class="m-0 fw-bold text-success"><i class="fas fa-check-double me-2"></i>Material Listo para BTR</h6>
+                </div>
+                <div class="card-body">
+                    {% for prod in material_listo %}
+                    <div class="d-flex align-items-center p-3 mb-3 border rounded bg-pastel-green">
+                        <div class="flex-shrink-0 me-3">
+                            <i class="fas fa-video fa-2x text-success"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-0 fw-bold">{{ prod.titulo_material }}</h6>
+                            <small class="text-muted">{{ prod.codigo }} | {{ prod.tipo_produccion }}</small>
+                        </div>
+                        <div>
+                            <a href="#" class="btn btn-success btn-sm btn-pastel shadow-sm">
+                                <i class="fas fa-download me-1"></i> BTR
+                            </a>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-cloud-upload-alt fa-3x text-light mb-3"></i>
+                        <p class="text-muted">No hay material disponible para descarga inmediata</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-0" style="border-radius: 15px;">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 fw-bold text-dark"><i class="fas fa-broadcast-tower me-2"></i>Cuñas Activas en el Sistema para Hoy</h6>
+                </div>
+                <div class="table-responsive p-3">
+                    <table class="table table-hover align-middle" style="font-size: 0.9rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Código</th>
+                                <th>Título Comercial</th>
+                                <th>Duración</th>
+                                <th>Repeticiones</th>
+                                <th>Estado de Emisión</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cuna in cuñas_hoy %}
+                            <tr>
+                                <td><code>{{ cuna.codigo }}</code></td>
+                                <td class="fw-bold">{{ cuna.titulo }}</td>
+                                <td>{{ cuna.duracion_planeada }} seg.</td>
+                                <td>{{ cuna.repeticiones_dia }} veces/día</td>
+                                <td><span class="badge bg-success shadow-sm">Activa</span></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center text-muted">Cargando datos de emisión...</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Reloj Digital para Operaciones BTR
+    function updateBTRClock() {
+        const now = new Date();
+        const time = now.getHours().toString().padStart(2, '0') + ':' +
+                     now.getMinutes().toString().padStart(2, '0') + ':' +
+                     now.getSeconds().toString().padStart(2, '0');
+        document.getElementById('clock').textContent = time;
+    }
+    setInterval(updateBTRClock, 1000);
+    updateBTRClock();
+
+    function verDetalle(id) {
+        window.location.href = `/panel/orders/${id}/detalle/`;
+    }
+</script>
+{% endblock %}
