@@ -1,28 +1,29 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}PublicTrack - Panel Admin{% endblock %}</title>
-    
+
     <!-- Favicon con tus nuevos iconos -->
     <link rel="icon" type="image/x-icon" href="{% static 'img/logo_publictrack.png' %}">
     <link rel="icon" type="image/png" href="{% static 'img/logo_publictrack.png' %}">
     <link rel="apple-touch-icon" href="{% static 'img/logo_publictrack.png' %}">
-    
+
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
+
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
+
     <!-- DataTables -->
     <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-    
+
     <!-- SweetAlert2 -->
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css" rel="stylesheet">
-    
+
     <!-- Custom CSS -->
     <style>
         :root {
@@ -30,7 +31,7 @@
             --sidebar-width: 280px;
             --sidebar-collapsed-width: 75px;
             --header-height: 70px;
-            
+
             /* Colores principales */
             --primary-dark: #2a0f18;
             --primary-color: #1e293b;
@@ -38,43 +39,43 @@
             --accent-color: #3b82f6;
             --accent-hover: #2563eb;
             --accent-light: #60a5fa;
-            
+
             /* Estados */
             --success-color: #10b981;
             --warning-color: #f59e0b;
             --danger-color: #ef4444;
             --info-color: #06b6d4;
-            
+
             /* Fondos */
             --bg-body: #f8fafc;
             --bg-card: #ffffff;
             --bg-hover: #f1f5f9;
-            
+
             /* Textos */
             --text-primary: #0f172a;
             --text-secondary: #475569;
             --text-muted: #94a3b8;
             --text-white: #ffffff;
-            
+
             /* Bordes y sombras */
             --border-color: #e2e8f0;
             --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px 0 rgba(0, 0, 0, 0.04);
             --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
             --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            
+
             /* Transiciones */
             --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
             --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
             --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
         * {
             box-sizing: border-box;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
-        
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background-color: var(--bg-body);
@@ -83,7 +84,7 @@
             margin: 0;
             padding: 0;
         }
-        
+
         /* ============ SIDEBAR ============ */
         .admin-sidebar {
             position: fixed;
@@ -99,38 +100,38 @@
             overflow-x: hidden;
             box-shadow: var(--shadow-xl);
         }
-        
+
         .admin-sidebar.collapsed {
             width: var(--sidebar-collapsed-width);
         }
-        
+
         .admin-sidebar.mobile-hidden {
             transform: translateX(-100%);
         }
-        
+
         .admin-sidebar.mobile-active {
             transform: translateX(0) !important;
         }
-        
+
         /* Scrollbar personalizada */
         .admin-sidebar::-webkit-scrollbar {
             width: 5px;
         }
-        
+
         .admin-sidebar::-webkit-scrollbar-track {
             background: rgba(255, 255, 255, 0.05);
         }
-        
+
         .admin-sidebar::-webkit-scrollbar-thumb {
             background: rgba(255, 255, 255, 0.2);
             border-radius: 10px;
             transition: background var(--transition-fast);
         }
-        
+
         .admin-sidebar::-webkit-scrollbar-thumb:hover {
             background: rgba(255, 255, 255, 0.3);
         }
-        
+
         /* ============ SIDEBAR HEADER ============ */
         .sidebar-header {
             padding: 20px;
@@ -142,7 +143,7 @@
             justify-content: space-between;
             position: relative;
         }
-        
+
         .sidebar-logo {
             color: var(--text-white);
             text-decoration: none;
@@ -156,50 +157,53 @@
             flex: 1;
             padding-right: 12px;
         }
-        
+
         /* CAMBIOS APLICADOS: Logo completo más grande y movido a la derecha */
         .sidebar-logo-img {
-            height: 48px; /* Aumentado de 35px a 48px */
+            height: 48px;
+            /* Aumentado de 35px a 48px */
             width: auto;
             transition: transform var(--transition-base);
-            margin-left: 20%; /* Mueve el logo a la derecha */
+            margin-left: 20%;
+            /* Mueve el logo a la derecha */
             margin-right: 8px;
         }
-        
+
         .sidebar-logo-img-small {
-            height: 35px; /* Mantiene el tamaño del logo pequeño */
+            height: 35px;
+            /* Mantiene el tamaño del logo pequeño */
             width: auto;
             display: none;
         }
-        
+
         .sidebar-logo:hover {
             color: var(--accent-light);
         }
-        
+
         .sidebar-logo:hover .sidebar-logo-img,
         .sidebar-logo:hover .sidebar-logo-img-small {
             transform: scale(1.05);
         }
-        
+
         .admin-sidebar.collapsed .sidebar-logo {
             justify-content: center;
             padding-right: 0;
         }
-        
+
         .admin-sidebar.collapsed .sidebar-logo span {
             display: none;
         }
-        
+
         .admin-sidebar.collapsed .sidebar-logo-img {
             display: none;
             margin-left: 0;
         }
-        
+
         .admin-sidebar.collapsed .sidebar-logo-img-small {
             display: block;
             margin: 0 auto;
         }
-        
+
         /* Botón de colapso del sidebar */
         .sidebar-collapse-btn {
             width: 32px;
@@ -218,31 +222,31 @@
             position: relative;
             flex-shrink: 0;
         }
-        
+
         .sidebar-collapse-btn:hover {
             background: rgba(255, 255, 255, 0.08);
             border-color: rgba(255, 255, 255, 0.2);
             color: var(--text-white);
             z-index: 1051;
         }
-        
+
         .admin-sidebar.collapsed .sidebar-collapse-btn {
             margin: 0 auto;
         }
-        
+
         .admin-sidebar.collapsed .sidebar-collapse-btn i {
             transform: rotate(180deg);
         }
-        
+
         /* ============ MENU ============ */
         .sidebar-menu {
             padding: 16px 0;
         }
-        
+
         .menu-section {
             margin-bottom: 8px;
         }
-        
+
         .menu-section-title {
             padding: 12px 20px 8px;
             font-size: 10px;
@@ -252,7 +256,7 @@
             font-weight: 700;
             transition: opacity var(--transition-base);
         }
-        
+
         .admin-sidebar.collapsed .menu-section-title {
             opacity: 0;
             height: 0;
@@ -260,19 +264,19 @@
             margin: 0;
             overflow: hidden;
         }
-        
+
         /* ============ ACCORDION MENU ============ */
         .menu-accordion {
             --bs-accordion-bg: transparent;
             --bs-accordion-border-width: 0;
         }
-        
+
         .menu-accordion .accordion-item {
             background: transparent;
             border: none;
             margin-bottom: 0;
         }
-        
+
         .menu-accordion .accordion-button {
             background: transparent;
             color: rgba(255, 255, 255, 0.85);
@@ -285,7 +289,7 @@
             transition: all var(--transition-base);
             border-left: 3px solid transparent;
         }
-        
+
         .menu-accordion .accordion-button::before {
             content: '';
             position: absolute;
@@ -297,23 +301,23 @@
             transition: width var(--transition-base);
             z-index: -1;
         }
-        
+
         .menu-accordion .accordion-button:hover {
             color: var(--text-white);
             background: transparent;
         }
-        
+
         .menu-accordion .accordion-button:hover::before {
             width: 100%;
         }
-        
+
         .menu-accordion .accordion-button:not(.collapsed) {
             background: rgba(59, 130, 246, 0.15);
             color: var(--text-white);
             border-left-color: var(--accent-light);
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
         }
-        
+
         .menu-accordion .accordion-button::after {
             filter: brightness(0) invert(1);
             opacity: 0.7;
@@ -322,11 +326,11 @@
             background-size: 14px;
             transition: all var(--transition-base);
         }
-        
+
         .menu-accordion .accordion-button:not(.collapsed)::after {
             transform: rotate(180deg);
         }
-        
+
         .menu-icon {
             width: 20px;
             margin-right: 14px;
@@ -335,29 +339,29 @@
             font-size: 16px;
             transition: all var(--transition-base);
         }
-        
+
         .menu-accordion .accordion-button:hover .menu-icon {
             transform: scale(1.15);
         }
-        
+
         .admin-sidebar.collapsed .menu-accordion .accordion-button {
             padding: 14px 0;
             justify-content: center;
         }
-        
+
         .admin-sidebar.collapsed .menu-icon {
             margin-right: 0;
             font-size: 20px;
         }
-        
+
         .admin-sidebar.collapsed .accordion-button span {
             display: none;
         }
-        
+
         .admin-sidebar.collapsed .accordion-button::after {
             display: none;
         }
-        
+
         /* ============ SUBMENU ============ */
         .menu-accordion .accordion-body {
             padding: 0;
@@ -365,7 +369,7 @@
             border-left: 1px solid rgba(255, 255, 255, 0.05);
             margin-left: 20px;
         }
-        
+
         .submenu-link {
             display: flex;
             align-items: center;
@@ -378,7 +382,7 @@
             border-left: 3px solid transparent;
             position: relative;
         }
-        
+
         .submenu-link::before {
             content: '';
             position: absolute;
@@ -390,24 +394,24 @@
             transition: width var(--transition-base);
             z-index: -1;
         }
-        
+
         .submenu-link:hover {
             color: var(--text-white);
             border-left-color: var(--accent-color);
             padding-left: 25px;
         }
-        
+
         .submenu-link:hover::before {
             width: 100%;
         }
-        
+
         .submenu-link.active {
             background: rgba(59, 130, 246, 0.2);
             color: var(--text-white);
             border-left-color: var(--accent-light);
             font-weight: 600;
         }
-        
+
         .submenu-link i {
             width: 18px;
             margin-right: 12px;
@@ -415,16 +419,16 @@
             opacity: 0.8;
             transition: all var(--transition-base);
         }
-        
+
         .submenu-link:hover i {
             opacity: 1;
             transform: translateX(3px);
         }
-        
+
         .admin-sidebar.collapsed .menu-accordion .accordion-body {
             display: none;
         }
-        
+
         /* ============ SINGLE MENU ITEMS ============ */
         .menu-link {
             display: flex;
@@ -438,7 +442,7 @@
             position: relative;
             border-left: 3px solid transparent;
         }
-        
+
         .menu-link::before {
             content: '';
             position: absolute;
@@ -450,19 +454,19 @@
             transition: width var(--transition-base);
             z-index: -1;
         }
-        
+
         .menu-link:hover {
             color: var(--text-white);
         }
-        
+
         .menu-link:hover::before {
             width: 100%;
         }
-        
+
         .menu-link:hover .menu-icon {
             transform: scale(1.15);
         }
-        
+
         .menu-link.active {
             background: rgba(59, 130, 246, 0.2);
             color: var(--text-white);
@@ -470,24 +474,24 @@
             font-weight: 600;
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
         }
-        
+
         .menu-link i {
             color: var(--accent-light);
         }
-        
+
         .admin-sidebar.collapsed .menu-link {
             padding: 14px 0;
             justify-content: center;
         }
-        
+
         .admin-sidebar.collapsed .menu-link:hover {
             padding-left: 0;
         }
-        
+
         .admin-sidebar.collapsed .menu-link span {
             display: none;
         }
-        
+
         /* ============ BADGE ============ */
         .menu-badge {
             margin-left: auto;
@@ -500,16 +504,23 @@
             box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
             animation: pulse 2s ease-in-out infinite;
         }
-        
+
         @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2); }
-            50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.1); }
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+            }
+
+            50% {
+                box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.1);
+            }
         }
-        
+
         .admin-sidebar.collapsed .menu-badge {
             display: none;
         }
-        
+
         /* ============ MAIN CONTENT ============ */
         .admin-main {
             margin-left: var(--sidebar-width);
@@ -517,15 +528,15 @@
             transition: margin-left var(--transition-slow);
             background-color: var(--bg-body);
         }
-        
+
         .admin-main.sidebar-collapsed {
             margin-left: var(--sidebar-collapsed-width);
         }
-        
+
         .admin-main.expanded {
             margin-left: 0;
         }
-        
+
         /* ============ HEADER ============ */
         .admin-header {
             background: var(--bg-card);
@@ -539,7 +550,7 @@
             z-index: 1030;
             border-bottom: 1px solid var(--border-color);
         }
-        
+
         .header-toggle {
             background: var(--bg-hover);
             border: 1px solid var(--border-color);
@@ -552,7 +563,7 @@
             transition: all var(--transition-base);
             display: none;
         }
-        
+
         .header-toggle:hover {
             background: var(--accent-color);
             border-color: var(--accent-color);
@@ -560,7 +571,7 @@
             transform: scale(1.05);
             box-shadow: var(--shadow-md);
         }
-        
+
         .header-title {
             font-size: 1.4rem;
             font-weight: 700;
@@ -568,24 +579,24 @@
             margin: 0;
             letter-spacing: -0.02em;
         }
-        
+
         .header-actions {
             margin-left: auto;
             display: flex;
             align-items: center;
             gap: 12px;
         }
-        
+
         /* Asegurar que el dropdown de usuario esté a la derecha */
         .header-user-dropdown {
             margin-left: auto !important;
         }
-        
+
         /* ============ CONTENT ============ */
         .admin-content {
             padding: 28px;
         }
-        
+
         /* ============ CARDS ============ */
         .admin-card {
             background: var(--bg-card);
@@ -596,20 +607,20 @@
             transition: all var(--transition-base);
             border: 1px solid var(--border-color);
         }
-        
+
         .admin-card:hover {
             box-shadow: var(--shadow-lg);
             transform: translateY(-2px);
             border-color: var(--accent-color);
         }
-        
+
         .admin-card-header {
             background: var(--primary-color);
             color: var(--text-white);
             padding: 20px 28px;
             border-bottom: none;
         }
-        
+
         .admin-card-title {
             font-size: 1.15rem;
             font-weight: 700;
@@ -619,16 +630,16 @@
             gap: 12px;
             letter-spacing: -0.01em;
         }
-        
+
         .admin-card-title i {
             color: var(--accent-light);
             font-size: 1.3rem;
         }
-        
+
         .admin-card-body {
             padding: 28px;
         }
-        
+
         /* ============ STATS CARDS ============ */
         .stat-card {
             background: var(--bg-card);
@@ -640,12 +651,12 @@
             transition: all var(--transition-slow);
             border: 1px solid var(--border-color);
         }
-        
+
         .stat-card:hover {
             transform: translateY(-6px);
             box-shadow: var(--shadow-xl);
         }
-        
+
         .stat-card::before {
             content: '';
             position: absolute;
@@ -656,16 +667,27 @@
             background: var(--accent-color);
             transition: width var(--transition-base);
         }
-        
+
         .stat-card:hover::before {
             width: 8px;
         }
-        
-        .stat-card.success::before { background: var(--success-color); }
-        .stat-card.warning::before { background: var(--warning-color); }
-        .stat-card.danger::before { background: var(--danger-color); }
-        .stat-card.info::before { background: var(--info-color); }
-        
+
+        .stat-card.success::before {
+            background: var(--success-color);
+        }
+
+        .stat-card.warning::before {
+            background: var(--warning-color);
+        }
+
+        .stat-card.danger::before {
+            background: var(--danger-color);
+        }
+
+        .stat-card.info::before {
+            background: var(--info-color);
+        }
+
         .stat-icon {
             position: absolute;
             right: 24px;
@@ -675,12 +697,12 @@
             color: var(--primary-color);
             transition: all var(--transition-base);
         }
-        
+
         .stat-card:hover .stat-icon {
             opacity: 0.12;
             transform: scale(1.1) rotate(10deg);
         }
-        
+
         .stat-value {
             font-size: 2.5rem;
             font-weight: 800;
@@ -688,7 +710,7 @@
             margin: 12px 0;
             letter-spacing: -0.03em;
         }
-        
+
         .stat-label {
             color: var(--text-secondary);
             font-size: 13px;
@@ -696,16 +718,21 @@
             text-transform: uppercase;
             letter-spacing: 0.8px;
         }
-        
+
         .stat-change {
             font-size: 13px;
             margin-top: 12px;
             font-weight: 600;
         }
-        
-        .stat-change.positive { color: var(--success-color); }
-        .stat-change.negative { color: var(--danger-color); }
-        
+
+        .stat-change.positive {
+            color: var(--success-color);
+        }
+
+        .stat-change.negative {
+            color: var(--danger-color);
+        }
+
         /* ============ BUTTONS ============ */
         .btn-admin-primary {
             background: var(--accent-color);
@@ -717,14 +744,14 @@
             transition: all var(--transition-base);
             box-shadow: var(--shadow-sm);
         }
-        
+
         .btn-admin-primary:hover {
             background: var(--accent-hover);
             transform: translateY(-2px);
             box-shadow: var(--shadow-lg);
             color: white;
         }
-        
+
         .btn-light {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -732,14 +759,14 @@
             font-weight: 600;
             transition: all var(--transition-base);
         }
-        
+
         .btn-light:hover {
             background: var(--bg-hover);
             border-color: var(--accent-color);
             color: var(--accent-color);
             transform: translateY(-1px);
         }
-        
+
         /* ============ BADGES ============ */
         .badge {
             padding: 5px 12px;
@@ -748,18 +775,32 @@
             font-size: 11px;
             letter-spacing: 0.3px;
         }
-        
-        .bg-success { background-color: var(--success-color) !important; }
-        .bg-warning { background-color: var(--warning-color) !important; }
-        .bg-danger { background-color: var(--danger-color) !important; }
-        .bg-info { background-color: var(--info-color) !important; }
-        .bg-primary { background-color: var(--accent-color) !important; }
-        
+
+        .bg-success {
+            background-color: var(--success-color) !important;
+        }
+
+        .bg-warning {
+            background-color: var(--warning-color) !important;
+        }
+
+        .bg-danger {
+            background-color: var(--danger-color) !important;
+        }
+
+        .bg-info {
+            background-color: var(--info-color) !important;
+        }
+
+        .bg-primary {
+            background-color: var(--accent-color) !important;
+        }
+
         /* ============ TABLES ============ */
         .table {
             color: var(--text-primary);
         }
-        
+
         .table thead th {
             background: var(--bg-hover);
             color: var(--text-secondary);
@@ -770,16 +811,16 @@
             border-bottom: 2px solid var(--accent-color);
             padding: 14px 16px;
         }
-        
+
         .table-hover tbody tr {
             transition: all var(--transition-fast);
         }
-        
+
         .table-hover tbody tr:hover {
             background: rgba(59, 130, 246, 0.04);
             transform: translateX(2px);
         }
-        
+
         /* ============ OVERLAY ============ */
         .sidebar-overlay {
             position: fixed;
@@ -794,12 +835,12 @@
             visibility: hidden;
             transition: all var(--transition-base);
         }
-        
+
         .sidebar-overlay.active {
             opacity: 1;
             visibility: visible;
         }
-        
+
         /* ============ ALERTS ============ */
         .alert {
             border-radius: 10px;
@@ -807,77 +848,78 @@
             font-weight: 500;
             box-shadow: var(--shadow-sm);
         }
-        
+
         .alert-info {
             background: rgba(6, 182, 212, 0.1);
             color: var(--info-color);
             border-left: 4px solid var(--info-color);
         }
-        
+
         .alert-success {
             background: rgba(16, 185, 129, 0.1);
             color: var(--success-color);
             border-left: 4px solid var(--success-color);
         }
-        
+
         .alert-warning {
             background: rgba(245, 158, 11, 0.1);
             color: var(--warning-color);
             border-left: 4px solid var(--warning-color);
         }
-        
+
         .alert-danger {
             background: rgba(239, 68, 68, 0.1);
             color: var(--danger-color);
             border-left: 4px solid var(--danger-color);
         }
-        
+
         /* ============ MOBILE ============ */
         @media (max-width: 991px) {
             .admin-sidebar {
                 transform: translateX(-100%);
             }
-            
+
             .admin-sidebar.mobile-active {
                 transform: translateX(0);
             }
-            
+
             .admin-main {
                 margin-left: 0 !important;
             }
-            
+
             .header-toggle {
                 display: flex !important;
             }
-            
+
             .hide-mobile {
                 display: none !important;
             }
-            
+
             /* Ocultar el botón de colapso solo en móvil */
             .sidebar-collapse-btn {
                 display: none !important;
             }
         }
-        
+
         @media (min-width: 992px) {
             .sidebar-overlay {
                 display: none !important;
             }
-            
+
             /* Mostrar el botón de colapso solo en desktop */
             .sidebar-collapse-btn {
                 display: flex !important;
             }
         }
     </style>
-    
+
     {% block extra_css %}{% endblock %}
 </head>
+
 <body>
     <!-- Sidebar Overlay -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    
+
     <!-- Sidebar -->
     <nav class="admin-sidebar" id="adminSidebar">
         <div class="sidebar-header">
@@ -891,335 +933,365 @@
                 <i class="fas fa-chevron-left"></i>
             </button>
         </div>
-        
+
         <div class="sidebar-menu">
             <!-- Dashboard -->
             <div class="menu-section">
-                <a href="{% url 'custom_admin:dashboard' %}" class="menu-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-<i class="fas fa-tachometer-alt menu-icon"></i>
-<span>Dashboard</span>
-</a>
-</div>
-        
+                <a href="{% url 'custom_admin:dashboard' %}"
+                    class="menu-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <i class="fas fa-tachometer-alt menu-icon"></i>
+                    <span>Dashboard</span>
+                </a>
+            </div>
+
             <!-- AUTENTICACIÓN -->
-        <div class="menu-section">
-            <div class="menu-section-title">AUTENTICACIÓN</div>
-            <div class="accordion menu-accordion" id="authAccordion">
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#authCollapse">
-                            <i class="fas fa-users-cog menu-icon"></i>
-                            <span>Usuarios y Roles</span>
-                        </button>
-                    </h2>
-                    <div id="authCollapse" class="accordion-collapse collapse" data-bs-parent="#authAccordion">
-                        <div class="accordion-body">
-                            <a href="{% url 'custom_admin:usuarios_list' %}" class="submenu-link {% if 'usuarios' in request.resolver_match.url_name %}active{% endif %}">
-                                <i class="fas fa-user"></i>Usuarios
-                            </a>
-                            <a href="{% url 'custom_admin:grupos_list' %}" class="submenu-link {% if 'grupos' in request.resolver_match.url_name %}active{% endif %}">
-                                <i class="fas fa-users"></i>Grupos y Permisos
-                            </a>
-                            <a href="{% url 'custom_admin:historial_list' %}" class="submenu-link {% if 'historial' in request.resolver_match.url_name %}active{% endif %}">
-                                <i class="fas fa-history"></i>Historial
-                            </a>
+            <div class="menu-section">
+                <div class="menu-section-title">AUTENTICACIÓN</div>
+                <div class="accordion menu-accordion" id="authAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#authCollapse">
+                                <i class="fas fa-users-cog menu-icon"></i>
+                                <span>Usuarios y Roles</span>
+                            </button>
+                        </h2>
+                        <div id="authCollapse" class="accordion-collapse collapse" data-bs-parent="#authAccordion">
+                            <div class="accordion-body">
+                                <a href="{% url 'custom_admin:usuarios_list' %}"
+                                    class="submenu-link {% if 'usuarios' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="fas fa-user"></i>Usuarios
+                                </a>
+                                <a href="{% url 'custom_admin:grupos_list' %}"
+                                    class="submenu-link {% if 'grupos' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="fas fa-users"></i>Grupos y Permisos
+                                </a>
+                                <a href="{% url 'custom_admin:historial_list' %}"
+                                    class="submenu-link {% if 'historial' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="fas fa-history"></i>Historial
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-        
-        <!-- CLIENTES -->
-        <div class="menu-section">
-            <div class="menu-section-title">CLIENTES</div>
-            <a href="{% url 'custom_admin:clientes_list' %}" class="menu-link {% if 'clientes' in request.resolver_match.url_name %}active{% endif %}">
-                <i class="fas fa-handshake menu-icon"></i>
-                <span>Gestión de Clientes</span>
-            </a>
-        </div>
-        
-        <!-- CONTRATOS -->
-        <div class="menu-section">
-            <div class="menu-section-title">CONTRATOS</div>
-            <div class="accordion menu-accordion" id="contractAccordion">
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#contractCollapse">
-                            <i class="fas fa-file-contract menu-icon"></i>
-                            <span>Gestión de Contratos</span>
-                        </button>
-                    </h2>
-                    <div id="contractCollapse" class="accordion-collapse collapse" data-bs-parent="#contractAccordion">
-                        <div class="accordion-body">
-                            <a href="{% url 'custom_admin:contratos_generados_list' %}" class="submenu-link {% if 'contratos_generados_list' in request.resolver_match.url_name %}active{% endif %}">
-                                <i class="fas fa-file-invoice"></i>Contratos Generados
-                            </a>
-                            <a href="{% url 'custom_admin:plantillas_contrato_list' %}" class="submenu-link {% if 'plantillas_contrato' in request.resolver_match.url_name %}active{% endif %}">
-                                <i class="fas fa-file-contract"></i>Plantillas de Contrato
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- GRILLA PUBLICITARIA -->
-        <div class="menu-section">
-            <div class="menu-section-title">CONTROL DE PUBLICIDAD</div>
-            <a href="{% url 'custom_admin:grilla_publicitaria_list' %}" class="menu-link {% if 'semaforos' in request.resolver_match.url_name %}active{% endif %}">
-                <i class="fa-solid fa-video menu-icon"></i>
-                <span>Grilla Publicitaria</span>
-            </a>           
-        </div>
-        
-        <!-- ÓRDENES -->
-        <div class="menu-section">
-            <div class="menu-section-title">ÓRDENES</div>
-            <div class="accordion menu-accordion" id="ordersAccordion">
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#ordersCollapse">
-                            <i class="fas fa-tasks menu-icon"></i>
-                            <span>Gestión de Órdenes</span>
-                        </button>
-                    </h2>
-                    <div id="ordersCollapse" class="accordion-collapse collapse" data-bs-parent="#ordersAccordion">
-                        <div class="accordion-body">
-                            <a href="{% url 'custom_admin:orders_list' %}" class="submenu-link {% if 'orders' in request.resolver_match.url_name %}active{% endif %}">
-                                <i class="fas fa-microphone"></i>Órdenes de Toma
-                            </a>
-                            <a href="{% url 'custom_admin:plantillas_orden_list' %}" class="submenu-link {% if 'plantillas_orden' in request.resolver_match.url_name %}active{% endif %}">
-                                <i class="fas fa-file-alt"></i>Plantillas de Orden
-                            </a>
-                            <a href="{% url 'custom_admin:ordenes_produccion_list' %}" class="submenu-link {% if 'ordenes_produccion' in request.resolver_match.url_name %}active{% endif %}">
-                                <i class="fas fa-cogs"></i>Órdenes de Producción
-                            </a>
-                            <a href="{% url 'custom_admin:orders_list' %}" class="submenu-link {% if 'orders' in request.resolver_match.url_name %}active{% endif %}">
-                                <i class="fas fa-flag-checkered"></i>Órdenes de Finalización
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- PARTE MORTORIOS -->
-        <div class="menu-section">
-            <div class="menu-section-title">PARTE MORTORIOS</div>
-            <div class="accordion menu-accordion" id="parteMortorioAccordion">
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#parteMortorioCollapse">
-                            <i class="fas fa-monument menu-icon"></i>
-                            <span>Gestión de Parte Mortorios</span>
-                        </button>
-                    </h2>
-                    <div id="parteMortorioCollapse" class="accordion-collapse collapse" data-bs-parent="#parteMortorioAccordion">
-                        <div class="accordion-body">
-                            <a href="{% url 'custom_admin:parte_mortorios_list' %}" class="submenu-link {% if 'parte_mortorios' in request.resolver_match.url_name %}active{% endif %}">
-                                <i class="fas fa-list"></i>Lista de Parte Mortorios
-                            </a>
-                            <a href="{% url 'custom_admin:plantillas_parte_mortorio_list' %}" class="submenu-link {% if 'plantillas_parte_mortorio' in request.resolver_match.url_name %}active{% endif %}">
-                                <i class="fas fa-file-contract"></i>Plantillas de Parte Mortorio
-                            </a>
-                        </div>
-                    </div>
-                </div>
+            <!-- CLIENTES -->
+            <div class="menu-section">
+                <div class="menu-section-title">CLIENTES</div>
+                <a href="{% url 'custom_admin:clientes_list' %}"
+                    class="menu-link {% if 'clientes' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-handshake menu-icon"></i>
+                    <span>Gestión de Clientes</span>
+                </a>
             </div>
-        </div>
-        
-        <!-- CONTENIDO PUBLICITARIO -->
-        <div class="menu-section">
-            <div class="menu-section-title">CONTENIDO PUBLICITARIO</div>
-            <div class="accordion menu-accordion" id="contentAccordion">
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#contentCollapse">
-                            <i class="fas fa-bullhorn menu-icon"></i>
-                            <span>Gestión Publicitaria</span>
-                        </button>
-                    </h2>
-                    <div id="contentCollapse" class="accordion-collapse collapse" data-bs-parent="#contentAccordion">
-                        <div class="accordion-body">
-                            <a href="{% url 'custom_admin:categorias_list' %}" class="submenu-link {% if 'categoria' in request.resolver_match.url_name %}active{% endif %}">
-                                <i class="fas fa-tags"></i>Categorías
-                            </a>
-                            <a href="{% url 'custom_admin:cunas_list' %}" class="submenu-link {% if 'cuna' in request.resolver_match.url_name %}active{% endif %}">
-                                <i class="fas fa-microphone"></i>Cuñas Publicitarias
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- TRANSMISIONES -->
-        <div class="menu-section">
-            <div class="menu-section-title">TRANSMISIONES</div>
-            <div class="accordion menu-accordion" id="transmissionAccordion">
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#transmissionCollapse">
-                            <i class="fas fa-broadcast-tower menu-icon"></i>
-                            <span>Control de Emisión</span>
-                        </button>
-                    </h2>
-                    <div id="transmissionCollapse" class="accordion-collapse collapse" data-bs-parent="#transmissionAccordion">
-                        <div class="accordion-body">
-                            <a href="{% url 'custom_admin:programacion_list' %}" class="submenu-link">
-                                <i class="fa-regular fa-calendar-days"></i>Programación Canal
-                            </a>
-                            <a href="{% url 'custom_admin:categorias_programa_list' %}" class="submenu-link">
-                                <i class="fas fa-tags"></i>Categorías Programas
-                            </a>
-                            <a href="{% url 'custom_admin:grilla_publicitaria_en_vivo' %}" class="submenu-link">
-                                <i class="fas fa-play-circle"></i>En Vivo
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- SEMÁFOROS -->
-        <div class="menu-section">
-            <div class="menu-section-title">MONITOREO</div>
-            <a href="{% url 'custom_admin:semaforos_list' %}" class="menu-link {% if 'semaforos' in request.resolver_match.url_name %}active{% endif %}">
-                <i class="fas fa-traffic-light menu-icon"></i>
-                <span>Sistema de Semáforos</span>
-            </a>
-        </div>
-        
-        <!-- REPORTES -->
-        <div class="menu-section">
-            <div class="menu-section-title">REPORTES</div>
-            <a href="{% url 'custom_admin:reportes_dashboard' %}" class="menu-link {% if 'reportes_dashboard' in request.resolver_match.url_name %}active{% endif %}">
-                <i class="fas fa-chart-bar menu-icon"></i>
-                <span>Panel de Reportes</span>
-            </a>
-        </div>
-        
-        
-    </div>
-</nav>
 
-<!-- Main Content -->
-<main class="admin-main" id="adminMain">
-    <!-- Header -->
-    <header class="admin-header">
-        <button class="header-toggle" id="sidebarToggle">
-            <i class="fas fa-bars"></i>
-        </button>
-        
-        <h1 class="header-title">{% block header_title %}Panel de Administración{% endblock %}</h1>
-        
-        <div class="header-actions">
-            <button class="btn btn-sm btn-light" onclick="location.reload()">
-                <i class="fas fa-sync-alt"></i>
-                <span class="hide-mobile ms-1">Actualizar</span>
+            <!-- CONTRATOS -->
+            <div class="menu-section">
+                <div class="menu-section-title">CONTRATOS</div>
+                <div class="accordion menu-accordion" id="contractAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#contractCollapse">
+                                <i class="fas fa-file-contract menu-icon"></i>
+                                <span>Gestión de Contratos</span>
+                            </button>
+                        </h2>
+                        <div id="contractCollapse" class="accordion-collapse collapse"
+                            data-bs-parent="#contractAccordion">
+                            <div class="accordion-body">
+                                <a href="{% url 'custom_admin:contratos_generados_list' %}"
+                                    class="submenu-link {% if 'contratos_generados_list' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="fas fa-file-invoice"></i>Contratos Generados
+                                </a>
+                                <a href="{% url 'custom_admin:plantillas_contrato_list' %}"
+                                    class="submenu-link {% if 'plantillas_contrato' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="fas fa-file-contract"></i>Plantillas de Contrato
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GRILLA PUBLICITARIA -->
+            <div class="menu-section">
+                <div class="menu-section-title">CONTROL DE PUBLICIDAD</div>
+                <a href="{% url 'custom_admin:grilla_publicitaria_list' %}"
+                    class="menu-link {% if 'semaforos' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fa-solid fa-video menu-icon"></i>
+                    <span>Grilla Publicitaria</span>
+                </a>
+            </div>
+
+            <!-- ÓRDENES -->
+            <div class="menu-section">
+                <div class="menu-section-title">ÓRDENES</div>
+                <div class="accordion menu-accordion" id="ordersAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#ordersCollapse">
+                                <i class="fas fa-tasks menu-icon"></i>
+                                <span>Gestión de Órdenes</span>
+                            </button>
+                        </h2>
+                        <div id="ordersCollapse" class="accordion-collapse collapse" data-bs-parent="#ordersAccordion">
+                            <div class="accordion-body">
+                                <a href="{% url 'custom_admin:orders_list' %}"
+                                    class="submenu-link {% if 'orders' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="fas fa-microphone"></i>Órdenes de Toma
+                                </a>
+                                <a href="{% url 'custom_admin:plantillas_orden_list' %}"
+                                    class="submenu-link {% if 'plantillas_orden' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="fas fa-file-alt"></i>Plantillas de Orden
+                                </a>
+                                <a href="{% url 'custom_admin:ordenes_produccion_list' %}"
+                                    class="submenu-link {% if 'ordenes_produccion' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="fas fa-cogs"></i>Órdenes de Producción
+                                </a>
+                                <a href="{% url 'custom_admin:orders_list' %}"
+                                    class="submenu-link {% if 'orders' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="fas fa-flag-checkered"></i>Órdenes de Finalización
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PARTE MORTORIOS -->
+            <div class="menu-section">
+                <div class="menu-section-title">PARTE MORTORIOS</div>
+                <div class="accordion menu-accordion" id="parteMortorioAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#parteMortorioCollapse">
+                                <i class="fas fa-monument menu-icon"></i>
+                                <span>Gestión de Parte Mortorios</span>
+                            </button>
+                        </h2>
+                        <div id="parteMortorioCollapse" class="accordion-collapse collapse"
+                            data-bs-parent="#parteMortorioAccordion">
+                            <div class="accordion-body">
+                                <a href="{% url 'custom_admin:parte_mortorios_list' %}"
+                                    class="submenu-link {% if 'parte_mortorios' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="fas fa-list"></i>Lista de Parte Mortorios
+                                </a>
+                                <a href="{% url 'custom_admin:plantillas_parte_mortorio_list' %}"
+                                    class="submenu-link {% if 'plantillas_parte_mortorio' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="fas fa-file-contract"></i>Plantillas de Parte Mortorio
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTENIDO PUBLICITARIO -->
+            <div class="menu-section">
+                <div class="menu-section-title">CONTENIDO PUBLICITARIO</div>
+                <div class="accordion menu-accordion" id="contentAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#contentCollapse">
+                                <i class="fas fa-bullhorn menu-icon"></i>
+                                <span>Gestión Publicitaria</span>
+                            </button>
+                        </h2>
+                        <div id="contentCollapse" class="accordion-collapse collapse"
+                            data-bs-parent="#contentAccordion">
+                            <div class="accordion-body">
+                                <a href="{% url 'custom_admin:categorias_list' %}"
+                                    class="submenu-link {% if 'categoria' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="fas fa-tags"></i>Categorías
+                                </a>
+                                <a href="{% url 'custom_admin:cunas_list' %}"
+                                    class="submenu-link {% if 'cuna' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="fas fa-microphone"></i>Cuñas Publicitarias
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TRANSMISIONES -->
+            <div class="menu-section">
+                <div class="menu-section-title">TRANSMISIONES</div>
+                <div class="accordion menu-accordion" id="transmissionAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#transmissionCollapse">
+                                <i class="fas fa-broadcast-tower menu-icon"></i>
+                                <span>Control de Emisión</span>
+                            </button>
+                        </h2>
+                        <div id="transmissionCollapse" class="accordion-collapse collapse"
+                            data-bs-parent="#transmissionAccordion">
+                            <div class="accordion-body">
+                                <a href="{% url 'custom_admin:programacion_list' %}" class="submenu-link">
+                                    <i class="fa-regular fa-calendar-days"></i>Programación Canal
+                                </a>
+                                <a href="{% url 'custom_admin:categorias_programa_list' %}" class="submenu-link">
+                                    <i class="fas fa-tags"></i>Categorías Programas
+                                </a>
+                                <a href="{% url 'custom_admin:grilla_publicitaria_en_vivo' %}" class="submenu-link">
+                                    <i class="fas fa-play-circle"></i>En Vivo
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEMÁFOROS -->
+            <div class="menu-section">
+                <div class="menu-section-title">MONITOREO</div>
+                <a href="{% url 'custom_admin:semaforos_list' %}"
+                    class="menu-link {% if 'semaforos' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-traffic-light menu-icon"></i>
+                    <span>Sistema de Semáforos</span>
+                </a>
+            </div>
+
+            <!-- REPORTES -->
+            <div class="menu-section">
+                <div class="menu-section-title">REPORTES</div>
+                <a href="{% url 'custom_admin:reportes_dashboard' %}"
+                    class="menu-link {% if 'reportes_dashboard' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-chart-bar menu-icon"></i>
+                    <span>Panel de Reportes</span>
+                </a>
+            </div>
+
+
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="admin-main" id="adminMain">
+        <!-- Header -->
+        <header class="admin-header">
+            <button class="header-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
             </button>
-            
-            <!-- Dropdown de usuario -->
-            <div class="dropdown header-user-dropdown">
-                <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    <i class="fas fa-user-circle me-2"></i>
-                    {{ request.user.get_full_name|default:request.user.username }}
+
+            <h1 class="header-title">{% block header_title %}Panel de Administración{% endblock %}</h1>
+
+            <div class="header-actions">
+                <button class="btn btn-sm btn-light" onclick="location.reload()">
+                    <i class="fas fa-sync-alt"></i>
+                    <span class="hide-mobile ms-1">Actualizar</span>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="{% url 'authentication:logout' %}">
-                        <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
-                    </a></li>
-                </ul>
-            </div>
-        </div>
-    </header>
-    
-    <!-- Content -->
-    <div class="admin-content">
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+
+                <!-- Dropdown de usuario -->
+                <div class="dropdown header-user-dropdown">
+                    <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle me-2"></i>
+                        {{ request.user.get_full_name|default:request.user.username }}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item" href="{% url 'authentication:logout' %}">
+                                <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
+                            </a></li>
+                    </ul>
                 </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="admin-content">
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
             {% endfor %}
-        {% endif %}
-        
-        {% block content %}{% endblock %}
-    </div>
-</main>
+            {% endif %}
 
-<!-- Scripts -->
-<script src="https://code.jquery.com/jquery-3.7.0/min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+            {% block content %}{% endblock %}
+        </div>
+    </main>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const sidebar = document.getElementById('adminSidebar');
-        const main = document.getElementById('adminMain');
-        const toggle = document.getElementById('sidebarToggle');
-        const overlay = document.getElementById('sidebarOverlay');
-        const collapseBtn = document.getElementById('sidebarCollapseBtn');
-        
-        // Desktop collapse button
-        collapseBtn?.addEventListener('click', () => {
-            if (window.innerWidth >= 992) {
-                sidebar.classList.toggle('collapsed');
-                main.classList.toggle('sidebar-collapsed');
-                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const sidebar = document.getElementById('adminSidebar');
+            const main = document.getElementById('adminMain');
+            const toggle = document.getElementById('sidebarToggle');
+            const overlay = document.getElementById('sidebarOverlay');
+            const collapseBtn = document.getElementById('sidebarCollapseBtn');
+
+            // Desktop collapse button
+            collapseBtn?.addEventListener('click', () => {
+                if (window.innerWidth >= 992) {
+                    sidebar.classList.toggle('collapsed');
+                    main.classList.toggle('sidebar-collapsed');
+                    localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+                }
+            });
+
+            // Mobile toggle
+            if (window.innerWidth < 992) {
+                toggle?.addEventListener('click', () => {
+                    sidebar.classList.toggle('mobile-active');
+                    overlay.classList.toggle('active');
+                });
+
+                overlay?.addEventListener('click', () => {
+                    sidebar.classList.remove('mobile-active');
+                    overlay.classList.remove('active');
+                });
             }
-        });
-        
-        // Mobile toggle
-        if (window.innerWidth < 992) {
-            toggle?.addEventListener('click', () => {
-                sidebar.classList.toggle('mobile-active');
-                overlay.classList.toggle('active');
-            });
-            
-            overlay?.addEventListener('click', () => {
-                sidebar.classList.remove('mobile-active');
-                overlay.classList.remove('active');
-            });
-        }
-        
-        // Restaurar estado del sidebar en desktop
-        if (window.innerWidth >= 992 && localStorage.getItem('sidebarCollapsed') === 'true') {
-            sidebar.classList.add('collapsed');
-            main.classList.add('sidebar-collapsed');
-        }
-        
-        // Mantener accordion abierto si está activo
-        document.querySelectorAll('.submenu-link').forEach(link => {
-            if (link.classList.contains('active')) {
-                const accordion = link.closest('.accordion-collapse');
-                if (accordion) {
-                    accordion.classList.add('show');
-                    const button = accordion.previousElementSibling?.querySelector('.accordion-button');
-                    if (button) {
-                        button.classList.remove('collapsed');
+
+            // Restaurar estado del sidebar en desktop
+            if (window.innerWidth >= 992 && localStorage.getItem('sidebarCollapsed') === 'true') {
+                sidebar.classList.add('collapsed');
+                main.classList.add('sidebar-collapsed');
+            }
+
+            // Mantener accordion abierto si está activo
+            document.querySelectorAll('.submenu-link').forEach(link => {
+                if (link.classList.contains('active')) {
+                    const accordion = link.closest('.accordion-collapse');
+                    if (accordion) {
+                        accordion.classList.add('show');
+                        const button = accordion.previousElementSibling?.querySelector('.accordion-button');
+                        if (button) {
+                            button.classList.remove('collapsed');
+                        }
                     }
                 }
-            }
-        });
-        
-        // Configuración de DataTables
-        $.extend(true, $.fn.dataTable.defaults, {
-            language: {
-                url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
-            },
-            responsive: true,
-            processing: true,
-            pageLength: 10,
-            dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
-                 "<'row'<'col-sm-12'tr>>" +
-                 "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>"
-        });
-    });
-</script>
+            });
 
-{% block extra_js %}{% endblock %}
+            // Configuración de DataTables
+            $.extend(true, $.fn.dataTable.defaults, {
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+                },
+                responsive: true,
+                processing: true,
+                pageLength: 10,
+                dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+                    "<'row'<'col-sm-12'tr>>" +
+                    "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>"
+            });
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
