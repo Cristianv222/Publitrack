@@ -697,10 +697,14 @@ def productor_dashboard(request):
     # Importar modelos necesarios
     try:
         from apps.content_management.models import CuñaPublicitaria
-        from apps.grilla_publicitaria.models import ProgramacionSemanal, BloqueProgramacion, UbicacionPublicitaria
-    except ImportError:
+        from apps.programacion_canal.models import ProgramacionSemanal, BloqueProgramacion
+        from apps.grilla_publicitaria.models import UbicacionPublicitaria, AsignacionCuña
+        GRILLA_AVAILABLE = True
+    except ImportError as e:
+        print(f"Error importando módulos en productor_dashboard: {e}")
+        GRILLA_AVAILABLE = False
         CuñaPublicitaria = None
-        ProgramacionSemanal = BloqueProgramacion = UbicacionPublicitaria = None
+        ProgramacionSemanal = BloqueProgramacion = UbicacionPublicitaria = AsignacionCuña = None
     
     hoy = timezone.now().date()
     inicio_mes = hoy.replace(day=1)
@@ -708,54 +712,85 @@ def productor_dashboard(request):
     # ====================================================================
     # GRILLA PUBLICITARIA — 100% A PRUEBA DE ERRORES
     # ====================================================================
-    horas_dia = [f"{h:02d}:00" for h in range(5, 24)]
+    # Horas del día (Intervalos de 30 minutos, 24 horas - IGUAL QUE GRILLA PUBLICITARIA)
+    horas_dia = []
+    for hora in range(0, 24):
+        for minuto in [0, 30]:
+            horas_dia.append(f"{hora:02d}:{minuto:02d}")
+
     dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 
-    # Valores por defecto (si la app grilla_publicitaria no existe o falla)
+    # Inicializar variables
     programaciones = []
     programacion_actual = None
     bloques_semana = []
     ubicaciones = []
+    asignaciones = []
+    cuñas_disponibles = []
+    
+    # Estadísticas para el dashboard
+    total_cuñas = 0
+    cuñas_programadas = 0
+    cuñas_pendientes = 0
+    ingresos_totales = 0
 
-    try:
-        from apps.grilla_publicitaria.models import (
-            ProgramacionSemanal, BloqueProgramacion, UbicacionPublicitaria
-        )
+    if GRILLA_AVAILABLE:
+        try:
+            # 1. Obtener programaciones
+            programaciones = ProgramacionSemanal.objects.all().order_by('-fecha_inicio_semana')
+    
+            programacion_id = request.GET.get('programacion_id')
+            if programacion_id:
+                programacion_actual = ProgramacionSemanal.objects.filter(id=programacion_id).first()
+    
+            if not programacion_actual and programaciones:
+                programacion_actual = ProgramacionSemanal.objects.filter(
+                    fecha_inicio_semana__lte=hoy,
+                    fecha_fin_semana__gte=hoy
+                ).first() or programaciones.first()
+    
+            if programacion_actual:
+                # 2. Bloques de programación
+                bloques_semana = BloqueProgramacion.objects.filter(
+                    programacion_semanal=programacion_actual
+                ).select_related('programa').order_by('dia_semana', 'hora_inicio')
+    
+                # 3. Ubicaciones publicitarias (con prefetch de cuñas para la grilla)
+                ubicaciones = UbicacionPublicitaria.objects.filter(
+                    bloque_programacion__programacion_semanal=programacion_actual,
+                    activo=True
+                ).select_related('bloque_programacion', 'bloque_programacion__programa').prefetch_related('asignaciones__cuña')
+    
+                # 4. Asignaciones (para estadísticas y uso general)
+                asignaciones = AsignacionCuña.objects.filter(
+                    ubicacion__bloque_programacion__programacion_semanal=programacion_actual
+                ).select_related('cuña', 'ubicacion')
+                
+                # 5. Cuñas disponibles para programar
+                if CuñaPublicitaria:
+                    cuñas_disponibles = CuñaPublicitaria.objects.filter(
+                        estado='activa',
+                        fecha_inicio__lte=hoy,
+                        fecha_fin__gte=hoy
+                    ).select_related('cliente', 'categoria')
+                    
+                    # Estadísticas
+                    total_cuñas = CuñaPublicitaria.objects.filter(estado='activa').count()
+                
+                cuñas_programadas = asignaciones.count()
+                cuñas_pendientes = max(0, total_cuñas - cuñas_programadas)
+                
+                # Calcular ingresos
+                for asignacion in asignaciones:
+                    try:
+                        ingresos_totales += float(asignacion.cuña.precio_total)
+                    except (AttributeError, TypeError, ValueError):
+                        continue
+                        
+        except Exception as e:
+            print(f"Error cargando datos del dashboard productor despues de importarlos: {e}")
+            pass
 
-        programaciones = ProgramacionSemanal.objects.all().order_by('-fecha_inicio_semana')
-
-        programacion_id = request.GET.get('programacion_id')
-        if programacion_id:
-            programacion_actual = ProgramacionSemanal.objects.filter(id=programacion_id).first()
-
-        if not programacion_actual and programaciones:
-            programacion_actual = ProgramacionSemanal.objects.filter(
-                fecha_inicio_semana__lte=hoy,
-                fecha_fin_semana__gte=hoy
-            ).first() or programaciones.first()
-
-        if programacion_actual:
-            bloques_semana = BloqueProgramacion.objects.filter(
-                programacion=programacion_actual
-            ).select_related('programa').order_by('dia_semana', 'hora_inicio')
-
-            ubicaciones = UbicacionPublicitaria.objects.filter(
-                bloque_programacion__programacion=programacion_actual
-            ).prefetch_related('asignaciones__cuna')
-
-    except Exception as e:
-        # Si falta la app, migraciones, o cualquier error → no se cae el dashboard
-        pass  # simplemente se queda con los valores vacíos de arriba
-
-    # Horas del día (de 05:00 a 23:00, por ejemplo)
-    horas_dia = [f"{h:02d}:00" for h in range(5, 24)]
-
-    # Días de la semana (¡sin split en template!)
-    dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-
-    # ====================================================================
-    # ESTADÍSTICAS DE CUÑAS (tu código original, intacto)
-    # ====================================================================
     context = {
         'user': request.user,
         'hoy': hoy,
@@ -766,13 +801,17 @@ def productor_dashboard(request):
         'programacion_actual': programacion_actual,
         'bloques_semana': bloques_semana,
         'ubicaciones': ubicaciones,
+        'asignaciones': asignaciones,
+        'cuñas_disponibles': cuñas_disponibles,
         'horas_dia': horas_dia,
         'dias_semana': dias_semana,
-
-        # ←←←← SOLUCIÓN: AÑADE ESTO
-        'grilla_available': True,  # <--- ESTA LÍNEA HACE QUE FUNCIONE YA
-        # O mejor (automático):
-        # 'grilla_available': bool(programacion_actual or programaciones),
+        'grilla_available': GRILLA_AVAILABLE,
+        
+        # Estadísticas de Grilla
+        'total_cuñas': total_cuñas,
+        'cuñas_programadas': cuñas_programadas,
+        'cuñas_pendientes': cuñas_pendientes,
+        'ingresos_totales': ingresos_totales,
     }
     
     if CuñaPublicitaria:
