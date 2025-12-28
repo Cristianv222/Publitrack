@@ -9209,22 +9209,22 @@ def grilla_ubicacion_detalle_api(request, ubicacion_id):
         print(f"📦 Total de cuñas en el sistema: {todas_las_cuñas.count()}")
         
         for cuña in todas_las_cuñas:
-            # Verificar que no esté ya asignada en esta ubicación
-            if not AsignacionCuña.objects.filter(ubicacion=ubicacion, cuña=cuña).exists():
-                cliente_nombre = "Sin cliente"
-                if cuña.cliente:
-                    cliente_nombre = f"{cuña.cliente.first_name} {cuña.cliente.last_name}".strip()
-                    if not cliente_nombre:
-                        cliente_nombre = cuña.cliente.username
-                
-                cunas_disponibles_data.append({
-                    'id': cuña.id,
-                    'codigo': cuña.codigo,
-                    'titulo': cuña.titulo,
-                    'duracion_planeada': cuña.duracion_planeada,
-                    'cliente': cliente_nombre,
-                    'estado': cuña.estado,  # Incluir el estado para debug
-                })
+            # Verificar que no esté ya asignada en esta ubicación - SE PERMITE REPETIR
+            # if not AsignacionCuña.objects.filter(ubicacion=ubicacion, cuña=cuña).exists():
+            cliente_nombre = "Sin cliente"
+            if cuña.cliente:
+                cliente_nombre = f"{cuña.cliente.first_name} {cuña.cliente.last_name}".strip()
+                if not cliente_nombre:
+                    cliente_nombre = cuña.cliente.username
+            
+            cunas_disponibles_data.append({
+                'id': cuña.id,
+                'codigo': cuña.codigo,
+                'titulo': cuña.titulo,
+                'duracion_planeada': cuña.duracion_planeada,
+                'cliente': cliente_nombre,
+                'estado': cuña.estado,  # Incluir el estado para debug
+            })
         
         print(f"🎯 Cuñas disponibles para asignar: {len(cunas_disponibles_data)}")
         
