@@ -1,0 +1,1954 @@
+{% extends 'custom_admin/base_admin.html' %}
+{% load static %}
+
+{% block title %}Inventario - PubliTrack{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .stats-card h3 {
+        font-size: 2rem;
+        margin: 0;
+        color: #333;
+    }
+    .stats-card p {
+        margin: 5px 0 0 0;
+        color: #666;
+        font-size: 0.9rem;
+    }
+    
+    .badge-status {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
+        cursor: pointer;
+    }
+    
+    .btn-action {
+        padding: 5px 10px;
+        font-size: 0.875rem;
+    }
+    
+    /* Colores para estados de stock */
+    .stock-bajo { background-color: #f8d7da; color: #721c24; }
+    .stock-advertencia { background-color: #fff3cd; color: #856404; }
+    .stock-normal { background-color: #d4edda; color: #155724; }
+    
+    /* Modal grande para inventario */
+    .modal-xl {
+        max-width: 800px;
+    }
+    
+    /* Chips para categorías */
+    .category-chip {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        margin: 2px;
+    }
+    
+    /* Estilos para información en detalle */
+    .detail-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    .detail-section h6 {
+        border-bottom: 2px solid #dee2e6;
+        padding-bottom: 8px;
+        margin-bottom: 15px;
+        color: #495057;
+    }
+    
+    /* Estilos para formulario */
+    .form-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .form-section h6 {
+        color: #495057;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    /* Estilos para tabs de configuración */
+    .config-tabs {
+        margin-bottom: 20px;
+    }
+    .config-tabs .nav-link {
+        color: #495057;
+        font-weight: 500;
+        border: none;
+        border-bottom: 3px solid transparent;
+        padding: 12px 20px;
+        transition: all 0.3s;
+    }
+    .config-tabs .nav-link:hover {
+        color: #0d6efd;
+        border-bottom-color: #dee2e6;
+    }
+    .config-tabs .nav-link.active {
+        color: #0d6efd;
+        border-bottom-color: #0d6efd;
+        background: transparent;
+    }
+    
+    /* Estilos para cards de configuración */
+    .config-card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        transition: all 0.3s;
+    }
+    .config-card:hover {
+        border-color: #0d6efd;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .config-card-header {
+        background: #f8f9fa;
+        padding: 12px 15px;
+        border-bottom: 1px solid #dee2e6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .config-card-body {
+        padding: 15px;
+    }
+    .config-card-actions {
+        display: flex;
+        gap: 5px;
+    }
+    
+    /* Color picker */
+    .color-picker {
+        width: 40px;
+        height: 40px;
+        border-radius: 6px;
+        border: 2px solid #dee2e6;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .color-picker:hover {
+        transform: scale(1.1);
+        border-color: #0d6efd;
+    }
+    .color-preview {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        margin-right: 8px;
+        vertical-align: middle;
+    }
+    
+    /* Estilos para botones de gestión */
+    .management-buttons {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    
+    /* Estilos para categorías inactivas */
+    .config-card.border-warning {
+        border-color: #ffc107 !important;
+    }
+    .config-card-header.bg-warning-subtle {
+        background-color: rgba(255, 193, 7, 0.1) !important;
+    }
+    
+    /* Estilos para checkboxes */
+    .form-check-input:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .management-buttons {
+            flex-wrap: wrap;
+        }
+        .btn-action {
+            margin-bottom: 5px;
+        }
+        .stats-card h3 {
+            font-size: 1.5rem;
+        }
+        .stats-card {
+            padding: 15px;
+        }
+    }
+    
+    /* Estilos para mensajes de error */
+    .error-message {
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 5px;
+    }
+    
+    /* Estilos para tooltips */
+    .tooltip-custom {
+        position: relative;
+        display: inline-block;
+    }
+    .tooltip-custom .tooltip-text {
+        visibility: hidden;
+        width: 200px;
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -100px;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    .tooltip-custom:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="fas fa-boxes me-2"></i>Gestión de Inventario
+            </h2>
+            <p class="text-muted mb-0">Administra el inventario de equipos y suministros</p>
+        </div>
+        <div class="management-buttons">
+            <button class="btn btn-outline-primary" onclick="mostrarConfiguracion()">
+                <i class="fas fa-cog me-2"></i>Configurar
+            </button>
+            <a href="{% url 'custom_admin:inventory_export' %}?formato=csv" class="btn btn-outline-secondary">
+                <i class="fas fa-file-csv me-2"></i>Exportar CSV
+            </a>
+            <button class="btn btn-primary" onclick="abrirModalCrearItem()">
+                <i class="fas fa-plus me-2"></i>Nuevo Ítem
+            </button>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3 class="text-primary">{{ total_items }}</h3>
+                <p>Total de Ítems</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3 class="text-success">{{ total_categories }}</h3>
+                <p>Categorías</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3 class="text-warning">{{ total_statuses }}</h3>
+                <p>Estados</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3 class="text-danger">{{ low_stock_count }}</h3>
+                <p>Stock Bajo</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Buscar por código, nombre, serial..." 
+                           value="{{ search_query }}">
+                </div>
+                <div class="col-md-3">
+                    <select name="category" class="form-select" id="filterCategory">
+                        <option value="">Todas las categorías</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="status" class="form-select" id="filterStatus">
+                        <option value="">Todos los estados</option>
+                        {% for status in statuses %}
+                        <option value="{{ status.id }}" {% if selected_status == status.id|stringformat:"s" %}selected{% endif %}>
+                            {{ status.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-2"></i>Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de Inventario -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Estado</th>
+                            <th>Ubicación</th>
+                            <th>Cantidad</th>
+                            <th>Stock</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in page_obj %}
+                        <tr onclick="verDetalleItem({{ item.id }})" style="cursor: pointer;">
+                            <td>
+                                <strong>{{ item.code }}</strong>
+                                {% if item.serial_number %}
+                                <br><small class="text-muted">S/N: {{ item.serial_number }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ item.name }}
+                                {% if item.brand or item.model %}
+                                <br><small class="text-muted">{{ item.brand }} {{ item.model }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="category-chip" style="background-color: {{ item.category.color|default:'#3498db' }}; color: white;">
+                                    {{ item.category.name }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge-status" style="background-color: {{ item.status.color|default:'#95a5a6' }}; color: white;">
+                                    {{ item.status.name }}
+                                </span>
+                            </td>
+                            <td>
+                                {{ item.location|default:"Sin ubicación" }}
+                            </td>
+                            <td>{{ item.quantity }} {{ item.unit_of_measure }}</td>
+                            <td>
+                                {% if item.quantity <= item.min_quantity %}
+                                    <span class="badge stock-bajo">Bajo Stock</span>
+                                    <small class="text-danger d-block">¡Necesita reabastecimiento!</small>
+                                {% elif item.quantity <= item.min_quantity|add:10 %}
+                                    <span class="badge stock-advertencia">Próximo a agotar</span>
+                                    <small class="text-warning d-block">Monitorear stock</small>
+                                {% else %}
+                                    <span class="badge stock-normal">Stock Normal</span>
+                                    <small class="text-success d-block">En niveles adecuados</small>
+                                {% endif %}
+                            </td>
+                            <td onclick="event.stopPropagation();">
+                                <button class="btn btn-sm btn-info btn-action" 
+                                        onclick="event.stopPropagation(); verDetalleItem({{ item.id }})"
+                                        title="Ver detalles">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning btn-action" 
+                                        onclick="event.stopPropagation(); editarItem({{ item.id }})"
+                                        title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger btn-action" 
+                                        onclick="event.stopPropagation(); eliminarItem({{ item.id }}, '{{ item.name|escapejs }}')"
+                                        title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No se encontraron ítems en el inventario</p>
+                                <button class="btn btn-primary" onclick="abrirModalCrearItem()">
+                                    <i class="fas fa-plus me-2"></i>Crear Primer Ítem
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            {% if page_obj.paginator.num_pages > 1 %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<!-- =========================================== -->
+<!-- MODALES INTEGRADOS EN LA MISMA PÁGINA -->
+<!-- =========================================== -->
+
+<!-- Modal Detalle -->
+<div class="modal fade" id="modalDetalle" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalles del Ítem</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalleContent">
+                <!-- Cargado dinámicamente -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Formulario Ítem -->
+<div class="modal fade" id="modalFormItem" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalFormItemTitulo">Nuevo Ítem de Inventario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formInventario">
+                    {% csrf_token %}
+                    <input type="hidden" id="item_id" name="item_id">
+                    
+                    <div class="row">
+                        <!-- Información Básica -->
+                        <div class="form-section">
+                            <h6><i class="fas fa-info-circle me-2"></i>Información Básica</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="name" name="name" required>
+                                    <div class="error-message" id="error-name"></div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label class="form-label">Descripción</label>
+                                    <textarea class="form-control" id="description" name="description" rows="2"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Categorización y Estado -->
+                        <div class="form-section">
+                            <h6><i class="fas fa-tags me-2"></i>Categorización y Estado</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Categoría <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="category" name="category" required>
+                                        <option value="">Seleccione una categoría</option>
+                                    </select>
+                                    <div class="error-message" id="error-category"></div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label class="form-label">Estado <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="status" name="status" required>
+                                        <option value="">Seleccione un estado</option>
+                                    </select>
+                                    <div class="error-message" id="error-status"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Ubicación y Cantidad -->
+                        <div class="form-section">
+                            <h6><i class="fas fa-map-marker-alt me-2"></i>Ubicación y Cantidad</h6>
+                            <div class="row g-3">
+                                <div class="col-md-8">
+                                    <label class="form-label">Ubicación</label>
+                                    <input type="text" class="form-control" id="location" name="location" 
+                                           placeholder="Ej: Estudio 1, Bodega Central, Oficina">
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="form-check mt-3">
+                                        <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked value="true">
+                                        <label class="form-check-label" for="is_active">
+                                            <i class="fas fa-check-circle text-success me-1"></i> Ítem activo
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label class="form-label">Cantidad <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="quantity" name="quantity" 
+                                           value="1" min="0" required>
+                                    <div class="error-message" id="error-quantity"></div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label class="form-label">Cantidad mínima</label>
+                                    <input type="number" class="form-control" id="min_quantity" name="min_quantity" 
+                                           value="0" min="0">
+                                    <div class="error-message" id="error-min_quantity"></div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label class="form-label">Unidad de medida</label>
+                                    <input type="text" class="form-control" id="unit_of_measure" name="unit_of_measure" 
+                                           value="Unidad" placeholder="Piezas, metros, litros, etc.">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Información Técnica -->
+                        <div class="form-section">
+                            <h6><i class="fas fa-microchip me-2"></i>Información Técnica (Opcional)</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Número de serie</label>
+                                    <input type="text" class="form-control" id="serial_number" name="serial_number">
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label class="form-label">Marca</label>
+                                    <input type="text" class="form-control" id="brand" name="brand">
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label class="form-label">Modelo</label>
+                                    <input type="text" class="form-control" id="model" name="model">
+                                </div>
+                                
+                                <div class="col-md-12">
+                                    <label class="form-label">Proveedor</label>
+                                    <input type="text" class="form-control" id="supplier" name="supplier">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Notas Adicionales -->
+                        <div class="form-section">
+                            <h6><i class="fas fa-sticky-note me-2"></i>Notas Adicionales</h6>
+                            <div class="row g-3">
+                                <div class="col-md-12">
+                                    <label class="form-label">Notas</label>
+                                    <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="guardarItem()">
+                    <i class="fas fa-save me-2"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Configuración (Categorías y Estados) -->
+<div class="modal fade" id="modalConfiguracion" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Configuración del Inventario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Tabs de configuración -->
+                <ul class="nav nav-tabs config-tabs" id="configTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="categories-tab" data-bs-toggle="tab" 
+                                data-bs-target="#categories-tab-pane" type="button" role="tab">
+                            <i class="fas fa-tags me-2"></i>Categorías
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="statuses-tab" data-bs-toggle="tab" 
+                                data-bs-target="#statuses-tab-pane" type="button" role="tab">
+                            <i class="fas fa-traffic-light me-2"></i>Estados
+                        </button>
+                    </li>
+                </ul>
+                
+                <!-- Contenido de los tabs -->
+                <div class="tab-content mt-3" id="configTabsContent">
+                    <!-- Tab Categorías -->
+                    <div class="tab-pane fade show active" id="categories-tab-pane" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6>Gestión de Categorías</h6>
+                            <button class="btn btn-sm btn-primary" onclick="abrirModalCrearCategoria()">
+                                <i class="fas fa-plus me-1"></i>Nueva Categoría
+                            </button>
+                        </div>
+                        <div id="categoriesList">
+                            <!-- Cargado dinámicamente -->
+                        </div>
+                    </div>
+                    
+                    <!-- Tab Estados -->
+                    <div class="tab-pane fade" id="statuses-tab-pane" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6>Gestión de Estados</h6>
+                            <button class="btn btn-sm btn-primary" onclick="abrirModalCrearEstado()">
+                                <i class="fas fa-plus me-1"></i>Nuevo Estado
+                            </button>
+                        </div>
+                        <div id="statusesList">
+                            <!-- Cargado dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Crear/Editar Categoría -->
+<div class="modal fade" id="modalCategoria" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalCategoriaTitulo">Nueva Categoría</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formCategoria">
+                    {% csrf_token %}
+                    <input type="hidden" id="categoria_id" name="categoria_id">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="categoria_nombre" name="nombre" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Color</label>
+                        <div class="d-flex align-items-center">
+                            <input type="color" class="form-control form-control-color" id="categoria_color" 
+                                   name="color" value="#3498db" title="Elige un color">
+                            <span class="ms-2" id="colorPreview"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Orden</label>
+                            <input type="number" class="form-control" id="categoria_orden" name="orden" value="0" min="0">
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check mt-3">
+                                <input class="form-check-input" type="checkbox" id="categoria_activa" name="activa" checked value="true">
+                                <label class="form-check-label" for="categoria_activa">
+                                    <i class="fas fa-check-circle text-success me-1"></i> Activa
+                                </label>
+                                <small class="form-text text-muted d-block">Las categorías inactivas no se mostrarán en los formularios</small>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarCategoria()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Crear/Editar Estado -->
+<div class="modal fade" id="modalEstado" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalEstadoTitulo">Nuevo Estado</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formEstado">
+                    {% csrf_token %}
+                    <input type="hidden" id="estado_id" name="estado_id">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="estado_nombre" name="nombre" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Color</label>
+                        <div class="d-flex align-items-center">
+                            <input type="color" class="form-control form-control-color" id="estado_color" 
+                                   name="color" value="#95a5a6" title="Elige un color">
+                            <span class="ms-2" id="estadoColorPreview"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="estado_default" name="default" value="true">
+                            <label class="form-check-label" for="estado_default">
+                                <i class="fas fa-star text-warning me-1"></i> Estado por defecto
+                            </label>
+                            <small class="form-text text-muted d-block">Se asignará automáticamente a nuevos ítems</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="estado_puede_usarse" name="puede_usarse" checked value="true">
+                            <label class="form-check-label" for="estado_puede_usarse">
+                                <i class="fas fa-check-circle text-success me-1"></i> Puede usarse
+                            </label>
+                            <small class="form-text text-muted d-block">Los ítems con este estado están disponibles para uso</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="estado_requiere_atencion" name="requiere_atencion" value="true">
+                            <label class="form-check-label" for="estado_requiere_atencion">
+                                <i class="fas fa-exclamation-triangle text-warning me-1"></i> Requiere atención
+                            </label>
+                            <small class="form-text text-muted d-block">Alerta para mantenimiento o revisión</small>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarEstado()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ============================================
+// VARIABLES Y CONFIGURACIÓN
+// ============================================
+
+let modalDetalle, modalFormItem, modalConfiguracion;
+let modalCategoria, modalEstado;
+
+// ============================================
+// INICIALIZACIÓN
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("🔄 Inicializando inventario simplificado...");
+    
+    // Inicializar modales de Bootstrap
+    modalDetalle = new bootstrap.Modal(document.getElementById('modalDetalle'));
+    modalFormItem = new bootstrap.Modal(document.getElementById('modalFormItem'));
+    modalConfiguracion = new bootstrap.Modal(document.getElementById('modalConfiguracion'));
+    modalCategoria = new bootstrap.Modal(document.getElementById('modalCategoria'));
+    modalEstado = new bootstrap.Modal(document.getElementById('modalEstado'));
+    
+    // Inicializar preview de colores
+    initColorPreviews();
+    
+    // Configurar eventos para el modal de configuración
+    const modalConfigElement = document.getElementById('modalConfiguracion');
+    if (modalConfigElement) {
+        modalConfigElement.addEventListener('shown.bs.modal', function() {
+            console.log("📋 Modal de configuración abierto");
+            // Cargar automáticamente las categorías cuando se abre el modal
+            setTimeout(cargarCategorias, 100);
+            setTimeout(cargarEstados, 100);
+        });
+    }
+    
+    // Configurar eventos para los tabs
+    const categoriesTab = document.getElementById('categories-tab');
+    if (categoriesTab) {
+        categoriesTab.addEventListener('shown.bs.tab', function() {
+            console.log("📂 Tab de categorías activado");
+            cargarCategorias();
+        });
+    }
+    
+    const statusesTab = document.getElementById('statuses-tab');
+    if (statusesTab) {
+        statusesTab.addEventListener('shown.bs.tab', function() {
+            console.log("📂 Tab de estados activado");
+            cargarEstados();
+        });
+    }
+    
+    // Cargar combobox automáticamente cuando se carga la página
+    setTimeout(() => {
+        console.log("🔄 Cargando combobox iniciales...");
+        cargarCategoriasFormulario();
+        cargarEstadosFormulario();
+    }, 500);
+    
+    console.log("✅ JavaScript de inventario simplificado inicializado correctamente");
+});
+
+function initColorPreviews() {
+    const categoriaColor = document.getElementById('categoria_color');
+    const colorPreview = document.getElementById('colorPreview');
+    if (categoriaColor && colorPreview) {
+        updateColorPreview(categoriaColor, colorPreview);
+        categoriaColor.addEventListener('input', () => updateColorPreview(categoriaColor, colorPreview));
+    }
+    
+    const estadoColor = document.getElementById('estado_color');
+    const estadoColorPreview = document.getElementById('estadoColorPreview');
+    if (estadoColor && estadoColorPreview) {
+        updateColorPreview(estadoColor, estadoColorPreview);
+        estadoColor.addEventListener('input', () => updateColorPreview(estadoColor, estadoColorPreview));
+    }
+}
+
+function updateColorPreview(input, preview) {
+    preview.style.backgroundColor = input.value;
+    preview.style.width = '30px';
+    preview.style.height = '30px';
+    preview.style.display = 'inline-block';
+    preview.style.borderRadius = '4px';
+    preview.style.border = '2px solid #dee2e6';
+}
+
+// ============================================
+// FUNCIONES PARA CARGAR COMBOS PRINCIPALES
+// ============================================
+
+function cargarCategoriasFormulario() {
+    console.log("🔄 Cargando categorías para formulario...");
+    
+    const select = document.getElementById('category');
+    const selectFilter = document.getElementById('filterCategory');
+    
+    if (!select && !selectFilter) return;
+    
+    fetch('/panel/inventory/categories/ajax/list/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.categories) {
+                let options = '<option value="">Seleccione una categoría</option>';
+                let filterOptions = '<option value="">Todas las categorías</option>';
+                
+                // Filtrar solo categorías activas para el formulario
+                const categoriasActivas = data.categories.filter(cat => cat.is_active);
+                categoriasActivas.forEach(cat => {
+                    options += `<option value="${cat.id}">${cat.name}</option>`;
+                });
+                
+                // Para el filtro, mostrar todas con indicador de inactivas
+                data.categories.forEach(cat => {
+                    const inactiva = !cat.is_active ? ' (Inactiva)' : '';
+                    filterOptions += `<option value="${cat.id}">${cat.name}${inactiva}</option>`;
+                });
+                
+                if (select) select.innerHTML = options;
+                if (selectFilter) selectFilter.innerHTML = filterOptions;
+                
+                console.log(`✅ Cargadas ${categoriasActivas.length} categorías activas`);
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error cargando categorías:', error);
+            if (select) select.innerHTML = '<option value="">Error al cargar</option>';
+            if (selectFilter) selectFilter.innerHTML = '<option value="">Error al cargar</option>';
+        });
+}
+
+function cargarEstadosFormulario() {
+    console.log("🔄 Cargando estados para formulario...");
+    
+    const select = document.getElementById('status');
+    const selectFilter = document.getElementById('filterStatus');
+    
+    if (!select && !selectFilter) return;
+    
+    fetch('/panel/inventory/statuses/ajax/list/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.statuses) {
+                let options = '<option value="">Seleccione un estado</option>';
+                let filterOptions = '<option value="">Todos los estados</option>';
+                
+                data.statuses.forEach(status => {
+                    options += `<option value="${status.id}">${status.name}</option>`;
+                    filterOptions += `<option value="${status.id}">${status.name}</option>`;
+                });
+                
+                if (select) select.innerHTML = options;
+                if (selectFilter) selectFilter.innerHTML = filterOptions;
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error cargando estados:', error);
+            if (select) select.innerHTML = '<option value="">Error al cargar</option>';
+            if (selectFilter) selectFilter.innerHTML = '<option value="">Error al cargar</option>';
+        });
+}
+
+// ============================================
+// FUNCIONES PARA ÍTEMS (SIMPLIFICADAS)
+// ============================================
+
+function verDetalleItem(itemId) {
+    showLoading('modalDetalle', 'Cargando detalles del ítem...');
+    modalDetalle.show();
+    
+    fetch(`/panel/inventory/ajax/detail/${itemId}/`)
+        .then(handleResponse)
+        .then(data => {
+            if (data.success) {
+                document.getElementById('detalleContent').innerHTML = generateItemDetailHTML(data.item);
+            } else {
+                showError('detalleContent', data.error || 'Error al cargar los detalles');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showError('detalleContent', 'Error al cargar los detalles del ítem');
+        });
+}
+
+function abrirModalCrearItem() {
+    console.log("➕ Abriendo modal para nuevo ítem...");
+    
+    document.getElementById('modalFormItemTitulo').textContent = 'Nuevo Ítem de Inventario';
+    document.getElementById('formInventario').reset();
+    document.getElementById('item_id').value = '';
+    document.getElementById('is_active').checked = true;
+    document.getElementById('quantity').value = '1';
+    document.getElementById('min_quantity').value = '0';
+    document.getElementById('unit_of_measure').value = 'Unidad';
+    
+    // Limpiar mensajes de error
+    document.querySelectorAll('.error-message').forEach(el => el.textContent = '');
+    
+    // Asegurar que los combos estén cargados
+    cargarCategoriasFormulario();
+    cargarEstadosFormulario();
+    
+    modalFormItem.show();
+}
+
+function editarItem(itemId) {
+    console.log(`✏️ Editando ítem ${itemId}...`);
+    showLoading('modalFormItem', 'Cargando datos del ítem...');
+    
+    fetch(`/panel/inventory/ajax/get-form-data/${itemId}/`)
+        .then(handleResponse)
+        .then(data => {
+            if (data.success && data.item) {
+                const item = data.item;
+                document.getElementById('modalFormItemTitulo').textContent = 'Editar Ítem de Inventario';
+                document.getElementById('item_id').value = item.id;
+                
+                // Limpiar mensajes de error
+                document.querySelectorAll('.error-message').forEach(el => el.textContent = '');
+                
+                // Llenar campos básicos
+                document.getElementById('name').value = item.name;
+                document.getElementById('description').value = item.description || '';
+                
+                // Cargar categorías y seleccionar la correcta
+                cargarCategoriasFormulario();
+                setTimeout(() => {
+                    document.getElementById('category').value = item.category_id;
+                }, 100);
+                
+                // Cargar estados y seleccionar el correcto
+                cargarEstadosFormulario();
+                setTimeout(() => {
+                    document.getElementById('status').value = item.status_id;
+                }, 100);
+                
+                // Llenar otros campos
+                document.getElementById('location').value = item.location || '';
+                document.getElementById('quantity').value = item.quantity;
+                document.getElementById('min_quantity').value = item.min_quantity;
+                document.getElementById('unit_of_measure').value = item.unit_of_measure;
+                document.getElementById('serial_number').value = item.serial_number || '';
+                document.getElementById('brand').value = item.brand || '';
+                document.getElementById('model').value = item.model || '';
+                document.getElementById('supplier').value = item.supplier || '';
+                document.getElementById('notes').value = item.notes || '';
+                document.getElementById('is_active').checked = item.is_active;
+                
+                modalFormItem.show();
+            } else {
+                Swal.fire('Error', data.error || 'Error al cargar los datos del ítem', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error', 'Error al cargar los datos del ítem', 'error');
+        });
+}
+
+function guardarItem() {
+    console.log("💾 Guardando ítem...");
+    const form = document.getElementById('formInventario');
+    const formData = new FormData(form);
+    
+    // Limpiar mensajes de error anteriores
+    document.querySelectorAll('.error-message').forEach(el => el.textContent = '');
+    
+    // Validación simplificada
+    const requiredFields = [
+        {field: 'name', name: 'Nombre', errorId: 'error-name'},
+        {field: 'category', name: 'Categoría', errorId: 'error-category'},
+        {field: 'status', name: 'Estado', errorId: 'error-status'},
+        {field: 'quantity', name: 'Cantidad', errorId: 'error-quantity'}
+    ];
+    
+    let errores = [];
+    for (const req of requiredFields) {
+        if (!formData.get(req.field)) {
+            errores.push(`El campo "${req.name}" es obligatorio`);
+            document.getElementById(req.errorId).textContent = `Este campo es obligatorio`;
+        }
+    }
+    
+    if (errores.length > 0) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de validación',
+            html: `<p>Por favor complete todos los campos obligatorios:</p><ul>${errores.map(e => `<li>${e}</li>`).join('')}</ul>`,
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+    
+    const quantity = parseInt(formData.get('quantity'));
+    if (quantity < 0) {
+        document.getElementById('error-quantity').textContent = 'La cantidad no puede ser negativa';
+        Swal.fire('Error', 'La cantidad no puede ser negativa', 'error');
+        return;
+    }
+    
+    const minQuantity = parseInt(formData.get('min_quantity')) || 0;
+    if (minQuantity < 0) {
+        document.getElementById('error-min_quantity').textContent = 'La cantidad mínima no puede ser negativa';
+        Swal.fire('Error', 'La cantidad mínima no puede ser negativa', 'error');
+        return;
+    }
+    
+    // Validar que la cantidad no sea menor que la mínima
+    if (quantity < minQuantity) {
+        document.getElementById('error-quantity').textContent = `La cantidad (${quantity}) no puede ser menor que la mínima (${minQuantity})`;
+        Swal.fire('Error', `La cantidad (${quantity}) no puede ser menor que la cantidad mínima (${minQuantity})`, 'error');
+        return;
+    }
+    
+    modalFormItem.hide();
+    showSwalLoading('Guardando ítem...');
+    
+    fetch('/panel/inventory/ajax/save/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(handleResponse)
+    .then(data => {
+        Swal.close();
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: data.message,
+                confirmButtonText: 'Aceptar',
+                timer: 1500,
+                timerProgressBar: true,
+                willClose: () => {
+                    // Recargar la página automáticamente
+                    window.location.reload();
+                }
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                html: `<p>${data.error || 'Error al guardar'}</p><p class="text-muted small">Por favor, verifica los datos e intenta nuevamente.</p>`,
+                confirmButtonText: 'Entendido'
+            }).then(() => {
+                modalFormItem.show();
+            });
+        }
+    })
+    .catch(error => {
+        Swal.close();
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de conexión',
+            html: `<p>No se pudo guardar el ítem</p><p class="text-muted small">Error: ${error.message}</p>`,
+            confirmButtonText: 'Entendido'
+        }).then(() => {
+            modalFormItem.show();
+        });
+    });
+}
+
+function eliminarItem(itemId, itemName) {
+    Swal.fire({
+        title: '¿Eliminar ítem?',
+        html: `
+            <div class="text-center">
+                <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                <p class="mb-2"><strong>"${itemName}"</strong></p>
+                <p class="text-muted">Esta acción no se puede deshacer</p>
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            showSwalLoading('Eliminando ítem...');
+            
+            fetch(`/panel/inventory/ajax/delete/${itemId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(handleResponse)
+            .then(data => {
+                Swal.close();
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Eliminado!',
+                        text: data.message,
+                        confirmButtonText: 'Aceptar',
+                        timer: 1500,
+                        timerProgressBar: true,
+                        willClose: () => {
+                            // Recargar la página automáticamente
+                            window.location.reload();
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        html: `<p>${data.error}</p><p class="text-muted small">No se puede eliminar el ítem porque está siendo utilizado.</p>`,
+                        confirmButtonText: 'Entendido'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.close();
+                console.error('Error:', error);
+                Swal.fire('Error', 'Error al eliminar el ítem', 'error');
+            });
+        }
+    });
+}
+
+// ============================================
+// CONFIGURACIÓN - CATEGORÍAS
+// ============================================
+
+function cargarCategorias() {
+    console.log("🔄 cargarCategorias() llamada");
+    
+    const container = document.getElementById('categoriesList');
+    if (!container) {
+        console.error("❌ No se encontró el contenedor categoriesList");
+        return;
+    }
+    
+    container.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="text-muted mt-2">Cargando categorías...</p>
+        </div>
+    `;
+    
+    fetch('/panel/inventory/categories/ajax/list/')
+        .then(response => {
+            console.log(`📊 Response status: ${response.status}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("📦 Datos recibidos:", data);
+            
+            if (data.success) {
+                if (data.categories && data.categories.length > 0) {
+                    console.log(`✅ ${data.categories.length} categorías encontradas`);
+                    
+                    let html = '';
+                    data.categories.forEach((cat, index) => {
+                        html += `
+                            <div class="col-md-12 mb-2">
+                                <div class="config-card ${!cat.is_active ? 'border-warning' : ''}">
+                                    <div class="config-card-header ${!cat.is_active ? 'bg-warning-subtle' : ''}">
+                                        <div>
+                                            <span class="color-preview" style="
+                                                background-color: ${cat.color || '#3498db'}; 
+                                                width: 20px; 
+                                                height: 20px; 
+                                                display: inline-block; 
+                                                border-radius: 4px; 
+                                                margin-right: 8px;
+                                                border: 1px solid #dee2e6;
+                                            "></span>
+                                            <strong>${cat.name || 'Sin nombre'}</strong>
+                                            ${!cat.is_active ? '<span class="badge bg-warning ms-2">Inactiva</span>' : ''}
+                                        </div>
+                                        <div class="config-card-actions">
+                                            <button class="btn btn-sm btn-outline-warning" 
+                                                    onclick="editarCategoria(${cat.id}, '${(cat.name || '').replace(/'/g, "\\'")}', '${cat.color || '#3498db'}', ${cat.order || 0}, ${cat.is_active || true})"
+                                                    title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" 
+                                                    onclick="eliminarCategoria(${cat.id}, '${(cat.name || '').replace(/'/g, "\\'")}')"
+                                                    title="Eliminar">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="config-card-body">
+                                        <div class="row small">
+                                            <div class="col-6">
+                                                <i class="fas fa-sort-numeric-up me-1"></i>
+                                                Orden: ${cat.order || 0}
+                                            </div>
+                                            <div class="col-6 text-end">
+                                                <span class="${cat.is_active ? 'text-success' : 'text-danger'}">
+                                                    <i class="fas fa-circle me-1"></i>
+                                                    ${cat.is_active ? 'Activa' : 'Inactiva'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = `
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Se encontraron ${data.categories.length} categorías
+                                </div>
+                            </div>
+                            ${html}
+                        </div>
+                    `;
+                } else {
+                    console.log("ℹ️ No hay categorías");
+                    container.innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No hay categorías creadas. ¡Crea tu primera categoría haciendo clic en "Nueva Categoría"!
+                        </div>
+                    `;
+                }
+            } else {
+                console.error("❌ Error en la respuesta:", data.error);
+                container.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Error al cargar las categorías: ${data.error || 'Error desconocido'}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error en fetch:', error);
+            container.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Error de conexión: ${error.message}
+                </div>
+            `;
+        });
+}
+
+function mostrarConfiguracion() {
+    console.log("⚙️ Mostrando configuración...");
+    modalConfiguracion.show();
+}
+
+function abrirModalCrearCategoria() {
+    console.log("➕ Abriendo modal para nueva categoría...");
+    
+    document.getElementById('modalCategoriaTitulo').textContent = 'Nueva Categoría';
+    document.getElementById('formCategoria').reset();
+    document.getElementById('categoria_id').value = '';
+    document.getElementById('categoria_color').value = '#3498db';
+    document.getElementById('categoria_orden').value = '0';
+    document.getElementById('categoria_activa').checked = true;  // Por defecto activa
+    
+    modalCategoria.show();
+}
+
+function editarCategoria(id, nombre, color, orden, activa) {
+    console.log("✏️ Editando categoría:", {id, nombre, color, orden, activa});
+    
+    document.getElementById('modalCategoriaTitulo').textContent = 'Editar Categoría';
+    document.getElementById('categoria_id').value = id;
+    document.getElementById('categoria_nombre').value = nombre;
+    document.getElementById('categoria_color').value = color || '#3498db';
+    document.getElementById('categoria_orden').value = orden || 0;
+    document.getElementById('categoria_activa').checked = activa;  // CORREGIDO: si activa es true, checked=true
+    
+    modalCategoria.show();
+}
+
+function guardarCategoria() {
+    console.log("💾 Guardando categoría...");
+    
+    const form = document.getElementById('formCategoria');
+    const formData = new FormData(form);
+    
+    // Validación
+    const nombre = document.getElementById('categoria_nombre').value;
+    if (!nombre) {
+        Swal.fire('Error', 'El nombre es obligatorio', 'error');
+        return;
+    }
+    
+    modalCategoria.hide();
+    showSwalLoading('Guardando categoría...');
+    
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    fetch('/panel/inventory/category/ajax/save/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: formData
+    })
+    .then(response => {
+        console.log("📊 Respuesta:", response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log("📦 Datos recibidos:", data);
+        Swal.close();
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: data.message,
+                confirmButtonText: 'Aceptar',
+                timer: 1500,
+                timerProgressBar: true,
+                willClose: () => {
+                    // Recargar las listas automáticamente
+                    cargarCategorias();
+                    cargarCategoriasFormulario();
+                    // Si el modal estaba abierto, lo cerramos
+                    if (modalCategoria._element.classList.contains('show')) {
+                        modalCategoria.hide();
+                    }
+                }
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                html: `<p>${data.error || 'Error al guardar'}</p><p class="text-muted small">Por favor, verifica los datos e intenta nuevamente.</p>`,
+                confirmButtonText: 'Entendido'
+            }).then(() => {
+                modalCategoria.show();
+            });
+        }
+    })
+    .catch(error => {
+        Swal.close();
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de conexión',
+            html: `<p>Error al guardar la categoría</p><p class="text-muted small">Error: ${error.message}</p>`,
+            confirmButtonText: 'Entendido'
+        }).then(() => {
+            modalCategoria.show();
+        });
+    });
+}
+
+function eliminarCategoria(id, nombre) {
+    Swal.fire({
+        title: '¿Eliminar categoría?',
+        html: `¿Estás seguro de eliminar la categoría <strong>"${nombre}"</strong>?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            showSwalLoading('Eliminando categoría...');
+            
+            fetch(`/panel/inventory/category/ajax/delete/${id}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(handleResponse)
+            .then(data => {
+                Swal.close();
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Eliminada!',
+                        text: data.message,
+                        confirmButtonText: 'Aceptar',
+                        timer: 1500,
+                        timerProgressBar: true,
+                        willClose: () => {
+                            // Recargar las listas automáticamente
+                            cargarCategorias();
+                            cargarCategoriasFormulario();
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        html: `<p>${data.error}</p><p class="text-muted small">No se puede eliminar la categoría porque está siendo utilizada por ${data.item_count || 'algunos'} ítems.</p>`,
+                        confirmButtonText: 'Entendido'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.close();
+                console.error('Error:', error);
+                Swal.fire('Error', 'Error al eliminar la categoría', 'error');
+            });
+        }
+    });
+}
+
+// ============================================
+// CONFIGURACIÓN - ESTADOS
+// ============================================
+
+function cargarEstados() {
+    console.log("🔄 cargarEstados() llamada");
+    
+    const container = document.getElementById('statusesList');
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="text-muted mt-2">Cargando estados...</p>
+        </div>
+    `;
+    
+    fetch('/panel/inventory/statuses/ajax/list/')
+        .then(handleResponse)
+        .then(data => {
+            if (data.success && data.statuses && data.statuses.length > 0) {
+                let html = '<div class="row">';
+                data.statuses.forEach(status => {
+                    html += `
+                        <div class="col-md-12 mb-2">
+                            <div class="config-card">
+                                <div class="config-card-header">
+                                    <div>
+                                        <span class="color-preview" style="background-color: ${status.color || '#95a5a6'}; width: 20px; height: 20px; display: inline-block; border-radius: 4px; margin-right: 8px;"></span>
+                                        <strong>${status.name || 'Sin nombre'}</strong>
+                                        ${status.is_default ? '<span class="badge bg-info ms-2">Por defecto</span>' : ''}
+                                    </div>
+                                    <div class="config-card-actions">
+                                        <button class="btn btn-sm btn-outline-warning" 
+                                                onclick="editarEstado(${status.id}, '${(status.name || '').replace(/'/g, "\\'")}', '${status.color || '#95a5a6'}', ${status.is_default || false}, ${status.can_use || true}, ${status.requires_attention || false})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" 
+                                                onclick="eliminarEstado(${status.id}, '${(status.name || '').replace(/'/g, "\\'")}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="config-card-body">
+                                    <div class="small">
+                                        ${status.can_use ? '<span class="badge bg-success me-2">Puede usarse</span>' : '<span class="badge bg-danger me-2">No usable</span>'}
+                                        ${status.requires_attention ? '<span class="badge bg-warning">Requiere atención</span>' : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No hay estados creados
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            container.innerHTML = `<div class="alert alert-danger">Error de conexión</div>`;
+        });
+}
+
+function abrirModalCrearEstado() {
+    console.log("➕ Abriendo modal para nuevo estado...");
+    
+    document.getElementById('modalEstadoTitulo').textContent = 'Nuevo Estado';
+    document.getElementById('formEstado').reset();
+    document.getElementById('estado_id').value = '';
+    document.getElementById('estado_color').value = '#95a5a6';
+    document.getElementById('estado_default').checked = false;
+    document.getElementById('estado_puede_usarse').checked = true;
+    document.getElementById('estado_requiere_atencion').checked = false;
+    
+    modalEstado.show();
+}
+
+function editarEstado(id, nombre, color, esDefault, puedeUsarse, requiereAtencion) {
+    console.log("✏️ Editando estado:", {id, nombre, esDefault, puedeUsarse});
+    
+    document.getElementById('modalEstadoTitulo').textContent = 'Editar Estado';
+    document.getElementById('estado_id').value = id;
+    document.getElementById('estado_nombre').value = nombre;
+    document.getElementById('estado_color').value = color;
+    document.getElementById('estado_default').checked = esDefault;
+    document.getElementById('estado_puede_usarse').checked = puedeUsarse;
+    document.getElementById('estado_requiere_atencion').checked = requiereAtencion;
+    
+    modalEstado.show();
+}
+
+function guardarEstado() {
+    console.log("💾 Guardando estado...");
+    
+    const form = document.getElementById('formEstado');
+    const formData = new FormData(form);
+    
+    if (!formData.get('nombre')) {
+        Swal.fire('Error', 'El nombre es obligatorio', 'error');
+        return;
+    }
+    
+    modalEstado.hide();
+    showSwalLoading('Guardando estado...');
+    
+    fetch('/panel/inventory/status/ajax/save/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: formData
+    })
+    .then(response => {
+        console.log("📊 Respuesta estado:", response.status, response.statusText);
+        return response.json();
+    })
+    .then(data => {
+        console.log("📦 Datos recibidos estado:", data);
+        Swal.close();
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: data.message,
+                confirmButtonText: 'Aceptar',
+                timer: 1500,
+                timerProgressBar: true,
+                willClose: () => {
+                    // Recargar las listas automáticamente
+                    cargarEstados();
+                    cargarEstadosFormulario();
+                    // Si el modal estaba abierto, lo cerramos
+                    if (modalEstado._element.classList.contains('show')) {
+                        modalEstado.hide();
+                    }
+                }
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                html: `<p>${data.error || 'Error al guardar'}</p><p class="text-muted small">Por favor, verifica los datos e intenta nuevamente.</p>`,
+                confirmButtonText: 'Entendido'
+            }).then(() => {
+                modalEstado.show();
+            });
+        }
+    })
+    .catch(error => {
+        Swal.close();
+        console.error('Error guardando estado:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de conexión',
+            html: `<p>Error al guardar el estado</p><p class="text-muted small">Error: ${error.message}</p>`,
+            confirmButtonText: 'Entendido'
+        }).then(() => {
+            modalEstado.show();
+        });
+    });
+}
+
+function eliminarEstado(id, nombre) {
+    Swal.fire({
+        title: '¿Eliminar estado?',
+        html: `¿Estás seguro de eliminar el estado <strong>"${nombre}"</strong>?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            showSwalLoading('Eliminando estado...');
+            
+            fetch(`/panel/inventory/status/ajax/delete/${id}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(handleResponse)
+            .then(data => {
+                Swal.close();
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Eliminado!',
+                        text: data.message,
+                        confirmButtonText: 'Aceptar',
+                        timer: 1500,
+                        timerProgressBar: true,
+                        willClose: () => {
+                            // Recargar las listas automáticamente
+                            cargarEstados();
+                            cargarEstadosFormulario();
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        html: `<p>${data.error}</p><p class="text-muted small">No se puede eliminar el estado porque ${data.item_count ? `está siendo utilizado por ${data.item_count} ítems` : 'es el estado por defecto o está siendo utilizado'}.</p>`,
+                        confirmButtonText: 'Entendido'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.close();
+                console.error('Error:', error);
+                Swal.fire('Error', 'Error al eliminar el estado', 'error');
+            });
+        }
+    });
+}
+
+// ============================================
+// FUNCIONES DE UTILIDAD
+// ============================================
+
+function handleResponse(response) {
+    if (!response.ok) {
+        throw new Error(`Error en la respuesta del servidor: ${response.status} ${response.statusText}`);
+    }
+    return response.json();
+}
+
+function showLoading(modalId, message = 'Cargando...') {
+    const modal = document.getElementById(modalId);
+    const content = modal.querySelector('.modal-body') || modal;
+    content.innerHTML = `
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
+            <p class="mt-3 text-muted">${message}</p>
+        </div>
+    `;
+}
+
+function showError(containerId, message) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = `
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            ${message}
+        </div>
+    `;
+}
+
+function showSwalLoading(message) {
+    Swal.fire({
+        title: message,
+        html: '<div class="spinner-border text-primary" role="status"></div>',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        willOpen: () => Swal.showLoading()
+    });
+}
+
+function generateItemDetailHTML(item) {
+    return `
+        <div class="row">
+            <div class="col-md-12 mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="mb-1">${item.code} - ${item.name}</h4>
+                        <p class="text-muted mb-0">${item.description || 'Sin descripción'}</p>
+                    </div>
+                    <div>
+                        <span class="badge" style="background-color: ${item.status_color}; color: white; padding: 8px 16px;">
+                            ${item.status}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="detail-section">
+                    <h6><i class="fas fa-info-circle me-2"></i>Información Básica</h6>
+                    <div class="row">
+                        <div class="col-12 mb-2">
+                            <strong>Código:</strong><br>
+                            <span class="text-primary">${item.code}</span>
+                        </div>
+                        <div class="col-12 mb-2">
+                            <strong>Categoría:</strong><br>
+                            <span class="badge" style="background-color: ${item.category_color};">${item.category}</span>
+                        </div>
+                        ${item.location ? `
+                        <div class="col-12 mb-2">
+                            <strong>Ubicación:</strong><br>
+                            ${item.location}
+                        </div>
+                        ` : ''}
+                        <div class="col-12 mb-2">
+                            <strong>Estado:</strong><br>
+                            <span class="badge" style="background-color: ${item.status_color}; color: white;">${item.status}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="detail-section">
+                    <h6><i class="fas fa-calculator me-2"></i>Cantidad y Stock</h6>
+                    <div class="row">
+                        <div class="col-12 mb-2">
+                            <strong>Cantidad:</strong><br>
+                            <h5 class="text-primary">${item.quantity} ${item.unit_of_measure}</h5>
+                        </div>
+                        <div class="col-12 mb-2">
+                            <strong>Cantidad mínima:</strong><br>
+                            ${item.min_quantity}
+                        </div>
+                        <div class="col-12 mb-2">
+                            <strong>Estado del Stock:</strong><br>
+                            <span class="badge bg-${item.stock_class}" style="font-size: 0.9rem;">
+                                ${item.stock_status}
+                            </span>
+                            <small class="text-muted d-block mt-1">${getStockDescription(item.stock_status, item.quantity, item.min_quantity)}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            ${item.serial_number || item.brand || item.model ? `
+            <div class="col-md-6">
+                <div class="detail-section">
+                    <h6><i class="fas fa-microchip me-2"></i>Información Técnica</h6>
+                    ${item.serial_number ? `
+                    <div class="mb-2">
+                        <strong>Número de Serie:</strong><br>
+                        ${item.serial_number}
+                    </div>
+                    ` : ''}
+                    ${item.brand ? `
+                    <div class="mb-2">
+                        <strong>Marca:</strong><br>
+                        ${item.brand}
+                    </div>
+                    ` : ''}
+                    ${item.model ? `
+                    <div class="mb-2">
+                        <strong>Modelo:</strong><br>
+                        ${item.model}
+                    </div>
+                    ` : ''}
+                    ${item.supplier ? `
+                    <div class="mb-2">
+                        <strong>Proveedor:</strong><br>
+                        ${item.supplier}
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+            ` : ''}
+            
+            <div class="col-md-6">
+                <div class="detail-section">
+                    <h6><i class="fas fa-history me-2"></i>Auditoría</h6>
+                    <div class="mb-2">
+                        <strong>Creado por:</strong><br>
+                        ${item.created_by} (${item.created_at})
+                    </div>
+                    <div class="mb-2">
+                        <strong>Actualizado por:</strong><br>
+                        ${item.updated_by} (${item.updated_at})
+                    </div>
+                    <div class="mb-2">
+                        <strong>Estado:</strong><br>
+                        ${item.is_active ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-danger">Inactivo</span>'}
+                    </div>
+                </div>
+            </div>
+            
+            ${item.notes ? `
+            <div class="col-md-12">
+                <div class="detail-section">
+                    <h6><i class="fas fa-sticky-note me-2"></i>Notas</h6>
+                    <p>${item.notes}</p>
+                </div>
+            </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+function getStockDescription(status, quantity, minQuantity) {
+    switch(status) {
+        case 'Bajo Stock':
+            return `La cantidad actual (${quantity}) es igual o menor que la mínima (${minQuantity}). ¡Necesita reabastecimiento urgente!`;
+        case 'Próximo a agotar':
+            return `La cantidad actual (${quantity}) está cerca del mínimo (${minQuantity}). Debería considerarse reabastecimiento pronto.`;
+        case 'Normal':
+            return `La cantidad actual (${quantity}) está por encima del mínimo (${minQuantity}). Stock en niveles adecuados.`;
+        default:
+            return '';
+    }
+}
+
+// ============================================
+// HACER FUNCIONES GLOBALES
+// ============================================
+
+window.cargarCategorias = cargarCategorias;
+window.mostrarConfiguracion = mostrarConfiguracion;
+window.abrirModalCrearItem = abrirModalCrearItem;
+window.verDetalleItem = verDetalleItem;
+window.editarItem = editarItem;
+window.eliminarItem = eliminarItem;
+
+console.log("✅ JavaScript de inventario simplificado cargado correctamente");
+</script>
+{% endblock %}

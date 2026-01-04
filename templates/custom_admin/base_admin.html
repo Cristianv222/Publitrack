@@ -1168,7 +1168,17 @@
                     <span>Panel de Reportes</span>
                 </a>
             </div>
-
+            
+<!-- INVENTARIO -->
+<div class="menu-section">
+    <div class="menu-section-title">INVENTARIO</div>
+    <a href="{% url 'custom_admin:inventory_list' %}"
+        class="menu-link {% if 'inventory' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="fas fa-boxes menu-icon"></i>
+        <span>Gestión de Inventario</span>
+      
+    </a>
+</div>
 
         </div>
     </nav>

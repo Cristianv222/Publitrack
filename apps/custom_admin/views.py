@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, F
 from django.utils import timezone
 from django.http import JsonResponse, FileResponse
 import json
@@ -32,6 +32,10 @@ import plotly.io as pio
 from apps.programacion_canal.models import ProgramacionSemanal, BloqueProgramacion,  CategoriaPrograma
 from apps.grilla_publicitaria.models import TipoUbicacionPublicitaria, UbicacionPublicitaria, AsignacionCuña, GrillaPublicitaria
 from apps.content_management.models import CuñaPublicitaria
+from apps.inventory.models import (
+    Category, Status, 
+    InventoryItem
+)
 # Obtener el modelo de usuario correcto
 User = get_user_model()
 
@@ -196,6 +200,25 @@ try:
 except ImportError:
     PROGRAMACION_CANAL_AVAILABLE = False
 
+# =============================================================================
+# IMPORTS PARA INVENTARIO
+# =============================================================================
+try:
+    from apps.inventory.models import (
+        Category, Status,
+        InventoryItem
+    )
+    INVENTORY_MODELS_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Error importando modelos de inventory: {e}")
+    INVENTORY_MODELS_AVAILABLE = False
+    Category = None
+    Status = None
+    InventoryItem = None
+
+User = get_user_model()
+
+   
 # ==================== GRILLA PUBLICITARIA ====================
 
 # IMPORTS CONDICIONALES PARA GRILLA
@@ -8549,9 +8572,6 @@ def grilla_asignar_cuna_api(request):
         
         cantidad_repeticiones = int(data.get('cantidad_repeticiones', 1))
         
-        cuña_id = data.get('cuña_id')
-        ubicacion_id = data.get('ubicacion_id')
-        
         # Validaciones mínimas
         if not all([cuña_id, ubicacion_id]):
             return JsonResponse({'success': False, 'error': 'Faltan datos requeridos'})
@@ -9209,22 +9229,22 @@ def grilla_ubicacion_detalle_api(request, ubicacion_id):
         print(f"📦 Total de cuñas en el sistema: {todas_las_cuñas.count()}")
         
         for cuña in todas_las_cuñas:
-            # Verificar que no esté ya asignada en esta ubicación - SE PERMITE REPETIR
-            # if not AsignacionCuña.objects.filter(ubicacion=ubicacion, cuña=cuña).exists():
-            cliente_nombre = "Sin cliente"
-            if cuña.cliente:
-                cliente_nombre = f"{cuña.cliente.first_name} {cuña.cliente.last_name}".strip()
-                if not cliente_nombre:
-                    cliente_nombre = cuña.cliente.username
-            
-            cunas_disponibles_data.append({
-                'id': cuña.id,
-                'codigo': cuña.codigo,
-                'titulo': cuña.titulo,
-                'duracion_planeada': cuña.duracion_planeada,
-                'cliente': cliente_nombre,
-                'estado': cuña.estado,  # Incluir el estado para debug
-            })
+            # Verificar que no esté ya asignada en esta ubicación
+            if not AsignacionCuña.objects.filter(ubicacion=ubicacion, cuña=cuña).exists():
+                cliente_nombre = "Sin cliente"
+                if cuña.cliente:
+                    cliente_nombre = f"{cuña.cliente.first_name} {cuña.cliente.last_name}".strip()
+                    if not cliente_nombre:
+                        cliente_nombre = cuña.cliente.username
+                
+                cunas_disponibles_data.append({
+                    'id': cuña.id,
+                    'codigo': cuña.codigo,
+                    'titulo': cuña.titulo,
+                    'duracion_planeada': cuña.duracion_planeada,
+                    'cliente': cliente_nombre,
+                    'estado': cuña.estado,  # Incluir el estado para debug
+                })
         
         print(f"🎯 Cuñas disponibles para asignar: {len(cunas_disponibles_data)}")
         
@@ -9415,6 +9435,697 @@ def grilla_publicitaria_en_vivo(request):
     }
     
     return render(request, 'custom_admin/grilla_publicitaria/en_vivo.html', context)
-####################################
-#vendedor contratos
-###################################
+
+# ============================================
+# VISTAS DE INVENTARIO - SIMPLIFICADAS
+# ============================================
+
+@login_required
+def inventory_list(request):
+    """Vista principal del inventario - SIMPLIFICADA"""
+    
+    if not INVENTORY_MODELS_AVAILABLE:
+        messages.error(request, 'Módulo de Inventario no disponible')
+        return redirect('custom_admin:dashboard')
+    
+    try:
+        # ========== FILTROS ==========
+        search_query = request.GET.get('search', '')
+        category_id = request.GET.get('category', '')
+        status_id = request.GET.get('status', '')
+        
+        # Items del inventario - SOLO category y status
+        items = InventoryItem.objects.select_related(
+            'category', 'status', 'created_by', 'updated_by'
+        ).all().order_by('code')
+        
+        # Aplicar filtros
+        if search_query:
+            items = items.filter(
+                Q(code__icontains=search_query) |
+                Q(name__icontains=search_query) |
+                Q(description__icontains=search_query) |
+                Q(serial_number__icontains=search_query) |
+                Q(brand__icontains=search_query) |
+                Q(model__icontains=search_query) |
+                Q(location__icontains=search_query)
+            )
+        
+        if category_id:
+            items = items.filter(category_id=category_id)
+        
+        if status_id:
+            items = items.filter(status_id=status_id)
+        
+        # Paginación
+        paginator = Paginator(items, 25)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        
+        # ========== DATOS PARA FILTROS ==========
+        categories = Category.objects.filter(is_active=True)
+        statuses = Status.objects.all()
+        
+        # ========== ESTADÍSTICAS SIMPLIFICADAS ==========
+        total_items = items.count()
+        total_categories = Category.objects.filter(is_active=True).count()
+        total_statuses = Status.objects.count()
+        
+        # Items con stock bajo
+        low_stock_count = InventoryItem.objects.filter(
+            quantity__lte=F('min_quantity'),
+            is_active=True
+        ).count()
+        
+        context = {
+            'page_obj': page_obj,
+            'search_query': search_query,
+            'selected_category': category_id,
+            'selected_status': status_id,
+            'categories': categories,
+            'statuses': statuses,
+            'total_items': total_items,
+            'total_categories': total_categories,
+            'total_statuses': total_statuses,
+            'low_stock_count': low_stock_count,
+        }
+        
+        return render(request, 'custom_admin/inventory/list.html', context)
+        
+    except Exception as e:
+        print(f"❌ ERROR en inventory_list: {e}")
+        import traceback
+        traceback.print_exc()
+        messages.error(request, f'Error al cargar el inventario: {str(e)}')
+        return redirect('custom_admin:dashboard')
+
+@login_required
+def inventory_ajax_detail(request, item_id):
+    """Obtener detalles de un ítem para modal (AJAX) - SIMPLIFICADA"""
+    
+    if not INVENTORY_MODELS_AVAILABLE:
+        return JsonResponse({'error': 'Módulo no disponible'}, status=400)
+    
+    try:
+        item = get_object_or_404(
+            InventoryItem.objects.select_related(
+                'category', 'status', 'created_by', 'updated_by'
+            ),
+            id=item_id
+        )
+        
+        # Formatear fechas
+        created_at = item.created_at.strftime('%d/%m/%Y %H:%M')
+        updated_at = item.updated_at.strftime('%d/%m/%Y %H:%M')
+        
+        # Estado de stock
+        stock_status = 'Normal'
+        stock_class = 'success'
+        if item.quantity <= item.min_quantity:
+            stock_status = 'Bajo Stock'
+            stock_class = 'danger'
+        elif item.quantity <= item.min_quantity * 1.5:
+            stock_status = 'Próximo a agotar'
+            stock_class = 'warning'
+        
+        data = {
+            'success': True,
+            'item': {
+                'id': item.id,
+                'code': item.code,
+                'name': item.name,
+                'description': item.description,
+                'category': item.category.name if item.category else '',
+                'category_color': item.category.color if item.category else '#3498db',
+                'status': item.status.name if item.status else '',
+                'status_color': item.status.color if item.status else '#95a5a6',
+                'location': item.location,
+                'quantity': item.quantity,
+                'min_quantity': item.min_quantity,
+                'unit_of_measure': item.unit_of_measure,
+                'serial_number': item.serial_number,
+                'brand': item.brand,
+                'model': item.model,
+                'supplier': item.supplier,
+                'stock_status': stock_status,
+                'stock_class': stock_class,
+                'notes': item.notes,
+                'is_active': item.is_active,
+                'created_by': item.created_by.get_full_name() if item.created_by else 'Sistema',
+                'created_at': created_at,
+                'updated_by': item.updated_by.get_full_name() if item.updated_by else 'Sistema',
+                'updated_at': updated_at,
+            }
+        }
+        
+        return JsonResponse(data)
+        
+    except Exception as e:
+        print(f"❌ ERROR en inventory_ajax_detail: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+def inventory_ajax_get_form_data(request, item_id=None):
+    """Obtener datos para formulario de crear/editar (AJAX) - SIMPLIFICADA"""
+    
+    if not INVENTORY_MODELS_AVAILABLE:
+        return JsonResponse({'error': 'Módulo no disponible'}, status=400)
+    
+    try:
+        categories = Category.objects.filter(is_active=True).values('id', 'name')
+        statuses = Status.objects.all().values('id', 'name')
+        
+        data = {
+            'success': True,
+            'categories': list(categories),
+            'statuses': list(statuses),
+            'item': None,
+        }
+        
+        # Si es edición, obtener datos del item
+        if item_id:
+            item = get_object_or_404(InventoryItem, id=item_id)
+            
+            item_data = {
+                'id': item.id,
+                'code': item.code,
+                'name': item.name,
+                'description': item.description,
+                'category_id': item.category.id if item.category else '',
+                'status_id': item.status.id if item.status else '',
+                'location': item.location,
+                'quantity': item.quantity,
+                'min_quantity': item.min_quantity,
+                'unit_of_measure': item.unit_of_measure,
+                'serial_number': item.serial_number,
+                'brand': item.brand,
+                'model': item.model,
+                'supplier': item.supplier,
+                'notes': item.notes,
+                'is_active': item.is_active,
+            }
+            
+            data['item'] = item_data
+        
+        return JsonResponse(data)
+        
+    except Exception as e:
+        print(f"❌ ERROR en inventory_ajax_get_form_data: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+@require_POST
+def inventory_ajax_save(request):
+    """Guardar o actualizar ítem (AJAX) - SIMPLIFICADA"""
+    
+    if not INVENTORY_MODELS_AVAILABLE:
+        return JsonResponse({'error': 'Módulo no disponible'}, status=400)
+    
+    try:
+        item_id = request.POST.get('item_id')
+        
+        # Datos básicos
+        name = request.POST.get('name', '').strip()
+        description = request.POST.get('description', '').strip()
+        category_id = request.POST.get('category')
+        status_id = request.POST.get('status')
+        location = request.POST.get('location', '').strip()
+        
+        # Cantidad
+        quantity = int(request.POST.get('quantity', 1))
+        min_quantity = int(request.POST.get('min_quantity', 0))
+        unit_of_measure = request.POST.get('unit_of_measure', 'Unidad').strip()
+        
+        # Información técnica
+        serial_number = request.POST.get('serial_number', '').strip()
+        brand = request.POST.get('brand', '').strip()
+        model = request.POST.get('model', '').strip()
+        supplier = request.POST.get('supplier', '').strip()
+        
+        # Otros
+        notes = request.POST.get('notes', '').strip()
+        is_active = request.POST.get('is_active') == 'true'
+        
+        # Validaciones
+        if not name:
+            return JsonResponse({'error': 'El nombre es obligatorio'}, status=400)
+        
+        if not category_id:
+            return JsonResponse({'error': 'La categoría es obligatoria'}, status=400)
+        
+        if not status_id:
+            return JsonResponse({'error': 'El estado es obligatorio'}, status=400)
+        
+        if quantity < 0:
+            return JsonResponse({'error': 'La cantidad no puede ser negativa'}, status=400)
+        
+        if min_quantity < 0:
+            return JsonResponse({'error': 'La cantidad mínima no puede ser negativa'}, status=400)
+        
+        # Obtener objetos relacionados
+        category = get_object_or_404(Category, id=category_id)
+        status = get_object_or_404(Status, id=status_id)
+        
+        if item_id:
+            # Actualizar ítem existente
+            item = get_object_or_404(InventoryItem, id=item_id)
+            item.name = name
+            item.description = description
+            item.category = category
+            item.status = status
+            item.location = location
+            item.quantity = quantity
+            item.min_quantity = min_quantity
+            item.unit_of_measure = unit_of_measure
+            item.serial_number = serial_number
+            item.brand = brand
+            item.model = model
+            item.supplier = supplier
+            item.notes = notes
+            item.is_active = is_active
+            item.updated_by = request.user
+            
+            item.save()
+            
+            message = f'Ítem "{item.name}" actualizado exitosamente'
+            item_code = item.code
+            
+        else:
+            # Crear nuevo ítem
+            item = InventoryItem(
+                name=name,
+                description=description,
+                category=category,
+                status=status,
+                location=location,
+                quantity=quantity,
+                min_quantity=min_quantity,
+                unit_of_measure=unit_of_measure,
+                serial_number=serial_number,
+                brand=brand,
+                model=model,
+                supplier=supplier,
+                notes=notes,
+                is_active=is_active,
+                created_by=request.user,
+                updated_by=request.user
+            )
+            
+            item.save()
+            
+            message = f'Ítem "{item.name}" creado exitosamente con código {item.code}'
+            item_code = item.code
+        
+        return JsonResponse({
+            'success': True,
+            'message': message,
+            'item_code': item_code,
+            'item_id': item.id
+        })
+        
+    except Exception as e:
+        print(f"❌ ERROR en inventory_ajax_save: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'error': f'Error del servidor: {str(e)}'}, status=500)
+
+@login_required
+@require_POST
+def inventory_ajax_delete(request, item_id):
+    """Eliminar ítem (AJAX)"""
+    
+    if not INVENTORY_MODELS_AVAILABLE:
+        return JsonResponse({'error': 'Módulo no disponible'}, status=400)
+    
+    try:
+        item = get_object_or_404(InventoryItem, id=item_id)
+        item_name = item.name
+        item_code = item.code
+        
+        item.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Ítem "{item_name}" ({item_code}) eliminado exitosamente'
+        })
+        
+    except Exception as e:
+        print(f"❌ ERROR en inventory_ajax_delete: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+def inventory_export(request):
+    """Exportar inventario a CSV o Excel"""
+    
+    if not INVENTORY_MODELS_AVAILABLE:
+        messages.error(request, 'Módulo de Inventario no disponible')
+        return redirect('custom_admin:inventory_list')
+    
+    try:
+        formato = request.GET.get('formato', 'csv')
+        
+        items = InventoryItem.objects.select_related(
+            'category', 'status'
+        ).all().order_by('code')
+        
+        if formato == 'csv':
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = f'attachment; filename="inventario_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+            
+            writer = csv.writer(response)
+            writer.writerow(['Reporte de Inventario', datetime.now().strftime('%d/%m/%Y %H:%M')])
+            writer.writerow([])
+            writer.writerow([
+                'Código', 'Nombre', 'Categoría', 'Estado', 'Ubicación',
+                'Cantidad', 'Mínimo', 'Unidad', 'Número Serie',
+                'Marca', 'Modelo', 'Proveedor', 'Activo'
+            ])
+            
+            for item in items:
+                writer.writerow([
+                    item.code,
+                    item.name,
+                    item.category.name if item.category else '',
+                    item.status.name if item.status else '',
+                    item.location,
+                    item.quantity,
+                    item.min_quantity,
+                    item.unit_of_measure,
+                    item.serial_number,
+                    item.brand,
+                    item.model,
+                    item.supplier,
+                    'Sí' if item.is_active else 'No'
+                ])
+            
+            return response
+            
+        elif formato == 'excel':
+            response = HttpResponse(content_type='application/ms-excel')
+            response['Content-Disposition'] = f'attachment; filename="inventario_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xls"'
+            
+            wb = xlwt.Workbook(encoding='utf-8')
+            ws = wb.add_sheet('Inventario')
+            
+            # Estilos
+            header_style = xlwt.easyxf('font: bold on; align: vert centre, horiz center')
+            
+            # Encabezados
+            ws.write(0, 0, f'Reporte de Inventario - {datetime.now().strftime("%d/%m/%Y %H:%M")}', header_style)
+            
+            headers = [
+                'Código', 'Nombre', 'Categoría', 'Estado', 'Ubicación',
+                'Cantidad', 'Mínimo', 'Unidad', 'Número Serie',
+                'Marca', 'Modelo', 'Proveedor', 'Activo'
+            ]
+            
+            for col, header in enumerate(headers):
+                ws.write(2, col, header, header_style)
+            
+            # Datos
+            row = 3
+            for item in items:
+                ws.write(row, 0, item.code)
+                ws.write(row, 1, item.name)
+                ws.write(row, 2, item.category.name if item.category else '')
+                ws.write(row, 3, item.status.name if item.status else '')
+                ws.write(row, 4, item.location)
+                ws.write(row, 5, item.quantity)
+                ws.write(row, 6, item.min_quantity)
+                ws.write(row, 7, item.unit_of_measure)
+                ws.write(row, 8, item.serial_number)
+                ws.write(row, 9, item.brand)
+                ws.write(row, 10, item.model)
+                ws.write(row, 11, item.supplier)
+                ws.write(row, 12, 'Sí' if item.is_active else 'No')
+                row += 1
+            
+            wb.save(response)
+            return response
+        
+        else:
+            messages.error(request, 'Formato de exportación no válido')
+            return redirect('custom_admin:inventory_list')
+        
+    except Exception as e:
+        print(f"❌ ERROR en inventory_export: {e}")
+        import traceback
+        traceback.print_exc()
+        messages.error(request, f'Error al exportar el inventario: {str(e)}')
+        return redirect('custom_admin:inventory_list')
+
+# ==================== VISTAS PARA CONFIGURACIÓN DE INVENTARIO ====================
+
+@login_required
+def inventory_categories_ajax_list(request):
+    """Obtener lista de categorías (AJAX) - MOSTRAR TODAS"""
+    if not INVENTORY_MODELS_AVAILABLE:
+        return JsonResponse({'error': 'Módulo no disponible'}, status=400)
+    
+    try:
+        # Obtener TODAS las categorías, no solo las activas
+        categories = Category.objects.all().order_by('order', 'name')
+        
+        # Preparar datos para respuesta
+        categories_data = []
+        for cat in categories:
+            categories_data.append({
+                'id': cat.id,
+                'name': cat.name,
+                'color': cat.color,
+                'order': cat.order,
+                'is_active': cat.is_active,
+                'created_at': cat.created_at.strftime('%Y-%m-%d') if cat.created_at else '',
+            })
+        
+        return JsonResponse({
+            'success': True, 
+            'categories': categories_data,
+            'count': len(categories_data),
+            'message': f'Se encontraron {len(categories_data)} categorías'
+        })
+        
+    except Exception as e:
+        print(f"❌ ERROR en inventory_categories_ajax_list: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+def inventory_statuses_ajax_list(request):
+    """Obtener lista de estados (AJAX)"""
+    if not INVENTORY_MODELS_AVAILABLE:
+        return JsonResponse({'error': 'Módulo no disponible'}, status=400)
+    
+    try:
+        statuses = Status.objects.all().values('id', 'name', 'color', 'is_default', 'can_use', 'requires_attention')
+        return JsonResponse({'success': True, 'statuses': list(statuses)})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+@require_POST
+def inventory_category_ajax_save(request):
+    """Guardar o actualizar categoría (AJAX) - VERSIÓN SIMPLIFICADA"""
+    if not INVENTORY_MODELS_AVAILABLE:
+        return JsonResponse({'error': 'Módulo no disponible'}, status=400)
+    
+    try:
+        # Obtener datos del POST
+        category_id = request.POST.get('categoria_id') or request.POST.get('id')
+        name = request.POST.get('nombre') or request.POST.get('name', '').strip()
+        color = request.POST.get('color', '#3498db')
+        
+        # Obtener otros campos con valores por defecto
+        order = request.POST.get('orden') or request.POST.get('order', '0')
+        is_active = request.POST.get('activa') or request.POST.get('is_active', 'true')
+        
+        # Convertir tipos
+        try:
+            order = int(order)
+        except:
+            order = 0
+            
+        is_active = is_active.lower() in ['true', '1', 'yes', 'si']
+        
+        # Validación básica
+        if not name:
+            return JsonResponse({'error': 'El nombre es obligatorio'}, status=400)
+        
+        if category_id and category_id != 'undefined' and category_id != '':
+            # Actualizar categoría existente
+            try:
+                category = Category.objects.get(id=category_id)
+                category.name = name
+                category.color = color
+                category.order = order
+                category.is_active = is_active
+                category.save()
+                message = f'Categoría "{name}" actualizada'
+            except Category.DoesNotExist:
+                return JsonResponse({'error': 'Categoría no encontrada'}, status=404)
+        else:
+            # Crear nueva categoría
+            if Category.objects.filter(name=name).exists():
+                return JsonResponse({'error': 'Ya existe una categoría con ese nombre'}, status=400)
+            
+            category = Category.objects.create(
+                name=name,
+                color=color,
+                order=order,
+                is_active=is_active
+            )
+            message = f'Categoría "{name}" creada'
+        
+        return JsonResponse({
+            'success': True, 
+            'message': message, 
+            'id': category.id,
+            'name': category.name,
+            'color': category.color,
+            'order': category.order,
+            'is_active': category.is_active
+        })
+        
+    except Exception as e:
+        print(f"❌ ERROR en inventory_category_ajax_save: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+@require_POST
+def inventory_status_ajax_save(request):
+    """Guardar o actualizar estado (AJAX)"""
+    if not INVENTORY_MODELS_AVAILABLE:
+        return JsonResponse({'error': 'Módulo no disponible'}, status=400)
+    
+    try:
+        status_id = request.POST.get('status_id') or request.POST.get('estado_id') or request.POST.get('id')
+        name = request.POST.get('nombre') or request.POST.get('name', '').strip()
+        color = request.POST.get('color', '#95a5a6')
+        
+        # Obtener valores de checkboxes (correctamente)
+        is_default = request.POST.get('default') == 'true' or request.POST.get('is_default') == 'true' or request.POST.get('estado_default') == 'true'
+        can_use = request.POST.get('puede_usarse') == 'true' or request.POST.get('can_use') == 'true' or request.POST.get('estado_puede_usarse') == 'true'
+        requires_attention = request.POST.get('requiere_atencion') == 'true' or request.POST.get('requires_attention') == 'true' or request.POST.get('estado_requiere_atencion') == 'true'
+        
+        # Establecer valores por defecto si no vienen
+        if request.POST.get('can_use') is None and request.POST.get('puede_usarse') is None:
+            can_use = True
+        
+        if not name:
+            return JsonResponse({'error': 'El nombre es obligatorio'}, status=400)
+        
+        if status_id and status_id != 'undefined' and status_id != '':
+            # Actualizar estado existente
+            try:
+                status = Status.objects.get(id=status_id)
+                status.name = name
+                status.color = color
+                status.can_use = can_use
+                status.requires_attention = requires_attention
+                
+                # Manejar estado por defecto
+                if is_default:
+                    Status.objects.filter(is_default=True).update(is_default=False)
+                    status.is_default = True
+                else:
+                    status.is_default = False
+                
+                status.save()
+                message = f'Estado "{name}" actualizado'
+            except Status.DoesNotExist:
+                return JsonResponse({'error': 'Estado no encontrado'}, status=404)
+        else:
+            # Crear nuevo estado
+            if Status.objects.filter(name=name).exists():
+                return JsonResponse({'error': 'Ya existe un estado con ese nombre'}, status=400)
+            
+            # Manejar estado por defecto
+            if is_default:
+                Status.objects.filter(is_default=True).update(is_default=False)
+            
+            status = Status.objects.create(
+                name=name,
+                color=color,
+                is_default=is_default,
+                can_use=can_use,
+                requires_attention=requires_attention
+            )
+            message = f'Estado "{name}" creado'
+        
+        return JsonResponse({
+            'success': True, 
+            'message': message, 
+            'id': status.id,
+            'name': status.name,
+            'color': status.color,
+            'is_default': status.is_default,
+            'can_use': status.can_use,
+            'requires_attention': status.requires_attention
+        })
+        
+    except Exception as e:
+        print(f"❌ ERROR en inventory_status_ajax_save: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+@require_POST
+def inventory_category_ajax_delete(request, category_id):
+    """Eliminar categoría (AJAX)"""
+    if not INVENTORY_MODELS_AVAILABLE:
+        return JsonResponse({'error': 'Módulo no disponible'}, status=400)
+    
+    try:
+        category = get_object_or_404(Category, id=category_id)
+        
+        # Verificar si hay ítems usando esta categoría
+        item_count = InventoryItem.objects.filter(category=category).count()
+        if item_count > 0:
+            return JsonResponse({
+                'error': f'No se puede eliminar. Hay {item_count} ítems usando esta categoría.'
+            }, status=400)
+        
+        category_name = category.name
+        category.delete()
+        return JsonResponse({'success': True, 'message': f'Categoría "{category_name}" eliminada'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+@require_POST
+def inventory_status_ajax_delete(request, status_id):
+    """Eliminar estado (AJAX)"""
+    if not INVENTORY_MODELS_AVAILABLE:
+        return JsonResponse({'error': 'Módulo no disponible'}, status=400)
+    
+    try:
+        status = get_object_or_404(Status, id=status_id)
+        
+        # Verificar si hay ítems usando este estado
+        item_count = InventoryItem.objects.filter(status=status).count()
+        if item_count > 0:
+            return JsonResponse({
+                'error': f'No se puede eliminar. Hay {item_count} ítems usando este estado.'
+            }, status=400)
+        
+        # Verificar si es el estado por defecto
+        if status.is_default:
+            return JsonResponse({
+                'error': 'No se puede eliminar el estado por defecto.'
+            }, status=400)
+        
+        status_name = status.name
+        status.delete()
+        return JsonResponse({'success': True, 'message': f'Estado "{status_name}" eliminado'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

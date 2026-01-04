@@ -232,5 +232,26 @@ path('api/categorias-programa/<int:categoria_id>/actualizar/', views.api_categor
     path('grilla-publicitaria/api/asignacion/<int:asignacion_id>/detalle/', views.grilla_detalle_asignacion_api, name='grilla_detalle_asignacion_api'),
     path('grilla-publicitaria/api/asignacion/<int:asignacion_id>/actualizar/', views.grilla_editar_asignacion_api, name='grilla_editar_asignacion_api'),
     # custom_admin/urls.py - AGREGAR ESTA RUTA
-path('grilla-publicitaria/en-vivo/', views.grilla_publicitaria_en_vivo, name='grilla_publicitaria_en_vivo'),
+    path('grilla-publicitaria/en-vivo/', views.grilla_publicitaria_en_vivo, name='grilla_publicitaria_en_vivo'),
+      # ============================================
+    # INVENTARIO
+    # ============================================
+    path('inventory/', views.inventory_list, name='inventory_list'),
+    path('inventory/export/', views.inventory_export, name='inventory_export'),
+    
+    # Endpoints AJAX para modales de ítems
+    path('inventory/ajax/detail/<int:item_id>/', views.inventory_ajax_detail, name='inventory_ajax_detail'),
+    path('inventory/ajax/get-form-data/', views.inventory_ajax_get_form_data, name='inventory_ajax_get_form_data'),
+    path('inventory/ajax/get-form-data/<int:item_id>/', views.inventory_ajax_get_form_data, name='inventory_ajax_get_form_data_edit'),
+    path('inventory/ajax/save/', views.inventory_ajax_save, name='inventory_ajax_save'),
+    path('inventory/ajax/delete/<int:item_id>/', views.inventory_ajax_delete, name='inventory_ajax_delete'),
+    
+    # Configuración de inventario
+    path('inventory/categories/ajax/list/', views.inventory_categories_ajax_list, name='inventory_categories_ajax_list'),
+    path('inventory/statuses/ajax/list/', views.inventory_statuses_ajax_list, name='inventory_statuses_ajax_list'),
+    path('inventory/category/ajax/save/', views.inventory_category_ajax_save, name='inventory_category_ajax_save'),
+    path('inventory/status/ajax/save/', views.inventory_status_ajax_save, name='inventory_status_ajax_save'),
+    path('inventory/category/ajax/delete/<int:category_id>/', views.inventory_category_ajax_delete, name='inventory_category_ajax_delete'),
+    path('inventory/status/ajax/delete/<int:status_id>/', views.inventory_status_ajax_delete, name='inventory_status_ajax_delete'),
+    
 ]

@@ -59,6 +59,7 @@ LOCAL_APPS = [
     'apps.parte_mortorios',
     'apps.programacion_canal',
     'apps.grilla_publicitaria',
+    'apps.inventory',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
