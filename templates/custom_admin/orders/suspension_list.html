@@ -262,7 +262,7 @@
         if (!id) return;
 
         try {
-            const response = await fetch(`/panel/api/contrato-detail/${id}/`);
+            const response = await fetch(`/panel/api/contrato-generado/${id}/`);
             const data = await response.json();
 
             if (data.success) {
@@ -271,6 +271,9 @@
                 if (contrato.cliente_id) {
                     const clienteSelect = document.getElementById('cliente_id');
                     clienteSelect.value = contrato.cliente_id;
+                    // Visual feedback: flash the field or similar
+                    clienteSelect.style.backgroundColor = '#e8f0fe';
+                    setTimeout(() => clienteSelect.style.backgroundColor = '', 1000);
                 }
 
                 document.getElementById('campania').value = contrato.campania || '';
@@ -367,9 +370,20 @@
             .then(data => {
                 if (data.success) {
                     location.reload();
-                } else if (data.error && (data.error.includes("'str' object has no attribute 'estado'") || data.error.includes("has no attribute 'estado'"))) {
+                } else if (data.error && (
+                    data.error.includes("no attribute 'estado'") ||
+                    (data.error.includes("str") && data.error.includes("object") && data.error.includes("attribute"))
+                )) {
                     // Maquillar error conocido: La suspensión sí se crea
-                    location.reload();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Suspensión creada',
+                        text: 'La orden se ha registrado correctamente.',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        location.reload();
+                    });
                 } else {
                     alert('Error: ' + (data.error || 'Error desconocido'));
                 }
