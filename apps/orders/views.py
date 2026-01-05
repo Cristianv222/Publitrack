@@ -186,3 +186,287 @@ def order_delete_api(request, order_id):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+# ==================== VISTAS DE AUTORIZACIÓN ====================
+
+@login_required
+@user_passes_test(is_admin)
+def ordenes_autorizacion_list(request):
+    from apps.orders.models import OrdenAutorizacion
+    from apps.authentication.models import CustomUser
+    from django.db.models import Q
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
+    search = request.GET.get('search', '')
+    estado_filter = request.GET.get('estado', '')
+    
+    ordenes = OrdenAutorizacion.objects.select_related('cliente', 'vendedor').all()
+    
+    if search:
+        ordenes = ordenes.filter(
+            Q(codigo__icontains=search) |
+            Q(nombre_cliente__icontains=search) |
+            Q(empresa_cliente__icontains=search) |
+            Q(campania__icontains=search)
+        )
+    
+    if estado_filter:
+        ordenes = ordenes.filter(estado=estado_filter)
+        
+    ordenes = ordenes.order_by('-created_at')
+    
+    # Paginación
+    paginator = Paginator(ordenes, 10)
+    page = request.GET.get('page')
+    try:
+        ordenes_paginadas = paginator.page(page)
+    except PageNotAnInteger:
+        ordenes_paginadas = paginator.page(1)
+    except EmptyPage:
+        ordenes_paginadas = paginator.page(paginator.num_pages)
+
+    context = {
+        'ordenes': ordenes_paginadas,
+        'search': search,
+        'estado_filter': estado_filter,
+        'clientes': CustomUser.objects.filter(rol='cliente', is_active=True),
+        'vendedores': CustomUser.objects.filter(rol='vendedor', is_active=True)
+    }
+    return render(request, 'custom_admin/orders/autorizacion_list.html', context)
+
+
+@login_required
+@user_passes_test(is_admin)
+def orden_autorizacion_detail_api(request, order_id):
+    try:
+        from apps.orders.models import OrdenAutorizacion
+        orden = get_object_or_404(OrdenAutorizacion, pk=order_id)
+        
+        return JsonResponse({
+            'success': True,
+            'orden': {
+                'id': orden.id,
+                'codigo': orden.codigo,
+                'cliente_id': orden.cliente.id,
+                'nombre_cliente': orden.nombre_cliente,
+                'campania': orden.campania,
+                'detalle_transmision': orden.detalle_transmision,
+                'fecha_inicio': orden.fecha_inicio.strftime('%Y-%m-%d'),
+                'fecha_fin': orden.fecha_fin.strftime('%Y-%m-%d'),
+                'vendedor_id': orden.vendedor.id if orden.vendedor else None,
+                'valor_total': str(orden.valor_total),
+                'estado': orden.estado,
+                'observaciones': orden.observaciones
+            }
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def orden_autorizacion_create_api(request):
+    try:
+        from apps.orders.models import OrdenAutorizacion
+        from apps.authentication.models import CustomUser
+        from decimal import Decimal
+        
+        data = json.loads(request.body)
+        cliente = get_object_or_404(CustomUser, pk=data.get('cliente_id'))
+        
+        orden = OrdenAutorizacion.objects.create(
+            cliente=cliente,
+            campania=data.get('campania'),
+            detalle_transmision=data.get('detalle_transmision'),
+            fecha_inicio=data.get('fecha_inicio'),
+            fecha_fin=data.get('fecha_fin'),
+            vendedor_id=data.get('vendedor_id'),
+            valor_total=Decimal(data.get('valor_total', '0.00')),
+            observaciones=data.get('observaciones', ''),
+            created_by=request.user
+        )
+        
+        return JsonResponse({'success': True, 'message': 'Autorización creada', 'id': orden.id})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["PUT"])
+def orden_autorizacion_update_api(request, order_id):
+    try:
+        from apps.orders.models import OrdenAutorizacion
+        from decimal import Decimal
+        
+        orden = get_object_or_404(OrdenAutorizacion, pk=order_id)
+        data = json.loads(request.body)
+        
+        orden.campania = data.get('campania', orden.campania)
+        orden.detalle_transmision = data.get('detalle_transmision', orden.detalle_transmision)
+        orden.fecha_inicio = data.get('fecha_inicio', orden.fecha_inicio)
+        orden.fecha_fin = data.get('fecha_fin', orden.fecha_fin)
+        orden.valor_total = Decimal(data.get('valor_total', orden.valor_total))
+        orden.observaciones = data.get('observaciones', orden.observaciones)
+        
+        if 'vendedor_id' in data:
+            orden.vendedor_id = data.get('vendedor_id')
+            
+        if 'estado' in data:
+            orden.estado = data.get('estado')
+            
+        orden.save()
+        
+        return JsonResponse({'success': True, 'message': 'Autorización actualizada'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["DELETE", "POST"])
+def orden_autorizacion_delete_api(request, order_id):
+    try:
+        from apps.orders.models import OrdenAutorizacion
+        orden = get_object_or_404(OrdenAutorizacion, pk=order_id)
+        orden.delete()
+        return JsonResponse({'success': True, 'message': 'Orden eliminada'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+# ==================== VISTAS DE SUSPENSIÓN ====================
+
+@login_required
+@user_passes_test(is_admin)
+def ordenes_suspension_list(request):
+    from apps.orders.models import OrdenSuspension
+    from apps.authentication.models import CustomUser
+    from django.db.models import Q
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
+    search = request.GET.get('search', '')
+    estado_filter = request.GET.get('estado', '')
+    
+    ordenes = OrdenSuspension.objects.select_related('cliente').all()
+    
+    if search:
+        ordenes = ordenes.filter(
+            Q(codigo__icontains=search) |
+            Q(nombre_cliente__icontains=search) |
+            Q(campania__icontains=search)
+        )
+    
+    if estado_filter:
+        ordenes = ordenes.filter(estado=estado_filter)
+        
+    ordenes = ordenes.order_by('-created_at')
+    
+    # Paginación
+    paginator = Paginator(ordenes, 10)
+    page = request.GET.get('page')
+    try:
+        ordenes_paginadas = paginator.page(page)
+    except PageNotAnInteger:
+        ordenes_paginadas = paginator.page(1)
+    except EmptyPage:
+        ordenes_paginadas = paginator.page(paginator.num_pages)
+
+    context = {
+        'ordenes': ordenes_paginadas,
+        'search': search,
+        'estado_filter': estado_filter,
+        'clientes': CustomUser.objects.filter(rol='cliente', is_active=True),
+    }
+    return render(request, 'custom_admin/orders/suspension_list.html', context)
+
+
+@login_required
+@user_passes_test(is_admin)
+def orden_suspension_detail_api(request, order_id):
+    try:
+        from apps.orders.models import OrdenSuspension
+        orden = get_object_or_404(OrdenSuspension, pk=order_id)
+        
+        return JsonResponse({
+            'success': True,
+            'orden': {
+                'id': orden.id,
+                'codigo': orden.codigo,
+                'cliente_id': orden.cliente.id,
+                'nombre_cliente': orden.nombre_cliente,
+                'campania': orden.campania,
+                'fecha_salida_aire': orden.fecha_salida_aire.strftime('%Y-%m-%d'),
+                'motivo': orden.motivo,
+                'estado': orden.estado,
+                'autorizacion_relacionada_id': orden.autorizacion_relacionada.id if orden.autorizacion_relacionada else None
+            }
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def orden_suspension_create_api(request):
+    try:
+        from apps.orders.models import OrdenSuspension
+        from apps.authentication.models import CustomUser
+        
+        data = json.loads(request.body)
+        cliente = get_object_or_404(CustomUser, pk=data.get('cliente_id'))
+        
+        orden = OrdenSuspension.objects.create(
+            cliente=cliente,
+            campania=data.get('campania'),
+            fecha_salida_aire=data.get('fecha_salida_aire'),
+            motivo=data.get('motivo', ''),
+            autorizacion_relacionada_id=data.get('autorizacion_relacionada_id'),
+            created_by=request.user
+        )
+        
+        return JsonResponse({'success': True, 'message': 'Suspensión creada', 'id': orden.id})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["PUT"])
+def orden_suspension_update_api(request, order_id):
+    try:
+        from apps.orders.models import OrdenSuspension
+        orden = get_object_or_404(OrdenSuspension, pk=order_id)
+        data = json.loads(request.body)
+        
+        orden.campania = data.get('campania', orden.campania)
+        orden.fecha_salida_aire = data.get('fecha_salida_aire', orden.fecha_salida_aire)
+        orden.motivo = data.get('motivo', orden.motivo)
+        
+        if 'autorizacion_relacionada_id' in data:
+            orden.autorizacion_relacionada_id = data.get('autorizacion_relacionada_id')
+            
+        if 'estado' in data:
+            orden.estado = data.get('estado')
+            
+        orden.save()
+        
+        return JsonResponse({'success': True, 'message': 'Suspensión actualizada'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["DELETE", "POST"])
+def orden_suspension_delete_api(request, order_id):
+    try:
+        from apps.orders.models import OrdenSuspension
+        orden = get_object_or_404(OrdenSuspension, pk=order_id)
+        orden.delete()
+        return JsonResponse({'success': True, 'message': 'Orden eliminada'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)

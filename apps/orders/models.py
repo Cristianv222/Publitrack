@@ -534,6 +534,8 @@ class PlantillaOrden(models.Model):
         ('produccion_audio', 'Producción de Audio'),
         ('edicion_video', 'Edición de Video'),
         ('produccion_completa', 'Producción Completa'),
+        ('autorizacion', 'Autorización de Transmisión'),
+        ('suspension', 'Suspensión de Transmisión'),
         ('otro', 'Otro'),
     ]
     
@@ -645,6 +647,13 @@ class PlantillaOrden(models.Model):
                 'OBSERVACIONES_COMPLETADO': 'Observaciones al completar',
                 'FECHA_ORDEN': 'Fecha de la orden',
                 'FECHA_ACTUAL': 'Fecha actual de generación',
+                'MOTIVO_AUTORIZACION': 'Motivo/Campaña (Autorización)',
+                'DETALLE_TRANSMISION': 'Detalle de la transmisión',
+                'FECHA_INICIO_VIGENCIA': 'Fecha inicio vigencia',
+                'FECHA_FIN_VIGENCIA': 'Fecha fin vigencia',
+                'VALOR_TOTAL': 'Valor total',
+                'MOTIVO_SUSPENSION': 'Motivo suspensión',
+                'FECHA_SALIDA_AIRE': 'Fecha salida del aire',
             }
         
         # Si se marca como default, desmarcar las demás
@@ -679,7 +688,9 @@ class OrdenGenerada(models.Model):
         'OrdenToma', 
         on_delete=models.CASCADE, 
         related_name='ordenes_generadas',
-        verbose_name='Orden de Toma'
+        verbose_name='Orden de Toma',
+        null=True,
+        blank=True
     )
     plantilla_usada = models.ForeignKey(
         'PlantillaOrden', on_delete=models.SET_NULL, null=True,
@@ -703,6 +714,22 @@ class OrdenGenerada(models.Model):
         blank=True,
         related_name='ordenes_generadas_produccion',  # Diferente related_name
         verbose_name='Orden de Producción'
+    )
+    orden_autorizacion = models.ForeignKey(
+        'OrdenAutorizacion',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='ordenes_generadas_autorizacion',
+        verbose_name='Orden de Autorización'
+    )
+    orden_suspension = models.ForeignKey(
+        'OrdenSuspension',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='ordenes_generadas_suspension',
+        verbose_name='Orden de Suspensión'
     )
     # Estado
     estado = models.CharField('Estado', max_length=20, choices=ESTADO_CHOICES, default='borrador')
@@ -737,7 +764,15 @@ class OrdenGenerada(models.Model):
         ordering = ['-fecha_generacion']
 
     def __str__(self):
-        return f"Orden {self.numero_orden} - {self.orden_toma.nombre_cliente}"
+        cliente = "Desconocido"
+        if self.orden_toma:
+            cliente = self.orden_toma.nombre_cliente
+        elif self.orden_autorizacion:
+            cliente = self.orden_autorizacion.nombre_cliente
+        elif self.orden_suspension:
+            cliente = self.orden_suspension.nombre_cliente
+            
+        return f"Orden {self.numero_orden} - {cliente}"
 
     def save(self, *args, **kwargs):
         if not self.numero_orden:
@@ -996,6 +1031,120 @@ class OrdenGenerada(models.Model):
             print(f'📋 Traceback: {traceback.format_exc()}')
             return False
 
+    def generar_orden_autorizacion_pdf(self):
+        """Genera el PDF de la orden de autorización"""
+        try:
+            from docxtpl import DocxTemplate
+            from django.core.files.base import ContentFile
+            import tempfile
+            import os
+            import subprocess
+
+            if not self.plantilla_usada or not self.plantilla_usada.archivo_plantilla:
+                raise ValueError("No hay plantilla asignada")
+
+            doc = DocxTemplate(self.plantilla_usada.archivo_plantilla.path)
+            autorizacion = self.orden_autorizacion
+            
+            context = {
+                'NUMERO_ORDEN': self.numero_orden,
+                'CODIGO_AUTORIZACION': autorizacion.codigo,
+                'NOMBRE_CLIENTE': autorizacion.nombre_cliente or '',
+                'RUC_DNI': autorizacion.ruc_dni_cliente or '',
+                'EMPRESA_CLIENTE': autorizacion.empresa_cliente or '',
+                'MOTIVO_AUTORIZACION': autorizacion.campania or '',
+                'DETALLE_TRANSMISION': autorizacion.detalle_transmision or '',
+                'FECHA_INICIO_VIGENCIA': autorizacion.fecha_inicio.strftime('%d de %B del %Y'),
+                'FECHA_FIN_VIGENCIA': autorizacion.fecha_fin.strftime('%d de %B del %Y'),
+                'VENDEDOR': autorizacion.vendedor.get_full_name() if autorizacion.vendedor else '',
+                'VALOR_TOTAL': f"{autorizacion.valor_total:.2f}",
+                'VALOR_LETRAS': numero_a_letras(autorizacion.valor_total),
+                'OBSERVACIONES': autorizacion.observaciones or '',
+                'FECHA_ACTUAL': timezone.now().strftime('%d de %B del %Y'),
+            }
+
+            self.datos_generacion = context
+            self.save()
+
+            doc.render(context)
+            
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp_docx:
+                doc.save(tmp_docx.name)
+                temp_docx_path = tmp_docx.name
+
+            temp_pdf_path = temp_docx_path.replace('.docx', '.pdf')
+            
+            try:
+                cmd = ['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', os.path.dirname(temp_docx_path), temp_docx_path]
+                subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            except Exception as e:
+                print(f"Error conversión PDF: {e}")
+                temp_pdf_path = temp_docx_path  # Fallback
+
+            with open(temp_pdf_path, 'rb') as pdf_file:
+                self.archivo_orden_pdf.save(f"autorizacion_{self.numero_orden}.pdf", ContentFile(pdf_file.read()), save=False)
+
+            self.estado = 'generada'
+            self.save()
+            return True
+
+        except Exception as e:
+            print(f'Error generando autorización: {e}')
+            return False
+
+    def generar_orden_suspension_pdf(self):
+        """Genera el PDF de la orden de suspensión"""
+        try:
+            from docxtpl import DocxTemplate
+            from django.core.files.base import ContentFile
+            import tempfile
+            import os
+            import subprocess
+
+            if not self.plantilla_usada:
+                raise ValueError("No hay plantilla asignada")
+
+            doc = DocxTemplate(self.plantilla_usada.archivo_plantilla.path)
+            suspension = self.orden_suspension
+            
+            context = {
+                'NUMERO_ORDEN': self.numero_orden,
+                'CODIGO_SUSPENSION': suspension.codigo,
+                'NOMBRE_CLIENTE': suspension.nombre_cliente or '',
+                'MOTIVO_SUSPENSION': suspension.motivo or '',
+                'CAMPANIA_SUSPENDIDA': suspension.campania or '',
+                'FECHA_SALIDA_AIRE': suspension.fecha_salida_aire.strftime('%d de %B del %Y'),
+                'FECHA_ACTUAL': timezone.now().strftime('%d de %B del %Y'),
+            }
+
+            self.datos_generacion = context
+            self.save()
+
+            doc.render(context)
+            
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp_docx:
+                doc.save(tmp_docx.name)
+                temp_docx_path = tmp_docx.name
+
+            temp_pdf_path = temp_docx_path.replace('.docx', '.pdf')
+            
+            try:
+                cmd = ['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', os.path.dirname(temp_docx_path), temp_docx_path]
+                subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            except Exception:
+                temp_pdf_path = temp_docx_path
+
+            with open(temp_pdf_path, 'rb') as pdf_file:
+                self.archivo_orden_pdf.save(f"suspension_{self.numero_orden}.pdf", ContentFile(pdf_file.read()), save=False)
+
+            self.estado = 'generada'
+            self.save()
+            return True
+
+        except Exception as e:
+            print(f'Error generando suspensión: {e}')
+            return False
+
     def marcar_como_impresa(self, user):
         self.estado = 'impresa'
         self.impreso_por = user
@@ -1129,6 +1278,11 @@ class OrdenProduccion(models.Model):
         'Descripción Breve',
         help_text='Descripción breve del trabajo a realizar'
     )
+
+    # Nuevos campos solicitados
+    requiere_tomas = models.BooleanField('Requiere Tomas', default=False)
+    requiere_audio = models.BooleanField('Requiere Audio', default=False)
+    requiere_logo = models.BooleanField('Requiere Logo', default=False)
     
     tipo_produccion = models.CharField(
         'Tipo de Producción',
@@ -1454,3 +1608,205 @@ class HistorialOrdenProduccion(models.Model):
     
     def __str__(self):
         return f"{self.orden_produccion.codigo} - {self.get_accion_display()} - {self.fecha.strftime('%d/%m/%Y %H:%M')}"
+
+
+# ==================== ORDEN DE AUTORIZACIÓN ====================
+
+class OrdenAutorizacion(models.Model):
+    """
+    Orden interna para autorizar la transmisión de publicidad.
+    """
+    
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('autorizado', 'Autorizado'),
+        ('rechazado', 'Rechazado'),
+        ('cancelado', 'Cancelado'),
+    ]
+    
+    codigo = models.CharField(
+        'Código',
+        max_length=20,
+        unique=True,
+        help_text='Código único (generado automáticamente)'
+    )
+    
+    cliente = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        limit_choices_to={'rol': 'cliente'},
+        related_name='autorizaciones',
+        verbose_name='Cliente'
+    )
+    
+    # Copia de datos básicos del cliente
+    nombre_cliente = models.CharField('Nombre del Cliente', max_length=255)
+    empresa_cliente = models.CharField('Empresa', max_length=200, blank=True, null=True)
+    ruc_dni_cliente = models.CharField('RUC/DNI', max_length=20, blank=True, null=True)
+    
+    # Detalles de la autorización
+    campania = models.CharField(
+        'Campaña / Publicidad',
+        max_length=255,
+        help_text='Nombre de la campaña o spot a transmitir (ej: MUNDO MÁGICO)'
+    )
+    
+    detalle_transmision = models.TextField(
+        'Detalle de Transmisión',
+        help_text='Detalle de cómo se transmitirá (ej: Un Spot en noticiero, Dos en programación regular...)'
+    )
+    
+    fecha_inicio = models.DateField('Fecha Inicio')
+    fecha_fin = models.DateField('Fecha Fin')
+    
+    vendedor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        limit_choices_to={'rol': 'vendedor'},
+        related_name='autorizaciones_vendidas',
+        verbose_name='Vendedor'
+    )
+    
+    valor_total = models.DecimalField(
+        'Valor Total',
+        max_digits=12,
+        decimal_places=2,
+        default=0.00
+    )
+    
+    estado = models.CharField(
+        'Estado',
+        max_length=20,
+        choices=ESTADO_CHOICES,
+        default='pendiente'
+    )
+    
+    observaciones = models.TextField('Observaciones', blank=True)
+    
+    # Metadatos
+    created_at = models.DateTimeField('Creado', auto_now_add=True)
+    updated_at = models.DateTimeField('Actualizado', auto_now=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='autorizaciones_creadas'
+    )
+    
+    class Meta:
+        verbose_name = 'Orden de Autorización'
+        verbose_name_plural = 'Órdenes de Autorización'
+        ordering = ['-created_at']
+        
+    def __str__(self):
+        return f"{self.codigo} - {self.campania}"
+        
+    def save(self, *args, **kwargs):
+        if not self.codigo:
+            self.codigo = self.generar_codigo()
+            
+        # Copiar datos cliente si es nueva
+        if self.cliente and (not self.pk or not self.nombre_cliente):
+            self.nombre_cliente = self.cliente.get_full_name() or self.cliente.username
+            self.empresa_cliente = self.cliente.empresa
+            self.ruc_dni_cliente = self.cliente.ruc_dni
+            if not self.vendedor:
+                self.vendedor = self.cliente.vendedor_asignado
+                
+        super().save(*args, **kwargs)
+        
+    def generar_codigo(self):
+        import time
+        return f"AUT{int(time.time())}"
+        
+    def get_absolute_url(self):
+        # Placeholder, se debe implementar vista
+        return "#"
+
+
+# ==================== ORDEN DE SUSPENSIÓN ====================
+
+class OrdenSuspension(models.Model):
+    """
+    Orden para suspender una transmisión o publicidad.
+    """
+    
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('procesado', 'Procesado'),
+        ('rechazado', 'Rechazado'),
+    ]
+    
+    codigo = models.CharField(
+        'Código',
+        max_length=20,
+        unique=True
+    )
+    
+    cliente = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        limit_choices_to={'rol': 'cliente'},
+        related_name='suspensiones'
+    )
+    
+    # Datos básicos
+    nombre_cliente = models.CharField('Nombre del Cliente', max_length=255)
+    
+    campania = models.CharField(
+        'Campaña / Publicidad',
+        max_length=255,
+        help_text='Nombre de la publicidad que sale del aire'
+    )
+    
+    fecha_salida_aire = models.DateField(
+        'Fecha Salida del Aire',
+        help_text='Fecha efectiva de suspensión'
+    )
+    
+    motivo = models.TextField('Motivo de Suspensión', blank=True)
+    
+    # Puede estar vinculada a una autorización previa
+    autorizacion_relacionada = models.ForeignKey(
+        OrdenAutorizacion,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='suspensiones',
+        verbose_name='Autorización Relacionada'
+    )
+    
+    estado = models.CharField(
+        'Estado',
+        max_length=20,
+        choices=ESTADO_CHOICES,
+        default='pendiente'
+    )
+    
+    created_at = models.DateTimeField('Creado', auto_now_add=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='suspensiones_creadas'
+    )
+    
+    class Meta:
+        verbose_name = 'Orden de Suspensión'
+        verbose_name_plural = 'Órdenes de Suspensión'
+        ordering = ['-created_at']
+        
+    def __str__(self):
+        return f"{self.codigo} - SUSP: {self.campania}"
+        
+    def save(self, *args, **kwargs):
+        if not self.codigo:
+            import time
+            self.codigo = f"SUS{int(time.time())}"
+            
+        if self.cliente and not self.nombre_cliente:
+             self.nombre_cliente = self.cliente.get_full_name() or self.cliente.username
+             
+        super().save(*args, **kwargs)
+

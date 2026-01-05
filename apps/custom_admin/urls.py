@@ -135,6 +135,24 @@ urlpatterns = [
     path('ordenes-produccion/<int:order_id>/descargar-plantilla/', views.orden_produccion_descargar_plantilla_api, name='orden_produccion_descargar_plantilla_api'),
     path('ordenes-produccion/<int:order_id>/plantillas/', views.orden_produccion_obtener_plantillas_api, name='orden_produccion_obtener_plantillas_api'),
     
+    # ==================== URLs PARA ÓRDENES DE AUTORIZACIÓN ====================
+    path('ordenes-autorizacion/', views.ordenes_autorizacion_list, name='ordenes_autorizacion_list'),
+    path('ordenes-autorizacion/crear/', views.orden_autorizacion_create_api, name='orden_autorizacion_create_api'),
+    path('ordenes-autorizacion/<int:order_id>/detalle/', views.orden_autorizacion_detail_api, name='orden_autorizacion_detail_api'),
+    path('ordenes-autorizacion/<int:order_id>/editar/', views.orden_autorizacion_update_api, name='orden_autorizacion_update_api'),
+    path('ordenes-autorizacion/<int:order_id>/eliminar/', views.orden_autorizacion_delete_api, name='orden_autorizacion_delete_api'),
+    path('ordenes-autorizacion/<int:order_id>/plantillas/', views.orden_autorizacion_formularios_api, name='orden_autorizacion_formularios_api'),
+    path('ordenes-autorizacion/<int:order_id>/generar-pdf/', views.orden_autorizacion_generar_pdf_api, name='orden_autorizacion_generar_pdf_api'),
+
+    # ==================== URLs PARA ÓRDENES DE SUSPENSIÓN ====================
+    path('ordenes-suspension/', views.ordenes_suspension_list, name='ordenes_suspension_list'),
+    path('ordenes-suspension/crear/', views.orden_suspension_create_api, name='orden_suspension_create_api'),
+    path('ordenes-suspension/<int:order_id>/detalle/', views.orden_suspension_detail_api, name='orden_suspension_detail_api'),
+    path('ordenes-suspension/<int:order_id>/editar/', views.orden_suspension_update_api, name='orden_suspension_update_api'),
+    path('ordenes-suspension/<int:order_id>/eliminar/', views.orden_suspension_delete_api, name='orden_suspension_delete_api'),
+    path('ordenes-suspension/<int:order_id>/plantillas/', views.orden_suspension_formularios_api, name='orden_suspension_formularios_api'),
+    path('ordenes-suspension/<int:order_id>/generar-pdf/', views.orden_suspension_generar_pdf_api, name='orden_suspension_generar_pdf_api'),
+    
     # ==================== URLs PARA PARTE MORTORIOS ====================
     path('parte-mortorios/', views.parte_mortorios_list, name='parte_mortorios_list'),
     path('parte-mortorios/<int:parte_id>/detalle/', views.parte_mortorio_detail_api, name='parte_mortorio_detail_api'),

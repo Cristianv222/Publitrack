@@ -1051,9 +1051,14 @@
                                     class="submenu-link {% if 'ordenes_produccion' in request.resolver_match.url_name %}active{% endif %}">
                                     <i class="fas fa-cogs"></i>Órdenes de Producción
                                 </a>
-                                <a href="{% url 'custom_admin:orders_list' %}"
-                                    class="submenu-link {% if 'orders' in request.resolver_match.url_name %}active{% endif %}">
-                                    <i class="fas fa-flag-checkered"></i>Órdenes de Finalización
+                    
+                                <a href="{% url 'custom_admin:ordenes_autorizacion_list' %}"
+                                    class="submenu-link {% if 'ordenes_autorizacion' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="fas fa-file-signature"></i>Orden de Autorizacion
+                                </a>
+                                <a href="{% url 'custom_admin:ordenes_suspension_list' %}"
+                                    class="submenu-link {% if 'ordenes_suspension' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="fas fa-ban"></i>Orden de Suspension
                                 </a>
                             </div>
                         </div>
@@ -1168,17 +1173,17 @@
                     <span>Panel de Reportes</span>
                 </a>
             </div>
-            
-<!-- INVENTARIO -->
-<div class="menu-section">
-    <div class="menu-section-title">INVENTARIO</div>
-    <a href="{% url 'custom_admin:inventory_list' %}"
-        class="menu-link {% if 'inventory' in request.resolver_match.url_name %}active{% endif %}">
-        <i class="fas fa-boxes menu-icon"></i>
-        <span>Gestión de Inventario</span>
-      
-    </a>
-</div>
+
+            <!-- INVENTARIO -->
+            <div class="menu-section">
+                <div class="menu-section-title">INVENTARIO</div>
+                <a href="{% url 'custom_admin:inventory_list' %}"
+                    class="menu-link {% if 'inventory' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-boxes menu-icon"></i>
+                    <span>Gestión de Inventario</span>
+
+                </a>
+            </div>
 
         </div>
     </nav>

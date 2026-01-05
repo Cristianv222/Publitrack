@@ -6,7 +6,8 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils import timezone
-from .models import OrdenToma, HistorialOrden
+from .models import OrdenToma, HistorialOrden, OrdenAutorizacion, OrdenSuspension
+from .models import OrdenProduccion, HistorialOrdenProduccion
 
 
 @admin.register(OrdenToma)
@@ -285,7 +286,7 @@ class HistorialOrdenAdmin(admin.ModelAdmin):
             return obj.descripcion[:60] + '...'
         return obj.descripcion
     descripcion_corta.short_description = 'Descripción'
-from .models import OrdenProduccion, HistorialOrdenProduccion
+
 
 @admin.register(OrdenProduccion)
 class OrdenProduccionAdmin(admin.ModelAdmin):
@@ -345,6 +346,9 @@ class OrdenProduccionAdmin(admin.ModelAdmin):
                 'estado',
                 'prioridad',
                 'tipo_produccion',
+                'requiere_tomas',
+                'requiere_audio',
+                'requiere_logo',
             )
         }),
         ('Información del Cliente', {
@@ -559,3 +563,82 @@ class HistorialOrdenProduccionAdmin(admin.ModelAdmin):
             return obj.descripcion[:60] + '...'
         return obj.descripcion
     descripcion_corta.short_description = 'Descripción'
+
+
+@admin.register(OrdenAutorizacion)
+class OrdenAutorizacionAdmin(admin.ModelAdmin):
+    list_display = (
+        'codigo', 
+        'cliente', 
+        'campania', 
+        'fecha_inicio', 
+        'fecha_fin', 
+        'estado', 
+        'valor_total'
+    )
+    list_filter = ('estado', 'fecha_inicio', 'fecha_fin', 'vendedor')
+    search_fields = ('codigo', 'campania', 'nombre_cliente', 'ruc_dni_cliente')
+    readonly_fields = ('created_at', 'updated_at', 'created_by')
+
+    fieldsets = (
+        ('Información Básica', {
+            'fields': ('codigo', 'cliente', 'estado')
+        }),
+        ('Detalle de la Autorización', {
+            'fields': (
+                'campania',
+                'detalle_transmision',
+                'fecha_inicio',
+                'fecha_fin',
+            )
+        }),
+        ('Información Comercial', {
+            'fields': ('vendedor', 'valor_total')
+        }),
+        ('Metadatos', {
+            'fields': ('created_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(OrdenSuspension)
+class OrdenSuspensionAdmin(admin.ModelAdmin):
+    list_display = (
+        'codigo', 
+        'cliente', 
+        'campania', 
+        'fecha_salida_aire', 
+        'estado'
+    )
+    list_filter = ('estado', 'fecha_salida_aire')
+    search_fields = ('codigo', 'campania', 'nombre_cliente')
+    readonly_fields = ('created_at', 'created_by')
+
+    fieldsets = (
+        ('Información Básica', {
+            'fields': ('codigo', 'cliente', 'estado')
+        }),
+        ('Detalle de la Suspensión', {
+            'fields': (
+                'campania',
+                'fecha_salida_aire',
+                'motivo',
+                'autorizacion_relacionada',
+            )
+        }),
+        ('Metadatos', {
+            'fields': ('created_by', 'created_at'),
+            'classes': ('collapse',)
+        })
+    )
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)

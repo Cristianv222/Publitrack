@@ -1,0 +1,427 @@
+{% extends 'custom_admin/base_admin.html' %}
+{% load static %}
+
+{% block title %}Órdenes de Autorización - PubliTrack{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="fas fa-file-contract me-2"></i>Órdenes de Autorización
+            </h2>
+            <p class="text-muted mb-0">Gestiona las autorizaciones de transmisión</p>
+        </div>
+        <button class="btn btn-primary" onclick="abrirModalCrear()">
+            <i class="fas fa-plus me-2"></i>Nueva Autorización
+        </button>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" name="search" class="form-control"
+                        placeholder="Buscar por código, cliente o campaña..." value="{{ search }}">
+                </div>
+                <div class="col-md-3">
+                    <select name="estado" class="form-select">
+                        <option value="">Todos los estados</option>
+                        <option value="pendiente" {% if estado_filter == 'pendiente' %}selected{% endif %}>Pendiente
+                        </option>
+                        <option value="autorizado" {% if estado_filter == 'autorizado' %}selected{% endif %}>Autorizado
+                        </option>
+                        <option value="rechazado" {% if estado_filter == 'rechazado' %}selected{% endif %}>Rechazado
+                        </option>
+                        <option value="cancelado" {% if estado_filter == 'cancelado' %}selected{% endif %}>Cancelado
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-2"></i>Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Código</th>
+                            <th>Cliente</th>
+                            <th>Campaña</th>
+                            <th>Vigencia</th>
+                            <th>Valor</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for orden in ordenes %}
+                        <tr>
+                            <td><strong>{{ orden.codigo }}</strong></td>
+                            <td>
+                                {{ orden.nombre_cliente }}
+                                {% if orden.empresa_cliente %}
+                                <br><small class="text-muted">{{ orden.empresa_cliente }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ orden.campania }}</td>
+                            <td>
+                                <small>
+                                    Desde: {{ orden.fecha_inicio|date:"d/m/Y" }}<br>
+                                    Hasta: {{ orden.fecha_fin|date:"d/m/Y" }}
+                                </small>
+                            </td>
+                            <td>S/ {{ orden.valor_total }}</td>
+                            <td>
+                                {% if orden.estado == 'autorizado' %}
+                                <span class="badge bg-success">{{ orden.get_estado_display }}</span>
+                                {% elif orden.estado == 'pendiente' %}
+                                <span class="badge bg-warning">{{ orden.get_estado_display }}</span>
+                                {% elif orden.estado == 'rechazado' %}
+                                <span class="badge bg-danger">{{ orden.get_estado_display }}</span>
+                                {% elif orden.estado == 'cancelado' %}
+                                <span class="badge bg-secondary">{{ orden.get_estado_display }}</span>
+                                {% else %}
+                                <span class="badge bg-info">{{ orden.get_estado_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-info" onclick="editarOrden({{ orden.id }})"
+                                        title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary" onclick="generarOrden({{ orden.id }})"
+                                        title="Generar PDF">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="eliminarOrden({{ orden.id }})"
+                                        title="Eliminar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4">No hay autorizaciones registradas</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Crear/Editar -->
+<div class="modal fade" id="modalOrden" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Nueva Autorización</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formOrden">
+                    <input type="hidden" id="orden_id">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Cliente</label>
+                            <select class="form-select" id="cliente_id" required>
+                                <option value="">Seleccionar...</option>
+                                {% for cliente in clientes %}
+                                <option value="{{ cliente.id }}">{{ cliente.get_full_name }} ({{ cliente.empresa }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Vendedor</label>
+                            <select class="form-select" id="vendedor_id">
+                                <option value="">Seleccionar...</option>
+                                {% for vendedor in vendedores %}
+                                <option value="{{ vendedor.id }}">{{ vendedor.get_full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Campaña / Publicidad</label>
+                            <input type="text" class="form-control" id="campania" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Detalle de Transmisión</label>
+                            <textarea class="form-control" id="detalle_transmision" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Fecha Inicio</label>
+                            <input type="date" class="form-control" id="fecha_inicio" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Fecha Fin</label>
+                            <input type="date" class="form-control" id="fecha_fin" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Valor Total</label>
+                            <input type="number" class="form-control" id="valor_total" step="0.01" value="0.00">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" id="estado">
+                                <option value="pendiente">Pendiente</option>
+                                <option value="autorizado">Autorizado</option>
+                                <option value="rechazado">Rechazado</option>
+                                <option value="cancelado">Cancelado</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarOrden()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Generar PDF -->
+<div class="modal fade" id="modalGenerarOrden" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Generar Orden PDF</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="generar_orden_id">
+                <div class="mb-3">
+                    <label class="form-label">Seleccionar Plantilla</label>
+                    <select class="form-select" id="plantilla_id">
+                        <option value="">Cargando plantillas...</option>
+                    </select>
+                </div>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Al generar el PDF, el estado de la orden cambiará a <strong>Autorizado</strong> si está pendiente.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="confirmarGeneracion()">
+                    <i class="fas fa-file-pdf me-2"></i>Generar y Descargar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let modalOrden;
+    let modalGenerarOrden;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        modalOrden = new bootstrap.Modal(document.getElementById('modalOrden'));
+        modalGenerarOrden = new bootstrap.Modal(document.getElementById('modalGenerarOrden'));
+    });
+
+    function abrirModalCrear() {
+        document.getElementById('formOrden').reset();
+        document.getElementById('orden_id').value = '';
+        document.getElementById('modalTitle').textContent = 'Nueva Autorización';
+        modalOrden.show();
+    }
+
+    function editarOrden(id) {
+        fetch(`/panel/ordenes-autorizacion/${id}/detalle/`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const orden = data.orden;
+                    document.getElementById('orden_id').value = orden.id;
+                    document.getElementById('cliente_id').value = orden.cliente_id;
+                    document.getElementById('vendedor_id').value = orden.vendedor_id || '';
+                    document.getElementById('campania').value = orden.campania;
+                    document.getElementById('detalle_transmision').value = orden.detalle_transmision || '';
+                    document.getElementById('fecha_inicio').value = orden.fecha_inicio;
+                    document.getElementById('fecha_fin').value = orden.fecha_fin;
+                    document.getElementById('valor_total').value = orden.valor_total;
+                    document.getElementById('estado').value = orden.estado;
+                    document.getElementById('modalTitle').textContent = 'Editar Autorización';
+                    modalOrden.show();
+                } else {
+                    alert('Error al cargar los datos de la autorización');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error de conexión');
+            });
+    }
+
+    function guardarOrden() {
+        const id = document.getElementById('orden_id').value;
+        const url = id
+            ? `/panel/ordenes-autorizacion/${id}/editar/`
+            : '/panel/ordenes-autorizacion/crear/';
+        const method = id ? 'PUT' : 'POST';
+
+        const data = {
+            cliente_id: document.getElementById('cliente_id').value,
+            vendedor_id: document.getElementById('vendedor_id').value || null,
+            campania: document.getElementById('campania').value,
+            detalle_transmision: document.getElementById('detalle_transmision').value,
+            fecha_inicio: document.getElementById('fecha_inicio').value,
+            fecha_fin: document.getElementById('fecha_fin').value,
+            valor_total: document.getElementById('valor_total').value,
+            estado: document.getElementById('estado').value
+        };
+
+        // Validación básica
+        if (!data.cliente_id) {
+            alert('Por favor seleccione un cliente');
+            return;
+        }
+        if (!data.campania.trim()) {
+            alert('Por favor ingrese el nombre de la campaña');
+            return;
+        }
+        if (!data.fecha_inicio || !data.fecha_fin) {
+            alert('Por favor ingrese las fechas de vigencia');
+            return;
+        }
+
+        fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(data)
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.error || 'Error desconocido'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error de conexión');
+            });
+    }
+
+    function eliminarOrden(id) {
+        if (confirm('¿Está seguro de eliminar esta autorización?')) {
+            fetch(`/panel/ordenes-autorizacion/${id}/eliminar/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (data.error || 'Error al eliminar'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error de conexión');
+                });
+        }
+    }
+
+    function generarOrden(id) {
+        document.getElementById('generar_orden_id').value = id;
+        const select = document.getElementById('plantilla_id');
+        select.innerHTML = '<option value="">Cargando...</option>';
+
+        // Cargar plantillas
+        fetch(`/panel/ordenes-autorizacion/${id}/plantillas/`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    select.innerHTML = '';
+                    if (data.plantillas.length === 0) {
+                        select.innerHTML = '<option value="">No hay plantillas disponibles</option>';
+                    } else {
+                        data.plantillas.forEach(p => {
+                            const option = document.createElement('option');
+                            option.value = p.id;
+                            option.textContent = p.nombre;
+                            select.appendChild(option);
+                        });
+                    }
+                    modalGenerarOrden.show();
+                } else {
+                    alert('Error al cargar plantillas: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error de conexión');
+            });
+    }
+
+    function confirmarGeneracion() {
+        const ordenId = document.getElementById('generar_orden_id').value;
+        const plantillaId = document.getElementById('plantilla_id').value;
+
+        if (!plantillaId) {
+            alert('Por favor seleccione una plantilla');
+            return;
+        }
+
+        const btn = document.querySelector('#modalGenerarOrden .btn-primary');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generando...';
+
+        fetch(`/panel/ordenes-autorizacion/${ordenId}/generar-pdf/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ plantilla_id: plantillaId })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Abrir PDF en nueva pestaña
+                    window.open(data.url, '_blank');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error de conexión');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            });
+    }
+</script>
+{% endblock %}
