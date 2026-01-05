@@ -143,6 +143,7 @@ urlpatterns = [
     path('ordenes-autorizacion/<int:order_id>/eliminar/', views.orden_autorizacion_delete_api, name='orden_autorizacion_delete_api'),
     path('ordenes-autorizacion/<int:order_id>/plantillas/', views.orden_autorizacion_formularios_api, name='orden_autorizacion_formularios_api'),
     path('ordenes-autorizacion/<int:order_id>/generar-pdf/', views.orden_autorizacion_generar_pdf_api, name='orden_autorizacion_generar_pdf_api'),
+    path('ordenes-autorizacion/<int:order_id>/subir-firma/', views.orden_autorizacion_subir_firma_api, name='orden_autorizacion_subir_firma_api'),
 
     # ==================== URLs PARA ÓRDENES DE SUSPENSIÓN ====================
     path('ordenes-suspension/', views.ordenes_suspension_list, name='ordenes_suspension_list'),
@@ -152,6 +153,7 @@ urlpatterns = [
     path('ordenes-suspension/<int:order_id>/eliminar/', views.orden_suspension_delete_api, name='orden_suspension_delete_api'),
     path('ordenes-suspension/<int:order_id>/plantillas/', views.orden_suspension_formularios_api, name='orden_suspension_formularios_api'),
     path('ordenes-suspension/<int:order_id>/generar-pdf/', views.orden_suspension_generar_pdf_api, name='orden_suspension_generar_pdf_api'),
+    path('ordenes-suspension/<int:order_id>/subir-firma/', views.orden_suspension_subir_firma_api, name='orden_suspension_subir_firma_api'),
     
     # ==================== URLs PARA PARTE MORTORIOS ====================
     path('parte-mortorios/', views.parte_mortorios_list, name='parte_mortorios_list'),

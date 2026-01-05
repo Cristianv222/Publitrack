@@ -30,13 +30,13 @@
                 <div class="col-md-3">
                     <select name="estado" class="form-select">
                         <option value="">Todos los estados</option>
-                        <option value="pendiente" {% if estado_filter == 'pendiente' %}selected{% endif %}>Pendiente
+                        <option value="pendiente" {% if estado_filter == "pendiente" %}selected{% endif %}>Pendiente
                         </option>
-                        <option value="autorizado" {% if estado_filter == 'autorizado' %}selected{% endif %}>Autorizado
+                        <option value="autorizado" {% if estado_filter == "autorizado" %}selected{% endif %}>Autorizado
                         </option>
-                        <option value="rechazado" {% if estado_filter == 'rechazado' %}selected{% endif %}>Rechazado
+                        <option value="rechazado" {% if estado_filter == "rechazado" %}selected{% endif %}>Rechazado
                         </option>
-                        <option value="cancelado" {% if estado_filter == 'cancelado' %}selected{% endif %}>Cancelado
+                        <option value="cancelado" {% if estado_filter == "cancelado" %}selected{% endif %}>Cancelado
                         </option>
                     </select>
                 </div>
@@ -84,13 +84,13 @@
                             </td>
                             <td>S/ {{ orden.valor_total }}</td>
                             <td>
-                                {% if orden.estado == 'autorizado' %}
+                                {% if orden.estado == "autorizado" %}
                                 <span class="badge bg-success">{{ orden.get_estado_display }}</span>
-                                {% elif orden.estado == 'pendiente' %}
+                                {% elif orden.estado == "pendiente" %}
                                 <span class="badge bg-warning">{{ orden.get_estado_display }}</span>
-                                {% elif orden.estado == 'rechazado' %}
+                                {% elif orden.estado == "rechazado" %}
                                 <span class="badge bg-danger">{{ orden.get_estado_display }}</span>
-                                {% elif orden.estado == 'cancelado' %}
+                                {% elif orden.estado == "cancelado" %}
                                 <span class="badge bg-secondary">{{ orden.get_estado_display }}</span>
                                 {% else %}
                                 <span class="badge bg-info">{{ orden.get_estado_display }}</span>
@@ -103,9 +103,15 @@
                                         <i class="fas fa-edit"></i>
                                     </button>
                                     <button class="btn btn-sm btn-secondary" onclick="generarOrden({{ orden.id }})"
-                                        title="Generar PDF">
+                                        title="Descargar PDF">
                                         <i class="fas fa-file-pdf"></i>
                                     </button>
+                                    {% if orden.estado != 'autorizado' %}
+                                    <button class="btn btn-sm btn-success" onclick="subirFirma({{ orden.id }})"
+                                        title="Subir Firma y Autorizar">
+                                        <i class="fas fa-file-upload"></i>
+                                    </button>
+                                    {% endif %}
                                     <button class="btn btn-sm btn-danger" onclick="eliminarOrden({{ orden.id }})"
                                         title="Eliminar">
                                         <i class="fas fa-trash"></i>
@@ -137,53 +143,73 @@
                 <form id="formOrden">
                     <input type="hidden" id="orden_id">
                     <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Cliente</label>
-                            <select class="form-select" id="cliente_id" required>
-                                <option value="">Seleccionar...</option>
-                                {% for cliente in clientes %}
-                                <option value="{{ cliente.id }}">{{ cliente.get_full_name }} ({{ cliente.empresa }})
-                                </option>
+                        <div class="col-12">
+                            <label class="form-label">Cargar desde Orden de Producción</label>
+                            <select class="form-select" id="orden_produccion_id"
+                                onchange="cargarDatosProduccion(this.value)">
+                                <option value="">Seleccionar Orden de Producción...</option>
+                                {% for op in ordenes_produccion %}
+                                <option value="{{ op.id }}">{{ op.codigo }} - {{ op.nombre_cliente|default:"Cliente" }}
+                                    ({{
+                                    op.proyecto_campania|default:"Sin proyecto" }})</option>
                                 {% endfor %}
                             </select>
+                            <small class="text-muted">Seleccione para autocompletar datos</small>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Vendedor</label>
-                            <select class="form-select" id="vendedor_id">
-                                <option value="">Seleccionar...</option>
-                                {% for vendedor in vendedores %}
-                                <option value="{{ vendedor.id }}">{{ vendedor.get_full_name }}</option>
-                                {% endfor %}
-                            </select>
+                        <div id="manual-fields">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Cliente</label>
+                                    <select class="form-select" id="cliente_id">
+                                        <option value="">Seleccionar...</option>
+                                        {% for cliente in clientes %}
+                                        <option value="{{ cliente.id }}">{{ cliente.get_full_name }} ({{ cliente.empresa
+                                            }})
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Vendedor</label>
+                                    <select class="form-select" id="vendedor_id">
+                                        <option value="">Seleccionar...</option>
+                                        {% for vendedor in vendedores %}
+                                        <option value="{{ vendedor.id }}">{{ vendedor.get_full_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Campaña / Publicidad</label>
+                                    <input type="text" class="form-control" id="campania">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Detalle de Transmisión</label>
+                                    <textarea class="form-control" id="detalle_transmision" rows="3"></textarea>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Fecha Inicio</label>
+                                    <input type="date" class="form-control" id="fecha_inicio">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Fecha Fin</label>
+                                    <input type="date" class="form-control" id="fecha_fin">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Valor Total</label>
+                                    <input type="number" class="form-control" id="valor_total" step="0.01" value="0.00">
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-12">
-                            <label class="form-label">Campaña / Publicidad</label>
-                            <input type="text" class="form-control" id="campania" required>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Detalle de Transmisión</label>
-                            <textarea class="form-control" id="detalle_transmision" rows="3"></textarea>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Fecha Inicio</label>
-                            <input type="date" class="form-control" id="fecha_inicio" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Fecha Fin</label>
-                            <input type="date" class="form-control" id="fecha_fin" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Valor Total</label>
-                            <input type="number" class="form-control" id="valor_total" step="0.01" value="0.00">
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Estado</label>
-                            <select class="form-select" id="estado">
-                                <option value="pendiente">Pendiente</option>
-                                <option value="autorizado">Autorizado</option>
-                                <option value="rechazado">Rechazado</option>
-                                <option value="cancelado">Cancelado</option>
-                            </select>
+                        <div class="row g-3 mt-1">
+                            <div class="col-12">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" id="estado">
+                                    <option value="pendiente">Pendiente</option>
+                                    <option value="autorizado">Autorizado</option>
+                                    <option value="rechazado">Rechazado</option>
+                                    <option value="cancelado">Cancelado</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -212,6 +238,8 @@
                         <option value="">Cargando plantillas...</option>
                     </select>
                 </div>
+
+
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle me-2"></i>
                     Al generar el PDF, el estado de la orden cambiará a <strong>Autorizado</strong> si está pendiente.
@@ -226,22 +254,113 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Subir Firma -->
+<div class="modal fade" id="modalSubirFirma" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Subir Orden Firmada</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formFirma">
+                    <input type="hidden" id="firma_orden_id">
+                    <div class="mb-3">
+                        <label class="form-label">Archivo Firmado (PDF/Imagen)</label>
+                        <input type="file" class="form-control" id="archivo_firmado" accept=".pdf,.jpg,.jpeg,.png"
+                            required>
+                    </div>
+                </form>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Al subir el archivo, la orden cambiará automáticamente a estado
+                    <strong>Autorizado</strong>.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="confirmarSubida()">
+                    <i class="fas fa-upload me-2"></i>Subir y Autorizar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
     let modalOrden;
     let modalGenerarOrden;
+    let modalSubirFirma;
 
     document.addEventListener('DOMContentLoaded', function () {
         modalOrden = new bootstrap.Modal(document.getElementById('modalOrden'));
         modalGenerarOrden = new bootstrap.Modal(document.getElementById('modalGenerarOrden'));
+        modalSubirFirma = new bootstrap.Modal(document.getElementById('modalSubirFirma'));
     });
+
+    function subirFirma(id) {
+        document.getElementById('formFirma').reset();
+        document.getElementById('firma_orden_id').value = id;
+        modalSubirFirma.show();
+    }
+
+    function confirmarSubida() {
+        const id = document.getElementById('firma_orden_id').value;
+        const archivoInput = document.getElementById('archivo_firmado');
+        const archivo = archivoInput.files[0];
+
+        if (!archivo) {
+            alert('Por favor seleccione un archivo');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('archivo_firmado', archivo);
+
+        fetch(`/panel/ordenes-autorizacion/${id}/subir-firma/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: formData
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    modalSubirFirma.hide();
+                    location.reload(); // Recargar para ver el nuevo estado
+                } else {
+                    alert('Error: ' + (data.error || 'Error al subir el archivo'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error de conexión');
+            });
+    }
+
+    async function cargarDatosProduccion(id) {
+        const manualFields = document.getElementById('manual-fields');
+        if (id) {
+            // Si selecciona orden, ocultar campos manuales
+            manualFields.style.display = 'none';
+        } else {
+            // Si deselecciona, mostrarlos
+            manualFields.style.display = 'block';
+            return;
+        }
+
+        // No necesitamos cargar datos via fetch, el backend lo hará.
+    }
 
     function abrirModalCrear() {
         document.getElementById('formOrden').reset();
         document.getElementById('orden_id').value = '';
         document.getElementById('modalTitle').textContent = 'Nueva Autorización';
+        document.getElementById('manual-fields').style.display = 'block'; // Asegurar visible por defecto
         modalOrden.show();
     }
 
@@ -287,21 +406,25 @@
             fecha_inicio: document.getElementById('fecha_inicio').value,
             fecha_fin: document.getElementById('fecha_fin').value,
             valor_total: document.getElementById('valor_total').value,
-            estado: document.getElementById('estado').value
+            estado: document.getElementById('estado').value,
+            orden_produccion_id: document.getElementById('orden_produccion_id').value || null
         };
 
         // Validación básica
-        if (!data.cliente_id) {
-            alert('Por favor seleccione un cliente');
-            return;
-        }
-        if (!data.campania.trim()) {
-            alert('Por favor ingrese el nombre de la campaña');
-            return;
-        }
-        if (!data.fecha_inicio || !data.fecha_fin) {
-            alert('Por favor ingrese las fechas de vigencia');
-            return;
+        // Si hay orden de producción, saltamos validación de campos manuales
+        if (!data.orden_produccion_id) {
+            if (!data.cliente_id) {
+                alert('Por favor seleccione un cliente');
+                return;
+            }
+            if (!data.campania.trim()) {
+                alert('Por favor ingrese el nombre de la campaña');
+                return;
+            }
+            if (!data.fecha_inicio || !data.fecha_fin) {
+                alert('Por favor ingrese las fechas de vigencia');
+                return;
+            }
         }
 
         fetch(url, {

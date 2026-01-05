@@ -1230,6 +1230,7 @@ class OrdenProduccion(models.Model):
         ('en_produccion', 'En Producción'),
         ('completado', 'Completado'),
         ('validado', 'Validado'),
+        ('autorizado', 'Autorizado'),
         ('cancelado', 'Cancelado'),
     ]
     
@@ -1668,6 +1669,26 @@ class OrdenAutorizacion(models.Model):
         verbose_name='Vendedor'
     )
     
+    # Archivo firmado y fecha de firma (Workflow de autorización)
+    archivo_firmado = models.FileField(
+        'Orden Firmada',
+        upload_to='ordenes_autorizacion_firmadas/',
+        null=True,
+        blank=True,
+        help_text='Documento firmado que valida la autorización'
+    )
+    
+    fecha_firma = models.DateTimeField('Fecha de Firma', null=True, blank=True)
+
+    orden_produccion = models.ForeignKey(
+        OrdenProduccion,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='autorizaciones',
+        verbose_name='Orden de Producción Relacionada'
+    )
+    
     valor_total = models.DecimalField(
         'Valor Total',
         max_digits=12,
@@ -1767,6 +1788,17 @@ class OrdenSuspension(models.Model):
     
     motivo = models.TextField('Motivo de Suspensión', blank=True)
     
+    # Archivo firmado y fecha de firma
+    archivo_firmado = models.FileField(
+        'Orden Firmada',
+        upload_to='ordenes_suspension_firmadas/',
+        null=True,
+        blank=True,
+        help_text='Documento firmado que valida la suspensión'
+    )
+    
+    fecha_firma = models.DateTimeField('Fecha de Firma', null=True, blank=True)
+    
     # Puede estar vinculada a una autorización previa
     autorizacion_relacionada = models.ForeignKey(
         OrdenAutorizacion,
@@ -1775,6 +1807,15 @@ class OrdenSuspension(models.Model):
         blank=True,
         related_name='suspensiones',
         verbose_name='Autorización Relacionada'
+    )
+
+    contrato = models.ForeignKey(
+        'content_management.ContratoGenerado',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='suspensiones',
+        verbose_name='Contrato o Cuña a suspender'
     )
     
     estado = models.CharField(

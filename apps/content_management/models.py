@@ -1132,6 +1132,7 @@ class ContratoGenerado(models.Model):
         ('enviado', 'Enviado al Cliente'),
         ('firmado', 'Firmado'),
         ('validado', 'Validado'),  # ✅ NUEVO ESTADO
+        ('suspendido', 'Suspendido'),
         ('vencido', 'Vencido'),
         ('cancelado', 'Cancelado'),
     ]

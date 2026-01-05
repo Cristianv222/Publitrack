@@ -10169,12 +10169,20 @@ def ordenes_autorizacion_list(request):
     except EmptyPage:
         ordenes_paginadas = paginator.page(paginator.num_pages)
 
+    # Obtener órdenes de producción disponibles para autorizar
+    from apps.orders.models import OrdenProduccion
+    ordenes_produccion = OrdenProduccion.objects.filter(
+        estado__in=['pendiente', 'validado'],  # Permitir pendientes y validadas
+        autorizaciones__isnull=True  # Que no tengan ya una autorización
+    ).select_related('orden_toma__cliente')
+
     context = {
         'ordenes': ordenes_paginadas,
         'search': search,
         'estado_filter': estado_filter,
         'clientes': CustomUser.objects.filter(rol='cliente', is_active=True),
-        'vendedores': CustomUser.objects.filter(rol='vendedor', is_active=True)
+        'vendedores': CustomUser.objects.filter(rol='vendedor', is_active=True),
+        'ordenes_produccion': ordenes_produccion
     }
     return render(request, 'custom_admin/orders/autorizacion_list.html', context)
 
@@ -10218,19 +10226,63 @@ def orden_autorizacion_create_api(request):
         import json
         
         data = json.loads(request.body)
-        cliente = get_object_or_404(CustomUser, pk=data.get('cliente_id'))
+        
+        # Datos iniciales
+        cliente_id = data.get('cliente_id')
+        campania = data.get('campania')
+        fecha_inicio = data.get('fecha_inicio')
+        fecha_fin = data.get('fecha_fin')
+        vendedor_id = data.get('vendedor_id')
+        
+        # Si hay orden de producción, priorizar sus datos
+        orden_produccion_id = data.get('orden_produccion_id')
+        orden_produccion = None
+        
+        if orden_produccion_id:
+            from apps.orders.models import OrdenProduccion
+            orden_produccion = get_object_or_404(OrdenProduccion, pk=orden_produccion_id)
+            
+            # Autocompletar datos faltantes
+            if not cliente_id and orden_produccion.orden_toma.cliente:
+                cliente_id = orden_produccion.orden_toma.cliente.id
+                
+            if not campania:
+                campania = orden_produccion.proyecto_campania
+                
+            if not vendedor_id and orden_produccion.orden_toma.cliente.vendedor_asignado:
+                vendedor_id = orden_produccion.orden_toma.cliente.vendedor_asignado.id
+                
+            # Fechas por defecto si no vienen
+            from django.utils import timezone
+            if not fecha_inicio:
+                fecha_inicio = timezone.now().date()
+            if not fecha_fin:
+                # Por defecto un mes después si no se especifica
+                from datetime import timedelta
+                fecha_fin = (timezone.now() + timedelta(days=30)).date()
+
+        if not cliente_id:
+             return JsonResponse({'success': False, 'error': 'El cliente es obligatorio'}, status=400)
+
+        cliente = get_object_or_404(CustomUser, pk=cliente_id)
         
         orden = OrdenAutorizacion.objects.create(
             cliente=cliente,
-            campania=data.get('campania'),
-            detalle_transmision=data.get('detalle_transmision'),
-            fecha_inicio=data.get('fecha_inicio'),
-            fecha_fin=data.get('fecha_fin'),
-            vendedor_id=data.get('vendedor_id'),
+            campania=campania,
+            detalle_transmision=data.get('detalle_transmision') or (orden_produccion.observaciones_produccion if orden_produccion else '') or 'Sin detalle especificado',
+            fecha_inicio=fecha_inicio,
+            fecha_fin=fecha_fin,
+            vendedor_id=vendedor_id,
             valor_total=Decimal(data.get('valor_total', '0.00')),
             observaciones=data.get('observaciones', ''),
+            orden_produccion=orden_produccion,
             created_by=request.user
         )
+        
+        # Actualizar estado de orden de producción
+        if orden.orden_produccion:
+            orden.orden_produccion.estado = 'autorizado'
+            orden.orden_produccion.save()
         
         return JsonResponse({'success': True, 'message': 'Autorización creada', 'id': orden.id})
     except Exception as e:
@@ -10318,12 +10370,19 @@ def ordenes_suspension_list(request):
         ordenes_paginadas = paginator.page(1)
     except EmptyPage:
         ordenes_paginadas = paginator.page(paginator.num_pages)
+        
+    # Obtener contratos disponibles para suspender
+    from apps.content_management.models import ContratoGenerado
+    contratos = ContratoGenerado.objects.filter(
+        estado__in=['validado', 'firmado', 'activo']
+    ).select_related('cliente', 'cuña')
 
     context = {
         'ordenes': ordenes_paginadas,
         'search': search,
         'estado_filter': estado_filter,
         'clientes': CustomUser.objects.filter(rol='cliente', is_active=True),
+        'contratos': contratos,
     }
     return render(request, 'custom_admin/orders/suspension_list.html', context)
 
@@ -10371,8 +10430,12 @@ def orden_suspension_create_api(request):
             fecha_salida_aire=data.get('fecha_salida_aire'),
             motivo=data.get('motivo', ''),
             autorizacion_relacionada_id=data.get('autorizacion_relacionada_id'),
+            contrato_id=data.get('contrato_id'),
             created_by=request.user
         )
+        
+        # Código comentado eliminado para limpieza
+        # La actualización del estado se realiza en orden_suspension_subir_firma_api
         
         return JsonResponse({'success': True, 'message': 'Suspensión creada', 'id': orden.id})
     except Exception as e:
@@ -10461,9 +10524,9 @@ def orden_autorizacion_generar_pdf_api(request, order_id):
         # Generar PDF
         if orden_generada.generar_orden_autorizacion_pdf():
             # Actualizar estado de la orden original si es necesario
-            if orden.estado == 'pendiente':
-                orden.estado = 'autorizado'
-                orden.save()
+            # if orden.estado == 'pendiente':
+            #     orden.estado = 'autorizado'
+            #     orden.save()
                 
             return JsonResponse({
                 'success': True, 
@@ -10474,6 +10537,37 @@ def orden_autorizacion_generar_pdf_api(request, order_id):
         else:
             return JsonResponse({'success': False, 'error': 'Error al generar el documento PDF'}, status=500)
             
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def orden_autorizacion_subir_firma_api(request, order_id):
+    """Subir orden firmada y autorizar"""
+    try:
+        from apps.orders.models import OrdenAutorizacion
+        from django.utils import timezone
+        
+        orden = get_object_or_404(OrdenAutorizacion, pk=order_id)
+        
+        archivo = request.FILES.get('archivo_firmado')
+        if not archivo:
+            return JsonResponse({'success': False, 'error': 'No se ha proporcionado el archivo'}, status=400)
+            
+        orden.archivo_firmado = archivo
+        orden.fecha_firma = timezone.now()
+        orden.estado = 'autorizado'
+        orden.save()
+        
+        # Actualizar orden de producción vinculada
+        if orden.orden_produccion:
+             orden.orden_produccion.estado = 'autorizado'
+             orden.orden_produccion.save()
+             
+        return JsonResponse({'success': True, 'message': 'Orden firmada subida y autorizada exitosamente'})
+        
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
@@ -10518,10 +10612,10 @@ def orden_suspension_generar_pdf_api(request, order_id):
         
         # Generar PDF
         if orden_generada.generar_orden_suspension_pdf():
-            # Actualizar estado de la orden original
-            if orden.estado == 'pendiente':
-                orden.estado = 'procesado'
-                orden.save()
+            # Actualizar estado de la orden original - SE MUEVE A LA FIRMA
+            # if orden.estado == 'pendiente':
+            #     orden.estado = 'procesado'
+            #     orden.save()
                 
             return JsonResponse({
                 'success': True, 
@@ -10532,5 +10626,87 @@ def orden_suspension_generar_pdf_api(request, order_id):
         else:
             return JsonResponse({'success': False, 'error': 'Error al generar el documento PDF'}, status=500)
             
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def orden_suspension_subir_firma_api(request, order_id):
+    """Subir orden suspensión firmada y procesar"""
+    try:
+        from apps.orders.models import OrdenSuspension
+        from django.utils import timezone
+        
+        orden = get_object_or_404(OrdenSuspension, pk=order_id)
+        
+        archivo = request.FILES.get('archivo_firmado')
+        if not archivo:
+            return JsonResponse({'success': False, 'error': 'No se ha proporcionado el archivo'}, status=400)
+            
+        orden.archivo_firmado = archivo
+        orden.fecha_firma = timezone.now()
+        orden.estado = 'procesado' 
+        orden.save()
+        
+        # Actualizar estado del contrato/cuña (Lógica movida desde create)
+        if orden.contrato:
+             orden.contrato.estado = 'suspendido'
+             orden.contrato.save()
+             # Si tiene cuña asociada, también suspenderla o pausarla
+             if orden.contrato.cuña:
+                 orden.contrato.cuña.estado = 'pausada'
+                 orden.contrato.cuña.save()
+             
+        return JsonResponse({'success': True, 'message': 'Orden firmada subida y procesada exitosamente'})
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(is_admin)
+def orden_produccion_detail_api(request, order_id):
+    try:
+        from apps.orders.models import OrdenProduccion
+        orden = get_object_or_404(OrdenProduccion, pk=order_id)
+        
+        return JsonResponse({
+            'success': True,
+            'orden': {
+                'id': orden.id,
+                'codigo': orden.codigo,
+                'cliente_id': orden.orden_toma.cliente.id if orden.orden_toma and orden.orden_toma.cliente else None,
+                'nombre_cliente': orden.nombre_cliente,
+                'campania': orden.proyecto_campania,
+                'vendedor_id': orden.orden_toma.cliente.vendedor_asignado.id if orden.orden_toma and orden.orden_toma.cliente and orden.orden_toma.cliente.vendedor_asignado else None,
+                'valor_total': 0.00,
+                'observaciones': orden.observaciones_produccion
+            }
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(is_admin)
+def contrato_detail_api(request, contrato_id):
+    try:
+        from apps.content_management.models import ContratoGenerado
+        contrato = get_object_or_404(ContratoGenerado, pk=contrato_id)
+        
+        return JsonResponse({
+            'success': True,
+            'contrato': {
+                'id': contrato.id,
+                'numero_contrato': contrato.numero_contrato,
+                'cliente_id': contrato.cliente.id if contrato.cliente else None,
+                'nombre_cliente': contrato.nombre_cliente,
+                'campania': contrato.cuña.titulo if contrato.cuña else f"Contrato {contrato.numero_contrato}",
+                'fecha_fin': contrato.cuña.fecha_fin.strftime('%Y-%m-%d') if contrato.cuña and contrato.cuña.fecha_fin else None,
+                'motivo': 'Suspensión solicitada'
+            }
+        })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)

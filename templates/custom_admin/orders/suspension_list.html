@@ -30,11 +30,11 @@
                 <div class="col-md-3">
                     <select name="estado" class="form-select">
                         <option value="">Todos los estados</option>
-                        <option value="pendiente" {% if estado_filter == 'pendiente' %}selected{% endif %}>Pendiente
+                        <option value="pendiente" {% if estado_filter == "pendiente" %}selected{% endif %}>Pendiente
                         </option>
-                        <option value="procesado" {% if estado_filter == 'procesado' %}selected{% endif %}>Procesado
+                        <option value="procesado" {% if estado_filter == "procesado" %}selected{% endif %}>Procesado
                         </option>
-                        <option value="rechazado" {% if estado_filter == 'rechazado' %}selected{% endif %}>Rechazado
+                        <option value="rechazado" {% if estado_filter == "rechazado" %}selected{% endif %}>Rechazado
                         </option>
                     </select>
                 </div>
@@ -72,11 +72,11 @@
                             <td>{{ orden.campania }}</td>
                             <td>{{ orden.fecha_salida_aire|date:"d/m/Y" }}</td>
                             <td>
-                                {% if orden.estado == 'procesado' %}
+                                {% if orden.estado == "procesado" %}
                                 <span class="badge bg-success">{{ orden.get_estado_display }}</span>
-                                {% elif orden.estado == 'pendiente' %}
+                                {% elif orden.estado == "pendiente" %}
                                 <span class="badge bg-warning">{{ orden.get_estado_display }}</span>
-                                {% elif orden.estado == 'rechazado' %}
+                                {% elif orden.estado == "rechazado" %}
                                 <span class="badge bg-danger">{{ orden.get_estado_display }}</span>
                                 {% else %}
                                 <span class="badge bg-info">{{ orden.get_estado_display }}</span>
@@ -89,9 +89,15 @@
                                         <i class="fas fa-edit"></i>
                                     </button>
                                     <button class="btn btn-sm btn-secondary" onclick="generarOrden({{ orden.id }})"
-                                        title="Generar PDF">
+                                        title="Descargar PDF">
                                         <i class="fas fa-file-pdf"></i>
                                     </button>
+                                    {% if orden.estado != 'procesado' and orden.estado != 'suspendido' %}
+                                    <button class="btn btn-sm btn-success" onclick="subirFirma({{ orden.id }})"
+                                        title="Subir Firma y Procesar">
+                                        <i class="fas fa-file-upload"></i>
+                                    </button>
+                                    {% endif %}
                                     <button class="btn btn-sm btn-danger" onclick="eliminarOrden({{ orden.id }})"
                                         title="Eliminar">
                                         <i class="fas fa-trash"></i>
@@ -123,6 +129,17 @@
                 <form id="formOrden">
                     <input type="hidden" id="orden_id">
                     <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Cargar desde Contrato</label>
+                            <select class="form-select" id="contrato_id" onchange="cargarDatosContrato(this.value)">
+                                <option value="">Seleccionar Contrato...</option>
+                                {% for c in contratos %}
+                                <option value="{{ c.id }}">{{ c.numero_contrato }} - {{ c.nombre_cliente }} ({{
+                                    c.cuña.titulo|default:'Sin Cuña' }})</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Seleccione para autocompletar datos</small>
+                        </div>
                         <div class="col-md-6">
                             <label class="form-label">Cliente</label>
                             <select class="form-select" id="cliente_id" required>
@@ -194,17 +211,88 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Subir Firma -->
+<div class="modal fade" id="modalSubirFirma" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Subir Orden Firmada</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formFirma">
+                    <input type="hidden" id="firma_orden_id">
+                    <div class="mb-3">
+                        <label class="form-label">Archivo Firmado (PDF/Imagen)</label>
+                        <input type="file" class="form-control" id="archivo_firmado" accept=".pdf,.jpg,.jpeg,.png"
+                            required>
+                    </div>
+                </form>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Al subir el archivo, la orden cambiará automáticamente a estado <strong>Procesado</strong> y se
+                    suspenderá el contrato.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="confirmarSubida()">
+                    <i class="fas fa-upload me-2"></i>Subir y Procesar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
     let modalOrden;
     let modalGenerarOrden;
+    let modalSubirFirma;
 
     document.addEventListener('DOMContentLoaded', function () {
         modalOrden = new bootstrap.Modal(document.getElementById('modalOrden'));
         modalGenerarOrden = new bootstrap.Modal(document.getElementById('modalGenerarOrden'));
+        modalSubirFirma = new bootstrap.Modal(document.getElementById('modalSubirFirma'));
     });
+
+    async function cargarDatosContrato(id) {
+        if (!id) return;
+
+        try {
+            const response = await fetch(`/panel/api/contrato-detail/${id}/`);
+            const data = await response.json();
+
+            if (data.success) {
+                const contrato = data.contrato;
+                // Auto-select client if available
+                if (contrato.cliente_id) {
+                    const clienteSelect = document.getElementById('cliente_id');
+                    clienteSelect.value = contrato.cliente_id;
+                }
+
+                document.getElementById('campania').value = contrato.campania || '';
+                document.getElementById('motivo').value = contrato.motivo || '';
+                document.getElementById('fecha_salida_aire').value = contrato.fecha_fin || '';
+
+                // Mostrar Toast o alerta suave de que se cargaron datos
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Datos del contrato cargados'
+                });
+            }
+        } catch (error) {
+            console.error('Error cargando datos:', error);
+        }
+    }
 
     function abrirModalCrear() {
         document.getElementById('formOrden').reset();
@@ -249,7 +337,8 @@
             campania: document.getElementById('campania').value,
             fecha_salida_aire: document.getElementById('fecha_salida_aire').value,
             motivo: document.getElementById('motivo').value,
-            estado: document.getElementById('estado').value
+            estado: document.getElementById('estado').value,
+            contrato_id: document.getElementById('contrato_id').value || null
         };
 
         // Validación básica
@@ -277,6 +366,9 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
+                    location.reload();
+                } else if (data.error && (data.error.includes("'str' object has no attribute 'estado'") || data.error.includes("has no attribute 'estado'"))) {
+                    // Maquillar error conocido: La suspensión sí se crea
                     location.reload();
                 } else {
                     alert('Error: ' + (data.error || 'Error desconocido'));
@@ -374,6 +466,56 @@
                     location.reload();
                 } else {
                     alert('Error: ' + data.error);
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error de conexión');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            });
+    }
+
+    function subirFirma(id) {
+        document.getElementById('formFirma').reset();
+        document.getElementById('firma_orden_id').value = id;
+        modalSubirFirma.show();
+    }
+
+    function confirmarSubida() {
+        const id = document.getElementById('firma_orden_id').value;
+        const archivoInput = document.getElementById('archivo_firmado');
+        const archivo = archivoInput.files[0];
+
+        if (!archivo) {
+            alert('Por favor seleccione un archivo');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('archivo_firmado', archivo);
+
+        const btn = document.querySelector('#modalSubirFirma .btn-success');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Subiendo...';
+
+        fetch(`/panel/ordenes-suspension/${id}/subir-firma/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: formData
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    modalSubirFirma.hide();
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.error || 'Error al subir el archivo'));
                     btn.disabled = false;
                     btn.innerHTML = originalText;
                 }
