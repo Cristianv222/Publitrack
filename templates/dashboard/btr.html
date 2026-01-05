@@ -12,21 +12,44 @@
         transition: all 0.3s ease;
         background-color: #fff;
     }
+
     .stat-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.05) !important;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05) !important;
     }
-    
-    /* Colores Pastel para bordes y fondos ligeros */
-    .border-pastel-blue { border-left: 5px solid #a2d2ff !important; }
-    .border-pastel-green { border-left: 5px solid #b9fbc0 !important; }
-    .border-pastel-yellow { border-left: 5px solid #fbf8cc !important; }
-    .border-pastel-purple { border-left: 5px solid #cfbaf0 !important; }
-    .border-pastel-red { border-left: 5px solid #ffcfd2 !important; }
 
-    .bg-pastel-blue { background-color: #eaf4ff; }
-    .bg-pastel-green { background-color: #f0fff1; }
-    .bg-pastel-yellow { background-color: #fffdf0; }
+    /* Colores Pastel para bordes y fondos ligeros */
+    .border-pastel-blue {
+        border-left: 5px solid #a2d2ff !important;
+    }
+
+    .border-pastel-green {
+        border-left: 5px solid #b9fbc0 !important;
+    }
+
+    .border-pastel-yellow {
+        border-left: 5px solid #fbf8cc !important;
+    }
+
+    .border-pastel-purple {
+        border-left: 5px solid #cfbaf0 !important;
+    }
+
+    .border-pastel-red {
+        border-left: 5px solid #ffcfd2 !important;
+    }
+
+    .bg-pastel-blue {
+        background-color: #eaf4ff;
+    }
+
+    .bg-pastel-green {
+        background-color: #f0fff1;
+    }
+
+    .bg-pastel-yellow {
+        background-color: #fffdf0;
+    }
 
     /* Monitor BTR */
     .monitor-btr {
@@ -35,7 +58,7 @@
         padding: 20px;
         border-radius: 15px;
         font-family: 'Digital-7', 'Courier New', monospace;
-        box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
     }
 
     .on-air-text {
@@ -47,9 +70,17 @@
     }
 
     @keyframes blink {
-        0% { opacity: 1; }
-        50% { opacity: 0.4; }
-        100% { opacity: 1; }
+        0% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.4;
+        }
+
+        100% {
+            opacity: 1;
+        }
     }
 
     .table-pastel thead th {
@@ -84,7 +115,8 @@
                 </div>
                 <div class="text-end">
                     <h2 class="mb-0 fw-bold" id="clock" style="color: #55efc4;">00:00:00</h2>
-                    <small class="text-uppercase" style="font-size: 0.7rem; color: #b2bec3;">{{ hoy|date:"D d M Y" }}</small>
+                    <small class="text-uppercase" style="font-size: 0.7rem; color: #b2bec3;">{{ hoy|date:"D d M Y"
+                        }}</small>
                 </div>
             </div>
         </div>
@@ -95,7 +127,7 @@
             <div class="card stat-card border-pastel-blue shadow-sm h-100">
                 <div class="card-body">
                     <div class="text-xs fw-bold text-primary text-uppercase mb-1">Tomas Pendientes</div>
-                    <div class="h4 mb-0 fw-bold text-gray-800">{{ ordenes_toma_recientes.count|default:0 }}</div>
+                    <div class="h4 mb-0 fw-bold text-gray-800">{{ ordenes_toma.count|default:0 }}</div>
                     <div class="mt-2">
                         <span class="badge bg-pastel-blue text-primary">Esperando validación</span>
                     </div>
@@ -106,10 +138,11 @@
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card stat-card border-pastel-purple shadow-sm h-100">
                 <div class="card-body">
-                    <div class="text-xs fw-bold text-purple text-uppercase mb-1" style="color: #6c5ce7;">En Producción</div>
-                    <div class="h4 mb-0 fw-bold text-gray-800">{{ produccion_activa.count|default:0 }}</div>
+                    <div class="text-xs fw-bold text-purple text-uppercase mb-1" style="color: #6c5ce7;">Órdenes
+                        Producción</div>
+                    <div class="h4 mb-0 fw-bold text-gray-800">{{ ordenes_produccion.count|default:0 }}</div>
                     <div class="mt-2">
-                        <span class="badge" style="background-color: #f3f0ff; color: #6c5ce7;">Editando material</span>
+                        <span class="badge" style="background-color: #f3f0ff; color: #6c5ce7;">En proceso</span>
                     </div>
                 </div>
             </div>
@@ -143,8 +176,11 @@
     <div class="row">
         <div class="col-lg-6 mb-4">
             <div class="card shadow-sm border-0" style="border-radius: 15px;">
-                <div class="card-header bg-white py-3 border-0">
+                <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 fw-bold text-primary"><i class="fas fa-file-import me-2"></i>Tomas Recientes</h6>
+                    <button class="btn btn-sm btn-primary btn-pastel" onclick="abrirModalCrearOrden()">
+                        <i class="fas fa-plus"></i> Nueva
+                    </button>
                 </div>
                 <div class="table-responsive p-3">
                     <table class="table table-pastel align-middle">
@@ -162,16 +198,20 @@
                                 <td><span class="fw-bold">{{ orden.codigo }}</span></td>
                                 <td class="small">{{ orden.nombre_cliente }}</td>
                                 <td>
-                                    <span class="badge bg-pastel-blue text-primary">{{ orden.get_estado_display }}</span>
+                                    <span class="badge bg-pastel-blue text-primary">{{ orden.get_estado_display
+                                        }}</span>
                                 </td>
                                 <td>
-                                    <button onclick="verDetalle({{ orden.id }})" class="btn btn-sm btn-light btn-pastel border">
+                                    <button onclick="verDetalle({{ orden.id }})"
+                                        class="btn btn-sm btn-light btn-pastel border">
                                         <i class="fas fa-search"></i>
                                     </button>
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="4" class="text-center text-muted">No hay tomas pendientes</td></tr>
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">No hay tomas pendientes</td>
+                            </tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -182,30 +222,86 @@
         <div class="col-lg-6 mb-4">
             <div class="card shadow-sm border-0" style="border-radius: 15px;">
                 <div class="card-header bg-white py-3 border-0">
-                    <h6 class="m-0 fw-bold text-success"><i class="fas fa-check-double me-2"></i>Material Listo para BTR</h6>
+                    <h6 class="m-0 fw-bold text-primary"><i class="fas fa-file-import me-2"></i>Órdenes de Toma</h6>
                 </div>
-                <div class="card-body">
-                    {% for prod in material_listo %}
-                    <div class="d-flex align-items-center p-3 mb-3 border rounded bg-pastel-green">
-                        <div class="flex-shrink-0 me-3">
-                            <i class="fas fa-video fa-2x text-success"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            <h6 class="mb-0 fw-bold">{{ prod.titulo_material }}</h6>
-                            <small class="text-muted">{{ prod.codigo }} | {{ prod.tipo_produccion }}</small>
-                        </div>
-                        <div>
-                            <a href="#" class="btn btn-success btn-sm btn-pastel shadow-sm">
-                                <i class="fas fa-download me-1"></i> BTR
-                            </a>
-                        </div>
-                    </div>
-                    {% empty %}
+                <div class="table-responsive p-3">
+                    <table class="table table-pastel align-middle">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Cliente</th>
+                                <th>Estado</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for orden in ordenes_toma|slice:":5" %}
+                            <tr>
+                                <td><span class="fw-bold">{{ orden.codigo }}</span></td>
+                                <td class="small">{{ orden.nombre_cliente }}</td>
+                                <td>
+                                    <span class="badge bg-pastel-blue text-primary">{{ orden.estado }}</span>
+                                </td>
+                                <td>
+                                    <button onclick="verDetalle({{ orden.id }})"
+                                        class="btn btn-sm btn-light btn-pastel border">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">No hay tomas pendientes</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm border-0" style="border-radius: 15px;">
+                <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 fw-bold text-purple"><i class="fas fa-cogs me-2"></i>Órdenes de Producción</h6>
+                    <button class="btn btn-sm btn-success btn-pastel" onclick="abrirModalCrearProduccion()">
+                        <i class="fas fa-plus"></i> Nueva
+                    </button>
+                </div>
+                <div class="table-responsive p-3">
+                    {% if ordenes_produccion %}
+                    <table class="table table-pastel align-middle">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Título</th>
+                                <th>Estado</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for orden in ordenes_produccion|slice:":5" %}
+                            <tr>
+                                <td><span class="fw-bold">{{ orden.codigo }}</span></td>
+                                <td class="small">{{ orden.titulo_material }}</td>
+                                <td>
+                                    <span class="badge bg-pastel-green text-success">{{ orden.estado }}</span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-light btn-pastel border">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
                     <div class="text-center py-5">
-                        <i class="fas fa-cloud-upload-alt fa-3x text-light mb-3"></i>
-                        <p class="text-muted">No hay material disponible para descarga inmediata</p>
+                        <i class="fas fa-film fa-3x text-light mb-3"></i>
+                        <p class="text-muted">No hay órdenes de producción disponibles</p>
                     </div>
-                    {% endfor %}
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -215,7 +311,8 @@
         <div class="col-12">
             <div class="card shadow-sm border-0" style="border-radius: 15px;">
                 <div class="card-header bg-white py-3">
-                    <h6 class="m-0 fw-bold text-dark"><i class="fas fa-broadcast-tower me-2"></i>Cuñas Activas en el Sistema para Hoy</h6>
+                    <h6 class="m-0 fw-bold text-dark"><i class="fas fa-broadcast-tower me-2"></i>Cuñas Activas en el
+                        Sistema para Hoy</h6>
                 </div>
                 <div class="table-responsive p-3">
                     <table class="table table-hover align-middle" style="font-size: 0.9rem;">
@@ -238,7 +335,9 @@
                                 <td><span class="badge bg-success shadow-sm">Activa</span></td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="5" class="text-center text-muted">Cargando datos de emisión...</td></tr>
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">Cargando datos de emisión...</td>
+                            </tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -247,6 +346,165 @@
         </div>
     </div>
 </div>
+
+
+<!-- Modals from Orders List -->
+<!-- Modal Crear/Editar Orden -->
+<div class="modal fade" id="modalOrden" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalOrdenTitulo">Nueva Orden</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formOrden">
+                    {% csrf_token %}
+                    <input type="hidden" id="orden_id" name="orden_id">
+
+                    <!-- Información Básica -->
+                    <h6 class="mb-3 text-primary">Información de la Orden</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Cliente <span class="text-danger">*</span></label>
+                            <select class="form-select" name="cliente_id" id="cliente_id" required>
+                                <option value="">Seleccionar cliente...</option>
+                                {% for cliente in clientes %}
+                                <option value="{{ cliente.id }}">
+                                    {{ cliente.empresa|default:cliente.get_full_name }} - {{ cliente.ruc_dni }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Prioridad <span class="text-danger">*</span></label>
+                            <select class="form-select" name="prioridad" id="prioridad" required>
+                                <option value="baja">Baja</option>
+                                <option value="normal" selected>Normal</option>
+                                <option value="alta">Alta</option>
+                                <option value="urgente">Urgente</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Detalles de Productos/Servicios -->
+                    <h6 class="mb-3 text-primary">Detalles de Productos/Servicios</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-12">
+                            <label class="form-label">Descripción <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="detalle_productos" id="detalle_productos" rows="3"
+                                required placeholder="Describa los productos o servicios solicitados..."></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Cantidad</label>
+                            <input type="number" class="form-control" name="cantidad" id="cantidad" value="1" min="1">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Total (S/) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="total" id="total" step="0.01" value="0.00"
+                                required>
+                        </div>
+                    </div>
+
+                    <!-- Información Adicional -->
+                    <h6 class="mb-3 text-primary">Información Adicional</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-12">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" name="estado" id="estado">
+                                <option value="pendiente" selected>Pendiente</option>
+                                <option value="validado">Validado</option>
+                                <option value="en_produccion">En Producción</option>
+                                <option value="completado">Completado</option>
+                                <option value="no_validado">No Validado</option>
+                                <option value="cancelado">Cancelado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Observaciones</label>
+                            <textarea class="form-control" name="observaciones" id="observaciones" rows="2"
+                                placeholder="Observaciones adicionales..."></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="guardarOrden()">
+                    <i class="fas fa-save me-2"></i>Guardar Orden
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Crear/Editar Orden de Producción -->
+<div class="modal fade" id="modalOrdenProduccion" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalOrdenProduccionTitulo">Nueva Orden de Producción</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formOrdenProduccion">
+                    {% csrf_token %}
+                    <input type="hidden" id="orden_produccion_id" name="orden_produccion_id">
+
+                    <h6 class="mb-3 text-primary">Información de la Orden</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Orden de Toma <span class="text-danger">*</span></label>
+                            <select class="form-select" name="orden_toma_id" id="orden_toma_id" required>
+                                <option value="">Seleccionar orden de toma...</option>
+                                {% for toma in ordenes_toma %}
+                                <option value="{{ toma.id }}">{{ toma.codigo }} - {{ toma.nombre_cliente }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo de Producción <span class="text-danger">*</span></label>
+                            <select class="form-select" name="tipo_produccion" id="tipo_produccion" required>
+                                <option value="video">Video</option>
+                                <option value="audio">Audio</option>
+                                <option value="diseno">Diseño</option>
+                                <option value="animacion">Animación</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Prioridad <span class="text-danger">*</span></label>
+                            <select class="form-select" name="prioridad" id="prioridad_prod" required>
+                                <option value="baja">Baja</option>
+                                <option value="normal" selected>Normal</option>
+                                <option value="alta">Alta</option>
+                                <option value="urgente">Urgente</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <!-- Productor Asignado hardcoded to current user or simplified as BTR is often the authorized -->
+                            <label class="form-label">Productor Asignado</label>
+                            <input type="text" class="form-control" value="{{ user.get_full_name }}" disabled>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="guardarOrdenProduccion()">
+                    <i class="fas fa-save me-2"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -255,15 +513,197 @@
     function updateBTRClock() {
         const now = new Date();
         const time = now.getHours().toString().padStart(2, '0') + ':' +
-                     now.getMinutes().toString().padStart(2, '0') + ':' +
-                     now.getSeconds().toString().padStart(2, '0');
-        document.getElementById('clock').textContent = time;
+            now.getMinutes().toString().padStart(2, '0') + ':' +
+            now.getSeconds().toString().padStart(2, '0');
+        const clockEl = document.getElementById('clock');
+        if (clockEl) clockEl.textContent = time;
     }
     setInterval(updateBTRClock, 1000);
     updateBTRClock();
 
+    let modalOrden, modalOrdenProduccion;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        modalOrden = new bootstrap.Modal(document.getElementById('modalOrden'));
+        modalOrdenProduccion = new bootstrap.Modal(document.getElementById('modalOrdenProduccion'));
+    });
+
+    // --- Ordenes Toma Functions ---
+    function abrirModalCrearOrden() {
+        document.getElementById('modalOrdenTitulo').textContent = 'Nueva Orden';
+        document.getElementById('formOrden').reset();
+        document.getElementById('orden_id').value = '';
+        modalOrden.show();
+    }
+
+    function editarOrden(orderId) {
+        document.getElementById('modalOrdenTitulo').textContent = 'Editar Orden';
+        document.getElementById('orden_id').value = orderId;
+
+        fetch(`/panel/orders/${orderId}/detalle/`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const orden = data.orden;
+                    document.getElementById('cliente_id').value = orden.cliente_id || '';
+                    document.getElementById('prioridad').value = orden.prioridad;
+                    document.getElementById('detalle_productos').value = orden.detalle_productos;
+                    document.getElementById('cantidad').value = orden.cantidad;
+                    document.getElementById('total').value = orden.total;
+                    document.getElementById('estado').value = orden.estado;
+                    document.getElementById('observaciones').value = orden.observaciones;
+                    modalOrden.show();
+                }
+            });
+    }
+
+    function guardarOrden() {
+        console.log('🔵 guardarOrden() llamada');
+        const ordenId = document.getElementById('orden_id').value;
+        const form = document.getElementById('formOrden');
+
+        if (!form.checkValidity()) {
+            console.log('❌ Formulario inválido');
+            form.reportValidity();
+            return;
+        }
+
+        const formData = {
+            cliente_id: document.getElementById('cliente_id').value,
+            detalle_productos: document.getElementById('detalle_productos').value,
+            cantidad: document.getElementById('cantidad').value,
+            total: document.getElementById('total').value,
+            prioridad: document.getElementById('prioridad').value,
+            estado: document.getElementById('estado').value,
+            observaciones: document.getElementById('observaciones').value,
+        };
+
+        console.log('📦 Datos a enviar:', formData);
+
+        const url = ordenId ? `/panel/orders/${ordenId}/editar/` : '/panel/orders/crear/';
+        const method = ordenId ? 'PUT' : 'POST';
+
+        console.log(`🌐 Enviando ${method} a ${url}`);
+
+        modalOrden.hide();
+
+        fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(formData)
+        })
+            .then(res => {
+                console.log('📡 Respuesta recibida:', res.status);
+                return res.json();
+            })
+            .then(data => {
+                console.log('📥 Data:', data);
+                if (data.success) {
+                    alert('✅ Orden guardada exitosamente');
+                    location.reload();
+                } else {
+                    alert('❌ Error: ' + (data.error || 'Error al guardar'));
+                    modalOrden.show();
+                }
+            })
+            .catch(error => {
+                console.error('💥 Error en fetch:', error);
+                alert('❌ Error de conexión: ' + error.message);
+                modalOrden.show();
+            });
+    }
+
     function verDetalle(id) {
+        console.log('🔍 Ver detalle orden:', id);
+        // Por ahora, redirigir a la página de detalle
         window.location.href = `/panel/orders/${id}/detalle/`;
     }
+
+    // --- Ordenes Produccion Functions ---
+    function abrirModalCrearProduccion() {
+        console.log('🎬 Abriendo modal crear producción');
+        document.getElementById('modalOrdenProduccionTitulo').textContent = 'Nueva Orden de Producción';
+        document.getElementById('formOrdenProduccion').reset();
+        document.getElementById('orden_produccion_id').value = '';
+        modalOrdenProduccion.show();
+    }
+
+    function editarOrdenProduccion(id) {
+        console.log('✏️ Editando orden producción:', id);
+        document.getElementById('modalOrdenProduccionTitulo').textContent = 'Editar Orden de Producción';
+        document.getElementById('orden_produccion_id').value = id;
+
+        fetch(`/panel/ordenes-produccion/${id}/detalle/`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const orden = data.orden;
+                    // Populate fields
+                    if (document.getElementById('orden_toma_id'))
+                        document.getElementById('orden_toma_id').value = orden.orden_toma_id || '';
+                    document.getElementById('tipo_produccion').value = orden.tipo_produccion;
+                    document.getElementById('prioridad_prod').value = orden.prioridad;
+                    modalOrdenProduccion.show();
+                } else {
+                    console.error('Error cargando orden:', data.error);
+                    alert('Error al cargar la orden: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error en fetch:', error);
+                alert('Error de conexión: ' + error.message);
+            });
+    }
+
+    function guardarOrdenProduccion() {
+        console.log('🔵 guardarOrdenProduccion() llamada');
+        const id = document.getElementById('orden_produccion_id').value;
+        const formData = {
+            orden_toma_id: document.getElementById('orden_toma_id').value,
+            tipo_produccion: document.getElementById('tipo_produccion').value,
+            prioridad: document.getElementById('prioridad_prod').value
+        };
+
+        console.log('📦 Datos a enviar:', formData);
+
+        const url = id ? `/panel/ordenes-produccion/${id}/editar/` : '/panel/ordenes-produccion/crear/';
+        const method = id ? 'PUT' : 'POST';
+
+        console.log(`🌐 Enviando ${method} a ${url}`);
+
+        modalOrdenProduccion.hide();
+
+        fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(formData)
+        })
+            .then(res => {
+                console.log('📡 Respuesta recibida:', res.status);
+                return res.json();
+            })
+            .then(data => {
+                console.log('📥 Data:', data);
+                if (data.success) {
+                    alert('✅ Orden de producción guardada exitosamente');
+                    location.reload();
+                } else {
+                    alert('❌ Error: ' + (data.error || 'Error al guardar'));
+                    modalOrdenProduccion.show();
+                }
+            })
+            .catch(error => {
+                console.error('💥 Error en fetch:', error);
+                alert('❌ Error de conexión: ' + error.message);
+                modalOrdenProduccion.show();
+            });
+    }
+
 </script>
 {% endblock %}

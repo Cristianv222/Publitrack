@@ -10,16 +10,20 @@
         transition: all 0.3s ease;
         border-left: 4px solid transparent;
     }
+
     .contrato-card:hover {
         transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
     }
+
     .contrato-card.pendiente {
         border-left-color: #ffc107;
     }
+
     .contrato-card.generado {
         border-left-color: #10b981;
     }
+
     .preview-section {
         background: #f8f9fa;
         border: 2px dashed #cbd5e0;
@@ -31,17 +35,20 @@
         align-items: center;
         justify-content: center;
     }
+
     .step-indicator {
         display: flex;
         justify-content: space-between;
         margin-bottom: 30px;
         position: relative;
     }
+
     .step {
         flex: 1;
         text-align: center;
         position: relative;
     }
+
     .step-number {
         width: 40px;
         height: 40px;
@@ -55,14 +62,17 @@
         margin-bottom: 8px;
         transition: all 0.3s ease;
     }
+
     .step.active .step-number {
         background: #3b82f6;
         color: white;
     }
+
     .step.completed .step-number {
         background: #10b981;
         color: white;
     }
+
     .step-line {
         position: absolute;
         top: 20px;
@@ -72,9 +82,11 @@
         background: #e2e8f0;
         z-index: -1;
     }
+
     .step.completed .step-line {
         background: #10b981;
     }
+
     .info-badge {
         background: #eff6ff;
         border: 1px solid #3b82f6;
@@ -86,6 +98,7 @@
         align-items: center;
         gap: 8px;
     }
+
     .profesion-badge {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -94,6 +107,7 @@
         font-size: 0.75rem;
         font-weight: 600;
     }
+
     .cargo-badge {
         background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         color: white;
@@ -102,18 +116,22 @@
         font-size: 0.75rem;
         font-weight: 600;
     }
+
     .categoria-badge {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        color: white;
+        background: #e0f2fe;
+        color: #0369a1;
+        border: 1px solid #7dd3fc;
         padding: 4px 10px;
         border-radius: 12px;
         font-size: 0.75rem;
         font-weight: 600;
     }
+
     .btn-group-sm .btn {
         padding: 0.25rem 0.5rem;
         font-size: 0.775rem;
     }
+
     .calculation-display {
         background: #f8f9fa;
         border: 1px solid #dee2e6;
@@ -121,17 +139,21 @@
         padding: 0.75rem;
         font-size: 0.875rem;
     }
+
     .calculation-formula {
         color: #6c757d;
         font-size: 0.8rem;
     }
+
     /* Nuevos estilos para estadísticas */
     .stat-card.active {
         border-left: 4px solid #10b981;
     }
+
     .stat-card.pending {
         border-left: 4px solid #f59e0b;
     }
+
     .categoria-color-indicator {
         width: 16px;
         height: 16px;
@@ -139,7 +161,7 @@
         display: inline-block;
         margin-right: 8px;
         border: 2px solid #fff;
-        box-shadow: 0 0 2px rgba(0,0,0,0.3);
+        box-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
     }
 </style>
 {% endblock %}
@@ -195,7 +217,7 @@
             Generar Nuevo Contrato
         </h5>
     </div>
-    
+
     <div class="admin-card-body">
         <!-- Indicador de Pasos -->
         <div class="step-indicator">
@@ -214,7 +236,7 @@
                 <div class="step-label">Configurar Contrato</div>
             </div>
         </div>
-        
+
         <form id="contratoForm">
             <div class="row">
                 <!-- Paso 1: Selección de Plantilla -->
@@ -227,13 +249,11 @@
                         <select class="form-select form-select-lg" id="plantillaSelect" required>
                             <option value="">-- Seleccione una plantilla --</option>
                             {% for plantilla in plantillas %}
-                            <option value="{{ plantilla.id }}" 
-                                    data-nombre="{{ plantilla.nombre }}"
-                                    data-tipo="{{ plantilla.get_tipo_contrato_display }}"
-                                    data-version="{{ plantilla.version }}"
-                                    data-iva="{{ plantilla.incluye_iva }}"
-                                    data-porcentaje-iva="{{ plantilla.porcentaje_iva }}">
-                                {{ plantilla.nombre }} 
+                            <option value="{{ plantilla.id }}" data-nombre="{{ plantilla.nombre }}"
+                                data-tipo="{{ plantilla.get_tipo_contrato_display }}"
+                                data-version="{{ plantilla.version }}" data-iva="{{ plantilla.incluye_iva }}"
+                                data-porcentaje-iva="{{ plantilla.porcentaje_iva }}">
+                                {{ plantilla.nombre }}
                                 {% if plantilla.is_default %}<span class="badge bg-warning">DEFAULT</span>{% endif %}
                             </option>
                             {% endfor %}
@@ -243,7 +263,7 @@
                             Seleccione la plantilla base para el contrato
                         </small>
                     </div>
-                    
+
                     <!-- Preview de Plantilla -->
                     <div id="plantillaPreview" class="d-none">
                         <div class="card border-primary">
@@ -270,7 +290,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Paso 2: Selección de Cliente -->
                 <div class="col-md-6">
                     <div class="mb-4">
@@ -282,14 +302,12 @@
                             <option value="">-- Primero seleccione una plantilla --</option>
                             {% for cliente in clientes %}
                             <option value="{{ cliente.id }}"
-                                    data-nombre="{{ cliente.empresa|default:cliente.get_full_name }}"
-                                    data-ruc="{{ cliente.ruc_dni }}"
-                                    data-email="{{ cliente.email }}"
-                                    data-telefono="{{ cliente.telefono }}"
-                                    data-ciudad="{{ cliente.ciudad }}"
-                                    data-direccion="{{ cliente.direccion_exacta }}"
-                                    data-profesion="{{ cliente.profesion_display }}"
-                                    data-cargo="{{ cliente.cargo_empresa }}">
+                                data-nombre="{{ cliente.empresa|default:cliente.get_full_name }}"
+                                data-ruc="{{ cliente.ruc_dni }}" data-email="{{ cliente.email }}"
+                                data-telefono="{{ cliente.telefono }}" data-ciudad="{{ cliente.ciudad }}"
+                                data-direccion="{{ cliente.direccion_exacta }}"
+                                data-profesion="{{ cliente.profesion_display }}"
+                                data-cargo="{{ cliente.cargo_empresa }}">
                                 {{ cliente.empresa|default:cliente.get_full_name }}
                                 {% if cliente.ruc_dni %}({{ cliente.ruc_dni }}){% endif %}
                             </option>
@@ -300,7 +318,7 @@
                             Cliente que firmará el contrato
                         </small>
                     </div>
-                    
+
                     <!-- Preview de Cliente -->
                     <div id="clientePreview" class="d-none">
                         <div class="card border-success">
@@ -337,7 +355,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Paso 3: Configuración del Contrato -->
             <div id="datosAdicionalesSection" class="d-none">
                 <hr class="my-4">
@@ -345,7 +363,7 @@
                     <i class="fas fa-edit text-primary me-2"></i>
                     3. Configuración del Contrato
                 </h6>
-                
+
                 <div class="row">
                     <div class="col-md-4">
                         <div class="mb-3">
@@ -362,26 +380,26 @@
                     <div class="col-md-4">
                         <div class="mb-3">
                             <label class="form-label">Valor por Segundo (S/) *</label>
-                            <input type="number" class="form-control" id="valorPorSegundo" 
-                                   step="0.01" min="0" placeholder="0.14" required>
+                            <input type="number" class="form-control" id="valorPorSegundo" step="0.01" min="0"
+                                placeholder="0.14" required>
                             <small class="text-muted">Ejemplo: 0.14 para 14 céntimos por segundo</small>
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="row">
                     <div class="col-md-4">
                         <div class="mb-3">
                             <label class="form-label">Spots por Día *</label>
-                            <input type="number" class="form-control" id="spotsDia" 
-                                   min="1" value="1" placeholder="Número de spots diarios" required>
+                            <input type="number" class="form-control" id="spotsDia" min="1" value="1"
+                                placeholder="Número de spots diarios" required>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="mb-3">
                             <label class="form-label">Duración del Spot (segundos) *</label>
-                            <input type="number" class="form-control" id="duracionSpot" 
-                                   min="1" value="30" placeholder="Duración en segundos" required>
+                            <input type="number" class="form-control" id="duracionSpot" min="1" value="30"
+                                placeholder="Duración en segundos" required>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -398,13 +416,13 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="row">
                     <div class="col-md-8">
                         <div class="mb-3">
                             <label class="form-label">Observaciones (Opcional)</label>
-                            <textarea class="form-control" id="observaciones" rows="3" 
-                                      placeholder="Notas adicionales sobre el contrato..."></textarea>
+                            <textarea class="form-control" id="observaciones" rows="3"
+                                placeholder="Notas adicionales sobre el contrato..."></textarea>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -420,18 +438,18 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Campo oculto para enviar el valor total -->
                 <input type="hidden" id="valorTotal" name="valorTotal">
             </div>
-            
+
             <!-- Botones de Acción -->
             <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
                 <div class="info-badge">
                     <i class="fas fa-lightbulb"></i>
                     <span>Los campos marcados con * son obligatorios</span>
                 </div>
-                
+
                 <div class="d-flex gap-2">
                     <button type="button" class="btn btn-secondary" onclick="limpiarFormulario()">
                         <i class="fas fa-redo me-2"></i>Limpiar
@@ -467,7 +485,7 @@
             </button>
         </div>
     </div>
-    
+
     <div class="admin-card-body">
         <div class="table-responsive">
             <table class="table table-hover">
@@ -486,8 +504,7 @@
                 </thead>
                 <tbody id="tablaContratos">
                     {% for contrato in contratos_recientes %}
-                    <tr data-contrato-id="{{ contrato.id }}" 
-                        data-contrato-info="{{ contrato.json_data|default:'{}' }}"
+                    <tr data-contrato-id="{{ contrato.id }}" data-contrato-info="{{ contrato.json_data|default:'{}' }}"
                         data-estado="{{ contrato.estado }}"
                         data-tiene-cuna="{% if contrato.cuña %}si{% else %}no{% endif %}">
                         <td class="numero-contrato"><strong>#{{ contrato.numero_contrato }}</strong></td>
@@ -502,64 +519,59 @@
                         <td class="valor-total">S/ {{ contrato.valor_total }}</td>
                         <td>
                             {% if contrato.estado == 'generado' %}
-                                <span class="badge bg-warning">Pendiente</span>
+                            <span class="badge bg-warning">Pendiente</span>
                             {% elif contrato.estado == 'validado' %}
-                                <span class="badge bg-success">Activo</span>
+                            <span class="badge bg-success">Activo</span>
                             {% elif contrato.estado == 'borrador' %}
-                                <span class="badge bg-secondary">Borrador</span>
+                            <span class="badge bg-secondary">Borrador</span>
                             {% else %}
-                                <span class="badge bg-secondary">{{ contrato.get_estado_display }}</span>
+                            <span class="badge bg-secondary">{{ contrato.get_estado_display }}</span>
                             {% endif %}
                         </td>
                         <td>
                             {% if contrato.cuña %}
-                                <span class="badge bg-success">Sí</span>
-                                <br><small>{{ contrato.cuña.codigo }}</small>
+                            <span class="badge bg-success">Sí</span>
+                            <br><small>{{ contrato.cuña.codigo }}</small>
                             {% else %}
-                                <span class="badge bg-secondary">No</span>
+                            <span class="badge bg-secondary">No</span>
                             {% endif %}
                         </td>
                         <td>
                             {% if contrato.cuña and contrato.cuña.categoria %}
-                                <span class="categoria-badge">
-                                    {{ contrato.cuña.categoria.nombre }}
-                                </span>
+                            <span class="categoria-badge">
+                                {{ contrato.cuña.categoria.nombre }}
+                            </span>
                             {% else %}
-                                <span class="badge bg-light text-dark">Sin categoría</span>
+                            <span class="badge bg-light text-dark">Sin categoría</span>
                             {% endif %}
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
                                 <!-- Botón Ver Detalle -->
-                                <button class="btn btn-info" 
-                                        onclick="verDetalleContrato({{ contrato.id }})" 
-                                        title="Ver detalle del contrato">
+                                <button class="btn btn-info" onclick="verDetalleContrato({{ contrato.id }})"
+                                    title="Ver detalle del contrato">
                                     <i class="fas fa-eye"></i>
                                 </button>
-                                
+
                                 <!-- Botón Descargar -->
                                 {% if contrato.archivo_contrato_pdf %}
-                                <a href="{{ contrato.archivo_contrato_pdf.url }}" 
-                                   class="btn btn-primary" 
-                                   target="_blank" 
-                                   title="Descargar">
+                                <a href="{{ contrato.archivo_contrato_pdf.url }}" class="btn btn-primary"
+                                    target="_blank" title="Descargar">
                                     <i class="fas fa-download"></i>
                                 </a>
                                 {% endif %}
-                                
+
                                 <!-- ✅ Botón Subir (solo si está en estado 'generado' y no tiene cuña) -->
                                 {% if contrato.estado == 'generado' and not contrato.cuña %}
-                                <button class="btn btn-success" 
-                                        onclick="subirContratoValidado({{ contrato.id }})" 
-                                        title="Subir contrato validado">
+                                <button class="btn btn-success" onclick="subirContratoValidado({{ contrato.id }})"
+                                    title="Subir contrato validado">
                                     <i class="fas fa-upload"></i>
                                 </button>
                                 {% endif %}
-                                
+
                                 <!-- Botón Eliminar -->
-                                <button class="btn btn-danger" 
-                                        onclick="eliminarContrato({{ contrato.id }})" 
-                                        title="Eliminar">
+                                <button class="btn btn-danger" onclick="eliminarContrato({{ contrato.id }})"
+                                    title="Eliminar">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -580,7 +592,8 @@
 </div>
 
 <!-- Modal para Detalle del Contrato -->
-<div class="modal fade" id="detalleContratoModal" tabindex="-1" aria-labelledby="detalleContratoModalLabel" aria-hidden="true">
+<div class="modal fade" id="detalleContratoModal" tabindex="-1" aria-labelledby="detalleContratoModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
@@ -631,7 +644,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="col-md-6">
                         <div class="card mb-3">
                             <div class="card-header bg-success text-white">
@@ -668,7 +681,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Información de la Cuña -->
                 <div class="row" id="modalCuñaSection" style="display: none;">
                     <div class="col-12">
@@ -707,7 +720,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Datos de Generación -->
                 <div class="row mt-3">
                     <div class="col-12">
@@ -740,565 +753,565 @@
 
 {% block extra_js %}
 <script>
-// Variables globales
-let plantillaSeleccionada = null;
-let clienteSeleccionado = null;
-let filtroActual = 'todos';
-let categoriasDisponibles = [];
+    // Variables globales
+    let plantillaSeleccionada = null;
+    let clienteSeleccionado = null;
+    let filtroActual = 'todos';
+    let categoriasDisponibles = [];
 
-// Cargar plantillas al iniciar
-document.addEventListener('DOMContentLoaded', function() {
-    cargarPlantillas();
-    cargarClientes();
-    cargarCategorias();
-});
+    // Cargar plantillas al iniciar
+    document.addEventListener('DOMContentLoaded', function () {
+        cargarPlantillas();
+        cargarClientes();
+        cargarCategorias();
+    });
 
-// ✅ NUEVA FUNCIÓN: Cargar categorías publicitarias
-function cargarCategorias() {
-    fetch('/panel/api/categorias-publicitarias/')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                categoriasDisponibles = data.categorias;
-                const select = document.getElementById('categoriaSelect');
-                
-                // Limpiar opciones existentes (excepto la primera)
-                while (select.options.length > 1) {
-                    select.remove(1);
+    // ✅ NUEVA FUNCIÓN: Cargar categorías publicitarias
+    function cargarCategorias() {
+        fetch('/panel/api/categorias-publicitarias/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    categoriasDisponibles = data.categorias;
+                    const select = document.getElementById('categoriaSelect');
+
+                    // Limpiar opciones existentes (excepto la primera)
+                    while (select.options.length > 1) {
+                        select.remove(1);
+                    }
+
+                    // Agregar categorías
+                    data.categorias.forEach(categoria => {
+                        const option = document.createElement('option');
+                        option.value = categoria.id;
+                        option.textContent = categoria.nombre;
+                        option.dataset.color = categoria.color_codigo;
+                        option.dataset.descripcion = categoria.descripcion;
+                        option.dataset.tarifa = categoria.tarifa_base;
+
+                        // Agregar indicador de color
+                        const colorIndicator = document.createElement('span');
+                        colorIndicator.className = 'categoria-color-indicator';
+                        colorIndicator.style.backgroundColor = categoria.color_codigo;
+
+                        option.textContent = categoria.nombre;
+                        select.appendChild(option);
+                    });
+
+                    console.log('Categorías cargadas:', data.categorias.length);
+                } else {
+                    console.error('Error cargando categorías:', data.error);
                 }
-                
-                // Agregar categorías
-                data.categorias.forEach(categoria => {
-                    const option = document.createElement('option');
-                    option.value = categoria.id;
-                    option.textContent = categoria.nombre;
-                    option.dataset.color = categoria.color_codigo;
-                    option.dataset.descripcion = categoria.descripcion;
-                    option.dataset.tarifa = categoria.tarifa_base;
-                    
-                    // Agregar indicador de color
-                    const colorIndicator = document.createElement('span');
-                    colorIndicator.className = 'categoria-color-indicator';
-                    colorIndicator.style.backgroundColor = categoria.color_codigo;
-                    
-                    option.textContent = categoria.nombre;
-                    select.appendChild(option);
-                });
-                
-                console.log('Categorías cargadas:', data.categorias.length);
-            } else {
-                console.error('Error cargando categorías:', data.error);
+            })
+            .catch(error => {
+                console.error('Error cargando categorías:', error);
+            });
+    }
+
+    // Función para filtrar contratos
+    function filtrarContratos(filtro) {
+        filtroActual = filtro;
+        const filas = document.querySelectorAll('#tablaContratos tr[data-estado]');
+
+        filas.forEach(fila => {
+            const estado = fila.getAttribute('data-estado');
+            const tieneCuña = fila.getAttribute('data-tiene-cuna');
+
+            let mostrar = false;
+
+            switch (filtro) {
+                case 'todos':
+                    mostrar = true;
+                    break;
+                case 'validados':
+                    mostrar = (estado === 'validado' && tieneCuña === 'si');
+                    break;
+                case 'generados':
+                    mostrar = (estado === 'generado' && tieneCuña === 'no');
+                    break;
             }
-        })
-        .catch(error => {
-            console.error('Error cargando categorías:', error);
+
+            fila.style.display = mostrar ? '' : 'none';
         });
-}
 
-// Función para filtrar contratos
-function filtrarContratos(filtro) {
-    filtroActual = filtro;
-    const filas = document.querySelectorAll('#tablaContratos tr[data-estado]');
-    
-    filas.forEach(fila => {
-        const estado = fila.getAttribute('data-estado');
-        const tieneCuña = fila.getAttribute('data-tiene-cuna');
-        
-        let mostrar = false;
-        
-        switch(filtro) {
-            case 'todos':
-                mostrar = true;
-                break;
-            case 'validados':
-                mostrar = (estado === 'validado' && tieneCuña === 'si');
-                break;
-            case 'generados':
-                mostrar = (estado === 'generado' && tieneCuña === 'no');
-                break;
-        }
-        
-        fila.style.display = mostrar ? '' : 'none';
-    });
-    
-    // Actualizar botones activos
-    document.querySelectorAll('.btn-outline-primary, .btn-outline-success, .btn-outline-warning').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    event.target.classList.add('active');
-}
+        // Actualizar botones activos
+        document.querySelectorAll('.btn-outline-primary, .btn-outline-success, .btn-outline-warning').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+    }
 
-// Función para calcular días entre dos fechas
-function calcularDiasContrato(fechaInicio, fechaFin) {
-    const inicio = new Date(fechaInicio);
-    const fin = new Date(fechaFin);
-    const diferencia = fin.getTime() - inicio.getTime();
-    return Math.ceil(diferencia / (1000 * 3600 * 24)) + 1; // +1 para incluir ambos días
-}
+    // Función para calcular días entre dos fechas
+    function calcularDiasContrato(fechaInicio, fechaFin) {
+        const inicio = new Date(fechaInicio);
+        const fin = new Date(fechaFin);
+        const diferencia = fin.getTime() - inicio.getTime();
+        return Math.ceil(diferencia / (1000 * 3600 * 24)) + 1; // +1 para incluir ambos días
+    }
 
-// Función para calcular el total automáticamente
-function calcularTotalContrato() {
-    const valorPorSegundo = parseFloat(document.getElementById('valorPorSegundo').value) || 0;
-    const duracionSpot = parseInt(document.getElementById('duracionSpot').value) || 0;
-    const spotsDia = parseInt(document.getElementById('spotsDia').value) || 0;
-    const fechaInicio = document.getElementById('fechaInicio').value;
-    const fechaFin = document.getElementById('fechaFin').value;
-    
-    let total = 0;
-    
-    if (fechaInicio && fechaFin) {
-        const diasContrato = calcularDiasContrato(fechaInicio, fechaFin);
-        
-        // Fórmula: (valor por segundo × duración spot × spots por día × días contrato)
-        total = valorPorSegundo * duracionSpot * spotsDia * diasContrato;
-        
-        // Mostrar el cálculo detallado
-        const totalElement = document.getElementById('totalCalculado');
-        totalElement.innerHTML = `
+    // Función para calcular el total automáticamente
+    function calcularTotalContrato() {
+        const valorPorSegundo = parseFloat(document.getElementById('valorPorSegundo').value) || 0;
+        const duracionSpot = parseInt(document.getElementById('duracionSpot').value) || 0;
+        const spotsDia = parseInt(document.getElementById('spotsDia').value) || 0;
+        const fechaInicio = document.getElementById('fechaInicio').value;
+        const fechaFin = document.getElementById('fechaFin').value;
+
+        let total = 0;
+
+        if (fechaInicio && fechaFin) {
+            const diasContrato = calcularDiasContrato(fechaInicio, fechaFin);
+
+            // Fórmula: (valor por segundo × duración spot × spots por día × días contrato)
+            total = valorPorSegundo * duracionSpot * spotsDia * diasContrato;
+
+            // Mostrar el cálculo detallado
+            const totalElement = document.getElementById('totalCalculado');
+            totalElement.innerHTML = `
             <strong>S/ ${total.toFixed(2)}</strong>
             <br>
             <small class="text-muted">
                 ${valorPorSegundo.toFixed(2)} × ${duracionSpot}s × ${spotsDia} spots × ${diasContrato} días
             </small>
         `;
-        
-        // Actualizar campo oculto
-        document.getElementById('valorTotal').value = total.toFixed(2);
-    } else {
-        document.getElementById('totalCalculado').textContent = 'S/ 0.00';
-        document.getElementById('valorTotal').value = '0.00';
-    }
-    
-    return total;
-}
 
-// Event listeners para cálculos automáticos
-document.getElementById('valorPorSegundo').addEventListener('input', calcularTotalContrato);
-document.getElementById('duracionSpot').addEventListener('input', calcularTotalContrato);
-document.getElementById('spotsDia').addEventListener('input', calcularTotalContrato);
-document.getElementById('fechaInicio').addEventListener('change', calcularTotalContrato);
-document.getElementById('fechaFin').addEventListener('change', calcularTotalContrato);
-
-// ✅ FUNCIÓN: Ver detalle del contrato
-function verDetalleContrato(contratoId) {
-    console.log("Cargando detalle del contrato:", contratoId);
-    
-    // Mostrar loading
-    Swal.fire({
-        title: 'Cargando detalles...',
-        text: 'Por favor espere',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-    
-    // Obtener los datos del contrato desde la fila de la tabla
-    const fila = document.querySelector(`tr[data-contrato-id="${contratoId}"]`);
-    if (!fila) {
-        Swal.fire('Error', 'No se encontró la información del contrato', 'error');
-        return;
-    }
-    
-    try {
-        // Obtener datos del atributo data
-        const contratoData = JSON.parse(fila.getAttribute('data-contrato-info') || '{}');
-        
-        console.log("Datos del contrato:", contratoData);
-        
-        // Llenar el modal con los datos
-        document.getElementById('modalNumeroContrato').textContent = contratoData.numero_contrato || 'N/A';
-        document.getElementById('modalNumero').textContent = contratoData.numero_contrato || 'N/A';
-        document.getElementById('modalEstado').innerHTML = contratoData.estado_badge || '<span class="badge bg-secondary">N/A</span>';
-        document.getElementById('modalFechaGeneracion').textContent = contratoData.fecha_generacion || 'N/A';
-        document.getElementById('modalPlantilla').textContent = contratoData.plantilla || 'N/A';
-        document.getElementById('modalValorSinIva').textContent = contratoData.valor_sin_iva || 'N/A';
-        document.getElementById('modalIva').textContent = contratoData.valor_iva || 'N/A';
-        document.getElementById('modalValorTotal').textContent = contratoData.valor_total || 'N/A';
-        
-        // Información del cliente
-        document.getElementById('modalClienteNombre').textContent = contratoData.nombre_cliente || 'N/A';
-        document.getElementById('modalClienteRuc').textContent = contratoData.cliente_ruc || 'N/A';
-        document.getElementById('modalClienteProfesion').textContent = contratoData.cliente_profesion || 'No especificada';
-        document.getElementById('modalClienteCargo').textContent = contratoData.cliente_cargo || 'No especificado';
-        document.getElementById('modalClienteEmail').textContent = contratoData.cliente_email || 'N/A';
-        document.getElementById('modalClienteTelefono').textContent = contratoData.cliente_telefono || 'N/A';
-        
-        // Información de la cuña (si existe)
-        const cuñaSection = document.getElementById('modalCuñaSection');
-        if (contratoData.tiene_cuña) {
-            cuñaSection.style.display = 'block';
-            document.getElementById('modalCuñaCodigo').textContent = contratoData.cuña_codigo || 'N/A';
-            document.getElementById('modalCuñaTitulo').textContent = contratoData.cuña_titulo || 'N/A';
-            document.getElementById('modalCuñaEstado').innerHTML = contratoData.cuña_estado_badge || '<span class="badge bg-secondary">N/A</span>';
-            document.getElementById('modalCuñaFechaInicio').textContent = contratoData.cuña_fecha_inicio || 'N/A';
-            document.getElementById('modalCuñaFechaFin').textContent = contratoData.cuña_fecha_fin || 'N/A';
-            document.getElementById('modalCuñaDuracion').textContent = contratoData.cuña_duracion || 'N/A';
-            document.getElementById('modalCuñaRepeticiones').textContent = contratoData.cuña_repeticiones || 'N/A';
-            
-            // ✅ NUEVO: Mostrar categoría de la cuña
-            const categoriaNombre = contratoData.datos_generacion?.CATEGORIA_NOMBRE || 'No asignada';
-            document.getElementById('modalCuñaCategoria').innerHTML = categoriaNombre !== 'No asignada' ? 
-                `<span class="categoria-badge">${categoriaNombre}</span>` : 
-                '<span class="badge bg-light text-dark">Sin categoría</span>';
+            // Actualizar campo oculto
+            document.getElementById('valorTotal').value = total.toFixed(2);
         } else {
-            cuñaSection.style.display = 'none';
+            document.getElementById('totalCalculado').textContent = 'S/ 0.00';
+            document.getElementById('valorTotal').value = '0.00';
         }
-        
-        // Datos de generación
-        const datosGeneracionDiv = document.getElementById('modalDatosGeneracion');
-        if (contratoData.datos_generacion && Object.keys(contratoData.datos_generacion).length > 0) {
-            let html = '<table class="table table-sm table-borderless">';
-            for (const [key, value] of Object.entries(contratoData.datos_generacion)) {
-                if (value && !key.includes('_RAW')) {
-                    // ✅ NUEVO: Mostrar categoría en datos de generación
-                    if (key === 'CATEGORIA_NOMBRE') {
-                        html += `<tr><td width="30%"><strong>${key.replace(/_/g, ' ').toUpperCase()}:</strong></td><td><span class="categoria-badge">${value}</span></td></tr>`;
-                    } else {
-                        html += `<tr><td width="30%"><strong>${key.replace(/_/g, ' ').toUpperCase()}:</strong></td><td>${value}</td></tr>`;
+
+        return total;
+    }
+
+    // Event listeners para cálculos automáticos
+    document.getElementById('valorPorSegundo').addEventListener('input', calcularTotalContrato);
+    document.getElementById('duracionSpot').addEventListener('input', calcularTotalContrato);
+    document.getElementById('spotsDia').addEventListener('input', calcularTotalContrato);
+    document.getElementById('fechaInicio').addEventListener('change', calcularTotalContrato);
+    document.getElementById('fechaFin').addEventListener('change', calcularTotalContrato);
+
+    // ✅ FUNCIÓN: Ver detalle del contrato
+    function verDetalleContrato(contratoId) {
+        console.log("Cargando detalle del contrato:", contratoId);
+
+        // Mostrar loading
+        Swal.fire({
+            title: 'Cargando detalles...',
+            text: 'Por favor espere',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Obtener los datos del contrato desde la fila de la tabla
+        const fila = document.querySelector(`tr[data-contrato-id="${contratoId}"]`);
+        if (!fila) {
+            Swal.fire('Error', 'No se encontró la información del contrato', 'error');
+            return;
+        }
+
+        try {
+            // Obtener datos del atributo data
+            const contratoData = JSON.parse(fila.getAttribute('data-contrato-info') || '{}');
+
+            console.log("Datos del contrato:", contratoData);
+
+            // Llenar el modal con los datos
+            document.getElementById('modalNumeroContrato').textContent = contratoData.numero_contrato || 'N/A';
+            document.getElementById('modalNumero').textContent = contratoData.numero_contrato || 'N/A';
+            document.getElementById('modalEstado').innerHTML = contratoData.estado_badge || '<span class="badge bg-secondary">N/A</span>';
+            document.getElementById('modalFechaGeneracion').textContent = contratoData.fecha_generacion || 'N/A';
+            document.getElementById('modalPlantilla').textContent = contratoData.plantilla || 'N/A';
+            document.getElementById('modalValorSinIva').textContent = contratoData.valor_sin_iva || 'N/A';
+            document.getElementById('modalIva').textContent = contratoData.valor_iva || 'N/A';
+            document.getElementById('modalValorTotal').textContent = contratoData.valor_total || 'N/A';
+
+            // Información del cliente
+            document.getElementById('modalClienteNombre').textContent = contratoData.nombre_cliente || 'N/A';
+            document.getElementById('modalClienteRuc').textContent = contratoData.cliente_ruc || 'N/A';
+            document.getElementById('modalClienteProfesion').textContent = contratoData.cliente_profesion || 'No especificada';
+            document.getElementById('modalClienteCargo').textContent = contratoData.cliente_cargo || 'No especificado';
+            document.getElementById('modalClienteEmail').textContent = contratoData.cliente_email || 'N/A';
+            document.getElementById('modalClienteTelefono').textContent = contratoData.cliente_telefono || 'N/A';
+
+            // Información de la cuña (si existe)
+            const cuñaSection = document.getElementById('modalCuñaSection');
+            if (contratoData.tiene_cuña) {
+                cuñaSection.style.display = 'block';
+                document.getElementById('modalCuñaCodigo').textContent = contratoData.cuña_codigo || 'N/A';
+                document.getElementById('modalCuñaTitulo').textContent = contratoData.cuña_titulo || 'N/A';
+                document.getElementById('modalCuñaEstado').innerHTML = contratoData.cuña_estado_badge || '<span class="badge bg-secondary">N/A</span>';
+                document.getElementById('modalCuñaFechaInicio').textContent = contratoData.cuña_fecha_inicio || 'N/A';
+                document.getElementById('modalCuñaFechaFin').textContent = contratoData.cuña_fecha_fin || 'N/A';
+                document.getElementById('modalCuñaDuracion').textContent = contratoData.cuña_duracion || 'N/A';
+                document.getElementById('modalCuñaRepeticiones').textContent = contratoData.cuña_repeticiones || 'N/A';
+
+                // ✅ NUEVO: Mostrar categoría de la cuña
+                const categoriaNombre = contratoData.datos_generacion?.CATEGORIA_NOMBRE || 'No asignada';
+                document.getElementById('modalCuñaCategoria').innerHTML = categoriaNombre !== 'No asignada' ?
+                    `<span class="categoria-badge">${categoriaNombre}</span>` :
+                    '<span class="badge bg-light text-dark">Sin categoría</span>';
+            } else {
+                cuñaSection.style.display = 'none';
+            }
+
+            // Datos de generación
+            const datosGeneracionDiv = document.getElementById('modalDatosGeneracion');
+            if (contratoData.datos_generacion && Object.keys(contratoData.datos_generacion).length > 0) {
+                let html = '<table class="table table-sm table-borderless">';
+                for (const [key, value] of Object.entries(contratoData.datos_generacion)) {
+                    if (value && !key.includes('_RAW')) {
+                        // ✅ NUEVO: Mostrar categoría en datos de generación
+                        if (key === 'CATEGORIA_NOMBRE') {
+                            html += `<tr><td width="30%"><strong>${key.replace(/_/g, ' ').toUpperCase()}:</strong></td><td><span class="categoria-badge">${value}</span></td></tr>`;
+                        } else {
+                            html += `<tr><td width="30%"><strong>${key.replace(/_/g, ' ').toUpperCase()}:</strong></td><td>${value}</td></tr>`;
+                        }
                     }
                 }
+                html += '</table>';
+                datosGeneracionDiv.innerHTML = html;
+            } else {
+                datosGeneracionDiv.innerHTML = '<p class="text-muted">No hay datos adicionales de generación.</p>';
             }
-            html += '</table>';
-            datosGeneracionDiv.innerHTML = html;
-        } else {
-            datosGeneracionDiv.innerHTML = '<p class="text-muted">No hay datos adicionales de generación.</p>';
-        }
-        
-        // Botón de descarga
-        const descargarBtn = document.getElementById('modalDescargarBtn');
-        if (contratoData.archivo_url) {
-            descargarBtn.style.display = 'inline-block';
-            descargarBtn.onclick = () => {
-                window.open(contratoData.archivo_url, '_blank');
-            };
-        } else {
-            descargarBtn.style.display = 'none';
-        }
-        
-        // Cerrar loading y mostrar modal
-        Swal.close();
-        const modal = new bootstrap.Modal(document.getElementById('detalleContratoModal'));
-        modal.show();
-        
-    } catch (error) {
-        console.error('Error al cargar detalles:', error);
-        Swal.fire('Error', 'No se pudieron cargar los detalles del contrato', 'error');
-    }
-}
 
-// ✅ FUNCIÓN: Subir contrato validado
-function subirContratoValidado(id) {
-    Swal.fire({
-        title: 'Subir Contrato Validado',
-        html: `
+            // Botón de descarga
+            const descargarBtn = document.getElementById('modalDescargarBtn');
+            if (contratoData.archivo_url) {
+                descargarBtn.style.display = 'inline-block';
+                descargarBtn.onclick = () => {
+                    window.open(contratoData.archivo_url, '_blank');
+                };
+            } else {
+                descargarBtn.style.display = 'none';
+            }
+
+            // Cerrar loading y mostrar modal
+            Swal.close();
+            const modal = new bootstrap.Modal(document.getElementById('detalleContratoModal'));
+            modal.show();
+
+        } catch (error) {
+            console.error('Error al cargar detalles:', error);
+            Swal.fire('Error', 'No se pudieron cargar los detalles del contrato', 'error');
+        }
+    }
+
+    // ✅ FUNCIÓN: Subir contrato validado
+    function subirContratoValidado(id) {
+        Swal.fire({
+            title: 'Subir Contrato Validado',
+            html: `
             <p class="mb-3">Seleccione el archivo PDF del contrato firmado/validado</p>
             <input type="file" id="archivoContrato" class="form-control" accept=".pdf">
         `,
-        showCancelButton: true,
-        confirmButtonText: 'Subir y Validar',
-        cancelButtonText: 'Cancelar',
-        preConfirm: () => {
-            const archivo = document.getElementById('archivoContrato').files[0];
-            
-            if (!archivo) {
-                Swal.showValidationMessage('Debe seleccionar un archivo PDF');
-                return false;
-            }
-            
-            if (!archivo.name.endsWith('.pdf')) {
-                Swal.showValidationMessage('El archivo debe ser un PDF');
-                return false;
-            }
-            
-            return archivo;
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const archivo = result.value;
-            const formData = new FormData();
-            formData.append('archivo', archivo);
-            
-            // Mostrar loading
-            Swal.fire({
-                title: 'Subiendo Contrato',
-                html: 'Por favor espere...<br><small>Se creará automáticamente la cuña publicitaria</small>',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
+            showCancelButton: true,
+            confirmButtonText: 'Subir y Validar',
+            cancelButtonText: 'Cancelar',
+            preConfirm: () => {
+                const archivo = document.getElementById('archivoContrato').files[0];
+
+                if (!archivo) {
+                    Swal.showValidationMessage('Debe seleccionar un archivo PDF');
+                    return false;
                 }
-            });
-            
-            // Enviar archivo
-            fetch(`/panel/contratos/api/${id}/subir-validado/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: '¡Contrato Validado!',
-                        html: `
+
+                if (!archivo.name.endsWith('.pdf')) {
+                    Swal.showValidationMessage('El archivo debe ser un PDF');
+                    return false;
+                }
+
+                return archivo;
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const archivo = result.value;
+                const formData = new FormData();
+                formData.append('archivo', archivo);
+
+                // Mostrar loading
+                Swal.fire({
+                    title: 'Subiendo Contrato',
+                    html: 'Por favor espere...<br><small>Se creará automáticamente la cuña publicitaria</small>',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Enviar archivo
+                fetch(`/panel/contratos/api/${id}/subir-validado/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: '¡Contrato Validado!',
+                                html: `
                             <p>El contrato ha sido validado exitosamente</p>
                             <p><strong>Cuña publicitaria creada automáticamente</strong></p>
                             <small>ID de cuña: ${data.cuna_id}</small>
                         `,
-                        confirmButtonText: 'Aceptar'
-                    }).then(() => {
-                        location.reload();
+                                confirmButtonText: 'Aceptar'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.error || 'No se pudo validar el contrato'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Ocurrió un error al subir el contrato'
+                        });
+                    });
+            }
+        });
+    }
+
+    function cargarPlantillas() {
+        fetch('/panel/api/plantillas-contrato/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const select = document.getElementById('plantillaSelect');
+                    select.innerHTML = '<option value="">-- Seleccione una plantilla --</option>';
+
+                    data.plantillas.forEach(plantilla => {
+                        const option = document.createElement('option');
+                        option.value = plantilla.id;
+                        option.textContent = plantilla.nombre +
+                            (plantilla.is_default ? ' ★' : '') +
+                            ' - ' + plantilla.tipo_contrato_display;
+                        option.dataset.nombre = plantilla.nombre;
+                        option.dataset.tipo = plantilla.tipo_contrato_display;
+                        option.dataset.version = plantilla.version;
+                        option.dataset.iva = plantilla.incluye_iva;
+                        option.dataset.porcentajeIva = plantilla.porcentaje_iva;
+                        select.appendChild(option);
                     });
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: data.error || 'No se pudo validar el contrato'
-                    });
+                    console.error('Error cargando plantillas:', data.error);
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Ocurrió un error al subir el contrato'
-                });
+                Swal.fire('Error', 'No se pudieron cargar las plantillas', 'error');
             });
-        }
-    });
-}
+    }
 
-function cargarPlantillas() {
-    fetch('/panel/api/plantillas-contrato/')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const select = document.getElementById('plantillaSelect');
-                select.innerHTML = '<option value="">-- Seleccione una plantilla --</option>';
-                
-                data.plantillas.forEach(plantilla => {
-                    const option = document.createElement('option');
-                    option.value = plantilla.id;
-                    option.textContent = plantilla.nombre + 
-                        (plantilla.is_default ? ' ★' : '') + 
-                        ' - ' + plantilla.tipo_contrato_display;
-                    option.dataset.nombre = plantilla.nombre;
-                    option.dataset.tipo = plantilla.tipo_contrato_display;
-                    option.dataset.version = plantilla.version;
-                    option.dataset.iva = plantilla.incluye_iva;
-                    option.dataset.porcentajeIva = plantilla.porcentaje_iva;
-                    select.appendChild(option);
-                });
-            } else {
-                console.error('Error cargando plantillas:', data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            Swal.fire('Error', 'No se pudieron cargar las plantillas', 'error');
-        });
-}
-
-function cargarClientes() {
-    fetch('/panel/api/clientes-activos/')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const select = document.getElementById('clienteSelect');
-                select.innerHTML = '<option value="">-- Seleccione un cliente --</option>';
-                
-                data.clientes.forEach(cliente => {
-                    const option = document.createElement('option');
-                    option.value = cliente.id;
-                    const displayText = cliente.empresa ? 
-                        `${cliente.empresa} (${cliente.ruc_dni})` : 
-                        `${cliente.nombre_completo} (${cliente.ruc_dni})`;
-                    option.textContent = displayText;
-                    option.dataset.nombre = cliente.empresa || cliente.nombre_completo;
-                    option.dataset.ruc = cliente.ruc_dni;
-                    option.dataset.email = cliente.email;
-                    option.dataset.telefono = cliente.telefono;
-                    option.dataset.ciudad = cliente.ciudad;
-                    option.dataset.direccion = cliente.direccion;
-                    option.dataset.profesion = cliente.profesion_display || '';
-                    option.dataset.cargo = cliente.cargo_empresa || '';
-                    select.appendChild(option);
-                });
-            } else {
-                console.error('Error cargando clientes:', data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            Swal.fire('Error', 'No se pudieron cargar los clientes', 'error');
-        });
-}
-
-// Event listeners
-document.getElementById('plantillaSelect').addEventListener('change', function() {
-    const plantillaId = this.value;
-    
-    if (plantillaId) {
-        plantillaSeleccionada = plantillaId;
-        
-        // Cargar detalles de la plantilla
-        fetch(`/panel/api/plantilla/${plantillaId}/detalle/`)
+    function cargarClientes() {
+        fetch('/panel/api/clientes-activos/')
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    const plantilla = data.plantilla;
-                    
-                    // Mostrar preview de plantilla
-                    document.getElementById('previewNombre').textContent = plantilla.nombre;
-                    document.getElementById('previewTipo').textContent = plantilla.tipo_contrato_display;
-                    document.getElementById('previewVersion').textContent = 'v' + plantilla.version;
-                    document.getElementById('previewIVA').textContent = plantilla.incluye_iva ? 
-                        plantilla.porcentaje_iva + '%' : 'Sin IVA';
-                    
-                    document.getElementById('plantillaPreview').classList.remove('d-none');
-                    
-                    // Habilitar selector de cliente
-                    document.getElementById('clienteSelect').disabled = false;
-                    
-                    // Marcar paso 1 como completado
-                    document.getElementById('step1').classList.add('completed');
-                    document.getElementById('step2').classList.add('active');
+                    const select = document.getElementById('clienteSelect');
+                    select.innerHTML = '<option value="">-- Seleccione un cliente --</option>';
+
+                    data.clientes.forEach(cliente => {
+                        const option = document.createElement('option');
+                        option.value = cliente.id;
+                        const displayText = cliente.empresa ?
+                            `${cliente.empresa} (${cliente.ruc_dni})` :
+                            `${cliente.nombre_completo} (${cliente.ruc_dni})`;
+                        option.textContent = displayText;
+                        option.dataset.nombre = cliente.empresa || cliente.nombre_completo;
+                        option.dataset.ruc = cliente.ruc_dni;
+                        option.dataset.email = cliente.email;
+                        option.dataset.telefono = cliente.telefono;
+                        option.dataset.ciudad = cliente.ciudad;
+                        option.dataset.direccion = cliente.direccion;
+                        option.dataset.profesion = cliente.profesion_display || '';
+                        option.dataset.cargo = cliente.cargo_empresa || '';
+                        select.appendChild(option);
+                    });
+                } else {
+                    console.error('Error cargando clientes:', data.error);
                 }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Error', 'No se pudieron cargar los clientes', 'error');
             });
-    } else {
-        resetearFormulario();
     }
-});
 
-document.getElementById('clienteSelect').addEventListener('change', function() {
-    const clienteId = this.value;
-    
-    if (clienteId) {
-        clienteSeleccionado = clienteId;
-        const selectedOption = this.options[this.selectedIndex];
-        
-        // Mostrar información básica del cliente
-        document.getElementById('previewClienteNombre').textContent = selectedOption.dataset.nombre;
-        document.getElementById('previewClienteRUC').textContent = selectedOption.dataset.ruc || 'No registrado';
-        document.getElementById('previewClienteEmail').textContent = selectedOption.dataset.email || 'No registrado';
-        document.getElementById('previewClienteCiudad').textContent = selectedOption.dataset.ciudad || 'No registrada';
-        
-        // NUEVO: Mostrar información profesional si está disponible
-        if (selectedOption.dataset.profesion) {
-            document.getElementById('previewClienteProfesion').textContent = selectedOption.dataset.profesion;
-            document.getElementById('previewClienteProfesionGroup').style.display = 'block';
-        } else {
-            document.getElementById('previewClienteProfesionGroup').style.display = 'none';
-        }
-        
-        if (selectedOption.dataset.cargo) {
-            document.getElementById('previewClienteCargo').textContent = selectedOption.dataset.cargo;
-            document.getElementById('previewClienteCargoGroup').style.display = 'block';
-        } else {
-            document.getElementById('previewClienteCargoGroup').style.display = 'none';
-        }
-        
-        document.getElementById('clientePreview').classList.remove('d-none');
-        
-        // Mostrar sección de datos adicionales
-        document.getElementById('datosAdicionalesSection').classList.remove('d-none');
-        
-        // Marcar pasos como completados
-        document.getElementById('step2').classList.add('completed');
-        document.getElementById('step3').classList.add('active');
-        
-        // Habilitar botón de generar
-        document.getElementById('btnGenerar').disabled = false;
-        
-        // Establecer fecha de inicio como hoy
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('fechaInicio').value = today;
-        
-        // Calcular total inicial
-        setTimeout(calcularTotalContrato, 100);
-    } else {
-        document.getElementById('clientePreview').classList.add('d-none');
-        document.getElementById('datosAdicionalesSection').classList.add('d-none');
-        document.getElementById('btnGenerar').disabled = true;
-        document.getElementById('step2').classList.remove('completed');
-        document.getElementById('step3').classList.remove('active');
-    }
-});
+    // Event listeners
+    document.getElementById('plantillaSelect').addEventListener('change', function () {
+        const plantillaId = this.value;
 
-// Enviar formulario
-document.getElementById('contratoForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    if (!plantillaSeleccionada || !clienteSeleccionado) {
+        if (plantillaId) {
+            plantillaSeleccionada = plantillaId;
+
+            // Cargar detalles de la plantilla
+            fetch(`/panel/api/plantilla/${plantillaId}/detalle/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const plantilla = data.plantilla;
+
+                        // Mostrar preview de plantilla
+                        document.getElementById('previewNombre').textContent = plantilla.nombre;
+                        document.getElementById('previewTipo').textContent = plantilla.tipo_contrato_display;
+                        document.getElementById('previewVersion').textContent = 'v' + plantilla.version;
+                        document.getElementById('previewIVA').textContent = plantilla.incluye_iva ?
+                            plantilla.porcentaje_iva + '%' : 'Sin IVA';
+
+                        document.getElementById('plantillaPreview').classList.remove('d-none');
+
+                        // Habilitar selector de cliente
+                        document.getElementById('clienteSelect').disabled = false;
+
+                        // Marcar paso 1 como completado
+                        document.getElementById('step1').classList.add('completed');
+                        document.getElementById('step2').classList.add('active');
+                    }
+                });
+        } else {
+            resetearFormulario();
+        }
+    });
+
+    document.getElementById('clienteSelect').addEventListener('change', function () {
+        const clienteId = this.value;
+
+        if (clienteId) {
+            clienteSeleccionado = clienteId;
+            const selectedOption = this.options[this.selectedIndex];
+
+            // Mostrar información básica del cliente
+            document.getElementById('previewClienteNombre').textContent = selectedOption.dataset.nombre;
+            document.getElementById('previewClienteRUC').textContent = selectedOption.dataset.ruc || 'No registrado';
+            document.getElementById('previewClienteEmail').textContent = selectedOption.dataset.email || 'No registrado';
+            document.getElementById('previewClienteCiudad').textContent = selectedOption.dataset.ciudad || 'No registrada';
+
+            // NUEVO: Mostrar información profesional si está disponible
+            if (selectedOption.dataset.profesion) {
+                document.getElementById('previewClienteProfesion').textContent = selectedOption.dataset.profesion;
+                document.getElementById('previewClienteProfesionGroup').style.display = 'block';
+            } else {
+                document.getElementById('previewClienteProfesionGroup').style.display = 'none';
+            }
+
+            if (selectedOption.dataset.cargo) {
+                document.getElementById('previewClienteCargo').textContent = selectedOption.dataset.cargo;
+                document.getElementById('previewClienteCargoGroup').style.display = 'block';
+            } else {
+                document.getElementById('previewClienteCargoGroup').style.display = 'none';
+            }
+
+            document.getElementById('clientePreview').classList.remove('d-none');
+
+            // Mostrar sección de datos adicionales
+            document.getElementById('datosAdicionalesSection').classList.remove('d-none');
+
+            // Marcar pasos como completados
+            document.getElementById('step2').classList.add('completed');
+            document.getElementById('step3').classList.add('active');
+
+            // Habilitar botón de generar
+            document.getElementById('btnGenerar').disabled = false;
+
+            // Establecer fecha de inicio como hoy
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('fechaInicio').value = today;
+
+            // Calcular total inicial
+            setTimeout(calcularTotalContrato, 100);
+        } else {
+            document.getElementById('clientePreview').classList.add('d-none');
+            document.getElementById('datosAdicionalesSection').classList.add('d-none');
+            document.getElementById('btnGenerar').disabled = true;
+            document.getElementById('step2').classList.remove('completed');
+            document.getElementById('step3').classList.remove('active');
+        }
+    });
+
+    // Enviar formulario
+    document.getElementById('contratoForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        if (!plantillaSeleccionada || !clienteSeleccionado) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Datos Incompletos',
+                text: 'Debe seleccionar una plantilla y un cliente'
+            });
+            return;
+        }
+
+        // Validar campos requeridos
+        const fechaInicio = document.getElementById('fechaInicio').value;
+        const fechaFin = document.getElementById('fechaFin').value;
+        const valorPorSegundo = document.getElementById('valorPorSegundo').value;
+        const spotsDia = document.getElementById('spotsDia').value;
+        const duracionSpot = document.getElementById('duracionSpot').value;
+        const categoriaId = document.getElementById('categoriaSelect').value;
+
+        if (!fechaInicio || !fechaFin || !valorPorSegundo || !spotsDia || !duracionSpot) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Datos Incompletos',
+                text: 'Complete todos los campos obligatorios'
+            });
+            return;
+        }
+
+        if (new Date(fechaFin) <= new Date(fechaInicio)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error en Fechas',
+                text: 'La fecha de fin debe ser posterior a la fecha de inicio'
+            });
+            return;
+        }
+
+        // Calcular total final
+        const totalCalculado = calcularTotalContrato();
+        if (totalCalculado <= 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error en Cálculo',
+                text: 'El valor total debe ser mayor a cero'
+            });
+            return;
+        }
+
+        // ✅ PREPARAR DATOS CON CATEGORÍA
+        const formData = {
+            plantilla_id: plantillaSeleccionada,
+            cliente_id: clienteSeleccionado,
+            fecha_inicio: fechaInicio,
+            fecha_fin: fechaFin,
+            valor_por_segundo: parseFloat(valorPorSegundo),
+            valor_total: totalCalculado, // Usamos el valor calculado
+            spots_dia: parseInt(spotsDia),
+            duracion_spot: parseInt(duracionSpot),
+            observaciones: document.getElementById('observaciones').value || '',
+            categoria_id: categoriaId || null  // ✅ NUEVO: Incluir categoría
+        };
+
+        console.log('Datos a enviar:', formData);
+
+        // Mostrar loading
         Swal.fire({
-            icon: 'warning',
-            title: 'Datos Incompletos',
-            text: 'Debe seleccionar una plantilla y un cliente'
-        });
-        return;
-    }
-    
-    // Validar campos requeridos
-    const fechaInicio = document.getElementById('fechaInicio').value;
-    const fechaFin = document.getElementById('fechaFin').value;
-    const valorPorSegundo = document.getElementById('valorPorSegundo').value;
-    const spotsDia = document.getElementById('spotsDia').value;
-    const duracionSpot = document.getElementById('duracionSpot').value;
-    const categoriaId = document.getElementById('categoriaSelect').value;
-    
-    if (!fechaInicio || !fechaFin || !valorPorSegundo || !spotsDia || !duracionSpot) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Datos Incompletos',
-            text: 'Complete todos los campos obligatorios'
-        });
-        return;
-    }
-    
-    if (new Date(fechaFin) <= new Date(fechaInicio)) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error en Fechas',
-            text: 'La fecha de fin debe ser posterior a la fecha de inicio'
-        });
-        return;
-    }
-    
-    // Calcular total final
-    const totalCalculado = calcularTotalContrato();
-    if (totalCalculado <= 0) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error en Cálculo',
-            text: 'El valor total debe ser mayor a cero'
-        });
-        return;
-    }
-    
-    // ✅ PREPARAR DATOS CON CATEGORÍA
-    const formData = {
-        plantilla_id: plantillaSeleccionada,
-        cliente_id: clienteSeleccionado,
-        fecha_inicio: fechaInicio,
-        fecha_fin: fechaFin,
-        valor_por_segundo: parseFloat(valorPorSegundo),
-        valor_total: totalCalculado, // Usamos el valor calculado
-        spots_dia: parseInt(spotsDia),
-        duracion_spot: parseInt(duracionSpot),
-        observaciones: document.getElementById('observaciones').value || '',
-        categoria_id: categoriaId || null  // ✅ NUEVO: Incluir categoría
-    };
-    
-    console.log('Datos a enviar:', formData);
-    
-    // Mostrar loading
-    Swal.fire({
-        title: 'Generando Contrato',
-        html: `Calculando contrato...<br>
+            title: 'Generando Contrato',
+            html: `Calculando contrato...<br>
                <small>
                Valor: S/ ${valorPorSegundo} por segundo<br>
                Duración: ${duracionSpot} segundos<br>
@@ -1306,28 +1319,28 @@ document.getElementById('contratoForm').addEventListener('submit', function(e) {
                Categoría: ${categoriaId ? 'Seleccionada' : 'No seleccionada'}<br>
                Total: S/ ${totalCalculado.toFixed(2)}
                </small>`,
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-    
-    // Enviar a la API
-    fetch('/panel/contratos/api/generar/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify(formData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            Swal.fire({
-                icon: 'success',
-                title: '¡Contrato Generado!',
-                html: `
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Enviar a la API
+        fetch('/panel/contratos/api/generar/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(formData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Contrato Generado!',
+                        html: `
                     <p>El contrato se ha generado correctamente</p>
                     <p><strong>Detalles del cálculo:</strong></p>
                     <small>
@@ -1339,85 +1352,85 @@ document.getElementById('contratoForm').addEventListener('submit', function(e) {
                     <strong>Total: S/ ${totalCalculado.toFixed(2)}</strong>
                     </small>
                 `,
-                showCancelButton: true,
-                confirmButtonText: 'Descargar Ahora',
-                cancelButtonText: 'Ver Después'
-            }).then((result) => {
-                if (result.isConfirmed && data.archivo_url) {
-                    window.open(data.archivo_url, '_blank');
-                }
-                location.reload();
-            });
-        } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: data.error || 'No se pudo generar el contrato'
-            });
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Ocurrió un error al generar el contrato'
-        });
-    });
-});
-
-function limpiarFormulario() {
-    document.getElementById('contratoForm').reset();
-    resetearFormulario();
-}
-
-function resetearFormulario() {
-    plantillaSeleccionada = null;
-    clienteSeleccionado = null;
-    
-    document.getElementById('plantillaPreview').classList.add('d-none');
-    document.getElementById('clientePreview').classList.add('d-none');
-    document.getElementById('datosAdicionalesSection').classList.add('d-none');
-    document.getElementById('clienteSelect').disabled = true;
-    document.getElementById('btnGenerar').disabled = true;
-    
-    document.getElementById('step1').classList.remove('completed');
-    document.getElementById('step2').classList.remove('active', 'completed');
-    document.getElementById('step3').classList.remove('active');
-    
-    // Limpiar cálculo
-    document.getElementById('totalCalculado').textContent = 'S/ 0.00';
-    document.getElementById('valorTotal').value = '0.00';
-}
-
-function eliminarContrato(id) {
-    Swal.fire({
-        title: '¿Eliminar contrato?',
-        text: 'Esta acción no se puede deshacer',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch(`/panel/contratos/api/${id}/eliminar/`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}'
+                        showCancelButton: true,
+                        confirmButtonText: 'Descargar Ahora',
+                        cancelButtonText: 'Ver Después'
+                    }).then((result) => {
+                        if (result.isConfirmed && data.archivo_url) {
+                            window.open(data.archivo_url, '_blank');
+                        }
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error || 'No se pudo generar el contrato'
+                    });
                 }
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Eliminado', 'El contrato ha sido eliminado', 'success')
-                        .then(() => location.reload());
-                } else {
-                    Swal.fire('Error', data.error, 'error');
-                }
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Ocurrió un error al generar el contrato'
+                });
             });
-        }
     });
-}
+
+    function limpiarFormulario() {
+        document.getElementById('contratoForm').reset();
+        resetearFormulario();
+    }
+
+    function resetearFormulario() {
+        plantillaSeleccionada = null;
+        clienteSeleccionado = null;
+
+        document.getElementById('plantillaPreview').classList.add('d-none');
+        document.getElementById('clientePreview').classList.add('d-none');
+        document.getElementById('datosAdicionalesSection').classList.add('d-none');
+        document.getElementById('clienteSelect').disabled = true;
+        document.getElementById('btnGenerar').disabled = true;
+
+        document.getElementById('step1').classList.remove('completed');
+        document.getElementById('step2').classList.remove('active', 'completed');
+        document.getElementById('step3').classList.remove('active');
+
+        // Limpiar cálculo
+        document.getElementById('totalCalculado').textContent = 'S/ 0.00';
+        document.getElementById('valorTotal').value = '0.00';
+    }
+
+    function eliminarContrato(id) {
+        Swal.fire({
+            title: '¿Eliminar contrato?',
+            text: 'Esta acción no se puede deshacer',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/panel/contratos/api/${id}/eliminar/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Eliminado', 'El contrato ha sido eliminado', 'success')
+                                .then(() => location.reload());
+                        } else {
+                            Swal.fire('Error', data.error, 'error');
+                        }
+                    });
+            }
+        });
+    }
 </script>
 {% endblock %}

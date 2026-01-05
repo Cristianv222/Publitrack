@@ -150,6 +150,12 @@ except ImportError as e:
 def is_admin(user):
     """Verifica si el usuario es administrador"""
     return user.is_superuser or user.is_staff or getattr(user, 'rol', None) == 'admin'
+
+def is_admin_or_btr(user):
+    """Verifica si el usuario es administrador o BTR"""
+    return (user.is_superuser or user.is_staff or 
+            getattr(user, 'rol', None) in ['admin', 'btr'])
+
 # IMPORTS CONDICIONALES PARA MODELOS - ACTUALIZAR ESTA SECCIÓN
 try:
     from apps.reports_analytics.models import DashboardContratos, ReporteContratos, ReportePartesMortuorios, DashboardPartesMortuorios
@@ -3413,7 +3419,7 @@ def order_detail_api(request, order_id):
         traceback.print_exc()
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_btr)
 @require_http_methods(["POST"])
 def order_create_api(request):
     """API para crear orden manualmente"""
@@ -3462,7 +3468,7 @@ def order_create_api(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_btr)
 @require_http_methods(["PUT", "POST"])
 def order_update_api(request, order_id):
     """API para actualizar orden - CORREGIDO para guardar todos los campos del modal"""
@@ -4252,7 +4258,7 @@ def ordenes_produccion_list(request):
     }
     return render(request, 'custom_admin/ordenes_produccion/list.html', context)
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_btr)
 def orden_produccion_detail_api(request, order_id):
     """API para obtener detalle de orden de producción"""
     try:
@@ -4299,7 +4305,7 @@ def orden_produccion_detail_api(request, order_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_btr)
 @require_http_methods(["POST"])
 def orden_produccion_create_api(request):
     """API para crear orden de producción manualmente"""
@@ -4352,7 +4358,7 @@ def orden_produccion_create_api(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_btr)
 @require_http_methods(["PUT", "POST"])
 def orden_produccion_update_api(request, order_id):
     """API para actualizar orden de producción"""

@@ -1248,8 +1248,26 @@ def vendedor_plantilla_detalle_api(request, plantilla_id):
 @user_passes_test(is_btr)
 def btr_dashboard(request):
     """NUEVO: Panel exclusivo para BTR"""
+    # Importar modelos aquí para evitar importaciones circulares
+    try:
+        from apps.orders.models import OrdenToma, OrdenProduccion
+        
+        # Obtener todas las órdenes ordenadas por fecha reciente
+        ordenes_toma = OrdenToma.objects.all().order_by('-created_at')
+        ordenes_produccion = OrdenProduccion.objects.all().order_by('-created_at')
+    except ImportError:
+        ordenes_toma = []
+        ordenes_produccion = []
+    
+    # Obtener clientes activos para el modal de creación de órdenes
+    clientes = CustomUser.objects.filter(rol='cliente', is_active=True).order_by('empresa', 'first_name')
+        
     context = {
         'user': request.user,
         'hoy': timezone.now().date(),
+        'ordenes_toma': ordenes_toma,
+        'ordenes_produccion': ordenes_produccion,
+        'clientes': clientes,  # Para el dropdown de clientes en modales
+        'btr_active': True  # Flag para identificar el dashboard activo
     }
     return render(request, 'dashboard/btr.html', context)
