@@ -713,6 +713,16 @@ class ParteMortorioGenerado(models.Model):
             doc = DocxTemplate(self.plantilla_usada.archivo_plantilla.path)
             parte_mortorio = self.parte_mortorio
 
+            # Función helper para formatear fechas en español
+            def formatear_fecha_espanol(fecha):
+                if not fecha:
+                    return ''
+                meses = {
+                    1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
+                    7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+                }
+                return f"{fecha.day:02d} de {meses[fecha.month]} del {fecha.year}"
+
             # Preparar contexto
             context = {
                 'NUMERO_PARTE': self.numero_parte,
@@ -720,8 +730,8 @@ class ParteMortorioGenerado(models.Model):
                 'NOMBRE_FALLECIDO': parte_mortorio.nombre_fallecido or '',
                 'EDAD_FALLECIDO': str(parte_mortorio.edad_fallecido) if parte_mortorio.edad_fallecido else '',
                 'DNI_FALLECIDO': parte_mortorio.dni_fallecido or '',
-                'FECHA_NACIMIENTO': parte_mortorio.fecha_nacimiento.strftime('%d de %B del %Y') if parte_mortorio.fecha_nacimiento else '',
-                'FECHA_FALLECIMIENTO': parte_mortorio.fecha_fallecimiento.strftime('%d de %B del %Y') if parte_mortorio.fecha_fallecimiento else '',
+                'FECHA_NACIMIENTO': formatear_fecha_espanol(parte_mortorio.fecha_nacimiento),
+                'FECHA_FALLECIMIENTO': formatear_fecha_espanol(parte_mortorio.fecha_fallecimiento),
                 'NOMBRE_ESPOSA': parte_mortorio.nombre_esposa or '',
                 'CANTIDAD_HIJOS': str(parte_mortorio.cantidad_hijos),
                 'HIJOS_VIVOS': str(parte_mortorio.hijos_vivos),
@@ -729,11 +739,11 @@ class ParteMortorioGenerado(models.Model):
                 'NOMBRES_HIJOS': parte_mortorio.nombres_hijos or '',
                 'FAMILIARES_ADICIONALES': parte_mortorio.familiares_adicionales or '',
                 'TIPO_CEREMONIA': parte_mortorio.get_tipo_ceremonia_display(),
-                'FECHA_MISA': parte_mortorio.fecha_misa.strftime('%d de %B del %Y') if parte_mortorio.fecha_misa else '',
+                'FECHA_MISA': formatear_fecha_espanol(parte_mortorio.fecha_misa),
                 'HORA_MISA': parte_mortorio.hora_misa.strftime('%H:%M') if parte_mortorio.hora_misa else '',
                 'LUGAR_MISA': parte_mortorio.lugar_misa or '',
-                'FECHA_INICIO_TRANSMISION': parte_mortorio.fecha_inicio_transmision.strftime('%d de %B del %Y') if parte_mortorio.fecha_inicio_transmision else '',
-                'FECHA_FIN_TRANSMISION': parte_mortorio.fecha_fin_transmision.strftime('%d de %B del %Y') if parte_mortorio.fecha_fin_transmision else '',
+                'FECHA_INICIO_TRANSMISION': formatear_fecha_espanol(parte_mortorio.fecha_inicio_transmision),
+                'FECHA_FIN_TRANSMISION': formatear_fecha_espanol(parte_mortorio.fecha_fin_transmision),
                 'HORA_TRANSMISION': parte_mortorio.hora_transmision.strftime('%H:%M') if parte_mortorio.hora_transmision else '',
                 'DURACION_TRANSMISION': str(parte_mortorio.duracion_transmision),
                 'REPETICIONES_DIA': str(parte_mortorio.repeticiones_dia),
@@ -749,8 +759,8 @@ class ParteMortorioGenerado(models.Model):
                 'TELEFONO_CLIENTE': parte_mortorio.cliente.telefono if parte_mortorio.cliente else '',
                 'EMAIL_CLIENTE': parte_mortorio.cliente.email if parte_mortorio.cliente else '',
                 'DIRECCION_CLIENTE': parte_mortorio.cliente.direccion_exacta if parte_mortorio.cliente else '',
-                'FECHA_SOLICITUD': parte_mortorio.fecha_solicitud.strftime('%d de %B del %Y') if parte_mortorio.fecha_solicitud else '',
-                'FECHA_ACTUAL': timezone.now().strftime('%d de %B del %Y'),
+                'FECHA_SOLICITUD': formatear_fecha_espanol(parte_mortorio.fecha_solicitud),
+                'FECHA_ACTUAL': formatear_fecha_espanol(timezone.now()),
                 'RESUMEN_FAMILIA': parte_mortorio.resumen_familia,
             }
 

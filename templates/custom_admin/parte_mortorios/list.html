@@ -10,19 +10,21 @@
         padding: 20px;
         margin-bottom: 20px;
         background: white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
+
     .stats-card h3 {
         font-size: 2rem;
         margin: 0;
         color: #333;
     }
+
     .stats-card p {
         margin: 5px 0 0 0;
         color: #666;
         font-size: 0.9rem;
     }
-    
+
     .estado-texto {
         padding: 6px 12px;
         border-radius: 20px;
@@ -30,28 +32,76 @@
         font-weight: 500;
         display: inline-block;
     }
-    .estado-pendiente { background-color: #fff3cd; color: #856404; border: 1px solid #ffc107; }
-    .estado-al-aire { background-color: #d4edda; color: #155724; border: 1px solid #28a745; }
-    .estado-pausado { background-color: #e2e3e5; color: #383d41; border: 1px solid #6c757d; }
-    .estado-finalizado { background-color: #f8d7da; color: #721c24; border: 1px solid #dc3545; }
-    
+
+    .estado-pendiente {
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffc107;
+    }
+
+    .estado-al-aire {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #28a745;
+    }
+
+    .estado-pausado {
+        background-color: #e2e3e5;
+        color: #383d41;
+        border: 1px solid #6c757d;
+    }
+
+    .estado-finalizado {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #dc3545;
+    }
+
     .badge-urgencia {
         padding: 5px 12px;
         border-radius: 20px;
         font-size: 0.85rem;
         font-weight: 500;
     }
-    
-    .parte-number { font-weight: 600; color: #2c5aa0; }
-    .precio-total { font-weight: 600; color: #28a745; }
-    .btn-action { padding: 5px 8px; font-size: 0.8rem; margin: 1px; }
-    
-    .btn-descargar { background-color: #17a2b8; border-color: #17a2b8; color: white; }
-    .btn-descargar:hover { background-color: #138496; color: white; }
-    
-    .btn-generar { background-color: #6f42c1; border-color: #6f42c1; color: white; }
-    .btn-generar:hover { background-color: #5a359c; color: white; }
-    
+
+    .parte-number {
+        font-weight: 600;
+        color: #2c5aa0;
+    }
+
+    .precio-total {
+        font-weight: 600;
+        color: #28a745;
+    }
+
+    .btn-action {
+        padding: 5px 8px;
+        font-size: 0.8rem;
+        margin: 1px;
+    }
+
+    .btn-descargar {
+        background-color: #17a2b8;
+        border-color: #17a2b8;
+        color: white;
+    }
+
+    .btn-descargar:hover {
+        background-color: #138496;
+        color: white;
+    }
+
+    .btn-generar {
+        background-color: #6f42c1;
+        border-color: #6f42c1;
+        color: white;
+    }
+
+    .btn-generar:hover {
+        background-color: #5a359c;
+        color: white;
+    }
+
     .estado-option {
         padding: 15px;
         margin: 10px 0;
@@ -60,8 +110,16 @@
         cursor: pointer;
         transition: all 0.3s ease;
     }
-    .estado-option:hover { border-color: #007bff; background-color: #f8f9fa; }
-    .estado-option.selected { border-color: #007bff; background-color: #e7f3ff; }
+
+    .estado-option:hover {
+        border-color: #007bff;
+        background-color: #f8f9fa;
+    }
+
+    .estado-option.selected {
+        border-color: #007bff;
+        background-color: #e7f3ff;
+    }
 </style>
 {% endblock %}
 
@@ -133,25 +191,48 @@
                             <td>{{ parte.cliente.get_full_name|default:parte.cliente.username }}</td>
                             <td>{{ parte.fecha_fallecimiento|date:"d/m/Y" }}</td>
                             <td><span class="precio-total">$ {{ parte.precio_total|floatformat:2 }}</span></td>
-                            <td><span class="estado-texto estado-{{ parte.estado }}">{{ parte.get_estado_display }}</span></td>
+                            <td>
+                                {% with estado_clase=parte.estado %}
+                                {% if estado_clase == 'pendiente' %}
+                                <span class="estado-texto estado-pendiente">Pendiente</span>
+                                {% elif estado_clase == 'al_aire' %}
+                                <span class="estado-texto estado-al-aire">Al Aire</span>
+                                {% elif estado_clase == 'pausado' %}
+                                <span class="estado-texto estado-pausado">Pausado</span>
+                                {% elif estado_clase == 'finalizado' %}
+                                <span class="estado-texto estado-finalizado">Finalizado</span>
+                                {% else %}
+                                <span class="estado-texto">{{ parte.get_estado_display|default:estado_clase }}</span>
+                                {% endif %}
+                                {% endwith %}
+                            </td>
                             <td>
                                 {% if parte.partes_generados.exists %}
-                                    <button class="btn btn-descargar btn-action" onclick="descargarParteGenerado({{ parte.partes_generados.first.id }})">
-                                        <i class="fas fa-download"></i>
-                                    </button>
+                                <button class="btn btn-descargar btn-action"
+                                    onclick="descargarParteGenerado({{ parte.partes_generados.first.id }})">
+                                    <i class="fas fa-download"></i>
+                                </button>
                                 {% else %}-{% endif %}
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-info btn-action" onclick="verDetalleParte({{ parte.id }})" title="Ver"><i class="fas fa-eye"></i></button>
-                                    <button class="btn btn-warning btn-action" onclick="cambiarEstadoParte({{ parte.id }})" title="Estado"><i class="fas fa-exchange-alt"></i></button>
-                                    <button class="btn btn-generar btn-action" onclick="generarDocumentoParte({{ parte.id }})" title="PDF"><i class="fas fa-file-pdf"></i></button>
-                                    <button class="btn btn-secondary btn-action" onclick="editarParte({{ parte.id }})" title="Editar"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-info btn-action" onclick="verDetalleParte({{ parte.id }})"
+                                        title="Ver"><i class="fas fa-eye"></i></button>
+                                    <button class="btn btn-warning btn-action"
+                                        onclick="cambiarEstadoParte({{ parte.id }})" title="Estado"><i
+                                            class="fas fa-exchange-alt"></i></button>
+                                    <button class="btn btn-generar btn-action"
+                                        onclick="generarDocumentoParte({{ parte.id }})" title="PDF"><i
+                                            class="fas fa-file-pdf"></i></button>
+                                    <button class="btn btn-secondary btn-action" onclick="editarParte({{ parte.id }})"
+                                        title="Editar"><i class="fas fa-edit"></i></button>
                                 </div>
                             </td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="8" class="text-center py-4 text-muted">No hay partes registrados.</td></tr>
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">No hay partes registrados.</td>
+                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -171,7 +252,7 @@
                 <form id="formParteMortorio">
                     {% csrf_token %}
                     <input type="hidden" id="parte_id" name="parte_id">
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Nombre del Fallecido <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="nombre_fallecido" required>
@@ -184,7 +265,35 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Precio Total ($) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="precio_total" step="0.01" min="0" value="0.00" required>
+                            <input type="number" class="form-control" id="precio_total" step="0.01" min="0" value="0.00"
+                                required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Inicio Transmisión <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="fecha_inicio_transmision" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fin Transmisión <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="fecha_fin_transmision" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Hora <span class="text-danger">*</span></label>
+                            <input type="time" class="form-control" id="hora_transmision" value="13:00" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Duración (seg) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="duracion_transmision" value="60" min="1"
+                                required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Repeticiones/Día <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="repeticiones_dia" value="4" min="1" required>
                         </div>
                     </div>
 
@@ -200,27 +309,8 @@
                         <textarea class="form-control" id="observaciones" rows="3" placeholder="Notas..."></textarea>
                     </div>
 
-                    <div style="display: none;">
-                        <input type="date" id="fecha_nacimiento" value="2000-01-01">
-                        <input type="text" id="nombre_esposa" value="No registra">
-                        <input type="number" id="cantidad_hijos" value="0">
-                        <input type="number" id="hijos_vivos" value="0">
-                        <input type="number" id="hijos_fallecidos" value="0">
-                        <input type="text" id="nombres_hijos" value="N/A">
-                        <textarea id="familiares_adicionales">N/A</textarea>
-                        <select id="tipo_ceremonia"><option value="misa" selected>Misa</option></select>
-                        <input type="date" id="fecha_misa" value="2025-01-01">
-                        <input type="time" id="hora_misa" value="00:00">
-                        <input type="text" id="lugar_misa" value="Por definir">
-                        <input type="date" id="fecha_inicio_transmision" value="2025-01-01">
-                        <input type="date" id="fecha_fin_transmision" value="2025-01-01">
-                        <input type="time" id="hora_transmision" value="00:00">
-                        <input type="number" id="duracion_transmision" value="1">
-                        <input type="number" id="repeticiones_dia" value="1">
-                        <select id="urgencia"><option value="normal" selected>Normal</option></select>
-                        <select id="estado"><option value="pendiente" selected>Pendiente</option></select>
-                        <textarea id="mensaje_personalizado">N/A</textarea>
-                    </div>
+
+
                 </form>
             </div>
             <div class="modal-footer">
@@ -231,170 +321,240 @@
     </div>
 </div>
 
-<div class="modal fade" id="modalCambiarEstado" tabindex="-1"><div class="modal-dialog modal-sm"><div class="modal-content"><div class="modal-header"><h5>Estado</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body" id="opcionesEstado"></div><div class="modal-footer"><button class="btn btn-primary w-100" onclick="confirmarCambioEstado()">Confirmar</button></div></div></div></div>
-<div class="modal fade" id="modalGenerarDocumento" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5>PDF</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><select class="form-select" id="plantilla_id"></select></div><div class="modal-footer"><button class="btn btn-primary" onclick="confirmarGenerarDocumento()">Generar</button></div></div></div></div>
-<div class="modal fade" id="modalDetalleParte" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5>Detalle</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body" id="detalleParteContent"></div></div></div></div>
+<div class="modal fade" id="modalCambiarEstado" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5>Estado</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="opcionesEstado"></div>
+            <div class="modal-footer"><button class="btn btn-primary w-100"
+                    onclick="confirmarCambioEstado()">Confirmar</button></div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="modalGenerarDocumento" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5>PDF</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body"><select class="form-select" id="plantilla_id"></select></div>
+            <div class="modal-footer"><button class="btn btn-primary"
+                    onclick="confirmarGenerarDocumento()">Generar</button></div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="modalDetalleParte" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5>Detalle</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalleParteContent"></div>
+        </div>
+    </div>
+</div>
 
 {% endblock %}
 
 {% block extra_js %}
 <script>
-let modalParteMortorio, modalDetalleParte, modalGenerarDocumento, modalCambiarEstado;
-let parteActualId = null, estadoSeleccionado = null;
+    let modalParteMortorio, modalDetalleParte, modalGenerarDocumento, modalCambiarEstado;
+    let parteActualId = null, estadoSeleccionado = null;
 
-document.addEventListener('DOMContentLoaded', function() {
-    modalParteMortorio = new bootstrap.Modal(document.getElementById('modalParteMortorio'));
-    modalDetalleParte = new bootstrap.Modal(document.getElementById('modalDetalleParte'));
-    modalGenerarDocumento = new bootstrap.Modal(document.getElementById('modalGenerarDocumento'));
-    modalCambiarEstado = new bootstrap.Modal(document.getElementById('modalCambiarEstado'));
-});
-
-function abrirModalCrear() {
-    document.getElementById('modalParteTitulo').textContent = 'Nuevo Parte Mortorio';
-    document.getElementById('formParteMortorio').reset();
-    document.getElementById('parte_id').value = '';
-    cargarClientes();
-    modalParteMortorio.show();
-}
-
-function cargarClientes() {
-    fetch('/panel/api/clientes-activos/')
-        .then(r => r.json())
-        .then(data => {
-            const select = document.getElementById('cliente_id');
-            select.innerHTML = '<option value="">Seleccionar cliente...</option>';
-            if (data.success) {
-                data.clientes.forEach(c => {
-                    const opt = document.createElement('option');
-                    opt.value = c.id;
-                    opt.textContent = c.nombre_completo || c.empresa || c.username;
-                    select.appendChild(opt);
-                });
-            }
-        });
-}
-
-function guardarParteMortorio() {
-    const parteId = document.getElementById('parte_id').value;
-    const form = document.getElementById('formParteMortorio');
-    if (!form.checkValidity()) { form.reportValidity(); return; }
-
-    const today = new Date().toISOString().split('T')[0];
-    
-    const formData = {
-        // VISIBLES
-        cliente_id: document.getElementById('cliente_id').value,
-        nombre_fallecido: document.getElementById('nombre_fallecido').value,
-        fecha_fallecimiento: document.getElementById('fecha_fallecimiento').value,
-        precio_total: document.getElementById('precio_total').value,
-        observaciones: document.getElementById('observaciones').value,
-        
-        // GENERICOS PARA EL BACKEND
-        fecha_nacimiento: today,
-        nombre_esposa: "No registra",
-        cantidad_hijos: 0,
-        hijos_vivos: 0,
-        hijos_fallecidos: 0,
-        nombres_hijos: "N/A",
-        familiares_adicionales: "N/A",
-        tipo_ceremonia: "misa",
-        fecha_misa: today,
-        hora_misa: "00:00",
-        lugar_misa: "Por definir",
-        fecha_inicio_transmision: today,
-        fecha_fin_transmision: today,
-        hora_transmision: "00:00",
-        duracion_transmision: 1,
-        repeticiones_dia: 1,
-        estado: "pendiente",
-        urgencia: "normal",
-        mensaje_personalizado: "N/A"
-    };
-
-    fetch(parteId ? `/panel/parte-mortorios/${parteId}/editar/` : '/panel/parte-mortorios/crear/', {
-        method: parteId ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-        body: JSON.stringify(formData)
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) Swal.fire('Éxito', 'Guardado correctamente', 'success').then(() => window.location.reload());
-        else Swal.fire('Error', data.error, 'error');
+    document.addEventListener('DOMContentLoaded', function () {
+        modalParteMortorio = new bootstrap.Modal(document.getElementById('modalParteMortorio'));
+        modalDetalleParte = new bootstrap.Modal(document.getElementById('modalDetalleParte'));
+        modalGenerarDocumento = new bootstrap.Modal(document.getElementById('modalGenerarDocumento'));
+        modalCambiarEstado = new bootstrap.Modal(document.getElementById('modalCambiarEstado'));
     });
-}
 
-function cambiarEstadoParte(id) {
-    parteActualId = id;
-    document.getElementById('opcionesEstado').innerHTML = `
+    function abrirModalCrear() {
+        document.getElementById('modalParteTitulo').textContent = 'Nuevo Parte Mortorio';
+        document.getElementById('formParteMortorio').reset();
+        document.getElementById('parte_id').value = '';
+
+        // Set default dates
+        const today = new Date();
+        const nextWeek = new Date(today);
+        nextWeek.setDate(today.getDate() + 7);
+
+        document.getElementById('fecha_fallecimiento').valueAsDate = today;
+        document.getElementById('fecha_inicio_transmision').valueAsDate = today;
+        document.getElementById('fecha_fin_transmision').valueAsDate = nextWeek;
+
+        cargarClientes();
+        modalParteMortorio.show();
+    }
+
+    function cargarClientes() {
+        fetch('/panel/api/clientes-activos/')
+            .then(r => r.json())
+            .then(data => {
+                const select = document.getElementById('cliente_id');
+                select.innerHTML = '<option value="">Seleccionar cliente...</option>';
+                if (data.success) {
+                    data.clientes.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.textContent = c.nombre_completo || c.empresa || c.username;
+                        select.appendChild(opt);
+                    });
+                }
+            });
+    }
+
+    function guardarParteMortorio() {
+        const parteId = document.getElementById('parte_id').value;
+        const form = document.getElementById('formParteMortorio');
+        console.log('Intentando guardar parte...', form.checkValidity());
+        if (!form.checkValidity()) {
+            console.error('Formulario invalido');
+            form.reportValidity();
+            return;
+        }
+
+        const today = new Date().toISOString().split('T')[0];
+
+        const formData = {
+            // VISIBLES
+            cliente_id: document.getElementById('cliente_id').value,
+            nombre_fallecido: document.getElementById('nombre_fallecido').value,
+            fecha_fallecimiento: document.getElementById('fecha_fallecimiento').value,
+            precio_total: document.getElementById('precio_total').value,
+            observaciones: document.getElementById('observaciones').value,
+
+            // GENERICOS PARA EL BACKEND
+            fecha_nacimiento: today,
+            nombre_esposa: "No registra",
+            cantidad_hijos: 0,
+            hijos_vivos: 0,
+            hijos_fallecidos: 0,
+            nombres_hijos: "N/A",
+            familiares_adicionales: "N/A",
+            tipo_ceremonia: "misa",
+            fecha_misa: today,
+            hora_misa: "00:00",
+            lugar_misa: "Por definir",
+
+            // DATOS DE TRANSMISIÓN REALES
+            fecha_inicio_transmision: document.getElementById('fecha_inicio_transmision').value,
+            fecha_fin_transmision: document.getElementById('fecha_fin_transmision').value,
+            hora_transmision: document.getElementById('hora_transmision').value,
+            duracion_transmision: document.getElementById('duracion_transmision').value,
+            repeticiones_dia: document.getElementById('repeticiones_dia').value,
+
+            estado: "pendiente",
+            urgencia: "normal",
+            mensaje_personalizado: "N/A"
+        };
+
+        fetch(parteId ? `/panel/parte-mortorios/${parteId}/editar/` : '/panel/parte-mortorios/crear/', {
+            method: parteId ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify(formData)
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) Swal.fire('Éxito', 'Guardado correctamente', 'success').then(() => window.location.reload());
+                else Swal.fire('Error', data.error, 'error');
+            });
+    }
+
+    function cambiarEstadoParte(id) {
+        parteActualId = id;
+        document.getElementById('opcionesEstado').innerHTML = `
         <div class="estado-option" onclick="seleccionarEstado('pendiente')">🟡 Pendiente</div>
         <div class="estado-option" onclick="seleccionarEstado('al_aire')">🟢 Al Aire</div>
         <div class="estado-option" onclick="seleccionarEstado('finalizado')">🔴 Finalizado</div>
     `;
-    modalCambiarEstado.show();
-}
+        modalCambiarEstado.show();
+    }
 
-function seleccionarEstado(est) { 
-    estadoSeleccionado = est; 
-    document.querySelectorAll('.estado-option').forEach(o => o.classList.remove('selected'));
-    event.currentTarget.classList.add('selected');
-}
+    function seleccionarEstado(est) {
+        estadoSeleccionado = est;
+        document.querySelectorAll('.estado-option').forEach(o => o.classList.remove('selected'));
+        event.currentTarget.classList.add('selected');
+    }
 
-function confirmarCambioEstado() {
-    if (!estadoSeleccionado) return;
-    fetch(`/panel/parte-mortorios/${parteActualId}/cambiar-estado/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-        body: JSON.stringify({ estado: estadoSeleccionado })
-    }).then(() => window.location.reload());
-}
+    function confirmarCambioEstado() {
+        if (!estadoSeleccionado) return;
+        fetch(`/panel/parte-mortorios/${parteActualId}/cambiar-estado/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ estado: estadoSeleccionado })
+        }).then(() => window.location.reload());
+    }
 
-function verDetalleParte(id) {
-    modalDetalleParte.show();
-    fetch(`/panel/parte-mortorios/${id}/detalle/`).then(r => r.json()).then(data => {
-        document.getElementById('detalleParteContent').innerHTML = `
+    function verDetalleParte(id) {
+        modalDetalleParte.show();
+        fetch(`/panel/parte-mortorios/${id}/detalle/`).then(r => r.json()).then(data => {
+            document.getElementById('detalleParteContent').innerHTML = `
             <p><strong>Fallecido:</strong> ${data.nombre_fallecido}</p>
             <p><strong>Precio:</strong> $${data.precio_total}</p>
             <p><strong>Cliente:</strong> ${data.cliente_nombre}</p>
+            <hr>
+            <h6>Detalles de Transmisión</h6>
+            <p><strong>Inicio:</strong> ${data.fecha_inicio_transmision || 'N/A'}</p>
+            <p><strong>Fin:</strong> ${data.fecha_fin_transmision || 'N/A'}</p>
+            <p><strong>Hora:</strong> ${data.hora_transmision || 'N/A'}</p>
+            <p><strong>Duración:</strong> ${data.duracion_transmision} seg</p>
+            <p><strong>Repeticiones/día:</strong> ${data.repeticiones_dia}</p>
+            <hr>
             <p><strong>Observaciones:</strong> ${data.observaciones || 'Sin notas'}</p>
         `;
-    });
-}
+        });
+    }
 
-function generarDocumentoParte(id) {
-    fetch('/panel/parte-mortorios/api/plantillas/').then(r => r.json()).then(data => {
-        const s = document.getElementById('plantilla_id');
-        s.innerHTML = data.plantillas.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
-        parteActualId = id;
-        modalGenerarDocumento.show();
-    });
-}
+    function generarDocumentoParte(id) {
+        fetch('/panel/parte-mortorios/api/plantillas/').then(r => r.json()).then(data => {
+            const s = document.getElementById('plantilla_id');
+            s.innerHTML = data.plantillas.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+            parteActualId = id;
+            modalGenerarDocumento.show();
+        });
+    }
 
-function confirmarGenerarDocumento() {
-    const pId = document.getElementById('plantilla_id').value;
-    fetch(`/panel/parte-mortorios/${parteActualId}/generar/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-        body: JSON.stringify({ plantilla_id: pId })
-    }).then(() => window.location.reload());
-}
+    function confirmarGenerarDocumento() {
+        const pId = document.getElementById('plantilla_id').value;
+        fetch(`/panel/parte-mortorios/${parteActualId}/generar/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ plantilla_id: pId })
+        }).then(() => window.location.reload());
+    }
 
-function descargarParteGenerado(id) {
-    fetch(`/panel/parte-mortorios/generados/${id}/verificar/`).then(r => r.json()).then(data => {
-        if (data.archivo_url) window.open(data.archivo_url, '_blank');
-    });
-}
+    function descargarParteGenerado(id) {
+        fetch(`/panel/parte-mortorios/generados/${id}/verificar/`).then(r => r.json()).then(data => {
+            if (data.archivo_url) window.open(data.archivo_url, '_blank');
+        });
+    }
 
-function editarParte(id) {
-    document.getElementById('modalParteTitulo').textContent = 'Editar Parte';
-    document.getElementById('parte_id').value = id;
-    fetch(`/panel/parte-mortorios/${id}/detalle/`).then(r => r.json()).then(data => {
-        document.getElementById('nombre_fallecido').value = data.nombre_fallecido;
-        document.getElementById('fecha_fallecimiento').value = data.fecha_fallecimiento;
-        document.getElementById('precio_total').value = data.precio_total;
-        document.getElementById('observaciones').value = data.observaciones || '';
-        cargarClientes();
-        modalParteMortorio.show();
-    });
-}
+    function editarParte(id) {
+        document.getElementById('modalParteTitulo').textContent = 'Editar Parte';
+        document.getElementById('parte_id').value = id;
+        fetch(`/panel/parte-mortorios/${id}/detalle/`).then(r => r.json()).then(data => {
+            document.getElementById('nombre_fallecido').value = data.nombre_fallecido;
+            document.getElementById('fecha_fallecimiento').value = data.fecha_fallecimiento;
+            document.getElementById('precio_total').value = data.precio_total;
+            document.getElementById('observaciones').value = data.observaciones || '';
+
+            // Cargar datos de transmisión
+            document.getElementById('fecha_inicio_transmision').value = data.fecha_inicio_transmision || '';
+            document.getElementById('fecha_fin_transmision').value = data.fecha_fin_transmision || '';
+            document.getElementById('hora_transmision').value = data.hora_transmision || '13:00';
+            document.getElementById('duracion_transmision').value = data.duracion_transmision || 60;
+            document.getElementById('repeticiones_dia').value = data.repeticiones_dia || 4;
+
+            cargarClientes();
+            // Esperar a que carguen los clientes para seleccionar el correcto
+            setTimeout(() => {
+                document.getElementById('cliente_id').value = data.cliente_id;
+            }, 500);
+
+            modalParteMortorio.show();
+        });
+    }
 </script>
 {% endblock %}
