@@ -702,10 +702,11 @@
 
                                 <!-- Botón Descargar -->
                                 {% if contrato.archivo_contrato_pdf %}
-                                <a href="{{ contrato.archivo_contrato_pdf.url }}" class="btn btn-primary"
-                                    target="_blank" title="Descargar">
+                                <button class="btn btn-primary"
+                                    onclick="abrirModalDescargaContrato({{ contrato.id }}, '{{ contrato.numero_contrato }}', '{{ contrato.archivo_contrato_pdf.url }}', '{% if contrato.archivo_contrato_validado %}{{ contrato.archivo_contrato_validado.url }}{% endif %}')"
+                                    title="Descargar">
                                     <i class="fas fa-download"></i>
-                                </a>
+                                </button>
                                 {% endif %}
 
                                 <!-- ✅ Botón Subir (solo si está en estado 'generado' y no tiene cuña) -->
@@ -925,6 +926,58 @@
     </div>
 </div>
 
+<!-- Modal Opciones Descarga Contrato -->
+<div class="modal fade" id="modalOpcionesDescargaContrato" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-download me-2"></i>Descargar Contrato
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <h6 class="text-muted mb-1">Seleccione una opción para el contrato:</h6>
+                    <h4 id="descargaContratoNumero" class="fw-bold text-primary"></h4>
+                </div>
+
+                <div class="d-grid gap-3">
+                    <button class="btn btn-outline-primary btn-lg p-3 text-start d-flex align-items-center"
+                        onclick="procederDescargaSistema()">
+                        <div class="bg-primary bg-opacity-10 p-3 rounded-circle me-3">
+                            <i class="fas fa-file-contract fa-2x text-primary"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold">Versión del Sistema</div>
+                            <small class="text-muted">Generada automáticamente</small>
+                        </div>
+                        <i class="fas fa-chevron-right ms-auto text-muted"></i>
+                    </button>
+
+                    <button id="btnDescargaValidada"
+                        class="btn btn-outline-success btn-lg p-3 text-start d-flex align-items-center"
+                        onclick="procederDescargaValidado()">
+                        <div class="bg-success bg-opacity-10 p-3 rounded-circle me-3">
+                            <i class="fas fa-file-signature fa-2x text-success"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold">Versión Validada</div>
+                            <small class="text-muted">Documento firmado subido por el usuario</small>
+                        </div>
+                        <i class="fas fa-chevron-right ms-auto text-muted"></i>
+                    </button>
+
+                    <div id="msgNoValidada" class="text-center text-muted small mt-2" style="display:none;">
+                        <i class="fas fa-info-circle me-1"></i> No hay versión validada disponible
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 {% block extra_js %}
 <script>
@@ -934,6 +987,9 @@
     let filtroActual = 'todos';
     let categoriasDisponibles = [];
     const fechasExcluidasSet = new Set();
+    let modalOpcionesDescargaContrato;
+    let urlGeneradoConfirmada = null;
+    let urlValidadoConfirmada = null;
 
     // Cargar plantillas al iniciar
     document.addEventListener('DOMContentLoaded', function () {
@@ -944,6 +1000,10 @@
         setupBulletTextarea('compromisoTransmisionTexto');
         setupBulletTextarea('compromisoNotasTexto');
         setupBulletTextarea('observaciones');
+
+        modalOpcionesDescargaContrato = new bootstrap.Modal(document.getElementById('modalOpcionesDescargaContrato'));
+
+        modalOpcionesDescargaContrato = new bootstrap.Modal(document.getElementById('modalOpcionesDescargaContrato'));
 
         // Listeners para cambios en selectores
         const plantillaSelect = document.getElementById('plantillaSelect');
@@ -1705,6 +1765,41 @@
     window.limpiarFormulario = limpiarFormulario;
     window.agregarFechaExcluida = agregarFechaExcluida;
     window.removerFechaExcluida = removerFechaExcluida;
+
+    // ✅ Funciones Modal Descarga
+    function abrirModalDescargaContrato(id, numero, urlGen, urlVal) {
+        document.getElementById('descargaContratoNumero').textContent = numero;
+        urlGeneradoConfirmada = urlGen;
+        urlValidadoConfirmada = urlVal;
+
+        const btnVal = document.getElementById('btnDescargaValidada');
+        const msgVal = document.getElementById('msgNoValidada');
+
+        if (urlVal && urlVal.trim() !== '') {
+            btnVal.style.display = 'flex';
+            btnVal.disabled = false;
+            msgVal.style.display = 'none';
+        } else {
+            btnVal.style.display = 'none';
+            msgVal.style.display = 'block';
+        }
+
+        modalOpcionesDescargaContrato.show();
+    }
+
+    function procederDescargaSistema() {
+        if (urlGeneradoConfirmada) window.open(urlGeneradoConfirmada, '_blank');
+        modalOpcionesDescargaContrato.hide();
+    }
+
+    function procederDescargaValidado() {
+        if (urlValidadoConfirmada) window.open(urlValidadoConfirmada, '_blank');
+        modalOpcionesDescargaContrato.hide();
+    }
+
+    window.abrirModalDescargaContrato = abrirModalDescargaContrato;
+    window.procederDescargaSistema = procederDescargaSistema;
+    window.procederDescargaValidado = procederDescargaValidado;
 
 </script>
 {% endblock %}

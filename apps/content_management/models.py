@@ -1351,49 +1351,71 @@ class ContratoGenerado(models.Model):
             if self.fechas_excluidas:
                 txt_exclusiones += f". Fechas específicas: {self.fechas_excluidas}"
 
+            # Helper fechas español
+            meses_es = {
+                1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
+                7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+            }
+            def fmt_fecha_es(dt):
+                if not dt: return 'N/A'
+                return f"{dt.day} de {meses_es[dt.month]} del {dt.year}"
+
             context = {
+                # Datos del Cliente (Mapeo estricto a lo solicitado)
                 'NOMBRE_CLIENTE': self.nombre_cliente,
-                'RUC_DNI': self.ruc_dni_cliente,
-                'CIUDAD': getattr(cliente, 'ciudad', '') or 'N/A',
-                'PROVINCIA': getattr(cliente, 'provincia', '') if hasattr(cliente, 'provincia') else '',
-                'DIRECCION_EXACTA': getattr(cliente, 'direccion_exacta', '') or getattr(cliente, 'direccion', '') or 'N/A',
-                'DIRECCION': getattr(cliente, 'direccion_exacta', '') or getattr(cliente, 'direccion', '') or 'N/A',
+                'RUC_DNI_CLIENTE': getattr(cliente, 'ruc_dni', '') or self.ruc_dni_cliente or '',
+                'DIRECCION_CLIENTE': getattr(cliente, 'direccion_exacta', '') or getattr(cliente, 'direccion', '') or '',
+                'CIUDAD_CLIENTE': getattr(cliente, 'ciudad', '') or '',
+                'EMAIL_CLIENTE': getattr(cliente, 'email', '') or '',
+                'TELEFONO_CLIENTE': getattr(cliente, 'telefono', '') or '',
+                'CARGO_CLIENTE': cargo_cliente,
+                'PROFESION_CLIENTE': profesion_cliente,
+                'NOMBRE_CONTACTO': nombre_contacto,
+                # Alias
+                'CARGO': cargo_cliente,
+                'PROFESION': profesion_cliente,
+
+                # Datos Generales
+                'NUMERO_CONTRATO': self.numero_contrato,
+                'FECHA_GENERACION': fmt_fecha_es(self.fecha_generacion or timezone.now()),
+                'FECHA_INICIO': fmt_fecha_es(fecha_inicio),
+                'FECHA_FIN': fmt_fecha_es(fecha_fin),
+                'TOTAL_DIAS': str(duracion_dias),
+                'VALOR_TOTAL': f"{valor_total:.2f}",
+                
+                # Alias antiguos/extra (por compatibilidad)
+                'FECHA_ACTUAL': fmt_fecha_es(timezone.now()), # Alias para fecha generación
+                'DURACION_DIAS': str(duracion_dias),
+                'DURACION_MESES': str(duracion_meses),
                 'VALOR_NUMEROS': f"{valor_sin_iva:.2f}",
                 'IVA_NUMEROS': f"{valor_iva:.2f}",
                 'TOTAL_NUMEROS': f"{valor_total:.2f}",
                 'VALOR_LETRAS': numero_a_letras(valor_sin_iva),
                 'IVA_LETRAS': numero_a_letras(valor_iva),
                 'TOTAL_LETRAS': numero_a_letras(valor_total),
-                'FECHA_INICIO': fecha_inicio.strftime('%d de %B del %Y') if datos_gen.get('FECHA_INICIO_RAW') else 'N/A',
-                'FECHA_FIN': fecha_fin.strftime('%d de %B del %Y') if datos_gen.get('FECHA_FIN_RAW') else 'N/A',
-                'FECHA_ACTUAL': timezone.now().strftime('%d de %B del %Y'),
-                'DURACION_DIAS': str(duracion_dias),
-                'DURACION_MESES': str(duracion_meses),
+
+                # Configuración Pauta
                 'SPOTS_DIA': str(datos_gen.get('SPOTS_DIA', '1')),
-                'DURACION_SPOT': str(datos_gen.get('DURACION_SPOT', '30')),
-                'NUMERO_CONTRATO': self.numero_contrato,
-                'NOMBRE_CONTACTO': nombre_contacto,
-            
-                # ✅ NUEVOS CAMPOS AGREGADOS (Contexto Word)
-                'CARGO_CLIENTE': cargo_cliente,
-                'PROFESION_CLIENTE': profesion_cliente,
-                'CARGO': cargo_cliente,
-                'PROFESION': profesion_cliente,
-                
-                # Campos de Compromisos
                 'SPOTS_MES': str(self.spots_por_mes or 0),
+                'DURACION_SPOT': str(datos_gen.get('DURACION_SPOT', '30')),
+                'CATEGORIA': datos_gen.get('CATEGORIA_NOMBRE', 'General'),
+                'OBSERVACIONES': datos_gen.get('OBSERVACIONES', '') or '',
+
+                # Compromisos
                 'COMPROMISO_SPOT_TEXTO': self.compromiso_spot_texto or '',
-                
                 'COMPROMISO_TRANSMISION_TEXTO': self.compromiso_transmision_texto or '',
                 'COMPROMISO_TRANSMISION_CANTIDAD': str(self.compromiso_transmision_cantidad),
                 'COMPROMISO_TRANSMISION_VALOR': f"{self.compromiso_transmision_valor:.2f}",
-                
                 'COMPROMISO_NOTAS_TEXTO': self.compromiso_notas_texto or '',
                 'COMPROMISO_NOTAS_CANTIDAD': str(self.compromiso_notas_cantidad),
                 'COMPROMISO_NOTAS_VALOR': f"{self.compromiso_notas_valor:.2f}",
-                
-                # Info Exclusiones
+
+                # Exclusiones
                 'EXCLUSIONES_TEXTO': txt_exclusiones,
+
+                # Datos Administrativos
+                'GENERADO_POR': self.generado_por.get_full_name() if self.generado_por else 'Sistema',
+                'VENDEDOR': self.vendedor_asignado.get_full_name() if self.vendedor_asignado else 'No asignado',
             }
 
             self.datos_generacion = {**datos_gen, **context}
