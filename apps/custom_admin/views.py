@@ -1952,6 +1952,26 @@ def cunas_list(request):
     estado = request.GET.get('estado')
     cliente_id = request.GET.get('cliente')
     
+    # === AUTO-FINALIZACIÓN DE CUÑAS VENCIDAS ===
+    try:
+        from django.utils import timezone
+        hoy = timezone.now().date()
+        # Buscar cuñas activas que ya vencieron (fecha_fin < hoy)
+        cunas_vencidas = CuñaPublicitaria.objects.filter(
+            estado='activa',
+            fecha_fin__lt=hoy
+        )
+        
+        count_vencidas = cunas_vencidas.count()
+        if count_vencidas > 0:
+            print(f"🔄 Auto-finalizando {count_vencidas} cuñas vencidas...")
+            for cuña in cunas_vencidas:
+                cuña.estado = 'finalizada'
+                cuña.save() # Al hacer save() se dispara la señal que actualiza el Parte Mortorio si corresponde
+    except Exception as e:
+        print(f"❌ Error auto-finalizando cuñas: {e}")
+    # ===========================================
+
     # ✅ CORREGIDO: vendedor_asignado en lugar de vendedor
     cunas = CuñaPublicitaria.objects.all().select_related('cliente', 'vendedor_asignado', 'categoria', 'tipo_contrato').order_by('-created_at')
     
