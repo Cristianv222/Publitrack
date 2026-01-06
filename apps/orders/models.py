@@ -329,7 +329,11 @@ class OrdenToma(models.Model):
         # y la orden es nueva (no tiene PK) o no tiene datos del cliente
         if self.cliente and (not self.pk or not self.nombre_cliente or self.nombre_cliente.strip() == ''):
             self.copiar_datos_cliente()
-    
+        
+        # ✅ NUEVO: Asegurar que el vendedor se copie incluso si el nombre ya existía
+        if self.cliente and not self.vendedor_asignado and self.cliente.vendedor_asignado:
+            self.vendedor_asignado = self.cliente.vendedor_asignado
+
         # Llamar al save original una sola vez
         super().save(*args, **kwargs)
     
@@ -584,6 +588,19 @@ def orden_validada_path(instance, filename):
     ext = filename.split('.')[-1].lower()
     base = f"orden_validada_{instance.numero_orden}_{instance.id if instance.id else 'tmp'}.{ext}"
     return os.path.join('ordenes_validadas', base)
+
+def formatear_fecha_es(fecha):
+    """Formatea una fecha en español (ej: 06 de Enero del 2026)"""
+    if not fecha:
+        return ''
+    
+    meses = {
+        1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+        5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+        9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+    }
+    
+    return f"{fecha.day:02d} de {meses[fecha.month]} del {fecha.year}"
 
 # ==================== MODELOS DE PLANTILLAS DE ORDEN ====================
 
@@ -899,15 +916,19 @@ class OrdenGenerada(models.Model):
                 'TITULO_MATERIAL': orden_toma.titulo_material or '',
                 'DESCRIPCION_BREVE': orden_toma.descripcion_breve or '',
                 'LOCACIONES': orden_toma.locaciones or '',
-                'FECHA_INICIO_PRODUCCION': orden_toma.fecha_produccion_inicio.strftime('%d de %B del %Y') if orden_toma.fecha_produccion_inicio else '',
-                'FECHA_FIN_PRODUCCION': orden_toma.fecha_produccion_fin.strftime('%d de %B del %Y') if orden_toma.fecha_produccion_fin else '',
+                'LOCACIONES': orden_toma.locaciones or '',
+                'FECHA_INICIO_PRODUCCION': formatear_fecha_es(orden_toma.fecha_produccion_inicio),
+                'FECHA_FIN_PRODUCCION': formatear_fecha_es(orden_toma.fecha_produccion_fin),
                 'HORA_INICIO': orden_toma.hora_inicio.strftime('%H:%M') if orden_toma.hora_inicio else '',
                 'HORA_FIN': orden_toma.hora_fin.strftime('%H:%M') if orden_toma.hora_fin else '',
                 'EQUIPO_ASIGNADO': orden_toma.equipo_asignado or '',
                 'RECURSOS_NECESARIOS': orden_toma.recursos_necesarios or '',
                 'OBSERVACIONES_COMPLETADO': orden_toma.observaciones_completado or '',
-                'FECHA_ORDEN': orden_toma.fecha_orden.strftime('%d de %B del %Y') if orden_toma.fecha_orden else '',
-                'FECHA_ACTUAL': timezone.now().strftime('%d de %B del %Y'),
+                'FECHA_ORDEN': formatear_fecha_es(orden_toma.fecha_orden),
+                'FECHA_ACTUAL': formatear_fecha_es(timezone.now()),
+                # ✅ NUEVO: Variables de vendedor solicitadas por el usuario
+                'VENDEDOR': orden_toma.vendedor_asignado.get_full_name() if orden_toma.vendedor_asignado else 'SIN VENDEDOR ASIGNADO',
+                'VENDEDOR_ASIGNADO': orden_toma.vendedor_asignado.get_full_name() if orden_toma.vendedor_asignado else 'SIN VENDEDOR ASIGNADO',
             }
 
             print(f"📋 Contexto preparado para {self.numero_orden}")
@@ -1017,10 +1038,12 @@ class OrdenGenerada(models.Model):
                 'DESCRIPCION_BREVE': orden_produccion.descripcion_breve or '',
                 'TIPO_PRODUCCION': orden_produccion.get_tipo_produccion_display(),
                 'ESPECIFICACIONES_TECNICAS': orden_produccion.especificaciones_tecnicas or '',
-                'FECHA_INICIO_PLANEADA': orden_produccion.fecha_inicio_planeada.strftime('%d de %B del %Y') if orden_produccion.fecha_inicio_planeada else '',
-                'FECHA_FIN_PLANEADA': orden_produccion.fecha_fin_planeada.strftime('%d de %B del %Y') if orden_produccion.fecha_fin_planeada else '',
-                'FECHA_INICIO_REAL': orden_produccion.fecha_inicio_real.strftime('%d de %B del %Y') if orden_produccion.fecha_inicio_real else '',
-                'FECHA_FIN_REAL': orden_produccion.fecha_fin_real.strftime('%d de %B del %Y') if orden_produccion.fecha_fin_real else '',
+                'TIPO_PRODUCCION': orden_produccion.get_tipo_produccion_display(),
+                'ESPECIFICACIONES_TECNICAS': orden_produccion.especificaciones_tecnicas or '',
+                'FECHA_INICIO_PLANEADA': formatear_fecha_es(orden_produccion.fecha_inicio_planeada),
+                'FECHA_FIN_PLANEADA': formatear_fecha_es(orden_produccion.fecha_fin_planeada),
+                'FECHA_INICIO_REAL': formatear_fecha_es(orden_produccion.fecha_inicio_real),
+                'FECHA_FIN_REAL': formatear_fecha_es(orden_produccion.fecha_fin_real),
                 'EQUIPO_ASIGNADO': orden_produccion.equipo_asignado or '',
                 'RECURSOS_NECESARIOS': orden_produccion.recursos_necesarios or '',
                 'ARCHIVOS_ENTREGABLES': orden_produccion.archivos_entregables or '',
@@ -1028,7 +1051,9 @@ class OrdenGenerada(models.Model):
                 'PRIORIDAD': orden_produccion.get_prioridad_display(),
                 'ESTADO': orden_produccion.get_estado_display(),
                 'PRODUCTOR_ASIGNADO': orden_produccion.productor_asignado.get_full_name() if orden_produccion.productor_asignado else '',
-                'FECHA_ACTUAL': timezone.now().strftime('%d de %B del %Y'),
+                'VENDEDOR': orden_produccion.vendedor_asignado.get_full_name() if orden_produccion.vendedor_asignado else 'SIN VENDEDOR ASIGNADO',
+                'VENDEDOR_ASIGNADO': orden_produccion.vendedor_asignado.get_full_name() if orden_produccion.vendedor_asignado else 'SIN VENDEDOR ASIGNADO',
+                'FECHA_ACTUAL': formatear_fecha_es(timezone.now()),
             }
 
             print(f"📋 Contexto preparado para orden producción {self.numero_orden}")
@@ -1123,13 +1148,14 @@ class OrdenGenerada(models.Model):
                 'EMPRESA_CLIENTE': autorizacion.empresa_cliente or '',
                 'MOTIVO_AUTORIZACION': autorizacion.campania or '',
                 'DETALLE_TRANSMISION': autorizacion.detalle_transmision or '',
-                'FECHA_INICIO_VIGENCIA': autorizacion.fecha_inicio.strftime('%d de %B del %Y'),
-                'FECHA_FIN_VIGENCIA': autorizacion.fecha_fin.strftime('%d de %B del %Y'),
-                'VENDEDOR': autorizacion.vendedor.get_full_name() if autorizacion.vendedor else '',
+                'FECHA_INICIO_VIGENCIA': formatear_fecha_es(autorizacion.fecha_inicio),
+                'FECHA_FIN_VIGENCIA': formatear_fecha_es(autorizacion.fecha_fin),
+                'VENDEDOR': autorizacion.vendedor.get_full_name() if autorizacion.vendedor else 'SIN VENDEDOR ASIGNADO',
+                'VENDEDOR': autorizacion.vendedor.get_full_name() if autorizacion.vendedor else 'SIN VENDEDOR ASIGNADO',
                 'VALOR_TOTAL': f"{autorizacion.valor_total:.2f}",
                 'VALOR_LETRAS': numero_a_letras(autorizacion.valor_total),
                 'OBSERVACIONES': autorizacion.observaciones or '',
-                'FECHA_ACTUAL': timezone.now().strftime('%d de %B del %Y'),
+                'FECHA_ACTUAL': formatear_fecha_es(timezone.now()),
                 # Nuevas variables
                 'TOMAS': 'Si' if autorizacion.incluye_tomas else 'No',
                 'AUDIO': 'Si' if autorizacion.incluye_audio else 'No',
@@ -1186,8 +1212,9 @@ class OrdenGenerada(models.Model):
                 'NOMBRE_CLIENTE': suspension.nombre_cliente or '',
                 'MOTIVO_SUSPENSION': suspension.motivo or '',
                 'CAMPANIA_SUSPENDIDA': suspension.campania or '',
-                'FECHA_SALIDA_AIRE': suspension.fecha_salida_aire.strftime('%d de %B del %Y'),
-                'FECHA_ACTUAL': timezone.now().strftime('%d de %B del %Y'),
+                'FECHA_SALIDA_AIRE': formatear_fecha_es(suspension.fecha_salida_aire),
+                'VENDEDOR': suspension.vendedor_asignado.get_full_name() if suspension.vendedor_asignado else 'SIN VENDEDOR ASIGNADO',
+                'FECHA_ACTUAL': formatear_fecha_es(timezone.now()),
             }
 
             self.datos_generacion = context
@@ -1460,6 +1487,16 @@ class OrdenProduccion(models.Model):
         verbose_name='Productor Asignado'
     )
     
+    vendedor_asignado = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        limit_choices_to={'rol': 'vendedor'},
+        related_name='ordenes_produccion_vendidas',
+        verbose_name='Vendedor Asignado'
+    )
+    
     # Fechas
     fecha_creacion = models.DateTimeField('Fecha de Creación', default=timezone.now)
     fecha_validacion = models.DateTimeField('Fecha de Validación', null=True, blank=True)
@@ -1546,6 +1583,10 @@ class OrdenProduccion(models.Model):
             self.recursos_necesarios = self.orden_toma.recursos_necesarios
             self.fecha_inicio_planeada = self.orden_toma.fecha_produccion_inicio
             self.fecha_fin_planeada = self.orden_toma.fecha_produccion_fin
+            
+            # Copiar vendedor desde Orden Toma
+            if not self.vendedor_asignado and self.orden_toma.vendedor_asignado:
+                self.vendedor_asignado = self.orden_toma.vendedor_asignado
 
     @property
     def tiene_archivo_validado(self):
@@ -1842,6 +1883,10 @@ class OrdenAutorizacion(models.Model):
              # Copiar valor total desde la orden de toma original (via produccion)
              if self.valor_total == 0 and self.orden_produccion.orden_toma:
                  self.valor_total = self.orden_produccion.orden_toma.total or 0.00
+                 
+             # Copiar vendedor desde Orden Producción si no tiene
+             if not self.vendedor and self.orden_produccion.vendedor_asignado:
+                 self.vendedor = self.orden_produccion.vendedor_asignado
                 
         super().save(*args, **kwargs)
         
@@ -1895,6 +1940,16 @@ class OrdenSuspension(models.Model):
     )
     
     motivo = models.TextField('Motivo de Suspensión', blank=True)
+    
+    vendedor_asignado = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        limit_choices_to={'rol': 'vendedor'},
+        related_name='suspensiones_vendidas',
+        verbose_name='Vendedor Asignado'
+    )
     
     # Archivo firmado y fecha de firma
     archivo_firmado = models.FileField(
@@ -1970,6 +2025,9 @@ class OrdenSuspension(models.Model):
             
         if self.cliente and not self.nombre_cliente:
              self.nombre_cliente = self.cliente.get_full_name() or self.cliente.username
+             
+        if self.cliente and not self.vendedor_asignado:
+             self.vendedor_asignado = getattr(self.cliente, 'vendedor_asignado', None)
              
         super().save(*args, **kwargs)
 

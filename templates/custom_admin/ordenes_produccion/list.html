@@ -30,6 +30,9 @@
         border-radius: 20px;
         font-size: 0.85rem;
         font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
     }
 
     .badge-pendiente {
@@ -374,9 +377,24 @@
                                 </span>
                             </td>
                             <td>
+                                {% if orden.estado == 'autorizado' and orden.tiene_archivo_validado %}
+                                <span class="badge-status badge-validado">
+                                    <i class="fas fa-check-circle me-1"></i>Autorizado
+                                </span>
+                                {% elif orden.estado == 'autorizado' %}
+                                <span class="fw-bold text-dark">
+                                    Autorizado
+                                </span>
+                                {% elif orden.estado == 'validado' %}
+                                <span class="fw-bold text-dark">
+                                    Validado
+                                </span>
+                                {% else %}
                                 <span class="badge-status badge-{{ orden.estado }}">
                                     {{ orden.get_estado_display }}
                                 </span>
+                                {% endif %}
+
                                 {% if orden.estado == 'pendiente' %}
                                 <br>
                                 <small class="estado-info mt-1">
@@ -1310,15 +1328,15 @@
                     const orden = data.orden;
 
                     let estadoBoton = '';
-                    if (orden.estado === 'pendiente') {
+                    if (orden.estado == 'pendiente') {
                         estadoBoton = `<button class="btn btn-success btn-sm" onclick="iniciarProduccion(${orden.id})">
                         <i class="fas fa-play me-1"></i>Iniciar Producción
                     </button>`;
-                    } else if (orden.estado === 'en_produccion') {
+                    } else if (orden.estado == 'en_produccion') {
                         estadoBoton = `<button class="btn btn-warning btn-sm" onclick="completarProduccion(${orden.id})">
                         <i class="fas fa-check me-1"></i>Completar Producción
                     </button>`;
-                    } else if (orden.estado === 'completado') {
+                    } else if (orden.estado == 'completado') {
                         estadoBoton = `<button class="btn btn-primary btn-sm" onclick="validarProduccion(${orden.id})">
                         <i class="fas fa-check-double me-1"></i>Validar Producción
                     </button>`;
@@ -1437,7 +1455,7 @@
                             <strong>Días de Retraso:</strong><br>
                             ${orden.dias_retraso > 0 ?
                             `<span class="retraso-alto">${orden.dias_retraso} días</span>` :
-                            orden.dias_retraso === 0 ?
+                            orden.dias_retraso == 0 ?
                                 '<span class="al-dia">Al día</span>' :
                                 `<span class="retraso-medio">${orden.dias_retraso_abs} días</span>`
                         }

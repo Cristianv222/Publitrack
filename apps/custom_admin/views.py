@@ -3440,6 +3440,7 @@ def order_create_api(request):
         
         orden = OrdenToma.objects.create(
             cliente=cliente,
+            vendedor_asignado=cliente.vendedor_asignado, # ✅ Asegurar asignación explícita
             detalle_productos=data.get('detalle_productos', ''),
             cantidad=int(data.get('cantidad', 1)),
             total=Decimal(data.get('total', '0.00')),
@@ -3718,10 +3719,54 @@ def orden_toma_subir_firmada_api(request, order_id):
         
         # Procesar la orden firmada
         if orden.subir_orden_firmada(archivo, request.user):
+             # ✅ CREAR ORDEN DE PRODUCCIÓN AUTOMÁTICAMENTE
+            from apps.orders.models import OrdenProduccion, HistorialOrdenProduccion
+            
+            orden_produccion_creada = False
+            
+            # Verificar si ya existe una orden de producción para esta orden de toma
+            if not OrdenProduccion.objects.filter(orden_toma=orden).exists():
+                try:
+                    orden_produccion = OrdenProduccion.objects.create(
+                        orden_toma=orden,
+                        created_by=request.user,
+                        estado='pendiente',
+                        # Copiar datos automáticamente desde la orden de toma
+                        nombre_cliente=orden.nombre_cliente,
+                        ruc_dni_cliente=orden.ruc_dni_cliente,
+                        empresa_cliente=orden.empresa_cliente,
+                        proyecto_campania=orden.proyecto_campania or 'Proyecto por definir',
+                        titulo_material=orden.titulo_material or 'Material por definir',
+                        descripcion_breve=orden.descripcion_breve or 'Descripción por completar',
+                        equipo_asignado=orden.equipo_asignado or 'Equipo por asignar',
+                        recursos_necesarios=orden.recursos_necesarios or '',
+                        fecha_inicio_planeada=orden.fecha_produccion_inicio or timezone.now().date(),
+                        fecha_fin_planeada=orden.fecha_produccion_fin or (timezone.now() + timezone.timedelta(days=7)).date(),
+                        tipo_produccion='video',  # Valor por defecto
+                        # ✅ Copiar vendedor asignado explícitamente
+                        vendedor_asignado=orden.vendedor_asignado
+                    )
+                    
+                    print(f"✅ Orden de producción creada automáticamente: {orden_produccion.codigo}")
+                    
+                    # Crear entrada en el historial
+                    HistorialOrdenProduccion.objects.create(
+                        orden_produccion=orden_produccion,
+                        accion='creada',
+                        usuario=request.user,
+                        descripcion=f'Orden de producción creada automáticamente al subir orden de toma firmada {orden.codigo}'
+                    )
+                    
+                    orden_produccion_creada = True
+                    
+                except Exception as e:
+                    print(f"❌ Error al crear orden de producción automática: {e}")
+
             return JsonResponse({
                 'success': True,
                 'message': 'Orden de toma validada exitosamente',
-                'nuevo_estado': orden.estado
+                'nuevo_estado': orden.estado,
+                'orden_produccion_creada': orden_produccion_creada
             })
         else:
             return JsonResponse({
@@ -4056,7 +4101,9 @@ def orden_subir_validada_api(request, orden_generada_id):
                     recursos_necesarios=orden_toma.recursos_necesarios or '',
                     fecha_inicio_planeada=orden_toma.fecha_produccion_inicio or timezone.now().date(),
                     fecha_fin_planeada=orden_toma.fecha_produccion_fin or (timezone.now() + timezone.timedelta(days=7)).date(),
-                    tipo_produccion='video'  # Valor por defecto
+                    tipo_produccion='video',  # Valor por defecto
+                    # ✅ Copiar vendedor asignado explícitamente
+                    vendedor_asignado=orden_toma.vendedor_asignado
                 )
                 
                 print(f"✅ Orden de producción creada automáticamente: {orden_produccion.codigo}")

@@ -411,25 +411,23 @@
             <div class="modal-body">
                 <form id="formSubirOrden" enctype="multipart/form-data">
                     {% csrf_token %}
-                    <form id="formSubirOrden" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <input type="hidden" id="subir_orden_id" name="orden_id">
+                    <input type="hidden" id="subir_orden_id" name="orden_id">
 
-                        <div class="mb-3">
-                            <label class="form-label">Seleccionar archivo PDF firmado:</label>
-                            <input type="file" class="form-control" id="archivo_orden" name="archivo" accept=".pdf"
-                                required>
-                            <small class="text-muted">Solo se permiten archivos PDF (máx. 10MB)</small>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label">Seleccionar archivo PDF firmado:</label>
+                        <input type="file" class="form-control" id="archivo_orden" name="archivo" accept=".pdf"
+                            required>
+                        <small class="text-muted">Solo se permiten archivos PDF (máx. 10MB)</small>
+                    </div>
 
-                        <div class="alert alert-warning">
-                            <small>
-                                <i class="fas fa-exclamation-triangle me-1"></i>
-                                Sube el PDF de la orden ya validada y firmada por el cliente.
-                                Esto cambiará el estado de la orden a "Validado".
-                            </small>
-                        </div>
-                    </form>
+                    <div class="alert alert-warning">
+                        <small>
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            Sube el PDF de la orden ya validada y firmada por el cliente.
+                            Esto cambiará el estado de la orden a "Validado".
+                        </small>
+                    </div>
+                </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
@@ -1296,6 +1294,10 @@
                             <span class="badge-status badge-${orden.estado}">${orden.estado}</span>
                         </div>
                         <div class="col-12 mb-3">
+                            <strong>Vendedor Asignado:</strong><br>
+                            ${orden.vendedor ? `<span class="fw-bold text-dark">${orden.vendedor}</span>` : '<span class="text-muted fst-italic">Sin vendedor asignado</span>'}
+                        </div>
+                        <div class="col-12 mb-3">
                             <strong>Observaciones:</strong><br>
                             ${orden.observaciones || '<span class="text-muted">Ninguna</span>'}
                         </div>
@@ -1513,7 +1515,7 @@
             showConfirmButton: false
         });
 
-        fetch(`/panel/orders/generadas/${ordenId}/subir-validada/`, {
+        fetch(`/panel/orders/${ordenId}/subir-firmada/`, {
             method: 'POST',
             headers: {
                 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value

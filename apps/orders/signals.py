@@ -119,7 +119,9 @@ def crear_orden_produccion_al_validar(sender, instance, created, **kwargs):
                     recursos_necesarios=instance.recursos_necesarios or '',
                     fecha_inicio_planeada=instance.fecha_produccion_inicio or timezone.now().date(),
                     fecha_fin_planeada=instance.fecha_produccion_fin or (timezone.now() + timezone.timedelta(days=7)).date(),
-                    tipo_produccion='video'
+                    tipo_produccion='video',
+                    # ✅ Copiar vendedor asignado explícitamente
+                    vendedor_asignado=instance.vendedor_asignado
                 )
                 
                 print(f"✅ [SEÑAL] Orden de producción creada automáticamente: {orden_produccion.codigo}")
