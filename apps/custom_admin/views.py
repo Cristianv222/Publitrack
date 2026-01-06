@@ -8849,6 +8849,9 @@ def grilla_asignar_cuna_api(request):
         
         cantidad_repeticiones = int(data.get('cantidad_repeticiones', 1))
         
+        cuña_id = data.get('cuna_id') or data.get('cuña_id')
+        ubicacion_id = data.get('ubicacion_id')
+        
         # Validaciones mínimas
         if not all([cuña_id, ubicacion_id]):
             return JsonResponse({'success': False, 'error': 'Faltan datos requeridos'})
@@ -9499,29 +9502,28 @@ def grilla_ubicacion_detalle_api(request, ubicacion_id):
         # Obtener TODAS las cuñas sin filtrar por estado
         cunas_disponibles_data = []
         
-        # Obtener todas las cuñas
-        todas_las_cuñas = CuñaPublicitaria.objects.all().select_related('cliente')
+        # Obtener SOLO cuñas activas
+        todas_las_cuñas = CuñaPublicitaria.objects.filter(estado='activa').select_related('cliente')
         
-        print(f"🔍 Buscando TODAS las cuñas (sin filtro de estado)")
-        print(f"📦 Total de cuñas en el sistema: {todas_las_cuñas.count()}")
+        print(f"🔍 Buscando cuñas ACTIVAS")
+        print(f"📦 Total de cuñas activas en el sistema: {todas_las_cuñas.count()}")
         
         for cuña in todas_las_cuñas:
-            # Verificar que no esté ya asignada en esta ubicación
-            if not AsignacionCuña.objects.filter(ubicacion=ubicacion, cuña=cuña).exists():
-                cliente_nombre = "Sin cliente"
-                if cuña.cliente:
-                    cliente_nombre = f"{cuña.cliente.first_name} {cuña.cliente.last_name}".strip()
-                    if not cliente_nombre:
-                        cliente_nombre = cuña.cliente.username
-                
-                cunas_disponibles_data.append({
-                    'id': cuña.id,
-                    'codigo': cuña.codigo,
-                    'titulo': cuña.titulo,
-                    'duracion_planeada': cuña.duracion_planeada,
-                    'cliente': cliente_nombre,
-                    'estado': cuña.estado,  # Incluir el estado para debug
-                })
+            # Permitir selección múltiple de la misma cuña (ya no filtramos por existencia)
+            cliente_nombre = "Sin cliente"
+            if cuña.cliente:
+                cliente_nombre = f"{cuña.cliente.first_name} {cuña.cliente.last_name}".strip()
+                if not cliente_nombre:
+                    cliente_nombre = cuña.cliente.username
+            
+            cunas_disponibles_data.append({
+                'id': cuña.id,
+                'codigo': cuña.codigo,
+                'titulo': cuña.titulo,
+                'duracion_planeada': cuña.duracion_planeada,
+                'cliente': cliente_nombre,
+                'estado': cuña.estado,  # Incluir el estado para debug
+            })
         
         print(f"🎯 Cuñas disponibles para asignar: {len(cunas_disponibles_data)}")
         
