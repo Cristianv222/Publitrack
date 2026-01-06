@@ -36,6 +36,7 @@ from apps.inventory.models import (
     Category, Status, 
     InventoryItem
 )
+INVENTORY_MODELS_AVAILABLE = True
 # Obtener el modelo de usuario correcto
 User = get_user_model()
 
