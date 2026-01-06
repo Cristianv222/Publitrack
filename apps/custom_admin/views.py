@@ -3396,6 +3396,10 @@ def order_detail_api(request, order_id):
                 'observaciones': orden.observaciones,
                 'fecha_orden': orden.fecha_orden.strftime('%d/%m/%Y %H:%M'),
                 'vendedor': orden.vendedor_asignado.get_full_name() if orden.vendedor_asignado else None,
+                # Producción checkboxes
+                'incluye_tomas': orden.incluye_tomas,
+                'incluye_audio': orden.incluye_audio,
+                'incluye_logo': orden.incluye_logo,
                 # Campos adicionales para completar toma
                 'proyecto_campania': orden.proyecto_campania,
                 'titulo_material': orden.titulo_material,
@@ -3441,6 +3445,9 @@ def order_create_api(request):
             total=Decimal(data.get('total', '0.00')),
             prioridad=data.get('prioridad', 'normal'),
             observaciones=data.get('observaciones', ''),
+            incluye_tomas=data.get('incluye_tomas', False),
+            incluye_audio=data.get('incluye_audio', False),
+            incluye_logo=data.get('incluye_logo', False),
             created_by=request.user,
             estado='pendiente'
         )
@@ -3540,6 +3547,11 @@ def order_update_api(request, order_id):
             orden.total = Decimal(data.get('total', orden.total))
             orden.prioridad = data.get('prioridad', orden.prioridad)
             orden.observaciones = data.get('observaciones', orden.observaciones)
+
+            # Checkboxes
+            orden.incluye_tomas = data.get('incluye_tomas', orden.incluye_tomas)
+            orden.incluye_audio = data.get('incluye_audio', orden.incluye_audio)
+            orden.incluye_logo = data.get('incluye_logo', orden.incluye_logo)
             
             # ✅ ACTUALIZAR CAMPOS DE PRODUCCIÓN SI ESTÁN PRESENTES
             if data.get('proyecto_campania') is not None:
@@ -3638,8 +3650,155 @@ def order_delete_api(request, order_id):
         
         return JsonResponse({'success': True, 'message': f'Orden {codigo} eliminada exitosamente'})
         
+
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@login_required
+@user_passes_test(is_admin)
+def orden_toma_descargar_validada_api(request, order_id):
+    """API para descargar la orden de toma validada (firmada)"""
+    try:
+        from apps.orders.models import OrdenToma
+        
+        orden = get_object_or_404(OrdenToma, pk=order_id)
+        
+        if orden.archivo_orden_firmada:
+            file_name = f"Orden_Toma_Validada_{orden.codigo}.pdf"
+            response = FileResponse(
+                orden.archivo_orden_firmada.open('rb'),
+                content_type='application/pdf'
+            )
+            response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+            return response
+            
+        # Fallback: Revisar si existe en la última orden generada (sistema antiguo/migración)
+        ultima_generada = orden.ordenes_generadas.first()
+        if ultima_generada and ultima_generada.archivo_orden_validada:
+            file_name = f"Orden_Toma_Validada_{orden.codigo}_G.pdf"
+            response = FileResponse(
+                ultima_generada.archivo_orden_validada.open('rb'),
+                content_type='application/pdf'
+            )
+            response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+            return response
+            
+        else:
+             return JsonResponse({
+                'success': False, 
+                'error': 'No existe archivo validado para esta orden'
+            }, status=404)
+            
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def orden_toma_subir_firmada_api(request, order_id):
+    """API para subir orden de toma firmada"""
+    try:
+        from apps.orders.models import OrdenToma
+        
+        orden = get_object_or_404(OrdenToma, pk=order_id)
+        
+        if 'archivo' not in request.FILES:
+            return JsonResponse({
+                'success': False,
+                'error': 'Debe seleccionar un archivo PDF'
+            }, status=400)
+        
+        archivo = request.FILES['archivo']
+        
+        if not archivo.name.endswith('.pdf'):
+            return JsonResponse({
+                'success': False,
+                'error': 'El archivo debe ser un PDF'
+            }, status=400)
+        
+        # Procesar la orden firmada
+        if orden.subir_orden_firmada(archivo, request.user):
+            return JsonResponse({
+                'success': True,
+                'message': 'Orden de toma validada exitosamente',
+                'nuevo_estado': orden.estado
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'Error al procesar la orden firmada'
+            }, status=500)
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["GET"])
+def orden_toma_obtener_plantillas_api(request, order_id):
+    """API para obtener plantillas disponibles para una orden de toma"""
+    try:
+        from apps.orders.models import OrdenToma, PlantillaOrden
+        
+        orden = get_object_or_404(OrdenToma, pk=order_id)
+        
+        # Obtener todas las plantillas activas
+        plantillas = PlantillaOrden.objects.filter(is_active=True).order_by('-is_default', 'nombre')
+        
+        plantillas_data = []
+        for p in plantillas:
+            plantillas_data.append({
+                'id': p.id,
+                'nombre': p.nombre,
+                'is_default': p.is_default
+            })
+            
+        return JsonResponse({
+            'success': True,
+            'plantillas': plantillas_data
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+def orden_toma_descargar_plantilla_api(request, order_id):
+    """API para generar y descargar orden de toma basada en plantilla"""
+    try:
+        from apps.orders.models import OrdenToma, PlantillaOrden
+        
+        orden = get_object_or_404(OrdenToma, pk=order_id)
+        plantilla_id = request.GET.get('plantilla_id')
+        
+        if not plantilla_id:
+             return JsonResponse({'success': False, 'error': 'ID de plantilla requerido'}, status=400)
+             
+        try:
+            plantilla = PlantillaOrden.objects.get(pk=plantilla_id)
+        except PlantillaOrden.DoesNotExist:
+             return JsonResponse({'success': False, 'error': 'Plantilla no encontrada'}, status=404)
+
+        # Generar orden usando el método existente (que crea una OrdenGenerada)
+        try:
+            orden_generada = orden.generar_orden_impresion(plantilla_id=plantilla.id, user=request.user)
+            
+            if orden_generada and orden_generada.archivo_orden_pdf:
+                file_name = f"Orden_Toma_{orden.codigo}.pdf"
+                response = FileResponse(
+                    orden_generada.archivo_orden_pdf.open('rb'),
+                    content_type='application/pdf'
+                )
+                response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+                return response
+            else:
+                return JsonResponse({'success': False, 'error': 'No se pudo generar el PDF'}, status=500)
+                
+        except ValueError as ve:
+             return JsonResponse({'success': False, 'error': str(ve)}, status=400)
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 # ==================== VISTAS PARA PLANTILLAS DE ORDEN ====================
 
@@ -4657,6 +4816,33 @@ def orden_produccion_descargar_plantilla_api(request, order_id):
             
             return response
         
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin)
+def orden_produccion_descargar_validada_api(request, order_id):
+    """API para descargar la orden validada (firmada)"""
+    try:
+        from apps.orders.models import OrdenProduccion
+        from django.http import FileResponse
+        
+        orden = get_object_or_404(OrdenProduccion, pk=order_id)
+        
+        if orden.archivo_orden_firmada:
+            file_name = f"Orden_Produccion_Validada_{orden.codigo}.pdf"
+            response = FileResponse(
+                orden.archivo_orden_firmada.open('rb'),
+                content_type='application/pdf'
+            )
+            response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+            return response
+        else:
+             return JsonResponse({
+                'success': False, 
+                'error': 'No existe archivo validado para esta orden'
+            }, status=404)
+            
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
@@ -10587,7 +10773,87 @@ def orden_autorizacion_subir_firma_api(request, order_id):
         return JsonResponse({'success': True, 'message': 'Orden firmada subida y autorizada exitosamente'})
         
     except Exception as e:
+        return JsonResponse({'success': True, 'message': 'Orden firmada subida y autorizada exitosamente'})
+        
+    except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(is_admin)
+def orden_autorizacion_descargar_validada_api(request, order_id):
+    """API para descargar la orden de autorización validada (firmada)"""
+    try:
+        from apps.orders.models import OrdenAutorizacion
+        from django.http import FileResponse
+        
+        orden = get_object_or_404(OrdenAutorizacion, pk=order_id)
+        
+        # 1. Intentar descargar archivo directo del modelo
+        if orden.archivo_firmado:
+            file_name = f"Autorizacion_Firmada_{orden.codigo}.pdf"
+            response = FileResponse(
+                orden.archivo_firmado.open('rb'),
+                content_type='application/pdf'
+            )
+            response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+            return response
+            
+        # 2. Fallback: Revisar si existe en la última orden generada (sistema antiguo/migración)
+        ultima_generada = orden.ordenes_generadas_autorizacion.first()
+        if ultima_generada and ultima_generada.archivo_orden_validada:
+            file_name = f"Autorizacion_Firmada_{orden.codigo}_G.pdf"
+            response = FileResponse(
+                ultima_generada.archivo_orden_validada.open('rb'),
+                content_type='application/pdf'
+            )
+            response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+            return response
+            
+        else:
+             return JsonResponse({
+                'success': False, 
+                'error': 'No existe archivo validado para esta orden'
+            }, status=404)
+            
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@user_passes_test(is_admin)
+def orden_autorizacion_descargar_plantilla_api(request, order_id):
+    """API para descargar la orden generada por el sistema"""
+    try:
+        from apps.orders.models import OrdenAutorizacion, OrdenGenerada
+        from django.http import FileResponse
+        
+        orden = get_object_or_404(OrdenAutorizacion, pk=order_id)
+        
+        # Obtener ID de orden generada específica o usar la última
+        orden_generada_id = request.GET.get('orden_generada_id')
+        
+        if orden_generada_id and orden_generada_id != 'null':
+            orden_generada = get_object_or_404(OrdenGenerada, pk=orden_generada_id)
+        else:
+            orden_generada = orden.ordenes_generadas_autorizacion.first()
+            
+        if orden_generada and orden_generada.archivo_orden_pdf:
+            file_name = f"Autorizacion_{orden.codigo}.pdf"
+            response = FileResponse(
+                orden_generada.archivo_orden_pdf.open('rb'),
+                content_type='application/pdf'
+            )
+            response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+            return response
+        else:
+             return JsonResponse({
+                'success': False, 
+                'error': 'No se ha generado el PDF del sistema para esta orden'
+            }, status=404)
+            
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 @login_required
@@ -10688,28 +10954,7 @@ def orden_suspension_subir_firma_api(request, order_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
-@login_required
-@user_passes_test(is_admin)
-def orden_produccion_detail_api(request, order_id):
-    try:
-        from apps.orders.models import OrdenProduccion
-        orden = get_object_or_404(OrdenProduccion, pk=order_id)
-        
-        return JsonResponse({
-            'success': True,
-            'orden': {
-                'id': orden.id,
-                'codigo': orden.codigo,
-                'cliente_id': orden.orden_toma.cliente.id if orden.orden_toma and orden.orden_toma.cliente else None,
-                'nombre_cliente': orden.nombre_cliente,
-                'campania': orden.proyecto_campania,
-                'vendedor_id': orden.orden_toma.cliente.vendedor_asignado.id if orden.orden_toma and orden.orden_toma.cliente and orden.orden_toma.cliente.vendedor_asignado else None,
-                'valor_total': 0.00,
-                'observaciones': orden.observaciones_produccion
-            }
-        })
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
 
 
 @login_required
@@ -10733,3 +10978,80 @@ def contrato_generado_detail_api(request, contrato_id):
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(is_admin)
+def orden_suspension_descargar_validada_api(request, order_id):
+    """API para descargar la orden de suspensión validada (firmada)"""
+    try:
+        from apps.orders.models import OrdenSuspension
+        from django.http import FileResponse
+        
+        orden = get_object_or_404(OrdenSuspension, pk=order_id)
+        
+        # 1. Intentar descargar archivo directo del modelo
+        if orden.archivo_firmado:
+            file_name = f"Suspension_Firmada_{orden.codigo}.pdf"
+            response = FileResponse(
+                orden.archivo_firmado.open('rb'),
+                content_type='application/pdf'
+            )
+            response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+            return response
+            
+        # 2. Fallback: Revisar si existe en la última orden generada
+        ultima_generada = orden.ordenes_generadas_suspension.first()
+        if ultima_generada and ultima_generada.archivo_orden_validada:
+            file_name = f"Suspension_Firmada_{orden.codigo}_G.pdf"
+            response = FileResponse(
+                ultima_generada.archivo_orden_validada.open('rb'),
+                content_type='application/pdf'
+            )
+            response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+            return response
+            
+        else:
+             return JsonResponse({
+                'success': False, 
+                'error': 'No existe archivo validado para esta orden'
+            }, status=404)
+            
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@user_passes_test(is_admin)
+def orden_suspension_descargar_plantilla_api(request, order_id):
+    """API para descargar la orden de suspensión generada por el sistema"""
+    try:
+        from apps.orders.models import OrdenSuspension, OrdenGenerada
+        from django.http import FileResponse
+        
+        orden = get_object_or_404(OrdenSuspension, pk=order_id)
+        
+        # Obtener ID de orden generada específica o usar la última
+        orden_generada_id = request.GET.get('orden_generada_id')
+        
+        if orden_generada_id and orden_generada_id != 'null':
+            orden_generada = get_object_or_404(OrdenGenerada, pk=orden_generada_id)
+        else:
+            orden_generada = orden.ordenes_generadas_suspension.first()
+            
+        if orden_generada and orden_generada.archivo_orden_pdf:
+            file_name = f"Suspension_{orden.codigo}.pdf"
+            response = FileResponse(
+                orden_generada.archivo_orden_pdf.open('rb'),
+                content_type='application/pdf'
+            )
+            response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+            return response
+        else:
+             return JsonResponse({
+                'success': False, 
+                'error': 'No se ha generado el PDF del sistema para esta orden'
+            }, status=404)
+            
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

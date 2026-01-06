@@ -88,10 +88,14 @@
                                         title="Editar">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-secondary" onclick="generarOrden({{ orden.id }})"
-                                        title="Descargar PDF">
+
+                                    {% with ultima_generada=orden.ordenes_generadas_suspension.first %}
+                                    <button class="btn btn-sm btn-secondary"
+                                        onclick="abrirModalDescargaSuspension({{ orden.id }}, '{{ orden.codigo|escapejs }}', {% if orden.tiene_archivo_validado %}true{% else %}false{% endif %}, {% if ultima_generada %}{{ ultima_generada.id }}{% else %}null{% endif %})"
+                                        title="Opciones de Descarga">
                                         <i class="fas fa-file-pdf"></i>
                                     </button>
+                                    {% endwith %}
                                     {% if orden.estado != 'procesado' and orden.estado != 'suspendido' %}
                                     <button class="btn btn-sm btn-success" onclick="subirFirma({{ orden.id }})"
                                         title="Subir Firma y Procesar">
@@ -134,8 +138,7 @@
                             <select class="form-select" id="contrato_id" onchange="cargarDatosContrato(this.value)">
                                 <option value="">Seleccionar Contrato...</option>
                                 {% for c in contratos %}
-                                <option value="{{ c.id }}">{{ c.numero_contrato }} - {{ c.nombre_cliente }} ({{
-                                    c.cuña.titulo|default:'Sin Cuña' }})</option>
+                                <option value="{{ c.id }}">{{ c.numero_contrato }} - {{ c.nombre_cliente }} ({{ c.cuña.titulo|default:'Sin Cuña' }})</option>
                                 {% endfor %}
                             </select>
                             <small class="text-muted">Seleccione para autocompletar datos</small>
@@ -145,8 +148,7 @@
                             <select class="form-select" id="cliente_id" required>
                                 <option value="">Seleccionar...</option>
                                 {% for cliente in clientes %}
-                                <option value="{{ cliente.id }}">{{ cliente.get_full_name }} ({{ cliente.empresa }})
-                                </option>
+                                <option value="{{ cliente.id }}">{{ cliente.get_full_name }} ({{ cliente.empresa }})</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -225,14 +227,12 @@
                     <input type="hidden" id="firma_orden_id">
                     <div class="mb-3">
                         <label class="form-label">Archivo Firmado (PDF/Imagen)</label>
-                        <input type="file" class="form-control" id="archivo_firmado" accept=".pdf,.jpg,.jpeg,.png"
-                            required>
+                        <input type="file" class="form-control" id="archivo_firmado" accept=".pdf,.jpg,.jpeg,.png" required>
                     </div>
                 </form>
                 <div class="alert alert-warning">
                     <i class="fas fa-exclamation-triangle me-2"></i>
-                    Al subir el archivo, la orden cambiará automáticamente a estado <strong>Procesado</strong> y se
-                    suspenderá el contrato.
+                    Al subir el archivo, la orden cambiará automáticamente a estado <strong>Procesado</strong> y se suspenderá el contrato.
                 </div>
             </div>
             <div class="modal-footer">
@@ -244,6 +244,64 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Opciones Descarga -->
+<div class="modal fade" id="modalOpcionesDescarga" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-pdf me-2"></i>Opciones de Descarga
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="descarga_orden_id">
+                <input type="hidden" id="descarga_orden_codigo">
+                <input type="hidden" id="descarga_orden_generada_id">
+
+                <p class="text-muted mb-4">
+                    Seleccione la versión del documento que desea descargar para la orden <strong id="lbl_codigo_descarga"></strong>:
+                </p>
+
+                <div class="d-grid gap-3">
+                    <!-- Opción 1: Versión del Sistema -->
+                    <button class="btn btn-outline-primary text-start p-3 position-relative" onclick="procederDescargaSuspensionSistema()">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-primary bg-opacity-10 p-3 rounded me-3">
+                                <i class="fas fa-cogs fa-2x text-primary"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Versión del Sistema</h6>
+                                <small class="text-muted d-block">Documento generado automáticamente</small>
+                                <span id="badge_sistema" class="badge bg-warning text-dark mt-1">
+                                    <i class="fas fa-clock me-1"></i>No generado
+                                </span>
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- Opción 2: Versión Validada -->
+                    <button id="btn_descarga_validado" class="btn btn-outline-success text-start p-3 position-relative" onclick="procederDescargaSuspensionValidado()" disabled>
+                        <div class="d-flex align-items-center">
+                            <div class="bg-success bg-opacity-10 p-3 rounded me-3">
+                                <i class="fas fa-file-signature fa-2x text-success"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Versión Validada</h6>
+                                <small class="text-muted d-block">Documento firmado y subido</small>
+                                <span id="badge_validado" class="badge bg-secondary mt-1">
+                                    <i class="fas fa-times me-1"></i>No disponible
+                                </span>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -251,12 +309,75 @@
     let modalOrden;
     let modalGenerarOrden;
     let modalSubirFirma;
+    let modalOpcionesDescarga;
 
     document.addEventListener('DOMContentLoaded', function () {
         modalOrden = new bootstrap.Modal(document.getElementById('modalOrden'));
         modalGenerarOrden = new bootstrap.Modal(document.getElementById('modalGenerarOrden'));
         modalSubirFirma = new bootstrap.Modal(document.getElementById('modalSubirFirma'));
+        modalOpcionesDescarga = new bootstrap.Modal(document.getElementById('modalOpcionesDescarga'));
     });
+
+    // ==========================================
+    // LÓGICA DE DESCARGA UNIFICADA
+    // ==========================================
+    function abrirModalDescargaSuspension(id, codigo, tieneValidado, ordenGeneradaId) {
+        document.getElementById('descarga_orden_id').value = id;
+        document.getElementById('descarga_orden_codigo').value = codigo;
+        document.getElementById('descarga_orden_generada_id').value = ordenGeneradaId || '';
+        document.getElementById('lbl_codigo_descarga').textContent = codigo;
+
+        // Configurar estado de "Versión del Sistema"
+        const badgeSistema = document.getElementById('badge_sistema');
+        if (ordenGeneradaId) {
+            badgeSistema.className = 'badge bg-primary text-white mt-1';
+            badgeSistema.innerHTML = '<i class="fas fa-check me-1"></i>Generado';
+        } else {
+            badgeSistema.className = 'badge bg-warning text-dark mt-1';
+            badgeSistema.innerHTML = '<i class="fas fa-clock me-1"></i>No generado';
+        }
+
+        // Configurar estado de "Versión Validada"
+        const btnValidado = document.getElementById('btn_descarga_validado');
+        const badgeValidado = document.getElementById('badge_validado');
+
+        if (tieneValidado) {
+            btnValidado.disabled = false;
+            badgeValidado.className = 'badge bg-success mt-1';
+            badgeValidado.innerHTML = '<i class="fas fa-check me-1"></i>Disponible';
+        } else {
+            btnValidado.disabled = true;
+            badgeValidado.className = 'badge bg-secondary mt-1';
+            badgeValidado.innerHTML = '<i class="fas fa-times me-1"></i>No disponible';
+        }
+
+        modalOpcionesDescarga.show();
+    }
+
+    function procederDescargaSuspensionSistema() {
+        const id = document.getElementById('descarga_orden_id').value;
+        const ordenGeneradaId = document.getElementById('descarga_orden_generada_id').value;
+
+        // Si no hay orden generada, advertir pero permitir intentar generar
+        if (!ordenGeneradaId) {
+            if (confirm('No se ha generado una versión PDF del sistema para esta orden. ¿Desea generarla ahora?')) {
+                modalOpcionesDescarga.hide();
+                generarOrden(id); // Reusa la función existente
+            }
+            return;
+        }
+
+        // Descargar la plantilla
+        window.open(`/panel/ordenes-suspension/${id}/descargar-plantilla/?orden_generada_id=${ordenGeneradaId}`, '_blank');
+        modalOpcionesDescarga.hide();
+    }
+
+    function procederDescargaSuspensionValidado() {
+        const id = document.getElementById('descarga_orden_id').value;
+        window.open(`/panel/ordenes-suspension/${id}/descargar-validado/`, '_blank');
+        modalOpcionesDescarga.hide();
+    }
+    // ==========================================
 
     async function cargarDatosContrato(id) {
         if (!id) return;

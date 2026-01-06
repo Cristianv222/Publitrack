@@ -10,110 +10,128 @@
         padding: 20px;
         margin-bottom: 20px;
         background: white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
+
     .stats-card h3 {
         font-size: 2rem;
         margin: 0;
         color: #333;
     }
+
     .stats-card p {
         margin: 5px 0 0 0;
         color: #666;
         font-size: 0.9rem;
     }
+
     .badge-status {
         padding: 5px 12px;
         border-radius: 20px;
         font-size: 0.85rem;
         font-weight: 500;
     }
+
     .badge-pendiente {
         background-color: #fff3cd;
         color: #856404;
     }
+
     .badge-validado {
         background-color: #d4edda;
         color: #155724;
     }
+
     .badge-en_produccion {
         background-color: #d1ecf1;
         color: #0c5460;
     }
+
     .badge-completado {
         background-color: #cce7ff;
         color: #004085;
     }
+
     .badge-no_validado {
         background-color: #fff3cd;
         color: #856404;
     }
+
     .badge-cancelado {
         background-color: #f8d7da;
         color: #721c24;
     }
+
     .badge-prioridad {
         padding: 4px 8px;
         border-radius: 12px;
         font-size: 0.75rem;
     }
+
     .badge-urgente {
         background-color: #dc3545;
         color: white;
     }
+
     .badge-alta {
         background-color: #ffc107;
         color: #000;
     }
+
     .badge-normal {
         background-color: #17a2b8;
         color: white;
     }
+
     .badge-baja {
         background-color: #28a745;
         color: white;
     }
+
     .table-hover tbody tr:hover {
         background-color: #f8f9fa;
         cursor: pointer;
     }
+
     .btn-action {
         padding: 5px 8px;
         font-size: 0.8rem;
         margin: 1px;
     }
+
     .btn-action-completar {
         padding: 6px 12px;
         font-size: 0.8rem;
         white-space: nowrap;
     }
+
     .order-number {
         font-weight: 600;
         color: #2c5aa0;
     }
-    
-    /* Estilos para botones de documentos */
+
     .btn-descargar {
         background-color: #17a2b8;
         border-color: #17a2b8;
         color: white;
     }
+
     .btn-descargar:hover {
         background-color: #138496;
         border-color: #117a8b;
     }
-    
+
     .btn-subir {
         background-color: #28a745;
         border-color: #28a745;
         color: white;
     }
+
     .btn-subir:hover {
         background-color: #218838;
         border-color: #1e7e34;
     }
-    
-    /* Indicadores de estado */
+
     .estado-info {
         font-size: 0.75rem;
         padding: 2px 6px;
@@ -126,8 +144,6 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    
-    <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">
@@ -142,7 +158,6 @@
         {% endif %}
     </div>
 
-    <!-- Estadísticas -->
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="stats-card">
@@ -170,33 +185,36 @@
         </div>
     </div>
 
-    <!-- Filtros -->
     <div class="card mb-4">
         <div class="card-body">
             <form method="get" class="row g-3">
                 <div class="col-md-4">
-                    <input type="text" name="search" class="form-control" 
-                           placeholder="Buscar por código, cliente, RUC..." 
-                           value="{{ search }}">
+                    <input type="text" name="search" class="form-control"
+                        placeholder="Buscar por código, cliente, RUC..." value="{{ search }}">
                 </div>
                 <div class="col-md-3">
                     <select name="estado" class="form-select">
                         <option value="">Todos los estados</option>
-                        <option value="pendiente" {% if estado_filter == 'pendiente' %}selected{% endif %}>Pendiente</option>
-                        <option value="validado" {% if estado_filter == 'validado' %}selected{% endif %}>Validado</option>
-                        <option value="en_produccion" {% if estado_filter == 'en_produccion' %}selected{% endif %}>En Producción</option>
-                        <option value="completado" {% if estado_filter == 'completado' %}selected{% endif %}>Completado</option>
-                        <option value="no_validado" {% if estado_filter == 'no_validado' %}selected{% endif %}>No Validado</option>
-                        <option value="cancelado" {% if estado_filter == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                        <option value="pendiente" {% if estado_filter == "pendiente" %}selected{% endif %}>Pendiente
+                        </option>
+                        <option value="validado" {% if estado_filter == "validado" %}selected{% endif %}>Validado</option>
+                        <option value="en_produccion" {% if estado_filter == "en_produccion" %}selected{% endif %}>En
+                            Producción</option>
+                        <option value="completado" {% if estado_filter == "completado" %}selected{% endif %}>Completado
+                        </option>
+                        <option value="no_validado" {% if estado_filter == "no_validado" %}selected{% endif %}>No Validado
+                        </option>
+                        <option value="cancelado" {% if estado_filter == "cancelado" %}selected{% endif %}>Cancelado
+                        </option>
                     </select>
                 </div>
                 <div class="col-md-3">
                     <select name="prioridad" class="form-select">
                         <option value="">Todas las prioridades</option>
-                        <option value="urgente" {% if prioridad_filter == 'urgente' %}selected{% endif %}>Urgente</option>
-                        <option value="alta" {% if prioridad_filter == 'alta' %}selected{% endif %}>Alta</option>
-                        <option value="normal" {% if prioridad_filter == 'normal' %}selected{% endif %}>Normal</option>
-                        <option value="baja" {% if prioridad_filter == 'baja' %}selected{% endif %}>Baja</option>
+                        <option value="urgente" {% if prioridad_filter == "urgente" %}selected{% endif %}>Urgente</option>
+                        <option value="alta" {% if prioridad_filter == "alta" %}selected{% endif %}>Alta</option>
+                        <option value="normal" {% if prioridad_filter == "normal" %}selected{% endif %}>Normal</option>
+                        <option value="baja" {% if prioridad_filter == "baja" %}selected{% endif %}>Baja</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -208,7 +226,6 @@
         </div>
     </div>
 
-    <!-- Tabla de Órdenes -->
     <div class="card">
         <div class="card-body">
             <div class="table-responsive">
@@ -249,9 +266,9 @@
                             <td>
                                 <small>
                                     {% if orden.detalle_productos %}
-                                        {{ orden.detalle_productos|truncatewords:5 }}
+                                    {{ orden.detalle_productos|truncatewords:5 }}
                                     {% else %}
-                                        <span class="text-muted">Sin detalles</span>
+                                    <span class="text-muted">Sin detalles</span>
                                     {% endif %}
                                 </small>
                             </td>
@@ -277,77 +294,58 @@
                             </td>
                             <td>
                                 {% if orden.estado == 'pendiente' %}
-                                    <button class="btn btn-sm btn-success btn-action-completar" 
-                                            onclick="completarToma({{ orden.id }})"
-                                            title="Completar Toma">
-                                        <i class="fas fa-check-circle me-1"></i>Completar Toma
-                                    </button>
+                                <button class="btn btn-sm btn-success btn-action-completar"
+                                    onclick="completarToma({{ orden.id }})" title="Completar Toma">
+                                    <i class="fas fa-check-circle me-1"></i>Completar Toma
+                                </button>
                                 {% elif orden.estado == 'validado' %}
-                                    <span class="text-muted">Validado </span>
+                                <span class="text-muted">Validado </span>
                                 {% elif orden.estado == 'no_validado' %}
-                                    <span class="text-muted">Esperando validación</span>
+                                <span class="text-muted">Esperando validación</span>
                                 {% elif orden.estado == 'en_produccion' %}
-                                    <span class="text-muted">En producción</span>
+                                <span class="text-muted">En producción</span>
                                 {% elif orden.estado == 'completado' %}
-                                    <span class="text-muted">Completado</span>
+                                <span class="text-muted">Completado</span>
                                 {% elif orden.estado == 'cancelado' %}
-                                    <span class="text-muted">Cancelado</span>
+                                <span class="text-muted">Cancelado</span>
                                 {% else %}
-                                    <span class="text-muted">Finalizada</span>
+                                <span class="text-muted">Finalizada</span>
                                 {% endif %}
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <!-- Botón Ver -->
-                                    <button class="btn btn-info btn-action" 
-                                            onclick="verDetalleOrden({{ orden.id }})"
-                                            title="Ver detalles">
+                                    <button class="btn btn-info btn-action" onclick="verDetalleOrden({{ orden.id }})"
+                                        title="Ver detalles">
                                         <i class="fas fa-eye"></i>
                                     </button>
-                                    
-                                    <!-- Botones según estado -->
-                                    {% if orden.estado == 'no_validado' %}
-                                        <!-- Orden completada pero no validada -->
-                                        <button class="btn btn-descargar btn-action" 
-                                                onclick="descargarOrden({{ orden.id }})"
-                                                title="Descargar PDF">
-                                            <i class="fas fa-download"></i>
-                                        </button>
-                                        {% for og in orden.ordenes_generadas.all %}
-    <button class="btn btn-subir btn-action" 
-            onclick="subirOrdenValidada({{ og.id }}, '{{ orden.codigo|escapejs }}')"
-            title="Subir Orden Validada">
-        <i class="fas fa-upload"></i>
-    </button>
-{% endfor %}
-                                    {% elif orden.estado == 'validado' %}
-                                        <!-- Orden validada -->
-                                        <button class="btn btn-descargar btn-action" 
-                                                onclick="descargarOrden({{ orden.id }})"
-                                                title="Descargar PDF Validado">
-                                            <i class="fas fa-download"></i>
-                                        </button>
-                                    {% elif orden.estado == 'completado' %}
-                                        <!-- Orden completada (antiguo estado) -->
-                                        <button class="btn btn-descargar btn-action" 
-                                                onclick="descargarOrden({{ orden.id }})"
-                                                title="Descargar PDF">
-                                            <i class="fas fa-download"></i>
-                                        </button>
+
+                                    {% with ultima_generada=orden.ordenes_generadas.first %}
+                                    <button class="btn btn-descargar btn-action"
+                                        onclick="abrirModalDescargaOrden({{ orden.id }}, '{{ orden.codigo|escapejs }}', {% if orden.tiene_archivo_validado %}true{% else %}false{% endif %}, {% if ultima_generada %}{{ ultima_generada.id }}{% else %}null{% endif %})"
+                                        title="Descargar PDF">
+                                        <i class="fas fa-download"></i>
+                                    </button>
+                                    {% endwith %}
+
+                                    {% if orden.estado != 'cancelado' %}
+                                    <button class="btn btn-subir btn-action"
+                                        onclick="subirOrdenValidada({{ orden.id }}, '{{ orden.codigo|escapejs }}')"
+                                        title="Subir Orden Validada">
+                                        <i class="fas fa-upload"></i>
+                                    </button>
                                     {% endif %}
-                                    
+
                                     {% if user.es_admin or user.es_vendedor %}
-                                    <button class="btn btn-warning btn-action" 
-                                            onclick="editarOrden({{ orden.id }})"
-                                            title="Editar">
+                                    <button class="btn btn-warning btn-action" onclick="editarOrden({{ orden.id }})"
+                                        title="Editar">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                     {% endif %}
-                                    
+
                                     {% if user.es_admin %}
-                                    <button class="btn btn-danger btn-action" 
-                                            onclick="eliminarOrden({{ orden.id }}, '{{ orden.codigo|escapejs }}')"
-                                            title="Eliminar">
+                                    <button class="btn btn-danger btn-action"
+                                        onclick="eliminarOrden({{ orden.id }}, '{{ orden.codigo|escapejs }}')"
+                                        title="Eliminar">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                     {% endif %}
@@ -365,30 +363,32 @@
                     </tbody>
                 </table>
             </div>
-            
-            <!-- Paginación -->
+
             {% if ordenes.has_other_pages %}
             <nav class="mt-4">
                 <ul class="pagination justify-content-center">
                     {% if ordenes.has_previous %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ ordenes.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if estado_filter %}&estado={{ estado_filter }}{% endif %}{% if prioridad_filter %}&prioridad={{ prioridad_filter }}{% endif %}">
+                        <a class="page-link"
+                            href="?page={{ ordenes.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if estado_filter %}&estado={{ estado_filter }}{% endif %}{% if prioridad_filter %}&prioridad={{ prioridad_filter }}{% endif %}">
                             Anterior
                         </a>
                     </li>
                     {% endif %}
-                    
+
                     {% for num in ordenes.paginator.page_range %}
                     <li class="page-item {% if ordenes.number == num %}active{% endif %}">
-                        <a class="page-link" href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if estado_filter %}&estado={{ estado_filter }}{% endif %}{% if prioridad_filter %}&prioridad={{ prioridad_filter }}{% endif %}">
+                        <a class="page-link"
+                            href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if estado_filter %}&estado={{ estado_filter }}{% endif %}{% if prioridad_filter %}&prioridad={{ prioridad_filter }}{% endif %}">
                             {{ num }}
                         </a>
                     </li>
                     {% endfor %}
-                    
+
                     {% if ordenes.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ ordenes.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if estado_filter %}&estado={{ estado_filter }}{% endif %}{% if prioridad_filter %}&prioridad={{ prioridad_filter }}{% endif %}">
+                        <a class="page-link"
+                            href="?page={{ ordenes.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if estado_filter %}&estado={{ estado_filter }}{% endif %}{% if prioridad_filter %}&prioridad={{ prioridad_filter }}{% endif %}">
                             Siguiente
                         </a>
                     </li>
@@ -401,7 +401,6 @@
 
 </div>
 
-<!-- Modal para Subir Orden Validada -->
 <div class="modal fade" id="modalSubirOrden" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -412,22 +411,25 @@
             <div class="modal-body">
                 <form id="formSubirOrden" enctype="multipart/form-data">
                     {% csrf_token %}
-                    <input type="hidden" id="subir_orden_id" name="orden_generada_id">
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Seleccionar archivo PDF firmado:</label>
-                        <input type="file" class="form-control" id="archivo_orden" name="archivo" accept=".pdf" required>
-                        <small class="text-muted">Solo se permiten archivos PDF (máx. 10MB)</small>
-                    </div>
-                    
-                    <div class="alert alert-warning">
-                        <small>
-                            <i class="fas fa-exclamation-triangle me-1"></i>
-                            Sube el PDF de la orden ya validada y firmada por el cliente.
-                            Esto cambiará el estado de la orden a "Validado".
-                        </small>
-                    </div>
-                </form>
+                    <form id="formSubirOrden" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" id="subir_orden_id" name="orden_id">
+
+                        <div class="mb-3">
+                            <label class="form-label">Seleccionar archivo PDF firmado:</label>
+                            <input type="file" class="form-control" id="archivo_orden" name="archivo" accept=".pdf"
+                                required>
+                            <small class="text-muted">Solo se permiten archivos PDF (máx. 10MB)</small>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <small>
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                Sube el PDF de la orden ya validada y firmada por el cliente.
+                                Esto cambiará el estado de la orden a "Validado".
+                            </small>
+                        </div>
+                    </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
@@ -441,7 +443,6 @@
     </div>
 </div>
 
-<!-- Modal Crear/Editar Orden -->
 <div class="modal fade" id="modalOrden" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -453,8 +454,7 @@
                 <form id="formOrden">
                     {% csrf_token %}
                     <input type="hidden" id="orden_id" name="orden_id">
-                    
-                    <!-- Información Básica -->
+
                     <h6 class="mb-3 text-primary">Información de la Orden</h6>
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
@@ -462,14 +462,10 @@
                             <select class="form-select" name="cliente_id" id="cliente_id" required>
                                 <option value="">Seleccionar cliente...</option>
                                 {% for cliente in clientes %}
-                                <option value="{{ cliente.id }}" 
-                                        data-nombre="{{ cliente.get_full_name }}"
-                                        data-ruc="{{ cliente.ruc_dni }}"
-                                        data-empresa="{{ cliente.empresa }}"
-                                        data-ciudad="{{ cliente.ciudad }}"
-                                        data-direccion="{{ cliente.direccion_exacta }}"
-                                        data-telefono="{{ cliente.telefono }}"
-                                        data-email="{{ cliente.email }}">
+                                <option value="{{ cliente.id }}" data-nombre="{{ cliente.get_full_name }}"
+                                    data-ruc="{{ cliente.ruc_dni }}" data-empresa="{{ cliente.empresa }}"
+                                    data-ciudad="{{ cliente.ciudad }}" data-direccion="{{ cliente.direccion_exacta }}"
+                                    data-telefono="{{ cliente.telefono }}" data-email="{{ cliente.email }}">
                                     {{ cliente.empresa|default:cliente.get_full_name }} - {{ cliente.ruc_dni }}
                                 </option>
                                 {% endfor %}
@@ -486,13 +482,12 @@
                         </div>
                     </div>
 
-                    <!-- Detalles de Productos/Servicios -->
                     <h6 class="mb-3 text-primary">Detalles de Productos/Servicios</h6>
                     <div class="row g-3 mb-4">
                         <div class="col-md-12">
                             <label class="form-label">Descripción <span class="text-danger">*</span></label>
-                            <textarea class="form-control" name="detalle_productos" id="detalle_productos" rows="3" required 
-                                      placeholder="Describa los productos o servicios solicitados..."></textarea>
+                            <textarea class="form-control" name="detalle_productos" id="detalle_productos" rows="3"
+                                required placeholder="Describa los productos o servicios solicitados..."></textarea>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Cantidad</label>
@@ -500,11 +495,33 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Total (S/) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" name="total" id="total" step="0.01" value="0.00" required>
+                            <input type="number" class="form-control" name="total" id="total" step="0.01" value="0.00"
+                                required>
                         </div>
                     </div>
 
-                    <!-- Información Adicional -->
+                    <h6 class="mb-3 text-primary">Requerimientos de Producción</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="incluye_tomas" name="incluye_tomas">
+                                <label class="form-check-label" for="incluye_tomas">Tomas</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="incluye_audio" name="incluye_audio">
+                                <label class="form-check-label" for="incluye_audio">Audio</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="incluye_logo" name="incluye_logo">
+                                <label class="form-check-label" for="incluye_logo">Logo</label>
+                            </div>
+                        </div>
+                    </div>
+
                     <h6 class="mb-3 text-primary">Información Adicional</h6>
                     <div class="row g-3 mb-4">
                         <div class="col-md-12">
@@ -521,7 +538,7 @@
                         <div class="col-md-12">
                             <label class="form-label">Observaciones</label>
                             <textarea class="form-control" name="observaciones" id="observaciones" rows="2"
-                                      placeholder="Observaciones adicionales..."></textarea>
+                                placeholder="Observaciones adicionales..."></textarea>
                         </div>
                     </div>
                 </form>
@@ -538,7 +555,6 @@
     </div>
 </div>
 
-<!-- Modal Ver Detalles -->
 <div class="modal fade" id="modalDetalleOrden" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -557,93 +573,192 @@
     </div>
 </div>
 
+<div class="modal fade" id="modalOpcionesDescarga" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-download me-2"></i>Descargar Orden
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <h6 class="text-muted mb-1">Seleccione una opción para la orden:</h6>
+                    <h4 id="descargaOrdenCodigo" class="fw-bold text-primary"></h4>
+                </div>
+
+                <div class="d-grid gap-3">
+                    <button class="btn btn-outline-primary btn-lg p-3 text-start d-flex align-items-center"
+                        onclick="procederDescargaSistema()">
+                        <div class="bg-primary bg-opacity-10 p-3 rounded-circle me-3">
+                            <i class="fas fa-file-contract fa-2x text-primary"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold">Versión del Sistema</div>
+                            <small class="text-muted">Generada automáticamente a partir de los datos</small>
+                        </div>
+                        <i class="fas fa-chevron-right ms-auto text-muted"></i>
+                    </button>
+
+                    <button id="btnDescargaValidada"
+                        class="btn btn-outline-success btn-lg p-3 text-start d-flex align-items-center"
+                        onclick="procederDescargaValidado()">
+                        <div class="bg-success bg-opacity-10 p-3 rounded-circle me-3">
+                            <i class="fas fa-file-signature fa-2x text-success"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold">Versión Validada</div>
+                            <small class="text-muted">Documento firmado subido por el usuario</small>
+                        </div>
+                        <i class="fas fa-chevron-right ms-auto text-muted"></i>
+                    </button>
+
+                    <div id="msgNoValidada" class="text-center text-muted small mt-2" style="display:none;">
+                        <i class="fas fa-info-circle me-1"></i> No hay versión validada disponible
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para seleccionar plantilla -->
+<div class="modal fade" id="modalSeleccionarPlantilla" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-alt me-2"></i>Seleccionar Plantilla
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <h6 class="text-muted mb-1">Seleccione una plantilla para la orden:</h6>
+                    <h5 id="plantillaOrdenCodigo" class="fw-bold text-primary"></h5>
+                </div>
+
+                <div class="mb-4">
+                    <label for="plantillaOrden" class="form-label">Plantilla:</label>
+                    <select class="form-select" id="plantillaOrden">
+                        <option value="">Cargando plantillas...</option>
+                    </select>
+                    <small class="text-muted">
+                        Seleccione la plantilla que desea utilizar para generar el PDF
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="generarOrdenConPlantilla()">
+                    <i class="fas fa-file-pdf me-2"></i>Generar PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
-let modalOrden;
-let modalDetalleOrden;
-let modalSubirOrden;
+    let modalOrden;
+    let modalDetalleOrden;
+    let modalSubirOrden;
+    let modalOpcionesDescarga;
+    let modalSeleccionarPlantilla; // Nuevo modal
+    let ordenDescargaActual = null;
+    let ordenGeneradaActualId = null;
 
-document.addEventListener('DOMContentLoaded', function() {
-    modalOrden = new bootstrap.Modal(document.getElementById('modalOrden'));
-    modalDetalleOrden = new bootstrap.Modal(document.getElementById('modalDetalleOrden'));
-    modalSubirOrden = new bootstrap.Modal(document.getElementById('modalSubirOrden'));
-});
+    document.addEventListener('DOMContentLoaded', function () {
+        modalOrden = new bootstrap.Modal(document.getElementById('modalOrden'));
+        modalDetalleOrden = new bootstrap.Modal(document.getElementById('modalDetalleOrden'));
+        modalSubirOrden = new bootstrap.Modal(document.getElementById('modalSubirOrden'));
+        modalOpcionesDescarga = new bootstrap.Modal(document.getElementById('modalOpcionesDescarga'));
+        modalSeleccionarPlantilla = new bootstrap.Modal(document.getElementById('modalSeleccionarPlantilla'));
+    });
 
-function abrirModalCrear() {
-    document.getElementById('modalOrdenTitulo').textContent = 'Nueva Orden';
-    document.getElementById('formOrden').reset();
-    document.getElementById('orden_id').value = '';
-    document.getElementById('prioridad').value = 'normal';
-    document.getElementById('estado').value = 'pendiente';
-    modalOrden.show();
-}
+    function abrirModalCrear() {
+        document.getElementById('modalOrdenTitulo').textContent = 'Nueva Orden';
+        document.getElementById('formOrden').reset();
+        document.getElementById('orden_id').value = '';
+        document.getElementById('prioridad').value = 'normal';
+        document.getElementById('estado').value = 'pendiente';
+        modalOrden.show();
+    }
 
-function editarOrden(ordenId) {
-    document.getElementById('modalOrdenTitulo').textContent = 'Editar Orden';
-    document.getElementById('orden_id').value = ordenId;
-    
-    // Cargar datos de la orden
-    fetch(`/panel/orders/${ordenId}/detalle/`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const orden = data.orden;
-                document.getElementById('cliente_id').value = orden.cliente_id || '';
-                document.getElementById('prioridad').value = orden.prioridad;
-                document.getElementById('detalle_productos').value = orden.detalle_productos || '';
-                document.getElementById('cantidad').value = orden.cantidad || 1;
-                document.getElementById('total').value = orden.total;
-                document.getElementById('estado').value = orden.estado;
-                document.getElementById('observaciones').value = orden.observaciones || '';
-                
-                modalOrden.show();
-            } else {
+    function editarOrden(ordenId) {
+        document.getElementById('modalOrdenTitulo').textContent = 'Editar Orden';
+        document.getElementById('orden_id').value = ordenId;
+
+        fetch(`/panel/orders/${ordenId}/detalle/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const orden = data.orden;
+                    document.getElementById('cliente_id').value = orden.cliente_id || '';
+                    document.getElementById('prioridad').value = orden.prioridad;
+                    document.getElementById('detalle_productos').value = orden.detalle_productos || '';
+                    document.getElementById('cantidad').value = orden.cantidad || 1;
+                    document.getElementById('total').value = orden.total;
+                    document.getElementById('estado').value = orden.estado;
+                    document.getElementById('observaciones').value = orden.observaciones || '';
+
+                    document.getElementById('incluye_tomas').checked = orden.incluye_tomas || false;
+                    document.getElementById('incluye_audio').checked = orden.incluye_audio || false;
+                    document.getElementById('incluye_logo').checked = orden.incluye_logo || false;
+
+                    modalOrden.show();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error || 'Error al cargar los datos',
+                        confirmButtonColor: '#3085d6'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: data.error || 'Error al cargar los datos',
+                    text: 'Error al cargar los datos de la orden',
                     confirmButtonColor: '#3085d6'
                 });
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Error al cargar los datos de la orden',
-                confirmButtonColor: '#3085d6'
             });
-        });
-}
-
-function guardarOrden() {
-    const ordenId = document.getElementById('orden_id').value;
-    const form = document.getElementById('formOrden');
-    
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
     }
-    
-    // Obtener datos del formulario
-    const formData = {
-        cliente_id: document.getElementById('cliente_id').value,
-        detalle_productos: document.getElementById('detalle_productos').value,
-        cantidad: document.getElementById('cantidad').value,
-        total: document.getElementById('total').value,
-        prioridad: document.getElementById('prioridad').value,
-        estado: document.getElementById('estado').value,
-        observaciones: document.getElementById('observaciones').value,
-    };
-    
-    modalOrden.hide();
-    
-    Swal.fire({
-        title: ordenId ? 'Actualizando...' : 'Guardando...',
-        html: `
+
+    function guardarOrden() {
+        const ordenId = document.getElementById('orden_id').value;
+        const form = document.getElementById('formOrden');
+
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const formData = {
+            cliente_id: document.getElementById('cliente_id').value,
+            detalle_productos: document.getElementById('detalle_productos').value,
+            cantidad: document.getElementById('cantidad').value,
+            total: document.getElementById('total').value,
+            prioridad: document.getElementById('prioridad').value,
+            estado: document.getElementById('estado').value,
+            observaciones: document.getElementById('observaciones').value,
+            incluye_tomas: document.getElementById('incluye_tomas').checked,
+            incluye_audio: document.getElementById('incluye_audio').checked,
+            incluye_logo: document.getElementById('incluye_logo').checked,
+        };
+
+        modalOrden.hide();
+
+        Swal.fire({
+            title: ordenId ? 'Actualizando...' : 'Guardando...',
+            html: `
             <div class="text-center py-3">
                 <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
                     <span class="visually-hidden">Guardando...</span>
@@ -651,112 +766,104 @@ function guardarOrden() {
                 <p class="text-muted mb-0">Por favor espere un momento</p>
             </div>
         `,
-        allowOutsideClick: false,
-        showConfirmButton: false
-    });
-    
-    // Endpoint según sea crear o editar
-    const url = ordenId 
-        ? `/panel/orders/${ordenId}/editar/`
-        : '/panel/orders/crear/';
-    
-    // Método HTTP
-    const method = ordenId ? 'PUT' : 'POST';
-    
-    // Enviar petición
-    fetch(url, {
-        method: method,
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        },
-        body: JSON.stringify(formData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            Swal.fire({
-                icon: 'success',
-                title: '¡Éxito!',
-                text: data.message,
-                confirmButtonColor: '#28a745'
-            }).then(() => {
-                window.location.reload();
-            });
-        } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: data.error || 'Error al guardar la orden',
-                confirmButtonColor: '#dc3545'
-            });
-            modalOrden.show();
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Error de conexión al guardar',
-            confirmButtonColor: '#dc3545'
+            allowOutsideClick: false,
+            showConfirmButton: false
         });
-        modalOrden.show();
-    });
-}
 
-function completarToma(ordenId) {
-    // Primero verificar el estado actual
-    fetch(`/panel/orders/${ordenId}/detalle/`)
-        .then(response => response.json())
-        .then(ordenData => {
-            if (ordenData.success) {
-                const orden = ordenData.orden;
-                
-                if (orden.estado !== 'pendiente') {
+        const url = ordenId
+            ? `/panel/orders/${ordenId}/editar/`
+            : '/panel/orders/crear/';
+
+        const method = ordenId ? 'PUT' : 'POST';
+
+        fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(formData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
                     Swal.fire({
-                        icon: 'warning',
-                        title: 'Acción no permitida',
-                        text: `No se puede completar una orden en estado "${orden.estado}". Solo se pueden completar órdenes en estado "Pendiente".`,
-                        confirmButtonColor: '#3085d6'
+                        icon: 'success',
+                        title: '¡Éxito!',
+                        text: data.message,
+                        confirmButtonColor: '#28a745'
+                    }).then(() => {
+                        window.location.reload();
                     });
-                    return;
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error || 'Error al guardar la orden',
+                        confirmButtonColor: '#dc3545'
+                    });
+                    modalOrden.show();
                 }
-                
-                // Continuar con el proceso normal si está en estado pendiente
-                // Primero cargar plantillas disponibles
-                fetch('/panel/plantillas-orden/api/')
-                    .then(response => response.json())
-                    .then(plantillasData => {
-                        if (!plantillasData.success || !plantillasData.plantillas || plantillasData.plantillas.length === 0) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: 'No hay plantillas disponibles. Contacte al administrador.',
-                                confirmButtonColor: '#3085d6'
-                            });
-                            return;
-                        }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error de conexión al guardar',
+                    confirmButtonColor: '#dc3545'
+                });
+                modalOrden.show();
+            });
+    }
 
-                        // Luego cargar datos de la orden
-                        return fetch(`/panel/orders/${ordenId}/detalle/`)
-                            .then(response => response.json())
-                            .then(ordenData => {
-                                if (ordenData.success) {
-                                    const orden = ordenData.orden;
-                                    
-                                    // Generar opciones de plantillas
-                                    let plantillasOptions = '';
-                                    plantillasData.plantillas.forEach(plantilla => {
-                                        plantillasOptions += `
+    function completarToma(ordenId) {
+        fetch(`/panel/orders/${ordenId}/detalle/`)
+            .then(response => response.json())
+            .then(ordenData => {
+                if (ordenData.success) {
+                    const orden = ordenData.orden;
+
+                    if (orden.estado !== 'pendiente') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Acción no permitida',
+                            text: `No se puede completar una orden en estado "${orden.estado}". Solo se pueden completar órdenes en estado "Pendiente".`,
+                            confirmButtonColor: '#3085d6'
+                        });
+                        return;
+                    }
+
+                    fetch('/panel/plantillas-orden/api/')
+                        .then(response => response.json())
+                        .then(plantillasData => {
+                            if (!plantillasData.success || !plantillasData.plantillas || plantillasData.plantillas.length === 0) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'No hay plantillas disponibles. Contacte al administrador.',
+                                    confirmButtonColor: '#3085d6'
+                                });
+                                return;
+                            }
+
+                            return fetch(`/panel/orders/${ordenId}/detalle/`)
+                                .then(response => response.json())
+                                .then(ordenData => {
+                                    if (ordenData.success) {
+                                        const orden = ordenData.orden;
+
+                                        let plantillasOptions = '';
+                                        plantillasData.plantillas.forEach(plantilla => {
+                                            plantillasOptions += `
                                             <option value="${plantilla.id}" ${plantilla.is_default ? 'selected' : ''}>
                                                 ${plantilla.nombre} (${plantilla.tipo_orden_display}) - v${plantilla.version}
                                                 ${plantilla.is_default ? ' ★' : ''}
                                             </option>
                                         `;
-                                    });
+                                        });
 
-                                    const modalHtml = `
+                                        const modalHtml = `
                                         <div class="modal fade" id="modalCompletarToma" tabindex="-1">
                                             <div class="modal-dialog modal-lg">
                                                 <div class="modal-content">
@@ -769,7 +876,6 @@ function completarToma(ordenId) {
                                                             {% csrf_token %}
                                                             <input type="hidden" name="orden_id" value="${ordenId}">
                                                             
-                                                            <!-- Selección de Plantilla -->
                                                             <h6 class="mb-3 text-primary">Seleccionar Plantilla</h6>
                                                             <div class="row g-3 mb-4">
                                                                 <div class="col-12">
@@ -874,103 +980,97 @@ function completarToma(ordenId) {
                                             </div>
                                         </div>
                                     `;
-                                    
-                                    // Añadir el modal al DOM
-                                    document.body.insertAdjacentHTML('beforeend', modalHtml);
-                                    const modal = new bootstrap.Modal(document.getElementById('modalCompletarToma'));
-                                    modal.show();
-                                    
-                                    // Limpiar el modal cuando se cierre
-                                    document.getElementById('modalCompletarToma').addEventListener('hidden.bs.modal', function() {
-                                        this.remove();
-                                    });
-                                    
-                                } else {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'Error',
-                                        text: ordenData.error || 'Error al cargar los datos',
-                                        confirmButtonColor: '#3085d6'
-                                    });
-                                }
+
+                                        document.body.insertAdjacentHTML('beforeend', modalHtml);
+                                        const modal = new bootstrap.Modal(document.getElementById('modalCompletarToma'));
+                                        modal.show();
+
+                                        document.getElementById('modalCompletarToma').addEventListener('hidden.bs.modal', function () {
+                                            this.remove();
+                                        });
+
+                                    } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Error',
+                                            text: ordenData.error || 'Error al cargar los datos',
+                                            confirmButtonColor: '#3085d6'
+                                        });
+                                    }
+                                });
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Error al cargar los datos',
+                                confirmButtonColor: '#3085d6'
                             });
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Error al cargar los datos',
-                            confirmButtonColor: '#3085d6'
                         });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: ordenData.error || 'Error al cargar los datos',
+                        confirmButtonColor: '#3085d6'
                     });
-            } else {
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: ordenData.error || 'Error al cargar los datos',
+                    text: 'Error al cargar los datos',
                     confirmButtonColor: '#3085d6'
                 });
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
+            });
+    }
+
+    function guardarCompletarToma() {
+        const form = document.getElementById('formCompletarToma');
+        const ordenId = form.orden_id.value;
+        const plantillaId = document.getElementById('plantilla_id').value;
+
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        if (!plantillaId) {
             Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Error al cargar los datos',
+                icon: 'warning',
+                title: 'Plantilla requerida',
+                text: 'Por favor selecciona una plantilla',
                 confirmButtonColor: '#3085d6'
             });
-        });
-}
+            return;
+        }
 
-function guardarCompletarToma() {
-    const form = document.getElementById('formCompletarToma');
-    const ordenId = form.orden_id.value;
-    const plantillaId = document.getElementById('plantilla_id').value;
-    
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-    }
-    
-    if (!plantillaId) {
+        const formData = new FormData(form);
+        const data = {
+            estado: 'no_validado',
+            plantilla_id: plantillaId,
+            proyecto_campania: formData.get('proyecto_campania'),
+            titulo_material: formData.get('titulo_material'),
+            descripcion_breve: formData.get('descripcion_breve'),
+            locaciones: formData.get('locaciones'),
+            fecha_produccion_inicio: formData.get('fecha_produccion_inicio'),
+            fecha_produccion_fin: formData.get('fecha_produccion_fin'),
+            hora_inicio: formData.get('hora_inicio'),
+            hora_fin: formData.get('hora_fin'),
+            equipo_asignado: formData.get('equipo_asignado'),
+            recursos_necesarios: formData.get('recursos_necesarios'),
+            observaciones_completado: formData.get('observaciones_completado')
+        };
+
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalCompletarToma'));
+        modal.hide();
+
         Swal.fire({
-            icon: 'warning',
-            title: 'Plantilla requerida',
-            text: 'Por favor selecciona una plantilla',
-            confirmButtonColor: '#3085d6'
-        });
-        return;
-    }
-    
-    // RECOLECTAR TODOS LOS DATOS CORRECTAMENTE
-    const formData = new FormData(form);
-    const data = {
-        estado: 'no_validado', // CORREGIDO: Cambia a "no_validado" como en tu backend
-        plantilla_id: plantillaId,
-        proyecto_campania: formData.get('proyecto_campania'),
-        titulo_material: formData.get('titulo_material'),
-        descripcion_breve: formData.get('descripcion_breve'),
-        locaciones: formData.get('locaciones'),
-        fecha_produccion_inicio: formData.get('fecha_produccion_inicio'),
-        fecha_produccion_fin: formData.get('fecha_produccion_fin'),
-        hora_inicio: formData.get('hora_inicio'),
-        hora_fin: formData.get('hora_fin'),
-        equipo_asignado: formData.get('equipo_asignado'),
-        recursos_necesarios: formData.get('recursos_necesarios'),
-        observaciones_completado: formData.get('observaciones_completado')
-    };
-    
-    console.log("📤 Datos a enviar:", data);
-    
-    // Cerrar el modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('modalCompletarToma'));
-    modal.hide();
-    
-    Swal.fire({
-        title: 'Completando toma...',
-        html: `
+            title: 'Completando toma...',
+            html: `
             <div class="text-center py-3">
                 <div class="spinner-border text-success mb-3" style="width: 3rem; height: 3rem;" role="status">
                     <span class="visually-hidden">Completando...</span>
@@ -978,100 +1078,98 @@ function guardarCompletarToma() {
                 <p class="text-muted mb-0">Guardando información y generando PDF...</p>
             </div>
         `,
-        allowOutsideClick: false,
-        showConfirmButton: false
-    });
-    
-    // Primero actualizar la orden con los datos de producción
-    fetch(`/panel/orders/${ordenId}/editar/`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(updateData => {
-        if (updateData.success) {
-            // Luego generar el PDF
-            return fetch(`/panel/orders/${ordenId}/generar/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                },
-                body: JSON.stringify({
-                    plantilla_id: plantillaId
-                })
-            });
-        } else {
-            throw new Error(updateData.error || 'Error al guardar la información');
-        }
-    })
-    .then(response => response.json())
-    .then(pdfData => {
-        if (pdfData.success) {
-            Swal.fire({
-                icon: 'success',
-                title: '¡Toma Completada!',
-                html: `
+            allowOutsideClick: false,
+            showConfirmButton: false
+        });
+
+        fetch(`/panel/orders/${ordenId}/editar/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => response.json())
+            .then(updateData => {
+                if (updateData.success) {
+                    return fetch(`/panel/orders/${ordenId}/generar/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        },
+                        body: JSON.stringify({
+                            plantilla_id: plantillaId
+                        })
+                    });
+                } else {
+                    throw new Error(updateData.error || 'Error al guardar la información');
+                }
+            })
+            .then(response => response.json())
+            .then(pdfData => {
+                if (pdfData.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Toma Completada!',
+                        html: `
                     <p>La información de producción se guardó correctamente y el PDF fue generado.</p>
                     <p class="text-muted">Estado: <strong>No Validado</strong> - Esperando firma del cliente</p>
-                    ${pdfData.archivo_url ? 
-                        `<a href="${pdfData.archivo_url}" target="_blank" class="btn btn-success mt-2">
+                    ${pdfData.archivo_url ?
+                                `<a href="${pdfData.archivo_url}" target="_blank" class="btn btn-success mt-2">
                             <i class="fas fa-download me-2"></i>Descargar PDF
-                        </a>` : 
-                        ''
-                    }
+                        </a>` :
+                                ''
+                            }
                 `,
-                confirmButtonColor: '#28a745',
-                showCancelButton: true,
-                cancelButtonText: 'Cerrar',
-                confirmButtonText: 'Ver Orden'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.reload();
+                        confirmButtonColor: '#28a745',
+                        showCancelButton: true,
+                        cancelButtonText: 'Cerrar',
+                        confirmButtonText: 'Ver Orden'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.reload();
+                        } else {
+                            window.location.reload();
+                        }
+                    });
                 } else {
-                    window.location.reload();
+                    throw new Error(pdfData.error || 'Error al generar el PDF');
                 }
+            })
+            .catch(error => {
+                console.error('❌ Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message || 'Error al completar la toma',
+                    confirmButtonColor: '#dc3545'
+                });
             });
-        } else {
-            throw new Error(pdfData.error || 'Error al generar el PDF');
-        }
-    })
-    .catch(error => {
-        console.error('❌ Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: error.message || 'Error al completar la toma',
-            confirmButtonColor: '#dc3545'
-        });
-    });
-}
+    }
 
-function verDetalleOrden(ordenId) {
-    const loadingHtml = `
+    function verDetalleOrden(ordenId) {
+        const loadingHtml = `
         <div class="text-center py-4">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Cargando...</span>
             </div>
         </div>
     `;
-    document.getElementById('detalleOrdenContent').innerHTML = loadingHtml;
-    modalDetalleOrden.show();
-    
-    fetch(`/panel/orders/${ordenId}/detalle/`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const orden = data.orden;
-                
-                let camposAdicionales = '';
-                
-                if (orden.estado === 'no_validado' || orden.estado === 'validado' || orden.estado === 'completado') {
-                    camposAdicionales = `
+        document.getElementById('detalleOrdenContent').innerHTML = loadingHtml;
+        modalDetalleOrden.show();
+
+        fetch(`/panel/orders/${ordenId}/detalle/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const orden = data.orden;
+
+                    let camposAdicionales = '';
+
+                    if (orden.estado === 'no_validado' || orden.estado === 'validado' || orden.estado === 'completado') {
+                        camposAdicionales = `
                         <div class="row mt-4">
                             <div class="col-12">
                                 <h6 class="text-primary mb-3 border-bottom pb-2">Información de Producción</h6>
@@ -1122,11 +1220,10 @@ function verDetalleOrden(ordenId) {
                             </div>
                         </div>
                     `;
-                }
-                
-                const html = `
+                    }
+
+                    const html = `
                     <div class="row">
-                        <!-- Información Básica -->
                         <div class="col-12 mb-4">
                             <h6 class="text-primary border-bottom pb-2">Información Básica</h6>
                         </div>
@@ -1139,7 +1236,6 @@ function verDetalleOrden(ordenId) {
                             ${orden.fecha_orden}
                         </div>
                         
-                        <!-- Información del Cliente -->
                         <div class="col-12 mb-4 mt-2">
                             <h6 class="text-primary border-bottom pb-2">Información del Cliente</h6>
                         </div>
@@ -1172,7 +1268,6 @@ function verDetalleOrden(ordenId) {
                             ${orden.email_cliente || '<span class="text-muted">N/A</span>'}
                         </div>
                         
-                        <!-- Detalles de la Orden -->
                         <div class="col-12 mb-4 mt-2">
                             <h6 class="text-primary border-bottom pb-2">Detalles de la Orden</h6>
                         </div>
@@ -1189,7 +1284,6 @@ function verDetalleOrden(ordenId) {
                             <strong class="text-success">S/ ${orden.total}</strong>
                         </div>
                         
-                        <!-- Estado y Prioridad -->
                         <div class="col-12 mb-4 mt-2">
                             <h6 class="text-primary border-bottom pb-2">Estado y Prioridad</h6>
                         </div>
@@ -1209,31 +1303,31 @@ function verDetalleOrden(ordenId) {
                         ${camposAdicionales}
                     </div>
                 `;
-                document.getElementById('detalleOrdenContent').innerHTML = html;
-            } else {
-                document.getElementById('detalleOrdenContent').innerHTML = `
+                    document.getElementById('detalleOrdenContent').innerHTML = html;
+                } else {
+                    document.getElementById('detalleOrdenContent').innerHTML = `
                     <div class="alert alert-danger">
                         <i class="fas fa-exclamation-circle me-2"></i>
                         ${data.error || 'Error al cargar detalles'}
                     </div>
                 `;
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            document.getElementById('detalleOrdenContent').innerHTML = `
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('detalleOrdenContent').innerHTML = `
                 <div class="alert alert-danger">
                     <i class="fas fa-exclamation-circle me-2"></i>
                     Error al cargar los detalles de la orden
                 </div>
             `;
-        });
-}
+            });
+    }
 
-function eliminarOrden(ordenId, codigoOrden) {
-    Swal.fire({
-        title: '¿Eliminar orden?',
-        html: `
+    function eliminarOrden(ordenId, codigoOrden) {
+        Swal.fire({
+            title: '¿Eliminar orden?',
+            html: `
             <div class="text-center mb-3">
                 <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
                 <p class="mb-2">¿Estás seguro de eliminar la orden:</p>
@@ -1244,18 +1338,18 @@ function eliminarOrden(ordenId, codigoOrden) {
                 </small>
             </div>
         `,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="fas fa-trash me-2"></i>Sí, eliminar',
-        cancelButtonText: '<i class="fas fa-times me-2"></i>Cancelar',
-        reverseButtons: true
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire({
-                title: 'Eliminando...',
-                html: `
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-trash me-2"></i>Sí, eliminar',
+            cancelButtonText: '<i class="fas fa-times me-2"></i>Cancelar',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Eliminando...',
+                    html: `
                     <div class="text-center py-3">
                         <div class="spinner-border text-danger mb-3" style="width: 3rem; height: 3rem;" role="status">
                             <span class="visually-hidden">Eliminando...</span>
@@ -1263,33 +1357,207 @@ function eliminarOrden(ordenId, codigoOrden) {
                         <p class="text-muted mb-0">Por favor espere un momento</p>
                     </div>
                 `,
-                allowOutsideClick: false,
-                showConfirmButton: false
-            });
-            
-            fetch(`/panel/orders/${ordenId}/eliminar/`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                }
-            })
+                    allowOutsideClick: false,
+                    showConfirmButton: false
+                });
+
+                fetch(`/panel/orders/${ordenId}/eliminar/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: '¡Eliminado!',
+                                text: data.message,
+                                confirmButtonColor: '#28a745'
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.error || 'Error al eliminar',
+                                confirmButtonColor: '#dc3545'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error de conexión al eliminar',
+                            confirmButtonColor: '#dc3545'
+                        });
+                    });
+            }
+        });
+    }
+
+    function descargarOrden(ordenId) {
+        console.log("🔍 Intentando descargar orden ID:", ordenId);
+
+        Swal.fire({
+            title: 'Buscando PDF...',
+            html: `
+            <div class="text-center py-3">
+                <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Buscando...</span>
+                </div>
+                <p class="text-muted mb-0">Buscando archivo PDF generado...</p>
+            </div>
+        `,
+            allowOutsideClick: false,
+            showConfirmButton: false
+        });
+
+        fetch(`/panel/orders/${ordenId}/detalle/`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    console.log("✅ Datos de orden cargados:", data.orden);
+
+                    if (data.orden.ordenes_generadas && data.orden.ordenes_generadas.length > 0) {
+                        const ultimaOrden = data.orden.ordenes_generadas[0];
+                        if (ultimaOrden.archivo_orden_pdf) {
+                            window.open(ultimaOrden.archivo_orden_pdf, '_blank');
+                            Swal.close();
+                        } else {
+                            throw new Error('La orden generada no tiene archivo PDF');
+                        }
+                    } else {
+                        throw new Error('No se encontraron órdenes generadas para esta orden');
+                    }
+                } else {
+                    throw new Error('No se pudo cargar la orden');
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error al descargar:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message || 'No se pudo descargar el PDF',
+                    confirmButtonColor: '#dc3545'
+                });
+            });
+    }
+
+    function subirOrdenValidada(ordenId, codigoOrden) {
+        document.getElementById('subir_orden_id').value = ordenId;
+
+        document.getElementById('formSubirOrden').reset();
+
+        document.querySelector('#modalSubirOrden .modal-title').textContent =
+            `Subir Orden Validada - ${codigoOrden}`;
+
+        modalSubirOrden.show();
+    }
+    function subirOrdenValidadaConfirmar() {
+        const form = document.getElementById('formSubirOrden');
+        const ordenId = document.getElementById('subir_orden_id').value;
+        const archivo = document.getElementById('archivo_orden').files[0];
+
+        if (!archivo) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Archivo requerido',
+                text: 'Por favor selecciona un archivo PDF',
+                confirmButtonColor: '#3085d6'
+            });
+            return;
+        }
+
+        if (!archivo.name.toLowerCase().endsWith('.pdf')) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Formato incorrecto',
+                text: 'Solo se permiten archivos PDF',
+                confirmButtonColor: '#dc3545'
+            });
+            return;
+        }
+
+        if (archivo.size > 10 * 1024 * 1024) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Archivo muy grande',
+                text: 'El archivo no debe superar los 10MB',
+                confirmButtonColor: '#dc3545'
+            });
+            return;
+        }
+
+        const formData = new FormData(form);
+
+        modalSubirOrden.hide();
+
+        Swal.fire({
+            title: 'Subiendo orden validada...',
+            html: `
+            <div class="text-center py-3">
+                <div class="spinner-border text-success mb-3" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Subiendo...</span>
+                </div>
+                <p class="text-muted mb-0">Procesando archivo, validando orden y creando orden de producción...</p>
+            </div>
+        `,
+            allowOutsideClick: false,
+            showConfirmButton: false
+        });
+
+        fetch(`/panel/orders/generadas/${ordenId}/subir-validada/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let mensajeHtml = `
+                <p>La orden ha sido validada correctamente.</p>
+                <p class="text-muted">Estado: <strong>Validado</strong></p>
+            `;
+
+                    if (data.orden_produccion_creada) {
+                        mensajeHtml += `
+                    <div class="alert alert-success mt-3">
+                        <i class="fas fa-cogs me-2"></i>
+                        <strong>¡Orden de producción creada automáticamente!</strong>
+                        <p class="mb-0 mt-1">Se ha generado una nueva orden de producción con todos los datos de esta toma.</p>
+                    </div>
+                `;
+                    }
+
                     Swal.fire({
                         icon: 'success',
-                        title: '¡Eliminado!',
-                        text: data.message,
-                        confirmButtonColor: '#28a745'
-                    }).then(() => {
-                        window.location.reload();
+                        title: '¡Orden Validada!',
+                        html: mensajeHtml,
+                        confirmButtonColor: '#28a745',
+                        showCancelButton: true,
+                        cancelButtonText: 'Cerrar',
+                        confirmButtonText: data.orden_produccion_creada ? 'Ver Órdenes Producción' : 'Aceptar'
+                    }).then((result) => {
+                        if (result.isConfirmed && data.orden_produccion_creada) {
+                            window.location.href = '/panel/ordenes-produccion/';
+                        } else {
+                            window.location.reload();
+                        }
                     });
                 } else {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: data.error || 'Error al eliminar',
+                        text: data.error || 'Error al subir la orden validada',
                         confirmButtonColor: '#dc3545'
                     });
                 }
@@ -1298,192 +1566,133 @@ function eliminarOrden(ordenId, codigoOrden) {
                 console.error('Error:', error);
                 Swal.fire({
                     icon: 'error',
-                    title: 'Error',
-                    text: 'Error de conexión al eliminar',
+                    title: 'Error de conexión',
+                    text: 'No se pudo subir el archivo',
                     confirmButtonColor: '#dc3545'
                 });
             });
-        }
-    });
-}
-
-// ==================== FUNCIONES PARA DOCUMENTOS ====================
-function descargarOrden(ordenId) {
-    console.log("🔍 Intentando descargar orden ID:", ordenId);
-    
-    Swal.fire({
-        title: 'Buscando PDF...',
-        html: `
-            <div class="text-center py-3">
-                <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
-                    <span class="visually-hidden">Buscando...</span>
-                </div>
-                <p class="text-muted mb-0">Buscando archivo PDF generado...</p>
-            </div>
-        `,
-        allowOutsideClick: false,
-        showConfirmButton: false
-    });
-
-    // Usar el endpoint de detalle que ya existe y buscar en las órdenes generadas
-    fetch(`/panel/orders/${ordenId}/detalle/`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                console.log("✅ Datos de orden cargados:", data.orden);
-                
-                // Verificar si hay órdenes generadas en la respuesta
-                if (data.orden.ordenes_generadas && data.orden.ordenes_generadas.length > 0) {
-                    const ultimaOrden = data.orden.ordenes_generadas[0];
-                    if (ultimaOrden.archivo_orden_pdf) {
-                        // Descargar directamente
-                        window.open(ultimaOrden.archivo_orden_pdf, '_blank');
-                        Swal.close();
-                    } else {
-                        throw new Error('La orden generada no tiene archivo PDF');
-                    }
-                } else {
-                    throw new Error('No se encontraron órdenes generadas para esta orden');
-                }
-            } else {
-                throw new Error('No se pudo cargar la orden');
-            }
-        })
-        .catch(error => {
-            console.error('❌ Error al descargar:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: error.message || 'No se pudo descargar el PDF',
-                confirmButtonColor: '#dc3545'
-            });
-        });
-}
-
-function subirOrdenValidada(ordenId, codigoOrden) {
-    document.getElementById('subir_orden_id').value = ordenId;
-    
-    // Limpiar formulario
-    document.getElementById('formSubirOrden').reset();
-    
-    // Actualizar título del modal
-    document.querySelector('#modalSubirOrden .modal-title').textContent = 
-        `Subir Orden Validada - ${codigoOrden}`;
-    
-    modalSubirOrden.show();
-}
-function subirOrdenValidadaConfirmar() {
-    const form = document.getElementById('formSubirOrden');
-    const ordenId = document.getElementById('subir_orden_id').value;
-    const archivo = document.getElementById('archivo_orden').files[0];
-    
-    if (!archivo) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Archivo requerido',
-            text: 'Por favor selecciona un archivo PDF',
-            confirmButtonColor: '#3085d6'
-        });
-        return;
     }
-    
-    if (!archivo.name.toLowerCase().endsWith('.pdf')) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Formato incorrecto',
-            text: 'Solo se permiten archivos PDF',
-            confirmButtonColor: '#dc3545'
-        });
-        return;
-    }
-    
-    if (archivo.size > 10 * 1024 * 1024) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Archivo muy grande',
-            text: 'El archivo no debe superar los 10MB',
-            confirmButtonColor: '#dc3545'
-        });
-        return;
-    }
-    
-    const formData = new FormData(form);
-    
-    modalSubirOrden.hide();
-    
-    Swal.fire({
-        title: 'Subiendo orden validada...',
-        html: `
-            <div class="text-center py-3">
-                <div class="spinner-border text-success mb-3" style="width: 3rem; height: 3rem;" role="status">
-                    <span class="visually-hidden">Subiendo...</span>
-                </div>
-                <p class="text-muted mb-0">Procesando archivo, validando orden y creando orden de producción...</p>
-            </div>
-        `,
-        allowOutsideClick: false,
-        showConfirmButton: false
-    });
-    
-    fetch(`/panel/orders/generadas/${ordenId}/subir-validada/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        },
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            let mensajeHtml = `
-                <p>La orden ha sido validada correctamente.</p>
-                <p class="text-muted">Estado: <strong>Validado</strong></p>
-            `;
-            
-            if (data.orden_produccion_creada) {
-                mensajeHtml += `
-                    <div class="alert alert-success mt-3">
-                        <i class="fas fa-cogs me-2"></i>
-                        <strong>¡Orden de producción creada automáticamente!</strong>
-                        <p class="mb-0 mt-1">Se ha generado una nueva orden de producción con todos los datos de esta toma.</p>
-                    </div>
-                `;
-            }
-            
-            Swal.fire({
-                icon: 'success',
-                title: '¡Orden Validada!',
-                html: mensajeHtml,
-                confirmButtonColor: '#28a745',
-                showCancelButton: true,
-                cancelButtonText: 'Cerrar',
-                confirmButtonText: data.orden_produccion_creada ? 'Ver Órdenes Producción' : 'Aceptar'
-            }).then((result) => {
-                if (result.isConfirmed && data.orden_produccion_creada) {
-                    // Redirigir a órdenes de producción
-                    window.location.href = '/panel/ordenes-produccion/';
-                } else {
-                    window.location.reload();
-                }
-            });
+
+    function abrirModalDescargaOrden(ordenId, codigo, tieneValidado, ordenGeneradaId) {
+        ordenDescargaActual = ordenId;
+        ordenGeneradaActualId = ordenGeneradaId;
+        document.getElementById('descargaOrdenCodigo').textContent = codigo;
+
+        const btnValidada = document.getElementById('btnDescargaValidada');
+        const msgNoValidada = document.getElementById('msgNoValidada');
+
+        if (tieneValidado) {
+            btnValidada.disabled = false;
+            btnValidada.classList.remove('opacity-50');
+            msgNoValidada.style.display = 'none';
         } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: data.error || 'Error al subir la orden validada',
-                confirmButtonColor: '#dc3545'
-            });
+            btnValidada.disabled = true;
+            btnValidada.classList.add('opacity-50');
+            msgNoValidada.style.display = 'block';
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
+
+        modalOpcionesDescarga.show();
+    }
+
+    function procederDescargaSistema() {
+        if (ordenDescargaActual) {
+            cargarPlantillasYMostrarModal(ordenDescargaActual);
+        }
+    }
+
+    function cargarPlantillasYMostrarModal(ordenId) {
+        modalOpcionesDescarga.hide();
+
+        const selectPlantilla = document.getElementById('plantillaOrden');
+        selectPlantilla.innerHTML = '<option value="">Cargando...</option>';
+
+        modalSeleccionarPlantilla.show();
+
+        fetch(`/panel/orders/${ordenId}/plantillas/`)
+            .then(response => response.json())
+            .then(data => {
+                selectPlantilla.innerHTML = '';
+                if (data.plantillas && data.plantillas.length > 0) {
+                    data.plantillas.forEach(plantilla => {
+                        const option = document.createElement('option');
+                        option.value = plantilla.id;
+                        option.textContent = plantilla.nombre;
+                        if (plantilla.is_default) option.selected = true;
+                        selectPlantilla.appendChild(option);
+                    });
+                } else {
+                    selectPlantilla.innerHTML = '<option value="">No hay plantillas disponibles</option>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                selectPlantilla.innerHTML = '<option value="">Error al cargar plantillas</option>';
+            });
+    }
+
+    function generarOrdenConPlantilla() {
+        const plantillaId = document.getElementById('plantillaOrden').value;
+        if (!plantillaId) {
+            Swal.fire('Error', 'Debe seleccionar una plantilla', 'error');
+            return;
+        }
+
+        modalSeleccionarPlantilla.hide();
+
         Swal.fire({
-            icon: 'error',
-            title: 'Error de conexión',
-            text: 'No se pudo subir el archivo',
-            confirmButtonColor: '#dc3545'
+            title: 'Generando PDF...',
+            text: 'Por favor espere',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
         });
-    });
-}
+
+        fetch(`/panel/orders/${ordenDescargaActual}/generar/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({ plantilla_id: plantillaId })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.archivo_url) {
+                        window.location.href = data.archivo_url;
+                    }
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Orden Generada!',
+                        text: 'El PDF se ha generado correctamente',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', data.message || 'Error al generar la orden', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Error de conexión al generar la orden', 'error');
+            });
+    }
+
+    function procederDescargaValidado() {
+        if (ordenDescargaActual) {
+            window.location.href = `/panel/orders/${ordenDescargaActual}/descargar-validado/`;
+            modalOpcionesDescarga.hide();
+        }
+    }
+
+    function subirOrdenValidada(ordenId, codigo) {
+        document.getElementById('subir_orden_id').value = ordenId;
+        document.getElementById('archivo_orden').value = '';
+        modalSubirOrden.show();
+    }
 </script>
 {% endblock %}

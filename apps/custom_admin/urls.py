@@ -101,6 +101,12 @@ urlpatterns = [
     path('orders/<int:order_id>/editar/', views.order_update_api, name='order_update_api'),
     path('orders/<int:order_id>/eliminar/', views.order_delete_api, name='order_delete_api'),
     
+    # URLs para descarga unificada en Orden de Toma
+    path('orders/<int:order_id>/descargar-validado/', views.orden_toma_descargar_validada_api, name='orden_toma_descargar_validada_api'),
+    path('orders/<int:order_id>/subir-firmada/', views.orden_toma_subir_firmada_api, name='orden_toma_subir_firmada_api'),
+    path('orders/<int:order_id>/plantillas/', views.orden_toma_obtener_plantillas_api, name='orden_toma_obtener_plantillas_api'),
+    path('orders/<int:order_id>/descargar-plantilla/', views.orden_toma_descargar_plantilla_api, name='orden_toma_descargar_plantilla_api'),
+    
     # ==================== URLs PARA ÓRDENES ====================
     path('orders/plantillas/', views.plantillas_orden_list, name='plantillas_orden_list'),
     path('orders/plantillas/crear/', views.plantilla_orden_crear_api, name='plantilla_orden_crear_api'),
@@ -133,6 +139,7 @@ urlpatterns = [
     path('ordenes-produccion/<int:order_id>/validar/', views.orden_produccion_validar_api, name='orden_produccion_validar_api'),
     path('ordenes-produccion/<int:order_id>/generar/', views.orden_produccion_generar_api, name='orden_produccion_generar_api'),
     path('ordenes-produccion/<int:order_id>/subir-firmada/', views.orden_produccion_subir_firmada_api, name='orden_produccion_subir_firmada_api'),
+    path('ordenes-produccion/<int:order_id>/descargar-validado/', views.orden_produccion_descargar_validada_api, name='orden_produccion_descargar_validada_api'),
     path('ordenes-produccion/<int:order_id>/descargar-plantilla/', views.orden_produccion_descargar_plantilla_api, name='orden_produccion_descargar_plantilla_api'),
     path('ordenes-produccion/<int:order_id>/plantillas/', views.orden_produccion_obtener_plantillas_api, name='orden_produccion_obtener_plantillas_api'),
     
@@ -145,6 +152,8 @@ urlpatterns = [
     path('ordenes-autorizacion/<int:order_id>/plantillas/', views.orden_autorizacion_formularios_api, name='orden_autorizacion_formularios_api'),
     path('ordenes-autorizacion/<int:order_id>/generar-pdf/', views.orden_autorizacion_generar_pdf_api, name='orden_autorizacion_generar_pdf_api'),
     path('ordenes-autorizacion/<int:order_id>/subir-firma/', views.orden_autorizacion_subir_firma_api, name='orden_autorizacion_subir_firma_api'),
+    path('ordenes-autorizacion/<int:order_id>/descargar-validado/', views.orden_autorizacion_descargar_validada_api, name='orden_autorizacion_descargar_validada_api'),
+    path('ordenes-autorizacion/<int:order_id>/descargar-plantilla/', views.orden_autorizacion_descargar_plantilla_api, name='orden_autorizacion_descargar_plantilla_api'),
 
     # ==================== URLs PARA ÓRDENES DE SUSPENSIÓN ====================
     path('ordenes-suspension/', views.ordenes_suspension_list, name='ordenes_suspension_list'),
@@ -155,6 +164,8 @@ urlpatterns = [
     path('ordenes-suspension/<int:order_id>/plantillas/', views.orden_suspension_formularios_api, name='orden_suspension_formularios_api'),
     path('ordenes-suspension/<int:order_id>/generar-pdf/', views.orden_suspension_generar_pdf_api, name='orden_suspension_generar_pdf_api'),
     path('ordenes-suspension/<int:order_id>/subir-firma/', views.orden_suspension_subir_firma_api, name='orden_suspension_subir_firma_api'),
+    path('ordenes-suspension/<int:order_id>/descargar-validado/', views.orden_suspension_descargar_validada_api, name='orden_suspension_descargar_validada_api'),
+    path('ordenes-suspension/<int:order_id>/descargar-plantilla/', views.orden_suspension_descargar_plantilla_api, name='orden_suspension_descargar_plantilla_api'),
     
     # ==================== URLs PARA PARTE MORTORIOS ====================
     path('parte-mortorios/', views.parte_mortorios_list, name='parte_mortorios_list'),

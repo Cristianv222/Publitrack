@@ -97,26 +97,29 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <div class="btn-group">
-                                    <button class="btn btn-sm btn-info" onclick="editarOrden({{ orden.id }})"
-                                        title="Editar">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-secondary" onclick="generarOrden({{ orden.id }})"
-                                        title="Descargar PDF">
-                                        <i class="fas fa-file-pdf"></i>
-                                    </button>
-                                    {% if orden.estado != 'autorizado' %}
-                                    <button class="btn btn-sm btn-success" onclick="subirFirma({{ orden.id }})"
-                                        title="Subir Firma y Autorizar">
-                                        <i class="fas fa-file-upload"></i>
-                                    </button>
-                                    {% endif %}
-                                    <button class="btn btn-sm btn-danger" onclick="eliminarOrden({{ orden.id }})"
-                                        title="Eliminar">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
+                                <button class="btn btn-sm btn-info" onclick="editarOrden({{ orden.id }})"
+                                    title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+
+                                {% with ultima_generada=orden.ordenes_generadas_autorizacion.first %}
+                                <button class="btn btn-sm btn-secondary"
+                                    onclick="abrirModalDescargaAutorizacion({{ orden.id }}, '{{ orden.codigo|escapejs }}', {% if orden.tiene_archivo_validado %}true{% else %}false{% endif %}, {% if ultima_generada %}{{ ultima_generada.id }}{% else %}null{% endif %})"
+                                    title="Opciones de Descarga">
+                                    <i class="fas fa-file-pdf"></i>
+                                </button>
+                                {% endwith %}
+
+                                {% if orden.estado != 'autorizado' %}
+                                <button class="btn btn-sm btn-success" onclick="subirFirma({{ orden.id }})"
+                                    title="Subir Firma y Autorizar">
+                                    <i class="fas fa-file-upload"></i>
+                                </button>
+                                {% endif %}
+                                <button class="btn btn-sm btn-danger" onclick="eliminarOrden({{ orden.id }})"
+                                    title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </td>
                         </tr>
                         {% empty %}
@@ -129,160 +132,211 @@
             </div>
         </div>
     </div>
-</div>
 
-<!-- Modal Crear/Editar -->
-<div class="modal fade" id="modalOrden" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalTitle">Nueva Autorización</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="formOrden">
-                    <input type="hidden" id="orden_id">
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label">Cargar desde Orden de Producción</label>
-                            <select class="form-select" id="orden_produccion_id"
-                                onchange="cargarDatosProduccion(this.value)">
-                                <option value="">Seleccionar Orden de Producción...</option>
-                                {% for op in ordenes_produccion %}
-                                <option value="{{ op.id }}">{{ op.codigo }} - {{ op.nombre_cliente|default:"Cliente" }}
-                                    ({{
-                                    op.proyecto_campania|default:"Sin proyecto" }})</option>
-                                {% endfor %}
-                            </select>
-                            <small class="text-muted">Seleccione para autocompletar datos</small>
-                        </div>
-                        <div id="manual-fields">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Cliente</label>
-                                    <select class="form-select" id="cliente_id">
-                                        <option value="">Seleccionar...</option>
-                                        {% for cliente in clientes %}
-                                        <option value="{{ cliente.id }}">{{ cliente.get_full_name }} ({{ cliente.empresa
-                                            }})
-                                        </option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Vendedor</label>
-                                    <select class="form-select" id="vendedor_id">
-                                        <option value="">Seleccionar...</option>
-                                        {% for vendedor in vendedores %}
-                                        <option value="{{ vendedor.id }}">{{ vendedor.get_full_name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label">Campaña / Publicidad</label>
-                                    <input type="text" class="form-control" id="campania">
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label">Detalle de Transmisión</label>
-                                    <textarea class="form-control" id="detalle_transmision" rows="3"></textarea>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Fecha Inicio</label>
-                                    <input type="date" class="form-control" id="fecha_inicio">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Fecha Fin</label>
-                                    <input type="date" class="form-control" id="fecha_fin">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Valor Total</label>
-                                    <input type="number" class="form-control" id="valor_total" step="0.01" value="0.00">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row g-3 mt-1">
+    <!-- Modal Crear/Editar -->
+    <div class="modal fade" id="modalOrden" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Nueva Autorización</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formOrden">
+                        <input type="hidden" id="orden_id">
+                        <div class="row g-3">
                             <div class="col-12">
-                                <label class="form-label">Estado</label>
-                                <select class="form-select" id="estado">
-                                    <option value="pendiente">Pendiente</option>
-                                    <option value="autorizado">Autorizado</option>
-                                    <option value="rechazado">Rechazado</option>
-                                    <option value="cancelado">Cancelado</option>
+                                <label class="form-label">Cargar desde Orden de Producción</label>
+                                <select class="form-select" id="orden_produccion_id"
+                                    onchange="cargarDatosProduccion(this.value)">
+                                    <option value="">Seleccionar Orden de Producción...</option>
+                                    {% for op in ordenes_produccion %}
+                                    <option value="{{ op.id }}">{{ op.codigo }} - {{ op.nombre_cliente|default:"Cliente" }} ({{ op.proyecto_campania|default:"Sin proyecto" }})</option>
+                                    {% endfor %}
                                 </select>
+                                <small class="text-muted">Seleccione para autocompletar datos</small>
+                            </div>
+                            <div id="manual-fields">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Cliente</label>
+                                        <select class="form-select" id="cliente_id">
+                                            <option value="">Seleccionar...</option>
+                                            {% for cliente in clientes %}
+                                            <option value="{{ cliente.id }}">{{ cliente.get_full_name }} ({{ cliente.empresa }})</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Vendedor</label>
+                                        <select class="form-select" id="vendedor_id">
+                                            <option value="">Seleccionar...</option>
+                                            {% for vendedor in vendedores %}
+                                            <option value="{{ vendedor.id }}">{{ vendedor.get_full_name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Campaña / Publicidad</label>
+                                        <input type="text" class="form-control" id="campania">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Detalle de Transmisión</label>
+                                        <textarea class="form-control" id="detalle_transmision" rows="3"></textarea>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Fecha Inicio</label>
+                                        <input type="date" class="form-control" id="fecha_inicio">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Fecha Fin</label>
+                                        <input type="date" class="form-control" id="fecha_fin">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Valor Total</label>
+                                        <input type="number" class="form-control" id="valor_total" step="0.01" value="0.00">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row g-3 mt-1">
+                                <div class="col-12">
+                                    <label class="form-label">Estado</label>
+                                    <select class="form-select" id="estado">
+                                        <option value="pendiente">Pendiente</option>
+                                        <option value="autorizado">Autorizado</option>
+                                        <option value="rechazado">Rechazado</option>
+                                        <option value="cancelado">Cancelado</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="guardarOrden()">Guardar</button>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarOrden()">Guardar</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Modal Generar PDF -->
-<div class="modal fade" id="modalGenerarOrden" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Generar Orden PDF</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="generar_orden_id">
-                <div class="mb-3">
-                    <label class="form-label">Seleccionar Plantilla</label>
-                    <select class="form-select" id="plantilla_id">
-                        <option value="">Cargando plantillas...</option>
-                    </select>
+    <!-- Modal Generar PDF -->
+    <div class="modal fade" id="modalGenerarOrden" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Generar Orden PDF</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-
-
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Al generar el PDF, el estado de la orden cambiará a <strong>Autorizado</strong> si está pendiente.
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="confirmarGeneracion()">
-                    <i class="fas fa-file-pdf me-2"></i>Generar y Descargar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Subir Firma -->
-<div class="modal fade" id="modalSubirFirma" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Subir Orden Firmada</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="formFirma">
-                    <input type="hidden" id="firma_orden_id">
+                <div class="modal-body">
+                    <input type="hidden" id="generar_orden_id">
                     <div class="mb-3">
-                        <label class="form-label">Archivo Firmado (PDF/Imagen)</label>
-                        <input type="file" class="form-control" id="archivo_firmado" accept=".pdf,.jpg,.jpeg,.png"
-                            required>
+                        <label class="form-label">Seleccionar Plantilla</label>
+                        <select class="form-select" id="plantilla_id">
+                            <option value="">Cargando plantillas...</option>
+                        </select>
                     </div>
-                </form>
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    Al subir el archivo, la orden cambiará automáticamente a estado
-                    <strong>Autorizado</strong>.
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Al generar el PDF, el estado de la orden cambiará a <strong>Autorizado</strong> si está pendiente.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmarGeneracion()">
+                        <i class="fas fa-file-pdf me-2"></i>Generar y Descargar
+                    </button>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" onclick="confirmarSubida()">
-                    <i class="fas fa-upload me-2"></i>Subir y Autorizar
-                </button>
+        </div>
+    </div>
+
+    <!-- Modal Subir Firma -->
+    <div class="modal fade" id="modalSubirFirma" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Subir Orden Firmada</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formFirma">
+                        <input type="hidden" id="firma_orden_id">
+                        <div class="mb-3">
+                            <label class="form-label">Archivo Firmado (PDF/Imagen)</label>
+                            <input type="file" class="form-control" id="archivo_firmado" accept=".pdf,.jpg,.jpeg,.png" required>
+                        </div>
+                    </form>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Al subir el archivo, la orden cambiará automáticamente a estado
+                        <strong>Autorizado</strong>.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" onclick="confirmarSubida()">
+                        <i class="fas fa-upload me-2"></i>Subir y Autorizar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Opciones Descarga -->
+    <div class="modal fade" id="modalOpcionesDescarga" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-file-pdf me-2"></i>Opciones de Descarga
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="descarga_orden_id">
+                    <input type="hidden" id="descarga_orden_codigo">
+                    <input type="hidden" id="descarga_orden_generada_id">
+
+                    <p class="text-muted mb-4">
+                        Seleccione la versión del documento que desea descargar para la orden <strong id="lbl_codigo_descarga"></strong>:
+                    </p>
+
+                    <div class="d-grid gap-3">
+                        <!-- Opción 1: Versión del Sistema -->
+                        <button class="btn btn-outline-primary text-start p-3 position-relative" onclick="procederDescargaAutorizacionSistema()">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-primary bg-opacity-10 p-3 rounded me-3">
+                                    <i class="fas fa-cogs fa-2x text-primary"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Versión del Sistema</h6>
+                                    <small class="text-muted d-block">Documento generado automáticamente</small>
+                                    <span id="badge_sistema" class="badge bg-warning text-dark mt-1">
+                                        <i class="fas fa-clock me-1"></i>No generado
+                                    </span>
+                                </div>
+                            </div>
+                        </button>
+
+                        <!-- Opción 2: Versión Validada -->
+                        <button id="btn_descarga_validado" class="btn btn-outline-success text-start p-3 position-relative" onclick="procederDescargaAutorizacionValidado()" disabled>
+                            <div class="d-flex align-items-center">
+                                <div class="bg-success bg-opacity-10 p-3 rounded me-3">
+                                    <i class="fas fa-file-signature fa-2x text-success"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Versión Validada</h6>
+                                    <small class="text-muted d-block">Documento firmado y subido</small>
+                                    <span id="badge_validado" class="badge bg-secondary mt-1">
+                                        <i class="fas fa-times me-1"></i>No disponible
+                                    </span>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -294,12 +348,75 @@
     let modalOrden;
     let modalGenerarOrden;
     let modalSubirFirma;
-
+    let modalOpcionesDescarga;
+    
     document.addEventListener('DOMContentLoaded', function () {
         modalOrden = new bootstrap.Modal(document.getElementById('modalOrden'));
         modalGenerarOrden = new bootstrap.Modal(document.getElementById('modalGenerarOrden'));
         modalSubirFirma = new bootstrap.Modal(document.getElementById('modalSubirFirma'));
+        modalOpcionesDescarga = new bootstrap.Modal(document.getElementById('modalOpcionesDescarga'));
     });
+
+    // ==========================================
+    // LÓGICA DE DESCARGA UNIFICADA
+    // ==========================================
+    function abrirModalDescargaAutorizacion(id, codigo, tieneValidado, ordenGeneradaId) {
+        document.getElementById('descarga_orden_id').value = id;
+        document.getElementById('descarga_orden_codigo').value = codigo;
+        document.getElementById('descarga_orden_generada_id').value = ordenGeneradaId || '';
+        document.getElementById('lbl_codigo_descarga').textContent = codigo;
+
+        // Configurar estado de "Versión del Sistema"
+        const badgeSistema = document.getElementById('badge_sistema');
+        if (ordenGeneradaId) {
+            badgeSistema.className = 'badge bg-primary text-white mt-1';
+            badgeSistema.innerHTML = '<i class="fas fa-check me-1"></i>Generado';
+        } else {
+            badgeSistema.className = 'badge bg-warning text-dark mt-1';
+            badgeSistema.innerHTML = '<i class="fas fa-clock me-1"></i>No generado';
+        }
+
+        // Configurar estado de "Versión Validada"
+        const btnValidado = document.getElementById('btn_descarga_validado');
+        const badgeValidado = document.getElementById('badge_validado');
+
+        if (tieneValidado) {
+            btnValidado.disabled = false;
+            badgeValidado.className = 'badge bg-success mt-1';
+            badgeValidado.innerHTML = '<i class="fas fa-check me-1"></i>Disponible';
+        } else {
+            btnValidado.disabled = true;
+            badgeValidado.className = 'badge bg-secondary mt-1';
+            badgeValidado.innerHTML = '<i class="fas fa-times me-1"></i>No disponible';
+        }
+
+        modalOpcionesDescarga.show();
+    }
+
+    function procederDescargaAutorizacionSistema() {
+        const id = document.getElementById('descarga_orden_id').value;
+        const ordenGeneradaId = document.getElementById('descarga_orden_generada_id').value;
+
+        // Si no hay orden generada, advertir pero permitir intentar generar (o redirigir a generación)
+        if (!ordenGeneradaId) {
+            if (confirm('No se ha generado una versión PDF del sistema para esta orden. ¿Desea generarla ahora?')) {
+                modalOpcionesDescarga.hide();
+                generarOrden(id); // Reusa la función existente
+            }
+            return;
+        }
+
+        // Descargar la plantilla
+        window.open(`/panel/ordenes-autorizacion/${id}/descargar-plantilla/?orden_generada_id=${ordenGeneradaId}`, '_blank');
+        modalOpcionesDescarga.hide();
+    }
+
+    function procederDescargaAutorizacionValidado() {
+        const id = document.getElementById('descarga_orden_id').value;
+        window.open(`/panel/ordenes-autorizacion/${id}/descargar-validado/`, '_blank');
+        modalOpcionesDescarga.hide();
+    }
+    // ==========================================
 
     function subirFirma(id) {
         document.getElementById('formFirma').reset();

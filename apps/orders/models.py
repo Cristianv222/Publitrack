@@ -182,6 +182,11 @@ class OrdenToma(models.Model):
         help_text='Observaciones adicionales sobre la orden'
     )
     
+    # Checkboxes para producción
+    incluye_tomas = models.BooleanField('Incluye Tomas', default=False)
+    incluye_audio = models.BooleanField('Incluye Audio', default=False)
+    incluye_logo = models.BooleanField('Incluye Logo', default=False)
+    
     # Vendedor asignado
     vendedor_asignado = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -210,6 +215,64 @@ class OrdenToma(models.Model):
         null=True,
         blank=True
     )
+    
+    # Nuevos campos para archivo firmado
+    archivo_orden_firmada = models.FileField(
+        'Orden Firmada',
+        upload_to='ordenes_toma_firmadas/',
+        null=True,
+        blank=True,
+        help_text='PDF de la orden de toma firmada por el cliente'
+    )
+    
+    fecha_subida_firmada = models.DateTimeField(
+        'Fecha Subida Firmada',
+        null=True,
+        blank=True
+    )
+
+    @property
+    def tiene_archivo_validado(self):
+        """Verifica si existe un archivo PDF validado asociado (directo o en orden generada)"""
+        # 1. Verificar archivo directo en OrdenToma
+        if self.archivo_orden_firmada:
+            return True
+        
+        # 2. Verificar en última orden generada (fallback)
+        # Nota: OrdenGenerada.ordering = ['-fecha_generacion'], así que .first() es la más reciente
+        ultima = self.ordenes_generadas.first()
+        if ultima and ultima.archivo_orden_validada:
+            return True
+            
+        return False
+        
+    def subir_orden_firmada(self, archivo_firmado, usuario):
+        """Procesa la orden firmada subida"""
+        try:
+            # Guardar archivo
+            self.archivo_orden_firmada = archivo_firmado
+            self.fecha_subida_firmada = timezone.now()
+            
+            # Cambiar estado a validado
+            self.estado = 'validado'
+            self.validado_por = usuario
+            self.fecha_validacion = timezone.now()
+            
+            self.save()
+            
+            # Registrar en historial
+            HistorialOrden.objects.create(
+                orden=self,
+                accion='validada',
+                usuario=usuario,
+                descripcion=f'Orden de toma firmada subida. Archivo: {archivo_firmado.name}'
+            )
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error subiendo orden firmada: {e}")
+            return False
     
     # Usuario que valida/completa
     validado_por = models.ForeignKey(
@@ -731,6 +794,9 @@ class OrdenGenerada(models.Model):
         related_name='ordenes_generadas_suspension',
         verbose_name='Orden de Suspensión'
     )
+    
+
+
     # Estado
     estado = models.CharField('Estado', max_length=20, choices=ESTADO_CHOICES, default='borrador')
     datos_generacion = models.JSONField('Datos de Generación', default=dict)
@@ -940,6 +1006,9 @@ class OrdenGenerada(models.Model):
                 'NUMERO_ORDEN': self.numero_orden,
                 'CODIGO_PRODUCCION': orden_produccion.codigo,
                 'CODIGO_TOMA': orden_produccion.orden_toma.codigo,
+                'TOMAS': 'Si' if orden_produccion.orden_toma.incluye_tomas else 'No',
+                'AUDIO': 'Si' if orden_produccion.orden_toma.incluye_audio else 'No',
+                'LOGO': 'Si' if orden_produccion.orden_toma.incluye_logo else 'No',
                 'NOMBRE_CLIENTE': orden_produccion.nombre_cliente or '',
                 'RUC_DNI': orden_produccion.ruc_dni_cliente or '',
                 'EMPRESA_CLIENTE': orden_produccion.empresa_cliente or '',
@@ -1061,6 +1130,10 @@ class OrdenGenerada(models.Model):
                 'VALOR_LETRAS': numero_a_letras(autorizacion.valor_total),
                 'OBSERVACIONES': autorizacion.observaciones or '',
                 'FECHA_ACTUAL': timezone.now().strftime('%d de %B del %Y'),
+                # Nuevas variables
+                'TOMAS': 'Si' if autorizacion.incluye_tomas else 'No',
+                'AUDIO': 'Si' if autorizacion.incluye_audio else 'No',
+                'LOGO': 'Si' if autorizacion.incluye_logo else 'No',
             }
 
             self.datos_generacion = context
@@ -1473,6 +1546,11 @@ class OrdenProduccion(models.Model):
             self.recursos_necesarios = self.orden_toma.recursos_necesarios
             self.fecha_inicio_planeada = self.orden_toma.fecha_produccion_inicio
             self.fecha_fin_planeada = self.orden_toma.fecha_produccion_fin
+
+    @property
+    def tiene_archivo_validado(self):
+        """Verifica si existe un archivo PDF validado asociado"""
+        return bool(self.archivo_orden_firmada)
     
     def iniciar_produccion(self):
         """Cambia el estado a en producción"""
@@ -1680,6 +1758,20 @@ class OrdenAutorizacion(models.Model):
     
     fecha_firma = models.DateTimeField('Fecha de Firma', null=True, blank=True)
 
+    @property
+    def tiene_archivo_validado(self):
+        """Verifica si existe un archivo PDF validado asociado (directo o en orden generada)"""
+        # 1. Verificar archivo directo en OrdenAutorizacion
+        if self.archivo_firmado:
+            return True
+        
+        # 2. Verificar en última orden generada (fallback/legacy)
+        ultima = self.ordenes_generadas_autorizacion.first()
+        if ultima and ultima.archivo_orden_validada:
+            return True
+            
+        return False
+
     orden_produccion = models.ForeignKey(
         OrdenProduccion,
         on_delete=models.SET_NULL,
@@ -1704,6 +1796,11 @@ class OrdenAutorizacion(models.Model):
     )
     
     observaciones = models.TextField('Observaciones', blank=True)
+    
+    # Nuevos campos para propagación desde producción
+    incluye_tomas = models.BooleanField('Incluye Tomas', default=False)
+    incluye_audio = models.BooleanField('Incluye Audio', default=False)
+    incluye_logo = models.BooleanField('Incluye Logo', default=False)
     
     # Metadatos
     created_at = models.DateTimeField('Creado', auto_now_add=True)
@@ -1734,6 +1831,17 @@ class OrdenAutorizacion(models.Model):
             self.ruc_dni_cliente = self.cliente.ruc_dni
             if not self.vendedor:
                 self.vendedor = self.cliente.vendedor_asignado
+        
+        # Propagar datos de Orden de Producción si existe
+        if self.orden_produccion:
+             # Copiar checkboxes
+             self.incluye_tomas = self.orden_produccion.requiere_tomas
+             self.incluye_audio = self.orden_produccion.requiere_audio
+             self.incluye_logo = self.orden_produccion.requiere_logo
+             
+             # Copiar valor total desde la orden de toma original (via produccion)
+             if self.valor_total == 0 and self.orden_produccion.orden_toma:
+                 self.valor_total = self.orden_produccion.orden_toma.total or 0.00
                 
         super().save(*args, **kwargs)
         
@@ -1798,6 +1906,20 @@ class OrdenSuspension(models.Model):
     )
     
     fecha_firma = models.DateTimeField('Fecha de Firma', null=True, blank=True)
+
+    @property
+    def tiene_archivo_validado(self):
+        """Verifica si existe un archivo PDF validado asociado (directo o en orden generada)"""
+        # 1. Verificar archivo directo
+        if self.archivo_firmado:
+            return True
+        
+        # 2. Verificar en última orden generada (fallback)
+        ultima = self.ordenes_generadas_suspension.first()
+        if ultima and ultima.archivo_orden_validada:
+            return True
+            
+        return False
     
     # Puede estar vinculada a una autorización previa
     autorizacion_relacionada = models.ForeignKey(

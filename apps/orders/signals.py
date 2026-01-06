@@ -110,6 +110,11 @@ def crear_orden_produccion_al_validar(sender, instance, created, **kwargs):
                     proyecto_campania=instance.proyecto_campania or 'Proyecto por definir',
                     titulo_material=instance.titulo_material or 'Material por definir',
                     descripcion_breve=instance.descripcion_breve or 'Descripción por completar',
+                    # Checkboxes
+                    requiere_tomas=instance.incluye_tomas,
+                    requiere_audio=instance.incluye_audio,
+                    requiere_logo=instance.incluye_logo,
+                    
                     equipo_asignado=instance.equipo_asignado or 'Equipo por asignar',
                     recursos_necesarios=instance.recursos_necesarios or '',
                     fecha_inicio_planeada=instance.fecha_produccion_inicio or timezone.now().date(),
