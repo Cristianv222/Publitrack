@@ -731,7 +731,24 @@ def contrato_generar_api(request):
             ruc_dni_cliente=cliente.ruc_dni or '',
             valor_sin_iva=Decimal(str(data['valor_total'])),
             generado_por=request.user,
-            estado='borrador'
+            estado='borrador',
+            observaciones=data.get('observaciones', ''),
+            
+            # ✅ NUEVOS CAMPOS: Compromisos y Exclusiones
+            spots_por_mes=int(data.get('spots_mes', 0)),
+            compromiso_spot_texto=data.get('compromiso_spot_texto', ''),
+            
+            compromiso_transmision_texto=data.get('compromiso_transmision_texto', ''),
+            compromiso_transmision_cantidad=int(data.get('compromiso_transmision_cantidad', 0)),
+            compromiso_transmision_valor=Decimal(str(data.get('compromiso_transmision_valor', '0.00'))),
+            
+            compromiso_notas_texto=data.get('compromiso_notas_texto', ''),
+            compromiso_notas_cantidad=int(data.get('compromiso_notas_cantidad', 0)),
+            compromiso_notas_valor=Decimal(str(data.get('compromiso_notas_valor', '0.00'))),
+            
+            excluir_fines_semana=data.get('excluir_fines_semana', False),
+            dias_semana_excluidos=data.get('dias_semana_excluidos', ''),
+            fechas_excluidas=data.get('fechas_excluidas', '')
         )
         
         # ✅ GUARDAR DATOS PARA USAR DESPUÉS AL CREAR LA CUÑA (INCLUYENDO CATEGORÍA)
@@ -744,8 +761,8 @@ def contrato_generar_api(request):
             'OBSERVACIONES': data.get('observaciones', ''),
             'VENDEDOR_ASIGNADO_ID': vendedor_asignado.id if vendedor_asignado else None,
             'VENDEDOR_ASIGNADO_NOMBRE': vendedor_asignado.get_full_name() if vendedor_asignado else None,
-            'CATEGORIA_ID': categoria.id if categoria else None,  # ✅ NUEVO: Guardar ID de categoría
-            'CATEGORIA_NOMBRE': categoria.nombre if categoria else None  # ✅ NUEVO: Guardar nombre de categoría
+            'CATEGORIA_ID': categoria.id if categoria else None,
+            'CATEGORIA_NOMBRE': categoria.nombre if categoria else None
         }
         contrato.save()
         
@@ -839,13 +856,13 @@ def contrato_subir_validado_api(request, id):
         contrato = ContratoGenerado.objects.get(pk=id)
         
         # Validar que se haya enviado un archivo
-        if 'archivo' not in request.FILES:
+        if 'archivo_validado' not in request.FILES:
             return JsonResponse({
                 'success': False,
                 'error': 'Debe seleccionar un archivo PDF'
             }, status=400)
         
-        archivo = request.FILES['archivo']
+        archivo = request.FILES['archivo_validado']
         
         if not archivo.name.endswith('.pdf'):
             return JsonResponse({

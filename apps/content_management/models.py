@@ -1188,6 +1188,26 @@ class ContratoGenerado(models.Model):
     fecha_envio = models.DateTimeField('Fecha de Envío', null=True, blank=True)
     fecha_firma = models.DateTimeField('Fecha de Firma', null=True, blank=True)
     
+    
+    # ✅ NUEVOS CAMPOS: Compromisos del Canal
+    spots_por_mes = models.PositiveIntegerField('Spots por Mes', null=True, blank=True)
+    compromiso_spot_texto = models.TextField('Texto Compromiso Spot', blank=True, null=True)
+    
+    compromiso_transmision_texto = models.TextField('Texto Compromiso Transmisión', blank=True, null=True)
+    compromiso_transmision_cantidad = models.PositiveIntegerField('Cantidad Transmisiones', default=0)
+    compromiso_transmision_valor = models.DecimalField('Valor Transmisiones', max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    
+    compromiso_notas_texto = models.TextField('Texto Compromiso Notas', blank=True, null=True)
+    compromiso_notas_cantidad = models.PositiveIntegerField('Cantidad Notas', default=0)
+    compromiso_notas_valor = models.DecimalField('Valor Notas', max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    
+    # ✅ NUEVOS CAMPOS: Lógica de Fechas
+    excluir_fines_semana = models.BooleanField('Excluir Fines de Semana', default=False)
+    # Almacena índices de días separador por coma (0=Lunes, 6=Domingo)
+    dias_semana_excluidos = models.CharField('Días Excluidos', max_length=50, blank=True, default='') 
+    # Almacena fechas YYYY-MM-DD separadas por coma
+    fechas_excluidas = models.TextField('Fechas Específicas Excluidas', blank=True, default='')
+
     # ✅ NUEVOS CAMPOS PARA VALIDACIÓN
     fecha_validacion = models.DateTimeField('Fecha de Validación', null=True, blank=True)
     validado_por = models.ForeignKey(
@@ -1243,16 +1263,24 @@ class ContratoGenerado(models.Model):
     def generar_numero_contrato(self):
         año = timezone.now().year
         mes = timezone.now().month
-        for intento in range(1, 100):
-            count = ContratoGenerado.objects.filter(
-                fecha_generacion__year=año,
-                fecha_generacion__month=mes
-            ).count() + intento
+        
+        # Base count for the month
+        base_qs = ContratoGenerado.objects.filter(
+            fecha_generacion__year=año,
+            fecha_generacion__month=mes
+        )
+        count = base_qs.count() + 1
+        
+        # Loop checking existence to allow filling gaps or handling concurrency (basic)
+        for i in range(1000): # Limit iterations to prevent infinite loop
             numero = f"CTR{año}{mes:02d}{count:04d}"
-        # Verifica que no existe
             if not ContratoGenerado.objects.filter(numero_contrato=numero).exists():
                 return numero
-        raise Exception("No se pudo generar un número de contrato único")
+            count += 1
+            
+        # Fallback if too many conflicts (unlikely)
+        import uuid
+        return f"CTR{año}{mes:02d}-{str(uuid.uuid4())[:6].upper()}"
 
     def generar_contrato(self):
         try:
@@ -1293,12 +1321,35 @@ class ContratoGenerado(models.Model):
             cargo_cliente = getattr(cliente, 'cargo_empresa', '') or ''
             profesion_cliente = getattr(cliente, 'profesion', '') or ''
         
-        # ✅ NUEVO: Obtener nombre completo del contacto
+            # ✅ NUEVO: Obtener nombre completo del contacto
             nombre_contacto = (
                 getattr(cliente, 'nombre_contacto', None) or
                 getattr(cliente, 'contacto_nombre', None) or
                 (cliente.get_full_name() if hasattr(cliente, 'get_full_name') else self.nombre_cliente)
             )
+
+            # --- LÓGICA DE DETALLE DE FECHAS (Exclusiones) ---
+            # Si existen fechas excluidas, agregarlas al contexto para que puedan ser listadas si la plantilla lo requiere
+            lista_dias_excluidos = []
+            if self.excluir_fines_semana:
+                lista_dias_excluidos.append("Fines de semana")
+            
+            # Mapeo de días
+            dias_map = {0: 'Lunes', 1: 'Martes', 2: 'Miércoles', 3: 'Jueves', 4: 'Viernes', 5: 'Sábado', 6: 'Domingo'}
+            if self.dias_semana_excluidos:
+                try:
+                    indices = [int(x) for x in self.dias_semana_excluidos.split(',') if x.strip()]
+                    nombres_dias = [dias_map.get(i) for i in indices if i in dias_map]
+                    if nombres_dias:
+                        lista_dias_excluidos.append(f"Días: {', '.join(nombres_dias)}")
+                except:
+                    pass
+            
+            txt_exclusiones = "Ninguna"
+            if lista_dias_excluidos:
+                txt_exclusiones = "; ".join(lista_dias_excluidos)
+            if self.fechas_excluidas:
+                txt_exclusiones += f". Fechas específicas: {self.fechas_excluidas}"
 
             context = {
                 'NOMBRE_CLIENTE': self.nombre_cliente,
@@ -1323,11 +1374,26 @@ class ContratoGenerado(models.Model):
                 'NUMERO_CONTRATO': self.numero_contrato,
                 'NOMBRE_CONTACTO': nombre_contacto,
             
-            # ✅ NUEVOS CAMPOS AGREGADAS
+                # ✅ NUEVOS CAMPOS AGREGADOS (Contexto Word)
                 'CARGO_CLIENTE': cargo_cliente,
                 'PROFESION_CLIENTE': profesion_cliente,
-                'CARGO': cargo_cliente,  # Alias por si usan diferentes nombres
-                'PROFESION': profesion_cliente,  # Alias por si usan diferentes nombres
+                'CARGO': cargo_cliente,
+                'PROFESION': profesion_cliente,
+                
+                # Campos de Compromisos
+                'SPOTS_MES': str(self.spots_por_mes or 0),
+                'COMPROMISO_SPOT_TEXTO': self.compromiso_spot_texto or '',
+                
+                'COMPROMISO_TRANSMISION_TEXTO': self.compromiso_transmision_texto or '',
+                'COMPROMISO_TRANSMISION_CANTIDAD': str(self.compromiso_transmision_cantidad),
+                'COMPROMISO_TRANSMISION_VALOR': f"{self.compromiso_transmision_valor:.2f}",
+                
+                'COMPROMISO_NOTAS_TEXTO': self.compromiso_notas_texto or '',
+                'COMPROMISO_NOTAS_CANTIDAD': str(self.compromiso_notas_cantidad),
+                'COMPROMISO_NOTAS_VALOR': f"{self.compromiso_notas_valor:.2f}",
+                
+                # Info Exclusiones
+                'EXCLUSIONES_TEXTO': txt_exclusiones,
             }
 
             self.datos_generacion = {**datos_gen, **context}
@@ -1384,9 +1450,17 @@ class ContratoGenerado(models.Model):
                 except CategoriaPublicitaria.DoesNotExist:
                     pass
 
+            # ✅ Generar Código Único para la Cuña
+            base_code = f"CÑ-{self.numero_contrato}"
+            final_code = base_code
+            counter = 1
+            while CuñaPublicitaria.objects.filter(codigo=final_code).exists():
+                counter += 1
+                final_code = f"{base_code}-V{counter}"
+
             # ✅ CREAR CUÑA CON VENDEDOR ASIGNADO Y CATEGORÍA
             cuna = CuñaPublicitaria.objects.create(
-                codigo=f"CÑ-{self.numero_contrato}",
+                codigo=final_code,
                 titulo=datos.get('TITULO_CUÑA', f"Cuña {self.nombre_cliente}"),
                 descripcion=f"Cuña generada automáticamente desde contrato {self.numero_contrato}",
                 cliente=self.cliente,

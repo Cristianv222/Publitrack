@@ -298,8 +298,8 @@
                             <i class="fas fa-user-tie text-primary me-2"></i>
                             2. Seleccione el Cliente *
                         </label>
-                        <select class="form-select form-select-lg" id="clienteSelect" required disabled>
-                            <option value="">-- Primero seleccione una plantilla --</option>
+                        <select class="form-select form-select-lg" id="clienteSelect" required>
+                            <option value="">-- Seleccione un cliente --</option>
                             {% for cliente in clientes %}
                             <option value="{{ cliente.id }}"
                                 data-nombre="{{ cliente.empresa|default:cliente.get_full_name }}"
@@ -364,55 +364,200 @@
                     3. Configuración del Contrato
                 </h6>
 
+                <!-- Fila 1: Fechas y Valores -->
+                <!-- Fila 1: Fechas y Valores -->
                 <div class="row">
                     <div class="col-md-4">
                         <div class="mb-3">
                             <label class="form-label">Fecha de Inicio *</label>
-                            <input type="date" class="form-control" id="fechaInicio" required>
+                            <input type="date" class="form-control" id="fechaInicio" required
+                                onchange="calcularTotal()">
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="mb-3">
                             <label class="form-label">Fecha de Fin *</label>
-                            <input type="date" class="form-control" id="fechaFin" required>
+                            <input type="date" class="form-control" id="fechaFin" required onchange="calcularTotal()">
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="mb-3">
                             <label class="form-label">Valor por Segundo (S/) *</label>
                             <input type="number" class="form-control" id="valorPorSegundo" step="0.01" min="0"
-                                placeholder="0.14" required>
-                            <small class="text-muted">Ejemplo: 0.14 para 14 céntimos por segundo</small>
+                                placeholder="0.14" required oninput="calcularTotal()">
+                            <small class="text-muted">Ej: 0.14</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fila 2: Configuración Avanzada de Fechas -->
+                <div class="card bg-light border-0 mb-4">
+                    <div class="card-body py-2">
+                        <h6 class="card-title text-muted mb-2" style="font-size: 0.85rem;"><i
+                                class="fas fa-calendar-times me-1"></i> Exclusiones de Fechas</h6>
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="excluirFinesSemana"
+                                        onchange="calcularTotal()">
+                                    <label class="form-check-label" for="excluirFinesSemana">Excluir Fines de
+                                        Semana</label>
+                                </div>
+                            </div>
+                            <div class="col-md-9">
+                                <div class="d-flex flex-wrap gap-2 align-items-center">
+                                    <span class="text-muted small me-2">Días específicos:</span>
+                                    <div class="btn-group" role="group">
+                                        <input type="checkbox" class="btn-check dia-excluido" id="excluirLunes"
+                                            value="0" autocomplete="off" onchange="calcularTotal()">
+                                        <label class="btn btn-outline-secondary btn-sm" for="excluirLunes">Lun</label>
+
+                                        <input type="checkbox" class="btn-check dia-excluido" id="excluirMartes"
+                                            value="1" autocomplete="off" onchange="calcularTotal()">
+                                        <label class="btn btn-outline-secondary btn-sm" for="excluirMartes">Mar</label>
+
+                                        <input type="checkbox" class="btn-check dia-excluido" id="excluirMiercoles"
+                                            value="2" autocomplete="off" onchange="calcularTotal()">
+                                        <label class="btn btn-outline-secondary btn-sm"
+                                            for="excluirMiercoles">Mié</label>
+
+                                        <input type="checkbox" class="btn-check dia-excluido" id="excluirJueves"
+                                            value="3" autocomplete="off" onchange="calcularTotal()">
+                                        <label class="btn btn-outline-secondary btn-sm" for="excluirJueves">Jue</label>
+
+                                        <input type="checkbox" class="btn-check dia-excluido" id="excluirViernes"
+                                            value="4" autocomplete="off" onchange="calcularTotal()">
+                                        <label class="btn btn-outline-secondary btn-sm" for="excluirViernes">Vie</label>
+
+                                        <input type="checkbox" class="btn-check dia-excluido" id="excluirSabado"
+                                            value="5" autocomplete="off" onchange="calcularTotal()">
+                                        <label class="btn btn-outline-secondary btn-sm" for="excluirSabado">Sáb</label>
+
+                                        <input type="checkbox" class="btn-check dia-excluido" id="excluirDomingo"
+                                            value="6" autocomplete="off" onchange="calcularTotal()">
+                                        <label class="btn btn-outline-secondary btn-sm" for="excluirDomingo">Dom</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Exclusión de Fechas Específicas -->
+                        <div class="row mt-2 align-items-center">
+                            <div class="col-md-4">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">Excluir Fecha</span>
+                                    <input type="date" class="form-control" id="fechaEspecificaPicker">
+                                    <button class="btn btn-outline-danger" type="button"
+                                        onclick="agregarFechaExcluida()">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div id="listaFechasExcluidas" class="d-flex flex-wrap gap-1">
+                                    <!-- Aquí se agregarán los badges de fechas -->
+                                </div>
+                                <input type="hidden" id="fechasExcluidasHidden">
+                            </div>
+                        </div>
+                        <div class="mt-1">
+                            <small class="text-primary fw-bold" id="infoDiasEfectivos">Días Efectivos: 0</small>
                         </div>
                     </div>
                 </div>
 
                 <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="mb-3">
                             <label class="form-label">Spots por Día *</label>
-                            <input type="number" class="form-control" id="spotsDia" min="1" value="1"
-                                placeholder="Número de spots diarios" required>
+                            <input type="number" class="form-control" id="spotsDia" min="1" value="1" placeholder="#"
+                                required oninput="calcularTotal()">
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="mb-3">
-                            <label class="form-label">Duración del Spot (segundos) *</label>
+                            <label class="form-label">Spots por Mes (Opcional)</label>
+                            <input type="number" class="form-control" id="spotsMes" min="0" placeholder="#"
+                                oninput="calcularTotal()">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label class="form-label">Duración Spot (seg) *</label>
                             <input type="number" class="form-control" id="duracionSpot" min="1" value="30"
-                                placeholder="Duración en segundos" required>
+                                placeholder="Seg" required oninput="calcularTotal()">
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="mb-3">
-                            <label class="form-label">Categoría Publicitaria</label>
+                            <label class="form-label">Categoría</label>
                             <select class="form-select" id="categoriaSelect">
-                                <option value="">-- Seleccione una categoría (Opcional) --</option>
-                                <!-- Las categorías se cargarán dinámicamente -->
+                                <option value="">-- Opcional --</option>
                             </select>
-                            <small class="text-muted">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Categoría para clasificar la cuña publicitaria
-                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COMPROMISOS DEL CANAL -->
+                <div class="card border-info mb-3">
+                    <div class="card-header bg-info text-white py-1">
+                        <h6 class="mb-0 small"><i class="fas fa-handshake me-2"></i>Compromisos del Canal</h6>
+                    </div>
+                    <div class="card-body">
+                        <!-- Spot -->
+                        <div class="mb-3 border-bottom pb-2">
+                            <label class="form-label fw-bold small text-uppercase text-muted">Spot Publicitario</label>
+                            <textarea class="form-control form-control-sm" id="compromisoSpotTexto" rows="2"
+                                placeholder="Listado de compromisos de spots..."></textarea>
+                        </div>
+
+                        <!-- Transmisiones -->
+                        <div class="row border-bottom pb-2 mb-2">
+                            <div class="col-12"><label
+                                    class="form-label fw-bold small text-uppercase text-muted">Transmisiones</label>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <textarea class="form-control form-control-sm" id="compromisoTransmisionTexto" rows="2"
+                                    placeholder="Listado de transmisiones..."></textarea>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">Cant.</span>
+                                    <input type="number" class="form-control" id="compromisoTransmisionCantidad"
+                                        value="0" min="0" oninput="calcularTotal()">
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">S/</span>
+                                    <input type="number" class="form-control" id="compromisoTransmisionValor"
+                                        value="0.00" step="0.01" min="0" oninput="calcularTotal()">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notas Informativas -->
+                        <div class="row">
+                            <div class="col-12"><label class="form-label fw-bold small text-uppercase text-muted">Notas
+                                    Informativas</label></div>
+                            <div class="col-md-6">
+                                <textarea class="form-control form-control-sm" id="compromisoNotasTexto" rows="2"
+                                    placeholder="Listado de notas informativas..."></textarea>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">Cant.</span>
+                                    <input type="number" class="form-control" id="compromisoNotasCantidad" value="0"
+                                        min="0" oninput="calcularTotal()">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">S/</span>
+                                    <input type="number" class="form-control" id="compromisoNotasValor" value="0.00"
+                                        step="0.01" min="0" oninput="calcularTotal()">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -420,21 +565,22 @@
                 <div class="row">
                     <div class="col-md-8">
                         <div class="mb-3">
-                            <label class="form-label">Observaciones (Opcional)</label>
-                            <textarea class="form-control" id="observaciones" rows="3"
-                                placeholder="Notas adicionales sobre el contrato..."></textarea>
+                            <label class="form-label">Observaciones Generales</label>
+                            <textarea class="form-control" id="observaciones" rows="2"
+                                placeholder="Notas adicionales..."></textarea>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label">Total Calculado</label>
-                            <div class="calculation-display" id="totalCalculado">
-                                <strong>S/ 0.00</strong>
-                                <div class="calculation-formula mt-1">
-                                    Esperando datos...
+                        <div class="card border-success mb-3" style="background-color: #d1e7dd;">
+                            <div class="card-body py-2 text-success">
+                                <h6 class="card-title mb-1 fw-bold"><i class="fas fa-coins me-2"></i>Total Calculado
+                                </h6>
+                                <div class="calculation-display" id="totalCalculado">
+                                    <strong style="font-size: 1.5rem; color: #0f5132;">S/ 0.00</strong>
+                                    <div class="calculation-formula mt-1 text-muted" style="font-size: 0.75rem;">
+                                        Esperando datos...</div>
                                 </div>
                             </div>
-                            <small class="text-muted">Se calcula automáticamente</small>
                         </div>
                     </div>
                 </div>
@@ -454,7 +600,8 @@
                     <button type="button" class="btn btn-secondary" onclick="limpiarFormulario()">
                         <i class="fas fa-redo me-2"></i>Limpiar
                     </button>
-                    <button type="submit" class="btn btn-admin-primary" id="btnGenerar" disabled>
+                    <button type="submit" class="btn btn-admin-primary" id="btnGenerar" disabled
+                        onclick="validarYEnviar(event)">
                         <i class="fas fa-file-download me-2"></i>Generar Contrato
                     </button>
                 </div>
@@ -749,8 +896,36 @@
     </div>
 </div>
 
-{% endblock %}
+<!-- Modal para Subir Contrato Validado -->
+<div class="modal fade" id="subirContratoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-file-upload me-2"></i>Subir Contrato Firmado</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formSubirContrato" method="post" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <input type="hidden" id="subirContratoId" name="contrato_id">
+                    <div class="mb-3">
+                        <label class="form-label">Seleccione el archivo PDF firmado *</label>
+                        <input type="file" class="form-control" name="archivo_validado" accept=".pdf" required>
+                        <small class="text-muted">Asegúrese de que el contrato esté debidamente firmado por el
+                            cliente.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-2"></i>Validar y Activar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
+{% endblock %}
 {% block extra_js %}
 <script>
     // Variables globales
@@ -758,15 +933,40 @@
     let clienteSeleccionado = null;
     let filtroActual = 'todos';
     let categoriasDisponibles = [];
+    const fechasExcluidasSet = new Set();
 
     // Cargar plantillas al iniciar
     document.addEventListener('DOMContentLoaded', function () {
         cargarPlantillas();
         cargarClientes();
         cargarCategorias();
+        setupBulletTextarea('compromisoSpotTexto');
+        setupBulletTextarea('compromisoTransmisionTexto');
+        setupBulletTextarea('compromisoNotasTexto');
+        setupBulletTextarea('observaciones');
+
+        // Listeners para cambios en selectores
+        const plantillaSelect = document.getElementById('plantillaSelect');
+        if (plantillaSelect) {
+            plantillaSelect.addEventListener('change', onPlantillaChange);
+        }
+
+        const clienteSelect = document.getElementById('clienteSelect');
+        if (clienteSelect) {
+            clienteSelect.addEventListener('change', onClienteChange);
+        }
+
+        // Listener para el formulario
+        const contratoForm = document.getElementById('contratoForm');
+        if (contratoForm) {
+            contratoForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+                validarYEnviar();
+            });
+        }
     });
 
-    // ✅ NUEVA FUNCIÓN: Cargar categorías publicitarias
+    // ✅ Cargar categorías publicitarias
     function cargarCategorias() {
         fetch('/panel/api/categorias-publicitarias/')
             .then(response => response.json())
@@ -788,13 +988,6 @@
                         option.dataset.color = categoria.color_codigo;
                         option.dataset.descripcion = categoria.descripcion;
                         option.dataset.tarifa = categoria.tarifa_base;
-
-                        // Agregar indicador de color
-                        const colorIndicator = document.createElement('span');
-                        colorIndicator.className = 'categoria-color-indicator';
-                        colorIndicator.style.backgroundColor = categoria.color_codigo;
-
-                        option.textContent = categoria.nombre;
                         select.appendChild(option);
                     });
 
@@ -841,251 +1034,292 @@
         event.target.classList.add('active');
     }
 
-    // Función para calcular días entre dos fechas
-    function calcularDiasContrato(fechaInicio, fechaFin) {
-        const inicio = new Date(fechaInicio);
-        const fin = new Date(fechaFin);
-        const diferencia = fin.getTime() - inicio.getTime();
-        return Math.ceil(diferencia / (1000 * 3600 * 24)) + 1; // +1 para incluir ambos días
+    // ✅ Helper para parsear números con coma o punto
+    function parseMonto(valor) {
+        if (!valor) return 0;
+        if (typeof valor === 'number') return valor;
+        // Reemplazar comas por puntos y luego parsear
+        const valorStr = valor.toString().replace(/,/g, '.');
+        return parseFloat(valorStr) || 0;
     }
 
-    // Función para calcular el total automáticamente
+    // ✅ Función principal para calcular total
     function calcularTotalContrato() {
-        const valorPorSegundo = parseFloat(document.getElementById('valorPorSegundo').value) || 0;
-        const duracionSpot = parseInt(document.getElementById('duracionSpot').value) || 0;
-        const spotsDia = parseInt(document.getElementById('spotsDia').value) || 0;
         const fechaInicio = document.getElementById('fechaInicio').value;
         const fechaFin = document.getElementById('fechaFin').value;
+        const valorSeg = parseMonto(document.getElementById('valorPorSegundo').value);
+        const spotsDia = parseInt(document.getElementById('spotsDia').value) || 0;
+        const spotsMes = parseInt(document.getElementById('spotsMes').value) || 0;
+        const duracionSpot = parseInt(document.getElementById('duracionSpot').value) || 0;
+        const valTransmisiones = parseMonto(document.getElementById('compromisoTransmisionValor').value);
+        const valNotas = parseMonto(document.getElementById('compromisoNotasValor').value);
 
-        let total = 0;
+        const display = document.getElementById('totalCalculado');
+        const displayInfo = document.getElementById('infoDiasEfectivos');
+        const valorTotalInput = document.getElementById('valorTotal');
 
-        if (fechaInicio && fechaFin) {
-            const diasContrato = calcularDiasContrato(fechaInicio, fechaFin);
+        if (fechaInicio && fechaFin && fechaFin >= fechaInicio) {
+            // Lógica de Días Efectivos
+            const start = new Date(fechaInicio);
+            const end = new Date(fechaFin);
+            start.setMinutes(start.getMinutes() + start.getTimezoneOffset());
+            end.setMinutes(end.getMinutes() + end.getTimezoneOffset());
 
-            // Fórmula: (valor por segundo × duración spot × spots por día × días contrato)
-            total = valorPorSegundo * duracionSpot * spotsDia * diasContrato;
+            const diffMonths = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
 
-            // Mostrar el cálculo detallado
-            const totalElement = document.getElementById('totalCalculado');
-            totalElement.innerHTML = `
-            <strong>S/ ${total.toFixed(2)}</strong>
-            <br>
-            <small class="text-muted">
-                ${valorPorSegundo.toFixed(2)} × ${duracionSpot}s × ${spotsDia} spots × ${diasContrato} días
-            </small>
-        `;
+            let diasEfectivos = 0;
+            let diasTotales = 0;
 
-            // Actualizar campo oculto
-            document.getElementById('valorTotal').value = total.toFixed(2);
+            const excluirFines = document.getElementById('excluirFinesSemana').checked;
+            const diasSemanaExcluidos = Array.from(document.querySelectorAll('.dia-excluido:checked')).map(cb => parseInt(cb.value));
+
+            const diffTime = Math.abs(end - start);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+            // Iteración segura
+            for (let i = 0; i < diffDays; i++) {
+                let d = new Date(start);
+                d.setDate(d.getDate() + i);
+
+                diasTotales++;
+                const dayOfWeek = d.getDay();
+                let myDayIndex = (dayOfWeek === 0) ? 6 : dayOfWeek - 1;
+
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                const dateString = `${year}-${month}-${day}`;
+
+                let isExcluded = false;
+                if (excluirFines && (dayOfWeek === 0 || dayOfWeek === 6)) isExcluded = true;
+                if (diasSemanaExcluidos.includes(myDayIndex)) isExcluded = true;
+                if (fechasExcluidasSet.has(dateString)) isExcluded = true;
+
+                if (!isExcluded) diasEfectivos++;
+            }
+
+            if (displayInfo) displayInfo.textContent = `Días Efectivos: ${diasEfectivos} / ${diasTotales}`;
+
+            // CALCULO
+            let totalBase = 0;
+            let formulaText = "";
+
+            if (spotsMes > 0) {
+                let totalSpots = spotsMes * diffMonths;
+                totalBase = totalSpots * duracionSpot * valorSeg;
+                formulaText = `(${diffMonths} meses x ${spotsMes} spots/mes x ${duracionSpot}s x S/${valorSeg})`;
+            } else {
+                totalBase = diasEfectivos * spotsDia * duracionSpot * valorSeg;
+                formulaText = `(${diasEfectivos} días x ${spotsDia} spots x ${duracionSpot}s x S/${valorSeg})`;
+            }
+
+            let totalExtras = valTransmisiones + valNotas;
+            let total = totalBase + totalExtras;
+
+            display.innerHTML = `<strong style="font-size: 1.5rem; color: #0f5132;">S/ ${total.toFixed(2)}</strong>
+                <div class="calculation-formula mt-1" style="color: #146c43 !important;">
+                    ${formulaText}<br>
+                    + Extras: S/${totalExtras.toFixed(2)}
+                </div>`;
+            valorTotalInput.value = total.toFixed(2);
+
+            const btnGenerar = document.getElementById('btnGenerar');
+            if (btnGenerar) {
+                btnGenerar.disabled = false;
+            }
+
+            return total;
         } else {
-            document.getElementById('totalCalculado').textContent = 'S/ 0.00';
-            document.getElementById('valorTotal').value = '0.00';
+            display.innerHTML = '<strong style="font-size: 1.5rem;">S/ 0.00</strong><div class="calculation-formula mt-1 text-muted">Complete las fechas</div>';
+            const btnGenerar = document.getElementById('btnGenerar');
+            if (btnGenerar) {
+                btnGenerar.disabled = true;
+            }
+            if (displayInfo) displayInfo.textContent = 'Días Efectivos: 0';
+            return 0;
         }
-
-        return total;
     }
 
-    // Event listeners para cálculos automáticos
-    document.getElementById('valorPorSegundo').addEventListener('input', calcularTotalContrato);
-    document.getElementById('duracionSpot').addEventListener('input', calcularTotalContrato);
-    document.getElementById('spotsDia').addEventListener('input', calcularTotalContrato);
-    document.getElementById('fechaInicio').addEventListener('change', calcularTotalContrato);
-    document.getElementById('fechaFin').addEventListener('change', calcularTotalContrato);
+    // ✅ Helper para VIÑETAS en textareas
+    function setupBulletTextarea(id) {
+        const textarea = document.getElementById(id);
+        if (!textarea) return;
 
-    // ✅ FUNCIÓN: Ver detalle del contrato
-    function verDetalleContrato(contratoId) {
-        console.log("Cargando detalle del contrato:", contratoId);
-
-        // Mostrar loading
-        Swal.fire({
-            title: 'Cargando detalles...',
-            text: 'Por favor espere',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
+        textarea.addEventListener('focus', function () {
+            if (this.value === '') {
+                this.value = '• ';
             }
         });
 
-        // Obtener los datos del contrato desde la fila de la tabla
-        const fila = document.querySelector(`tr[data-contrato-id="${contratoId}"]`);
-        if (!fila) {
-            Swal.fire('Error', 'No se encontró la información del contrato', 'error');
+        textarea.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                const value = this.value;
+                const newLine = '\n• ';
+                this.value = value.substring(0, start) + newLine + value.substring(end);
+                this.selectionStart = this.selectionEnd = start + newLine.length;
+            }
+        });
+    }
+
+    // ✅ Validar y Enviar
+    function validarYEnviar() {
+        // Fallback: update globals from DOM if null
+        if (!plantillaSeleccionada) plantillaSeleccionada = document.getElementById('plantillaSelect').value;
+        if (!clienteSeleccionado) clienteSeleccionado = document.getElementById('clienteSelect').value;
+
+        if (!plantillaSeleccionada || !clienteSeleccionado) {
+            Swal.fire({ icon: 'warning', title: 'Datos Incompletos', text: 'Debe seleccionar una plantilla y un cliente' });
             return;
         }
 
-        try {
-            // Obtener datos del atributo data
-            const contratoData = JSON.parse(fila.getAttribute('data-contrato-info') || '{}');
+        const fechaInicio = document.getElementById('fechaInicio').value;
+        const fechaFin = document.getElementById('fechaFin').value;
+        const valorPorSegundo = document.getElementById('valorPorSegundo').value;
+        const duracionSpot = document.getElementById('duracionSpot').value;
 
-            console.log("Datos del contrato:", contratoData);
-
-            // Llenar el modal con los datos
-            document.getElementById('modalNumeroContrato').textContent = contratoData.numero_contrato || 'N/A';
-            document.getElementById('modalNumero').textContent = contratoData.numero_contrato || 'N/A';
-            document.getElementById('modalEstado').innerHTML = contratoData.estado_badge || '<span class="badge bg-secondary">N/A</span>';
-            document.getElementById('modalFechaGeneracion').textContent = contratoData.fecha_generacion || 'N/A';
-            document.getElementById('modalPlantilla').textContent = contratoData.plantilla || 'N/A';
-            document.getElementById('modalValorSinIva').textContent = contratoData.valor_sin_iva || 'N/A';
-            document.getElementById('modalIva').textContent = contratoData.valor_iva || 'N/A';
-            document.getElementById('modalValorTotal').textContent = contratoData.valor_total || 'N/A';
-
-            // Información del cliente
-            document.getElementById('modalClienteNombre').textContent = contratoData.nombre_cliente || 'N/A';
-            document.getElementById('modalClienteRuc').textContent = contratoData.cliente_ruc || 'N/A';
-            document.getElementById('modalClienteProfesion').textContent = contratoData.cliente_profesion || 'No especificada';
-            document.getElementById('modalClienteCargo').textContent = contratoData.cliente_cargo || 'No especificado';
-            document.getElementById('modalClienteEmail').textContent = contratoData.cliente_email || 'N/A';
-            document.getElementById('modalClienteTelefono').textContent = contratoData.cliente_telefono || 'N/A';
-
-            // Información de la cuña (si existe)
-            const cuñaSection = document.getElementById('modalCuñaSection');
-            if (contratoData.tiene_cuña) {
-                cuñaSection.style.display = 'block';
-                document.getElementById('modalCuñaCodigo').textContent = contratoData.cuña_codigo || 'N/A';
-                document.getElementById('modalCuñaTitulo').textContent = contratoData.cuña_titulo || 'N/A';
-                document.getElementById('modalCuñaEstado').innerHTML = contratoData.cuña_estado_badge || '<span class="badge bg-secondary">N/A</span>';
-                document.getElementById('modalCuñaFechaInicio').textContent = contratoData.cuña_fecha_inicio || 'N/A';
-                document.getElementById('modalCuñaFechaFin').textContent = contratoData.cuña_fecha_fin || 'N/A';
-                document.getElementById('modalCuñaDuracion').textContent = contratoData.cuña_duracion || 'N/A';
-                document.getElementById('modalCuñaRepeticiones').textContent = contratoData.cuña_repeticiones || 'N/A';
-
-                // ✅ NUEVO: Mostrar categoría de la cuña
-                const categoriaNombre = contratoData.datos_generacion?.CATEGORIA_NOMBRE || 'No asignada';
-                document.getElementById('modalCuñaCategoria').innerHTML = categoriaNombre !== 'No asignada' ?
-                    `<span class="categoria-badge">${categoriaNombre}</span>` :
-                    '<span class="badge bg-light text-dark">Sin categoría</span>';
-            } else {
-                cuñaSection.style.display = 'none';
-            }
-
-            // Datos de generación
-            const datosGeneracionDiv = document.getElementById('modalDatosGeneracion');
-            if (contratoData.datos_generacion && Object.keys(contratoData.datos_generacion).length > 0) {
-                let html = '<table class="table table-sm table-borderless">';
-                for (const [key, value] of Object.entries(contratoData.datos_generacion)) {
-                    if (value && !key.includes('_RAW')) {
-                        // ✅ NUEVO: Mostrar categoría en datos de generación
-                        if (key === 'CATEGORIA_NOMBRE') {
-                            html += `<tr><td width="30%"><strong>${key.replace(/_/g, ' ').toUpperCase()}:</strong></td><td><span class="categoria-badge">${value}</span></td></tr>`;
-                        } else {
-                            html += `<tr><td width="30%"><strong>${key.replace(/_/g, ' ').toUpperCase()}:</strong></td><td>${value}</td></tr>`;
-                        }
-                    }
-                }
-                html += '</table>';
-                datosGeneracionDiv.innerHTML = html;
-            } else {
-                datosGeneracionDiv.innerHTML = '<p class="text-muted">No hay datos adicionales de generación.</p>';
-            }
-
-            // Botón de descarga
-            const descargarBtn = document.getElementById('modalDescargarBtn');
-            if (contratoData.archivo_url) {
-                descargarBtn.style.display = 'inline-block';
-                descargarBtn.onclick = () => {
-                    window.open(contratoData.archivo_url, '_blank');
-                };
-            } else {
-                descargarBtn.style.display = 'none';
-            }
-
-            // Cerrar loading y mostrar modal
-            Swal.close();
-            const modal = new bootstrap.Modal(document.getElementById('detalleContratoModal'));
-            modal.show();
-
-        } catch (error) {
-            console.error('Error al cargar detalles:', error);
-            Swal.fire('Error', 'No se pudieron cargar los detalles del contrato', 'error');
+        if (!fechaInicio || !fechaFin || !duracionSpot) {
+            Swal.fire({ icon: 'warning', title: 'Datos Incompletos', text: 'Complete fechas y duración del spot' });
+            return;
         }
+
+        const totalCalculado = calcularTotalContrato();
+
+        if (totalCalculado <= 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error en Cálculo',
+                text: `El valor total es 0. Verifique los montos. (Total: ${totalCalculado})`
+            });
+            return;
+        }
+
+        const categoriaId = document.getElementById('categoriaSelect').value;
+
+        const formData = {
+            plantilla_id: plantillaSeleccionada,
+            cliente_id: clienteSeleccionado,
+            fecha_inicio: fechaInicio,
+            fecha_fin: fechaFin,
+            valor_por_segundo: parseMonto(valorPorSegundo),
+            valor_total: totalCalculado,
+            spots_dia: parseInt(document.getElementById('spotsDia').value) || 0,
+            spots_por_mes: parseInt(document.getElementById('spotsMes').value) || 0,
+            duracion_spot: parseInt(duracionSpot),
+
+            compromiso_spot_texto: document.getElementById('compromisoSpotTexto').value,
+            compromiso_transmision_texto: document.getElementById('compromisoTransmisionTexto').value,
+            compromiso_transmision_cantidad: parseInt(document.getElementById('compromisoTransmisionCantidad').value) || 0,
+            compromiso_transmision_valor: parseMonto(document.getElementById('compromisoTransmisionValor').value),
+            compromiso_notas_texto: document.getElementById('compromisoNotasTexto').value,
+            compromiso_notas_cantidad: parseInt(document.getElementById('compromisoNotasCantidad').value) || 0,
+            compromiso_notas_valor: parseMonto(document.getElementById('compromisoNotasValor').value),
+
+            excluir_fines_semana: document.getElementById('excluirFinesSemana').checked,
+            dias_excluidos: Array.from(document.querySelectorAll('.dia-excluido:checked')).map(cb => parseInt(cb.value)),
+            fechas_excluidas: Array.from(fechasExcluidasSet),
+
+            observaciones: document.getElementById('observaciones').value,
+            categoria_id: categoriaId || null
+        };
+
+        enviarDatosAPI(formData);
     }
 
-    // ✅ FUNCIÓN: Subir contrato validado
-    function subirContratoValidado(id) {
+    function enviarDatosAPI(formData) {
         Swal.fire({
-            title: 'Subir Contrato Validado',
-            html: `
-            <p class="mb-3">Seleccione el archivo PDF del contrato firmado/validado</p>
-            <input type="file" id="archivoContrato" class="form-control" accept=".pdf">
-        `,
+            title: 'Generando Contrato',
+            html: 'Procesando...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        fetch('/panel/contratos/api/generar/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify(formData)
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Generado!',
+                        text: 'Contrato creado exitosamente',
+                        confirmButtonText: 'Descargar PDF'
+                    }).then(() => {
+                        if (data.archivo_url) window.open(data.archivo_url, '_blank');
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', data.error || 'Error desconocido', 'error');
+                }
+            })
+            .catch(e => Swal.fire('Error', 'Fallo de red', 'error'));
+    }
+
+    function limpiarFormulario() {
+        document.getElementById('contratoForm').reset();
+        resetearFormulario();
+    }
+
+    function resetearFormulario() {
+        plantillaSeleccionada = null;
+        clienteSeleccionado = null;
+
+        document.getElementById('plantillaPreview').classList.add('d-none');
+        document.getElementById('clientePreview').classList.add('d-none');
+        document.getElementById('datosAdicionalesSection').classList.add('d-none');
+        document.getElementById('btnGenerar').disabled = true;
+
+        document.getElementById('step1').classList.remove('completed');
+        document.getElementById('step2').classList.remove('active', 'completed');
+        document.getElementById('step3').classList.remove('active');
+
+        // Limpiar cálculo
+        document.getElementById('totalCalculado').innerHTML = '<strong style="font-size: 1.5rem; color: #0f5132;">S/ 0.00</strong><div class="calculation-formula mt-1 text-muted">Esperando datos...</div>';
+        document.getElementById('valorTotal').value = '0.00';
+        document.getElementById('infoDiasEfectivos').textContent = 'Días Efectivos: 0';
+
+        // Limpiar fechas excluidas
+        fechasExcluidasSet.clear();
+        document.getElementById('listaFechasExcluidas').innerHTML = '';
+    }
+
+    function eliminarContrato(id) {
+        Swal.fire({
+            title: '¿Eliminar contrato?',
+            text: 'Esta acción no se puede deshacer',
+            icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Subir y Validar',
-            cancelButtonText: 'Cancelar',
-            preConfirm: () => {
-                const archivo = document.getElementById('archivoContrato').files[0];
-
-                if (!archivo) {
-                    Swal.showValidationMessage('Debe seleccionar un archivo PDF');
-                    return false;
-                }
-
-                if (!archivo.name.endsWith('.pdf')) {
-                    Swal.showValidationMessage('El archivo debe ser un PDF');
-                    return false;
-                }
-
-                return archivo;
-            }
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
         }).then((result) => {
             if (result.isConfirmed) {
-                const archivo = result.value;
-                const formData = new FormData();
-                formData.append('archivo', archivo);
-
-                // Mostrar loading
-                Swal.fire({
-                    title: 'Subiendo Contrato',
-                    html: 'Por favor espere...<br><small>Se creará automáticamente la cuña publicitaria</small>',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-
-                // Enviar archivo
-                fetch(`/panel/contratos/api/${id}/subir-validado/`, {
-                    method: 'POST',
+                fetch(`/panel/contratos/api/${id}/eliminar/`, {
+                    method: 'DELETE',
                     headers: {
                         'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    body: formData
+                    }
                 })
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: '¡Contrato Validado!',
-                                html: `
-                            <p>El contrato ha sido validado exitosamente</p>
-                            <p><strong>Cuña publicitaria creada automáticamente</strong></p>
-                            <small>ID de cuña: ${data.cuna_id}</small>
-                        `,
-                                confirmButtonText: 'Aceptar'
-                            }).then(() => {
-                                location.reload();
-                            });
+                            Swal.fire('Eliminado', 'El contrato ha sido eliminado', 'success')
+                                .then(() => location.reload());
                         } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: data.error || 'No se pudo validar el contrato'
-                            });
+                            Swal.fire('Error', data.error, 'error');
                         }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Ocurrió un error al subir el contrato'
-                        });
                     });
             }
         });
     }
 
     function cargarPlantillas() {
+        console.log("Cargando plantillas...");
         fetch('/panel/api/plantillas-contrato/')
             .then(response => response.json())
             .then(data => {
@@ -1117,6 +1351,7 @@
     }
 
     function cargarClientes() {
+        console.log("Cargando clientes...");
         fetch('/panel/api/clientes-activos/')
             .then(response => response.json())
             .then(data => {
@@ -1151,21 +1386,91 @@
             });
     }
 
-    // Event listeners
-    document.getElementById('plantillaSelect').addEventListener('change', function () {
+    // ✅ Función principal para gestionar visibilidad
+    function actualizarVisibilidadFormulario() {
+        const plantillaId = document.getElementById('plantillaSelect').value;
+        const clienteId = document.getElementById('clienteSelect').value;
+
+        const tienePlantilla = !!plantillaId;
+        const tieneCliente = !!clienteId;
+
+        // Actualizar variables globales
+        plantillaSeleccionada = plantillaId;
+        clienteSeleccionado = clienteId;
+
+        // Gestión de pasos (visual)
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
+
+        if (step1) {
+            if (tienePlantilla) {
+                step1.classList.add('completed');
+            } else {
+                step1.classList.remove('completed');
+            }
+        }
+
+        if (step2) {
+            if (tienePlantilla) {
+                step2.classList.add('active');
+            } else {
+                step2.classList.remove('active', 'completed');
+            }
+
+            if (tieneCliente) {
+                step2.classList.add('completed');
+            } else {
+                step2.classList.remove('completed');
+            }
+        }
+
+        if (step3) {
+            if (tienePlantilla && tieneCliente) {
+                step3.classList.add('active');
+            } else {
+                step3.classList.remove('active');
+            }
+        }
+
+        // Mostrar sección de datos adicionales SOLAMENTE si ambos están seleccionados
+        const seccionDatos = document.getElementById('datosAdicionalesSection');
+        const btnGenerar = document.getElementById('btnGenerar');
+
+        if (tienePlantilla && tieneCliente) {
+            seccionDatos.classList.remove('d-none');
+            if (btnGenerar) {
+                btnGenerar.disabled = false;
+            }
+
+            // Establecer fecha por defecto si está vacía
+            const fechaInput = document.getElementById('fechaInicio');
+            if (fechaInput && !fechaInput.value) {
+                fechaInput.value = new Date().toISOString().split('T')[0];
+            }
+
+            // Calcular total inicial
+            setTimeout(calcularTotalContrato, 100);
+        } else {
+            if (seccionDatos) {
+                seccionDatos.classList.add('d-none');
+            }
+            if (btnGenerar) {
+                btnGenerar.disabled = true;
+            }
+        }
+    }
+
+    // ✅ LISTENER Plantilla
+    function onPlantillaChange() {
         const plantillaId = this.value;
 
         if (plantillaId) {
-            plantillaSeleccionada = plantillaId;
-
-            // Cargar detalles de la plantilla
             fetch(`/panel/api/plantilla/${plantillaId}/detalle/`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         const plantilla = data.plantilla;
-
-                        // Mostrar preview de plantilla
                         document.getElementById('previewNombre').textContent = plantilla.nombre;
                         document.getElementById('previewTipo').textContent = plantilla.tipo_contrato_display;
                         document.getElementById('previewVersion').textContent = 'v' + plantilla.version;
@@ -1173,34 +1478,28 @@
                             plantilla.porcentaje_iva + '%' : 'Sin IVA';
 
                         document.getElementById('plantillaPreview').classList.remove('d-none');
-
-                        // Habilitar selector de cliente
-                        document.getElementById('clienteSelect').disabled = false;
-
-                        // Marcar paso 1 como completado
-                        document.getElementById('step1').classList.add('completed');
-                        document.getElementById('step2').classList.add('active');
+                        actualizarVisibilidadFormulario();
                     }
-                });
+                })
+                .catch(err => console.error(err));
         } else {
-            resetearFormulario();
+            document.getElementById('plantillaPreview').classList.add('d-none');
+            actualizarVisibilidadFormulario();
         }
-    });
+    }
 
-    document.getElementById('clienteSelect').addEventListener('change', function () {
+    // ✅ LISTENER Cliente
+    function onClienteChange() {
         const clienteId = this.value;
 
         if (clienteId) {
-            clienteSeleccionado = clienteId;
             const selectedOption = this.options[this.selectedIndex];
 
-            // Mostrar información básica del cliente
-            document.getElementById('previewClienteNombre').textContent = selectedOption.dataset.nombre;
+            document.getElementById('previewClienteNombre').textContent = selectedOption.dataset.nombre || '';
             document.getElementById('previewClienteRUC').textContent = selectedOption.dataset.ruc || 'No registrado';
             document.getElementById('previewClienteEmail').textContent = selectedOption.dataset.email || 'No registrado';
             document.getElementById('previewClienteCiudad').textContent = selectedOption.dataset.ciudad || 'No registrada';
 
-            // NUEVO: Mostrar información profesional si está disponible
             if (selectedOption.dataset.profesion) {
                 document.getElementById('previewClienteProfesion').textContent = selectedOption.dataset.profesion;
                 document.getElementById('previewClienteProfesionGroup').style.display = 'block';
@@ -1216,221 +1515,196 @@
             }
 
             document.getElementById('clientePreview').classList.remove('d-none');
-
-            // Mostrar sección de datos adicionales
-            document.getElementById('datosAdicionalesSection').classList.remove('d-none');
-
-            // Marcar pasos como completados
-            document.getElementById('step2').classList.add('completed');
-            document.getElementById('step3').classList.add('active');
-
-            // Habilitar botón de generar
-            document.getElementById('btnGenerar').disabled = false;
-
-            // Establecer fecha de inicio como hoy
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('fechaInicio').value = today;
-
-            // Calcular total inicial
-            setTimeout(calcularTotalContrato, 100);
         } else {
             document.getElementById('clientePreview').classList.add('d-none');
-            document.getElementById('datosAdicionalesSection').classList.add('d-none');
-            document.getElementById('btnGenerar').disabled = true;
-            document.getElementById('step2').classList.remove('completed');
-            document.getElementById('step3').classList.remove('active');
         }
-    });
 
-    // Enviar formulario
-    document.getElementById('contratoForm').addEventListener('submit', function (e) {
-        e.preventDefault();
+        actualizarVisibilidadFormulario();
+    }
 
-        if (!plantillaSeleccionada || !clienteSeleccionado) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Datos Incompletos',
-                text: 'Debe seleccionar una plantilla y un cliente'
-            });
+    // ✅ Funciones para agregar fechas excluidas
+    function agregarFechaExcluida() {
+        const fechaPicker = document.getElementById('fechaEspecificaPicker');
+        const fecha = fechaPicker.value;
+
+        if (!fecha) {
+            Swal.fire('Error', 'Seleccione una fecha', 'warning');
             return;
         }
 
-        // Validar campos requeridos
-        const fechaInicio = document.getElementById('fechaInicio').value;
-        const fechaFin = document.getElementById('fechaFin').value;
-        const valorPorSegundo = document.getElementById('valorPorSegundo').value;
-        const spotsDia = document.getElementById('spotsDia').value;
-        const duracionSpot = document.getElementById('duracionSpot').value;
-        const categoriaId = document.getElementById('categoriaSelect').value;
+        // Agregar al Set
+        fechasExcluidasSet.add(fecha);
 
-        if (!fechaInicio || !fechaFin || !valorPorSegundo || !spotsDia || !duracionSpot) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Datos Incompletos',
-                text: 'Complete todos los campos obligatorios'
-            });
-            return;
-        }
+        // Actualizar lista visual
+        actualizarListaFechasExcluidas();
 
-        if (new Date(fechaFin) <= new Date(fechaInicio)) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error en Fechas',
-                text: 'La fecha de fin debe ser posterior a la fecha de inicio'
-            });
-            return;
-        }
+        // Limpiar picker
+        fechaPicker.value = '';
 
-        // Calcular total final
-        const totalCalculado = calcularTotalContrato();
-        if (totalCalculado <= 0) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error en Cálculo',
-                text: 'El valor total debe ser mayor a cero'
-            });
-            return;
-        }
+        // Recalcular total
+        calcularTotalContrato();
+    }
 
-        // ✅ PREPARAR DATOS CON CATEGORÍA
-        const formData = {
-            plantilla_id: plantillaSeleccionada,
-            cliente_id: clienteSeleccionado,
-            fecha_inicio: fechaInicio,
-            fecha_fin: fechaFin,
-            valor_por_segundo: parseFloat(valorPorSegundo),
-            valor_total: totalCalculado, // Usamos el valor calculado
-            spots_dia: parseInt(spotsDia),
-            duracion_spot: parseInt(duracionSpot),
-            observaciones: document.getElementById('observaciones').value || '',
-            categoria_id: categoriaId || null  // ✅ NUEVO: Incluir categoría
-        };
+    function actualizarListaFechasExcluidas() {
+        const listaDiv = document.getElementById('listaFechasExcluidas');
+        listaDiv.innerHTML = '';
 
-        console.log('Datos a enviar:', formData);
-
-        // Mostrar loading
-        Swal.fire({
-            title: 'Generando Contrato',
-            html: `Calculando contrato...<br>
-               <small>
-               Valor: S/ ${valorPorSegundo} por segundo<br>
-               Duración: ${duracionSpot} segundos<br>
-               Spots/día: ${spotsDia}<br>
-               Categoría: ${categoriaId ? 'Seleccionada' : 'No seleccionada'}<br>
-               Total: S/ ${totalCalculado.toFixed(2)}
-               </small>`,
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
+        fechasExcluidasSet.forEach(fecha => {
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-danger me-1 mb-1';
+            badge.innerHTML = `${fecha} <button type="button" class="btn-close btn-close-white btn-sm ms-1" onclick="removerFechaExcluida('${fecha}')"></button>`;
+            listaDiv.appendChild(badge);
         });
+    }
 
-        // Enviar a la API
-        fetch('/panel/contratos/api/generar/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify(formData)
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: '¡Contrato Generado!',
-                        html: `
-                    <p>El contrato se ha generado correctamente</p>
-                    <p><strong>Detalles del cálculo:</strong></p>
-                    <small>
-                    Valor por segundo: S/ ${valorPorSegundo}<br>
-                    Duración spot: ${duracionSpot} segundos<br>
-                    Spots por día: ${spotsDia}<br>
-                    Días contrato: ${calcularDiasContrato(fechaInicio, fechaFin)}<br>
-                    Categoría: ${data.categoria_asignada || 'No asignada'}<br>
-                    <strong>Total: S/ ${totalCalculado.toFixed(2)}</strong>
-                    </small>
-                `,
-                        showCancelButton: true,
-                        confirmButtonText: 'Descargar Ahora',
-                        cancelButtonText: 'Ver Después'
-                    }).then((result) => {
-                        if (result.isConfirmed && data.archivo_url) {
-                            window.open(data.archivo_url, '_blank');
-                        }
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: data.error || 'No se pudo generar el contrato'
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
+    function removerFechaExcluida(fecha) {
+        fechasExcluidasSet.delete(fecha);
+        actualizarListaFechasExcluidas();
+        calcularTotalContrato();
+    }
+
+    // ✅ Función para ver detalle del contrato
+    function verDetalleContrato(id) {
+        // Buscar el contrato en el DOM (usando data attributes de la fila)
+        const row = document.querySelector(`tr[data-contrato-id="${id}"]`);
+        if (!row) return;
+
+        const info = JSON.parse(row.dataset.contratoInfo || '{}');
+        const estado = row.dataset.estado;
+
+        // Llenar datos del contrato
+        document.getElementById('modalNumero').textContent = info.numero || 'N/A';
+        document.getElementById('modalEstado').textContent = estado.toUpperCase();
+        document.getElementById('modalFechaGeneracion').textContent = info.fecha_generacion || 'N/A';
+        document.getElementById('modalPlantilla').textContent = info.plantilla_nombre || 'N/A';
+        document.getElementById('modalValorSinIva').textContent = 'S/ ' + (info.valor_sin_iva || '0.00');
+        document.getElementById('modalIva').textContent = 'S/ ' + (info.monto_iva || '0.00');
+        document.getElementById('modalValorTotal').textContent = 'S/ ' + (info.valor_total || '0.00');
+
+        // Llenar datos del cliente
+        document.getElementById('modalClienteNombre').textContent = info.cliente_nombre || 'N/A';
+        document.getElementById('modalClienteRuc').textContent = info.cliente_ruc || 'N/A';
+        document.getElementById('modalClienteEmail').textContent = info.cliente_email || 'N/A';
+        document.getElementById('modalClienteTelefono').textContent = info.cliente_telefono || 'N/A';
+        document.getElementById('modalClienteProfesion').textContent = info.cliente_profesion || '-';
+        document.getElementById('modalClienteCargo').textContent = info.cliente_cargo || '-';
+
+        // Sección Cuña (si existe)
+        const cunaSection = document.getElementById('modalCuñaSection');
+        if (info.cuña) {
+            cunaSection.style.display = 'block';
+            document.getElementById('modalCuñaCodigo').textContent = info.cuña.codigo || '-';
+            document.getElementById('modalCuñaEstado').textContent = info.cuña.estado || '-';
+            document.getElementById('modalCuñaTitulo').textContent = info.cuña.titulo || '-';
+            document.getElementById('modalCuñaDuracion').textContent = (info.cuña.duracion || 0) + ' seg';
+            document.getElementById('modalCuñaFechaInicio').textContent = info.cuña.fecha_inicio || '-';
+            document.getElementById('modalCuñaFechaFin').textContent = info.cuña.fecha_fin || '-';
+            document.getElementById('modalCuñaRepeticiones').textContent = info.cuña.repeticiones || 0;
+            document.getElementById('modalCuñaCategoria').textContent = info.cuña.categoria || 'Sin categoría';
+        } else {
+            cunaSection.style.display = 'none';
+        }
+
+        // Botón descarga
+        const btnDescargar = document.getElementById('modalDescargarBtn');
+        if (info.archivo_url) {
+            btnDescargar.style.display = 'inline-block';
+            btnDescargar.onclick = () => window.open(info.archivo_url, '_blank');
+        } else {
+            btnDescargar.style.display = 'none';
+        }
+
+        // Datos JSON RAW (para debug)
+        const datosGen = document.getElementById('modalDatosGeneracion');
+        datosGen.innerHTML = '<pre>' + JSON.stringify(info, null, 2) + '</pre>';
+
+        // Mostrar Modal
+        const modal = new bootstrap.Modal(document.getElementById('detalleContratoModal'));
+        modal.show();
+    }
+
+    // ✅ Función para subir contrato validado
+    function subirContratoValidado(id) {
+        const modalElement = document.getElementById('subirContratoModal');
+        const inputId = document.getElementById('subirContratoId');
+        const form = document.getElementById('formSubirContrato');
+
+        if (!modalElement || !form) {
+            console.error("Modal de subida no encontrado");
+            return;
+        }
+
+        // Set ID
+        inputId.value = id;
+
+        // Set Action URL
+        form.action = `/panel/contratos/api/${id}/subir-validado/`;
+
+        // Show Modal
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    }
+
+    // Listener para el formulario de subida (validación)
+    document.addEventListener('DOMContentLoaded', function () {
+        const formSubir = document.getElementById('formSubirContrato');
+        if (formSubir) {
+            formSubir.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const formData = new FormData(this);
+                const url = this.action;
+
+                // Cerrar modal
+                const modalEl = document.getElementById('subirContratoModal');
+                const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                if (modalInstance) modalInstance.hide();
+
                 Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Ocurrió un error al generar el contrato'
+                    title: 'Validando Contrato',
+                    html: 'Subiendo archivo y activando contrato...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
                 });
-            });
-    });
 
-    function limpiarFormulario() {
-        document.getElementById('contratoForm').reset();
-        resetearFormulario();
-    }
-
-    function resetearFormulario() {
-        plantillaSeleccionada = null;
-        clienteSeleccionado = null;
-
-        document.getElementById('plantillaPreview').classList.add('d-none');
-        document.getElementById('clientePreview').classList.add('d-none');
-        document.getElementById('datosAdicionalesSection').classList.add('d-none');
-        document.getElementById('clienteSelect').disabled = true;
-        document.getElementById('btnGenerar').disabled = true;
-
-        document.getElementById('step1').classList.remove('completed');
-        document.getElementById('step2').classList.remove('active', 'completed');
-        document.getElementById('step3').classList.remove('active');
-
-        // Limpiar cálculo
-        document.getElementById('totalCalculado').textContent = 'S/ 0.00';
-        document.getElementById('valorTotal').value = '0.00';
-    }
-
-    function eliminarContrato(id) {
-        Swal.fire({
-            title: '¿Eliminar contrato?',
-            text: 'Esta acción no se puede deshacer',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            confirmButtonText: 'Sí, eliminar',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                fetch(`/panel/contratos/api/${id}/eliminar/`, {
-                    method: 'DELETE',
+                fetch(url, {
+                    method: 'POST',
+                    body: formData,
                     headers: {
                         'X-CSRFToken': '{{ csrf_token }}'
                     }
                 })
-                    .then(response => response.json())
+                    .then(r => r.json())
                     .then(data => {
                         if (data.success) {
-                            Swal.fire('Eliminado', 'El contrato ha sido eliminado', 'success')
-                                .then(() => location.reload());
+                            Swal.fire({
+                                icon: 'success',
+                                title: '¡Contrato Validado!',
+                                text: 'El contrato ha sido activado y la cuña generada correctamente.',
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => location.reload());
                         } else {
-                            Swal.fire('Error', data.error, 'error');
+                            Swal.fire('Error', data.error || 'No se pudo validar el contrato', 'error');
                         }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        Swal.fire('Error', 'Error de conexión al subir el archivo', 'error');
                     });
-            }
-        });
-    }
+            });
+        }
+    });
+
+    // ✅ Hacer disponibles funciones globalmente para onclick
+    window.calcularTotal = calcularTotalContrato;
+    window.verDetalleContrato = verDetalleContrato;
+    window.subirContratoValidado = subirContratoValidado;
+    window.eliminarContrato = eliminarContrato;
+    window.filtrarContratos = filtrarContratos;
+    window.limpiarFormulario = limpiarFormulario;
+    window.agregarFechaExcluida = agregarFechaExcluida;
+    window.removerFechaExcluida = removerFechaExcluida;
+
 </script>
 {% endblock %}
