@@ -1326,7 +1326,8 @@ def dashboard(request):
 def usuarios_list(request):
     """Lista de usuarios del sistema"""
     query = request.GET.get('q')
-    usuarios = User.objects.all().prefetch_related('groups')
+    # Excluir usuarios con rol 'cliente'
+    usuarios = User.objects.exclude(rol='cliente').prefetch_related('groups')
     
     if query:
         usuarios = usuarios.filter(
@@ -1342,22 +1343,25 @@ def usuarios_list(request):
         # Obtener nombres de grupos del usuario (en minúsculas para comparación)
         grupos_usuario = [g.name.lower() for g in usuario.groups.all()]
         
-        # Determinar el tipo de usuario y clase CSS
+        # Determinar el tipo de usuario y clase CSS dinámicamente
         if usuario.is_superuser:
             usuario.tipo_usuario = 'superadmin'
             usuario.color_clase = 'admin'
-        elif 'administrador' in grupos_usuario or 'administradores' in grupos_usuario:
-            usuario.tipo_usuario = 'admin'
-            usuario.color_clase = 'admin'
-        elif 'vendedor' in grupos_usuario or 'vendedores' in grupos_usuario:
-            usuario.tipo_usuario = 'vendedor'
-            usuario.color_clase = 'vendedor'
-        elif 'cliente' in grupos_usuario or 'clientes' in grupos_usuario:
-            usuario.tipo_usuario = 'cliente'
-            usuario.color_clase = 'cliente'
         else:
-            usuario.tipo_usuario = 'usuario'
-            usuario.color_clase = 'usuario'
+            # Usar el rol almacenado en el modelo
+            usuario.tipo_usuario = usuario.rol
+            
+            # Asignar colores según el rol
+            if usuario.rol == 'admin':
+                usuario.color_clase = 'admin'
+            elif usuario.rol == 'vendedor':
+                usuario.color_clase = 'vendedor'
+            elif usuario.rol == 'cliente': # Aunque filtramos, dejamos esto por seguridad
+                usuario.color_clase = 'cliente'
+            elif usuario.rol in ['productor', 'btr']:
+                usuario.color_clase = 'vendedor' # Usar color azul/cyan para roles operativos
+            else:
+                usuario.color_clase = 'usuario' # Color por defecto para otros roles
         
         usuarios_procesados.append(usuario)
     
@@ -1365,9 +1369,9 @@ def usuarios_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    # Estadísticas
-    total_usuarios = User.objects.count()
-    usuarios_activos = User.objects.filter(is_active=True).count()
+    # Estadísticas (Excluyendo clientes)
+    total_usuarios = User.objects.exclude(rol='cliente').count()
+    usuarios_activos = User.objects.exclude(rol='cliente').filter(is_active=True).count()
     administradores = User.objects.filter(
         Q(is_superuser=True) | 
         Q(groups__name__iexact='administrador') | 
@@ -1411,6 +1415,8 @@ def usuario_detail_api(request, pk):
             'date_joined': usuario.date_joined.strftime('%d/%m/%Y'),
             'last_login': usuario.last_login.strftime('%d/%m/%Y %H:%M') if usuario.last_login else None,
             'groups': list(usuario.groups.values_list('id', flat=True)),
+            'rol': usuario.rol,
+            'rol_display': dict(usuario.ROLE_CHOICES).get(usuario.rol, usuario.rol.title()),
         }
         return JsonResponse(data)
     except User.DoesNotExist:
@@ -1474,16 +1480,21 @@ def usuario_create_api(request):
                 grupo = Group.objects.get(pk=group_id)
                 usuario.groups.add(grupo)
                 
-                # Mapear grupo a rol
+                # Mapear grupo a rol de forma dinámica
                 grupo_nombre = grupo.name.lower()
-                if 'vendedor' in grupo_nombre:
-                    usuario.rol = 'vendedor'
-                elif 'admin' in grupo_nombre or 'administrador' in grupo_nombre:
+                
+                if 'admin' in grupo_nombre or 'administrador' in grupo_nombre:
                     usuario.rol = 'admin'
-                elif 'btr' in grupo_nombre or 'btr' in grupo_nombre:
+                elif 'vendedor' in grupo_nombre:
+                    usuario.rol = 'vendedor'
+                elif 'btr' in grupo_nombre:
                     usuario.rol = 'btr'
+                elif 'productor' in grupo_nombre:
+                    usuario.rol = 'productor'
                 else:
-                    usuario.rol = 'cliente'
+                    # Fallback dinámico: usar el nombre del grupo como código de rol
+                    # Ej: "Doctor" -> "doctor"
+                    usuario.rol = grupo_nombre.replace(' ', '_')
             except Group.DoesNotExist:
                 usuario.rol = 'cliente'
         # Si no tiene grupo ni es superuser
@@ -1569,17 +1580,25 @@ def usuario_update_api(request, pk):
                 grupo = Group.objects.get(pk=data['group_id'])
                 usuario.groups.add(grupo)
                 
-                # Mapear grupo a rol
+                # Mapear grupo a rol de forma dinámica
                 grupo_nombre = grupo.name.lower()
-                if 'vendedor' in grupo_nombre:
-                    nuevo_rol = 'vendedor'
-                elif 'admin' in grupo_nombre or 'administrador' in grupo_nombre:
+                
+                if 'admin' in grupo_nombre or 'administrador' in grupo_nombre:
                     nuevo_rol = 'admin'
+                elif 'vendedor' in grupo_nombre:
+                    nuevo_rol = 'vendedor'
+                elif 'btr' in grupo_nombre:
+                    nuevo_rol = 'btr'
+                elif 'productor' in grupo_nombre:
+                    nuevo_rol = 'productor'
                 else:
-                    nuevo_rol = 'cliente'
+                    # Fallback dinámico: usar el nombre del grupo como código de rol
+                    nuevo_rol = grupo_nombre.replace(' ', '_')
                 
                 if usuario.rol != nuevo_rol:
-                    cambios.append(f"Rol: {rol_anterior} → {dict(usuario.ROLE_CHOICES).get(nuevo_rol)}")
+                    # Usar el valor nuevo como etiqueta si no está en las opciones predefinidas
+                    nombre_rol = dict(usuario.ROLE_CHOICES).get(nuevo_rol, nuevo_rol.title())
+                    cambios.append(f"Rol: {rol_anterior} → {nombre_rol}")
                     usuario.rol = nuevo_rol
                     
             except Group.DoesNotExist:

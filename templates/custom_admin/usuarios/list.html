@@ -12,25 +12,31 @@
         transition: all 0.3s ease;
         border-left: 4px solid transparent;
     }
+
     .usuario-card:hover {
         transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
     }
+
     .usuario-card.admin {
         border-left-color: var(--warning-color);
         background: linear-gradient(to right, rgba(245, 158, 11, 0.05) 0%, transparent 100%);
     }
+
     .usuario-card.vendedor {
         border-left-color: var(--info-color);
         background: linear-gradient(to right, rgba(6, 182, 212, 0.05) 0%, transparent 100%);
     }
+
     .usuario-card.cliente {
         border-left-color: var(--success-color);
         background: linear-gradient(to right, rgba(16, 185, 129, 0.05) 0%, transparent 100%);
     }
+
     .usuario-card.usuario {
         border-left-color: var(--accent-color);
     }
+
     .rol-badge {
         padding: 6px 14px;
         border-radius: 20px;
@@ -69,6 +75,20 @@
         background: #94a3b8;
         color: white;
     }
+
+    /* Badge para Productor y BTR (Estilo Vendedor/Operativo) */
+    .card-body .rol-badge:has(.fa-video),
+    .card-body .rol-badge:has(.fa-broadcast-tower) {
+        background: linear-gradient(135deg, #06b6d4, #0891b2);
+        color: white;
+    }
+
+    /* Badge para Otros Roles Personalizados (Doctor, etc) */
+    .card-body .rol-badge:has(.fa-user-tag) {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        color: white;
+    }
+
     .avatar-circle {
         width: 60px;
         height: 60px;
@@ -82,6 +102,7 @@
         font-weight: 600;
         box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
     }
+
     .status-indicator {
         position: absolute;
         top: 10px;
@@ -90,35 +111,53 @@
         height: 12px;
         border-radius: 50%;
         border: 2px solid white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
+
     .status-indicator.active {
         background: var(--success-color);
         animation: pulse 2s infinite;
     }
+
     .status-indicator.inactive {
         background: var(--danger-color);
     }
+
     @keyframes pulse {
         0% {
             box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
         }
+
         70% {
             box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
         }
+
         100% {
             box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
         }
     }
+
     .password-strength {
         height: 4px;
         border-radius: 2px;
         margin-top: 5px;
         transition: all 0.3s ease;
     }
-    .strength-weak { background: var(--danger-color); width: 33%; }
-    .strength-medium { background: var(--warning-color); width: 66%; }
-    .strength-strong { background: var(--success-color); width: 100%; }
+
+    .strength-weak {
+        background: var(--danger-color);
+        width: 33%;
+    }
+
+    .strength-medium {
+        background: var(--warning-color);
+        width: 66%;
+    }
+
+    .strength-strong {
+        background: var(--success-color);
+        width: 100%;
+    }
 </style>
 {% endblock %}
 
@@ -178,29 +217,29 @@
             </button>
         </div>
     </div>
-    
+
     <!-- Barra de búsqueda -->
     <div class="admin-card-body border-bottom">
         <div class="row">
             <div class="col-md-6">
-                <input type="text" class="form-control" id="searchUsuario" 
-                       placeholder="Buscar por nombre, usuario o email..." 
-                       value="{{ query }}">
+                <input type="text" class="form-control" id="searchUsuario"
+                    placeholder="Buscar por nombre, usuario o email..." value="{{ query }}">
             </div>
             <div class="col-md-6 text-end">
-                <span class="badge bg-info">Total: <span id="totalUsuarios">{{ usuarios.paginator.count }}</span> usuarios</span>
+                <span class="badge bg-info">Total: <span id="totalUsuarios">{{ usuarios.paginator.count }}</span>
+                    usuarios</span>
             </div>
         </div>
     </div>
-    
+
     <div class="admin-card-body">
         <div class="row" id="usuariosGrid">
             {% for usuario in usuarios %}
-            <div class="col-lg-6 mb-4 usuario-item" 
-                 data-nombre="{{ usuario.get_full_name|lower }} {{ usuario.username|lower }} {{ usuario.email|lower }}">
+            <div class="col-lg-6 mb-4 usuario-item"
+                data-nombre="{{ usuario.get_full_name|lower }} {{ usuario.username|lower }} {{ usuario.email|lower }}">
                 <div class="card usuario-card h-100 {{ usuario.color_clase }}">
                     <div class="status-indicator {% if usuario.is_active %}active{% else %}inactive{% endif %}"></div>
-                    
+
                     <div class="card-body">
                         <div class="d-flex align-items-start mb-3">
                             <div class="avatar-circle me-3">
@@ -213,19 +252,23 @@
                                 <p class="text-muted mb-1">
                                     <i class="fas fa-envelope me-1"></i>{{ usuario.email|default:"Sin email" }}
                                 </p>
-<span class="rol-badge">
-    {% if usuario.tipo_usuario == 'superadmin' %}
-        <i class="fas fa-crown me-1"></i>Super Admin
-    {% elif usuario.tipo_usuario == 'admin' %}
-        <i class="fas fa-user-shield me-1"></i>Administrador
-    {% elif usuario.tipo_usuario == 'vendedor' %}
-        <i class="fas fa-user-tie me-1"></i>Vendedor
-    {% elif usuario.tipo_usuario == 'cliente' %}
-        <i class="fas fa-user me-1"></i>Cliente
-    {% else %}
-        <i class="fas fa-user-slash me-1"></i>Sin Rol
-    {% endif %}
-</span>
+                                <span class="rol-badge">
+                                    {% if usuario.tipo_usuario == 'superadmin' %}
+                                    <i class="fas fa-crown me-1"></i>Super Admin
+                                    {% elif usuario.tipo_usuario == 'admin' %}
+                                    <i class="fas fa-user-shield me-1"></i>Administrador
+                                    {% elif usuario.tipo_usuario == 'vendedor' %}
+                                    <i class="fas fa-user-tie me-1"></i>Vendedor
+                                    {% elif usuario.tipo_usuario == 'productor' %}
+                                    <i class="fas fa-video me-1"></i>Productor
+                                    {% elif usuario.tipo_usuario == 'btr' %}
+                                    <i class="fas fa-broadcast-tower me-1"></i>BTR
+                                    {% elif usuario.tipo_usuario == 'cliente' %}
+                                    <i class="fas fa-user me-1"></i>Cliente
+                                    {% else %}
+                                    <i class="fas fa-user-tag me-1"></i>{{ usuario.tipo_usuario|title }}
+                                    {% endif %}
+                                </span>
                             </div>
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-light" data-bs-toggle="dropdown">
@@ -233,34 +276,35 @@
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li>
-                                        <a class="dropdown-item" href="#" 
-                                           onclick="verDetalleUsuario({{ usuario.id }})">
+                                        <a class="dropdown-item" href="#" onclick="verDetalleUsuario({{ usuario.id }})">
                                             <i class="fas fa-eye me-2"></i>Ver Detalle
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item" href="#" 
-                                           onclick="editarUsuario({{ usuario.id }}, '{{ usuario.username|escapejs }}', '{{ usuario.email|escapejs }}', '{{ usuario.first_name|escapejs }}', '{{ usuario.last_name|escapejs }}', {{ usuario.is_active|lower }}, {{ usuario.is_staff|lower }}, {{ usuario.is_superuser|lower }}, {% if usuario.groups.exists %}{{ usuario.groups.first.id }}{% else %}null{% endif %})">
+                                        <a class="dropdown-item" href="#"
+                                            onclick="editarUsuario({{ usuario.id }}, '{{ usuario.username|escapejs }}', '{{ usuario.email|escapejs }}', '{{ usuario.first_name|escapejs }}', '{{ usuario.last_name|escapejs }}', {{ usuario.is_active|lower }}, {{ usuario.is_staff|lower }}, {{ usuario.is_superuser|lower }}, {% if usuario.groups.exists %}{{ usuario.groups.first.id }}{% else %}null{% endif %})">
                                             <i class="fas fa-edit me-2"></i>Editar
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item" href="#" 
-                                           onclick="cambiarPassword({{ usuario.id }}, '{{ usuario.username|escapejs }}')">
+                                        <a class="dropdown-item" href="#"
+                                            onclick="cambiarPassword({{ usuario.id }}, '{{ usuario.username|escapejs }}')">
                                             <i class="fas fa-key me-2"></i>Cambiar Contraseña
                                         </a>
                                     </li>
-                                    <li><hr class="dropdown-divider"></li>
                                     <li>
-                                        <a class="dropdown-item text-danger" href="#" 
-                                           onclick="eliminarUsuario({{ usuario.id }}, '{{ usuario.get_full_name|default:usuario.username|escapejs }}')">
+                                        <hr class="dropdown-divider">
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="#"
+                                            onclick="eliminarUsuario({{ usuario.id }}, '{{ usuario.get_full_name|default:usuario.username|escapejs }}')">
                                             <i class="fas fa-trash me-2"></i>Eliminar
                                         </a>
                                     </li>
                                 </ul>
                             </div>
                         </div>
-                        
+
                         <div class="row g-3 mt-2">
                             <div class="col-6">
                                 <div class="d-flex align-items-center">
@@ -282,32 +326,32 @@
                                         <small class="text-muted d-block">Último acceso</small>
                                         <strong>
                                             {% if usuario.last_login %}
-                                                {{ usuario.last_login|timesince }} atrás
+                                            {{ usuario.last_login|timesince }} atrás
                                             {% else %}
-                                                Nunca
+                                            Nunca
                                             {% endif %}
                                         </strong>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="mt-3 pt-3 border-top">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     {% if usuario.is_active %}
-                                        <span class="badge bg-success">
-                                            <i class="fas fa-check-circle me-1"></i>Activo
-                                        </span>
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle me-1"></i>Activo
+                                    </span>
                                     {% else %}
-                                        <span class="badge bg-danger">
-                                            <i class="fas fa-times-circle me-1"></i>Inactivo
-                                        </span>
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-times-circle me-1"></i>Inactivo
+                                    </span>
                                     {% endif %}
                                     {% if usuario.is_staff %}
-                                        <span class="badge bg-info ms-1">
-                                            <i class="fas fa-shield-alt me-1"></i>Staff
-                                        </span>
+                                    <span class="badge bg-info ms-1">
+                                        <i class="fas fa-shield-alt me-1"></i>Staff
+                                    </span>
                                     {% endif %}
                                 </div>
                             </div>
@@ -325,41 +369,44 @@
             </div>
             {% endfor %}
         </div>
-        
+
         <!-- Paginación -->
         {% if usuarios.has_other_pages %}
         <nav aria-label="Paginación de usuarios">
             <ul class="pagination justify-content-center">
                 {% if usuarios.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page=1{% if query %}&q={{ query }}{% endif %}">
-                            <i class="fas fa-angle-double-left"></i>
-                        </a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ usuarios.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">
-                            <i class="fas fa-angle-left"></i>
-                        </a>
-                    </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if query %}&q={{ query }}{% endif %}">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link"
+                        href="?page={{ usuarios.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                </li>
                 {% endif %}
-                
+
                 <li class="page-item active">
                     <span class="page-link">
                         Página {{ usuarios.number }} de {{ usuarios.paginator.num_pages }}
                     </span>
                 </li>
-                
+
                 {% if usuarios.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ usuarios.next_page_number }}{% if query %}&q={{ query }}{% endif %}">
-                            <i class="fas fa-angle-right"></i>
-                        </a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ usuarios.paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}">
-                            <i class="fas fa-angle-double-right"></i>
-                        </a>
-                    </li>
+                <li class="page-item">
+                    <a class="page-link"
+                        href="?page={{ usuarios.next_page_number }}{% if query %}&q={{ query }}{% endif %}">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link"
+                        href="?page={{ usuarios.paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                </li>
                 {% endif %}
             </ul>
         </nav>
@@ -380,7 +427,7 @@
             <div class="modal-body">
                 <form id="usuarioForm">
                     <input type="hidden" id="usuarioId" value="">
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -397,7 +444,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -412,16 +459,16 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row" id="passwordFields">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Contraseña *</label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control" id="password" 
-                                           oninput="checkPasswordStrength()" required>
-                                    <button class="btn btn-outline-secondary" type="button" 
-                                            onclick="togglePassword('password')">
+                                    <input type="password" class="form-control" id="password"
+                                        oninput="checkPasswordStrength()" required>
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        onclick="togglePassword('password')">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
@@ -434,8 +481,8 @@
                                 <label class="form-label">Confirmar Contraseña *</label>
                                 <div class="input-group">
                                     <input type="password" class="form-control" id="password_confirm" required>
-                                    <button class="btn btn-outline-secondary" type="button" 
-                                            onclick="togglePassword('password_confirm')">
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        onclick="togglePassword('password_confirm')">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
@@ -443,7 +490,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -482,7 +529,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Vista previa -->
                     <div class="alert alert-light border">
                         <h6 class="alert-heading">Vista Previa</h6>
@@ -546,8 +593,8 @@
                         <label class="form-label">Nueva Contraseña</label>
                         <div class="input-group">
                             <input type="password" class="form-control" id="newPassword" required>
-                            <button class="btn btn-outline-secondary" type="button" 
-                                    onclick="togglePassword('newPassword')">
+                            <button class="btn btn-outline-secondary" type="button"
+                                onclick="togglePassword('newPassword')">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>
@@ -557,8 +604,8 @@
                         <label class="form-label">Confirmar Contraseña</label>
                         <div class="input-group">
                             <input type="password" class="form-control" id="confirmNewPassword" required>
-                            <button class="btn btn-outline-secondary" type="button" 
-                                    onclick="togglePassword('confirmNewPassword')">
+                            <button class="btn btn-outline-secondary" type="button"
+                                onclick="togglePassword('confirmNewPassword')">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>
@@ -581,107 +628,142 @@
 
 {% block extra_js %}
 <script>
-// Búsqueda en tiempo real
-document.getElementById('searchUsuario').addEventListener('keyup', function(e) {
-    const searchTerm = e.target.value.toLowerCase();
-    const items = document.querySelectorAll('.usuario-item');
-    let visibleCount = 0;
-    
-    items.forEach(item => {
-        const nombre = item.dataset.nombre;
-        if (nombre.includes(searchTerm)) {
-            item.style.display = '';
-            visibleCount++;
-        } else {
-            item.style.display = 'none';
-        }
+    // Búsqueda en tiempo real
+    document.getElementById('searchUsuario').addEventListener('keyup', function (e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const items = document.querySelectorAll('.usuario-item');
+        let visibleCount = 0;
+
+        items.forEach(item => {
+            const nombre = item.dataset.nombre;
+            if (nombre.includes(searchTerm)) {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        document.getElementById('totalUsuarios').textContent = visibleCount;
     });
-    
-    document.getElementById('totalUsuarios').textContent = visibleCount;
-});
 
-// Vista previa en tiempo real
-document.getElementById('username').addEventListener('input', function(e) {
-    const fullName = document.getElementById('first_name').value + ' ' + document.getElementById('last_name').value;
-    const displayName = fullName.trim() || e.target.value || 'Nuevo Usuario';
-    document.getElementById('previewNombre').textContent = displayName;
-    document.getElementById('previewAvatar').textContent = displayName.charAt(0).toUpperCase();
-});
+    // Vista previa en tiempo real
+    document.getElementById('username').addEventListener('input', function (e) {
+        const fullName = document.getElementById('first_name').value + ' ' + document.getElementById('last_name').value;
+        const displayName = fullName.trim() || e.target.value || 'Nuevo Usuario';
+        document.getElementById('previewNombre').textContent = displayName;
+        document.getElementById('previewAvatar').textContent = displayName.charAt(0).toUpperCase();
+    });
 
-document.getElementById('first_name').addEventListener('input', function(e) {
-    const fullName = e.target.value + ' ' + document.getElementById('last_name').value;
-    const displayName = fullName.trim() || document.getElementById('username').value || 'Nuevo Usuario';
-    document.getElementById('previewNombre').textContent = displayName;
-    document.getElementById('previewAvatar').textContent = displayName.charAt(0).toUpperCase();
-});
+    document.getElementById('first_name').addEventListener('input', function (e) {
+        const fullName = e.target.value + ' ' + document.getElementById('last_name').value;
+        const displayName = fullName.trim() || document.getElementById('username').value || 'Nuevo Usuario';
+        document.getElementById('previewNombre').textContent = displayName;
+        document.getElementById('previewAvatar').textContent = displayName.charAt(0).toUpperCase();
+    });
 
-document.getElementById('last_name').addEventListener('input', function(e) {
-    const fullName = document.getElementById('first_name').value + ' ' + e.target.value;
-    const displayName = fullName.trim() || document.getElementById('username').value || 'Nuevo Usuario';
-    document.getElementById('previewNombre').textContent = displayName;
-    document.getElementById('previewAvatar').textContent = displayName.charAt(0).toUpperCase();
-});
+    document.getElementById('last_name').addEventListener('input', function (e) {
+        const fullName = document.getElementById('first_name').value + ' ' + e.target.value;
+        const displayName = fullName.trim() || document.getElementById('username').value || 'Nuevo Usuario';
+        document.getElementById('previewNombre').textContent = displayName;
+        document.getElementById('previewAvatar').textContent = displayName.charAt(0).toUpperCase();
+    });
 
-document.getElementById('email').addEventListener('input', function(e) {
-    document.getElementById('previewEmail').textContent = e.target.value || 'email@ejemplo.com';
-});
+    document.getElementById('email').addEventListener('input', function (e) {
+        document.getElementById('previewEmail').textContent = e.target.value || 'email@ejemplo.com';
+    });
 
-document.getElementById('is_superuser').addEventListener('change', function(e) {
-    if (e.target.checked) {
-        document.getElementById('previewRol').textContent = 'Super Admin';
-        document.getElementById('previewRol').className = 'badge bg-danger ms-2';
-    } else if (document.getElementById('is_staff').checked) {
-        document.getElementById('previewRol').textContent = 'Administrador';
-        document.getElementById('previewRol').className = 'badge bg-warning ms-2';
-    } else {
-        document.getElementById('previewRol').textContent = 'Usuario';
-        document.getElementById('previewRol').className = 'badge bg-info ms-2';
-    }
-});
-
-document.getElementById('is_staff').addEventListener('change', function(e) {
-    if (!document.getElementById('is_superuser').checked) {
+    document.getElementById('is_superuser').addEventListener('change', function (e) {
         if (e.target.checked) {
+            document.getElementById('previewRol').textContent = 'Super Admin';
+            document.getElementById('previewRol').className = 'badge bg-danger ms-2';
+        } else if (document.getElementById('is_staff').checked) {
             document.getElementById('previewRol').textContent = 'Administrador';
             document.getElementById('previewRol').className = 'badge bg-warning ms-2';
         } else {
             document.getElementById('previewRol').textContent = 'Usuario';
             document.getElementById('previewRol').className = 'badge bg-info ms-2';
         }
+    });
+
+    document.getElementById('is_staff').addEventListener('change', function (e) {
+        if (!document.getElementById('is_superuser').checked) {
+            if (e.target.checked) {
+                document.getElementById('previewRol').textContent = 'Administrador';
+                document.getElementById('previewRol').className = 'badge bg-warning ms-2';
+            } else {
+                document.getElementById('previewRol').textContent = 'Usuario';
+                document.getElementById('previewRol').className = 'badge bg-info ms-2';
+            }
+        }
+    });
+
+    // Listener para cambio de Rol (Grupo)
+    document.getElementById('rol').addEventListener('change', function (e) {
+        const rolBadge = document.getElementById('previewRol');
+        if (e.target.value) {
+            const roleName = e.target.options[e.target.selectedIndex].text;
+            rolBadge.textContent = roleName;
+
+            // Asignar colores según el nombre del rol (basado en lógica de backend)
+            const lowerRole = roleName.toLowerCase();
+            if (lowerRole.includes('admin')) {
+                rolBadge.className = 'badge bg-warning ms-2';
+            } else if (lowerRole.includes('vendedor')) {
+                rolBadge.className = 'badge bg-info ms-2';
+            } else if (lowerRole.includes('cliente')) {
+                rolBadge.className = 'badge bg-success ms-2';
+            } else {
+                // Color para Productor, BTR, Doctor, etc.
+                rolBadge.className = 'badge bg-primary ms-2';
+            }
+        } else {
+            // Fallback a lógica de flags si no hay rol seleccionado
+            if (document.getElementById('is_superuser').checked) {
+                rolBadge.textContent = 'Super Admin';
+                rolBadge.className = 'badge bg-danger ms-2';
+            } else if (document.getElementById('is_staff').checked) {
+                rolBadge.textContent = 'Administrador';
+                rolBadge.className = 'badge bg-warning ms-2';
+            } else {
+                rolBadge.textContent = 'Usuario';
+                rolBadge.className = 'badge bg-info ms-2';
+            }
+        }
+    });
+
+    function checkPasswordStrength() {
+        const password = document.getElementById('password').value;
+        const strength = document.getElementById('passwordStrength');
+
+        if (password.length < 6) {
+            strength.className = 'password-strength strength-weak';
+        } else if (password.length < 10) {
+            strength.className = 'password-strength strength-medium';
+        } else {
+            strength.className = 'password-strength strength-strong';
+        }
     }
-});
 
-function checkPasswordStrength() {
-    const password = document.getElementById('password').value;
-    const strength = document.getElementById('passwordStrength');
-    
-    if (password.length < 6) {
-        strength.className = 'password-strength strength-weak';
-    } else if (password.length < 10) {
-        strength.className = 'password-strength strength-medium';
-    } else {
-        strength.className = 'password-strength strength-strong';
+    function togglePassword(fieldId) {
+        const field = document.getElementById(fieldId);
+        const type = field.type === 'password' ? 'text' : 'password';
+        field.type = type;
+
+        const icon = event.currentTarget.querySelector('i');
+        icon.className = type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
     }
-}
 
-function togglePassword(fieldId) {
-    const field = document.getElementById(fieldId);
-    const type = field.type === 'password' ? 'text' : 'password';
-    field.type = type;
-    
-    const icon = event.currentTarget.querySelector('i');
-    icon.className = type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
-}
+    function verDetalleUsuario(id) {
+        fetch(`/panel/usuarios/api/${id}/`)
+            .then(response => response.json())
+            .then(data => {
+                const inicial = data.first_name ? data.first_name.charAt(0).toUpperCase() : data.username.charAt(0).toUpperCase();
+                // Usar el rol devuelto por el backend
+                const rol = data.rol_display || (data.is_superuser ? 'Super Administrador' : (data.is_staff ? 'Administrador' : 'Usuario'));
+                const estado = data.is_active ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-danger">Inactivo</span>';
 
-function verDetalleUsuario(id) {
-    fetch(`/panel/usuarios/api/${id}/`)
-    .then(response => response.json())
-    .then(data => {
-        const inicial = data.first_name ? data.first_name.charAt(0).toUpperCase() : data.username.charAt(0).toUpperCase();
-        const rol = data.is_superuser ? 'Super Administrador' : (data.is_staff ? 'Administrador' : 'Usuario');
-        const estado = data.is_active ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-danger">Inactivo</span>';
-        
-        const contenido = `
+                const contenido = `
             <div class="text-center mb-3">
                 <div class="avatar-circle mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2.5rem;">
                     ${inicial}
@@ -705,153 +787,110 @@ function verDetalleUsuario(id) {
                 </table>
             </div>
         `;
-        
-        document.getElementById('detalleContenido').innerHTML = contenido;
-        new bootstrap.Modal(document.getElementById('detalleModal')).show();
-    })
-    .catch(error => {
-        console.error('Error:', error);
-    });
-}
 
-function editarUsuario(id, username, email, firstName, lastName, isActive, isStaff, isSuperuser, groupId) {
-    document.getElementById('usuarioModalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Editar Usuario';
-    document.getElementById('usuarioId').value = id;
-    document.getElementById('username').value = username;
-    document.getElementById('email').value = email || '';
-    document.getElementById('first_name').value = firstName || '';
-    document.getElementById('last_name').value = lastName || '';
-    document.getElementById('is_active').checked = isActive;
-    document.getElementById('is_staff').checked = isStaff;
-    document.getElementById('is_superuser').checked = isSuperuser;
-    
-    if (groupId) {
-        document.getElementById('rol').value = groupId;
-    } else {
-        document.getElementById('rol').value = '';
-    }
-    
-    // Ocultar campos de contraseña al editar
-    document.getElementById('passwordFields').style.display = 'none';
-    document.getElementById('password').removeAttribute('required');
-    document.getElementById('password_confirm').removeAttribute('required');
-    
-    // Actualizar vista previa
-    const fullName = (firstName || '') + ' ' + (lastName || '');
-    const displayName = fullName.trim() || username;
-    document.getElementById('previewNombre').textContent = displayName;
-    document.getElementById('previewAvatar').textContent = displayName.charAt(0).toUpperCase();
-    document.getElementById('previewEmail').textContent = email || 'Sin email';
-    
-    // Actualizar rol en vista previa
-    if (isSuperuser) {
-        document.getElementById('previewRol').textContent = 'Super Admin';
-        document.getElementById('previewRol').className = 'badge bg-danger ms-2';
-    } else if (isStaff) {
-        document.getElementById('previewRol').textContent = 'Administrador';
-        document.getElementById('previewRol').className = 'badge bg-warning ms-2';
-    } else {
-        document.getElementById('previewRol').textContent = 'Usuario';
-        document.getElementById('previewRol').className = 'badge bg-info ms-2';
-    }
-    
-    new bootstrap.Modal(document.getElementById('usuarioModal')).show();
-}
-
-function cambiarPassword(id, username) {
-    document.getElementById('passwordUserId').value = id;
-    document.getElementById('newPassword').value = '';
-    document.getElementById('confirmNewPassword').value = '';
-    
-    const modalTitle = document.querySelector('#passwordModal .modal-title');
-    modalTitle.innerHTML = `<i class="fas fa-key me-2"></i>Cambiar Contraseña - ${username}`;
-    
-    new bootstrap.Modal(document.getElementById('passwordModal')).show();
-}
-
-function actualizarPassword() {
-    const newPass = document.getElementById('newPassword').value;
-    const confirmPass = document.getElementById('confirmNewPassword').value;
-    const userId = document.getElementById('passwordUserId').value;
-    
-    if (!newPass || !confirmPass) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Por favor complete ambos campos'
-        });
-        return;
-    }
-    
-    if (newPass !== confirmPass) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Las contraseñas no coinciden'
-        });
-        return;
-    }
-    
-    if (newPass.length < 8) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'La contraseña debe tener al menos 8 caracteres'
-        });
-        return;
-    }
-    
-    fetch(`/panel/usuarios/api/${userId}/cambiar-password/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify({
-            password: newPass
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Éxito',
-                text: 'Contraseña actualizada correctamente',
-                timer: 2000,
-                showConfirmButton: false
-            }).then(() => {
-                bootstrap.Modal.getInstance(document.getElementById('passwordModal')).hide();
-                document.getElementById('passwordForm').reset();
+                document.getElementById('detalleContenido').innerHTML = contenido;
+                new bootstrap.Modal(document.getElementById('detalleModal')).show();
+            })
+            .catch(error => {
+                console.error('Error:', error);
             });
-        } else {
-            throw new Error(data.error || 'Error desconocido');
-        }
-    })
-    .catch(error => {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'No se pudo actualizar la contraseña: ' + error.message
-        });
-    });
-}
-
-function guardarUsuario() {
-    const form = document.getElementById('usuarioForm');
-    if (!form.checkValidity()) {
-        form.classList.add('was-validated');
-        return;
     }
-    
-    const id = document.getElementById('usuarioId').value;
-    
-    // Solo verificar contraseñas si es nuevo usuario
-    if (!id) {
-        const password = document.getElementById('password').value;
-        const passwordConfirm = document.getElementById('password_confirm').value;
-        
-        if (password !== passwordConfirm) {
+
+    function editarUsuario(id, username, email, firstName, lastName, isActive, isStaff, isSuperuser, groupId) {
+        document.getElementById('usuarioModalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Editar Usuario';
+        document.getElementById('usuarioId').value = id;
+        document.getElementById('username').value = username;
+        document.getElementById('email').value = email || '';
+        document.getElementById('first_name').value = firstName || '';
+        document.getElementById('last_name').value = lastName || '';
+        document.getElementById('is_active').checked = isActive;
+        document.getElementById('is_staff').checked = isStaff;
+        document.getElementById('is_superuser').checked = isSuperuser;
+
+        if (groupId) {
+            document.getElementById('rol').value = groupId;
+        } else {
+            document.getElementById('rol').value = '';
+        }
+
+        // Ocultar campos de contraseña al editar
+        document.getElementById('passwordFields').style.display = 'none';
+        document.getElementById('password').removeAttribute('required');
+        document.getElementById('password_confirm').removeAttribute('required');
+
+        // Actualizar vista previa
+        const fullName = (firstName || '') + ' ' + (lastName || '');
+        const displayName = fullName.trim() || username;
+        document.getElementById('previewNombre').textContent = displayName;
+        document.getElementById('previewAvatar').textContent = displayName.charAt(0).toUpperCase();
+        document.getElementById('previewEmail').textContent = email || 'Sin email';
+
+        // Actualizar rol en vista previa
+        // Intentar obtener el nombre del rol desde el select si hay un grupo asignado
+        let roleText = 'Usuario';
+        let roleClass = 'badge bg-info ms-2';
+
+        const rolSelect = document.getElementById('rol');
+        let groupOption = null;
+
+        if (groupId) {
+            // Si se pasó un groupId, buscar la opción correspondiente
+            groupOption = rolSelect.querySelector(`option[value="${groupId}"]`);
+        }
+
+        if (groupOption) {
+            roleText = groupOption.text;
+            const lowerRole = roleText.toLowerCase();
+
+            if (lowerRole.includes('admin')) {
+                roleClass = 'badge bg-warning ms-2';
+            } else if (lowerRole.includes('vendedor')) {
+                roleClass = 'badge bg-info ms-2';
+            } else if (lowerRole.includes('cliente')) {
+                roleClass = 'badge bg-success ms-2';
+            } else {
+                roleClass = 'badge bg-primary ms-2'; // Productor, BTR, Doctor...
+            }
+        } else if (isSuperuser) {
+            roleText = 'Super Admin';
+            roleClass = 'badge bg-danger ms-2';
+        } else if (isStaff) {
+            roleText = 'Administrador';
+            roleClass = 'badge bg-warning ms-2';
+        }
+
+        document.getElementById('previewRol').textContent = roleText;
+        document.getElementById('previewRol').className = roleClass;
+
+        new bootstrap.Modal(document.getElementById('usuarioModal')).show();
+    }
+
+    function cambiarPassword(id, username) {
+        document.getElementById('passwordUserId').value = id;
+        document.getElementById('newPassword').value = '';
+        document.getElementById('confirmNewPassword').value = '';
+
+        const modalTitle = document.querySelector('#passwordModal .modal-title');
+        modalTitle.innerHTML = `<i class="fas fa-key me-2"></i>Cambiar Contraseña - ${username}`;
+
+        new bootstrap.Modal(document.getElementById('passwordModal')).show();
+    }
+
+    function actualizarPassword() {
+        const newPass = document.getElementById('newPassword').value;
+        const confirmPass = document.getElementById('confirmNewPassword').value;
+        const userId = document.getElementById('passwordUserId').value;
+
+        if (!newPass || !confirmPass) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Por favor complete ambos campos'
+            });
+            return;
+        }
+
+        if (newPass !== confirmPass) {
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -859,8 +898,8 @@ function guardarUsuario() {
             });
             return;
         }
-        
-        if (password.length < 8) {
+
+        if (newPass.length < 8) {
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -868,123 +907,191 @@ function guardarUsuario() {
             });
             return;
         }
-    }
-    
-    const data = {
-        username: document.getElementById('username').value,
-        email: document.getElementById('email').value,
-        first_name: document.getElementById('first_name').value,
-        last_name: document.getElementById('last_name').value,
-        is_active: document.getElementById('is_active').checked,
-        is_staff: document.getElementById('is_staff').checked,
-        is_superuser: document.getElementById('is_superuser').checked,
-        group_id: document.getElementById('rol').value || null
-    };
-    
-    if (!id) {
-        data.password = document.getElementById('password').value;
-    }
-    
-    const url = id ? 
-        `/panel/usuarios/api/${id}/actualizar/` : 
-        `/panel/usuarios/api/crear/`;
-    
-    const method = id ? 'PUT' : 'POST';
-    
-    fetch(url, {
-        method: method,
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Éxito',
-                text: id ? 'Usuario actualizado correctamente' : 'Usuario creado correctamente',
-                timer: 2000,
-                showConfirmButton: false
-            }).then(() => {
-                location.reload();
-            });
-        } else {
-            throw new Error(data.error || 'Error desconocido');
-        }
-    })
-    .catch(error => {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'No se pudo guardar el usuario: ' + error.message
-        });
-    });
-}
 
-function eliminarUsuario(id, nombre) {
-    Swal.fire({
-        title: '¿Eliminar usuario?',
-        html: `¿Está seguro de eliminar a <strong>${nombre}</strong>?<br>
-               <small class="text-muted">Esta acción no se puede deshacer</small>`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch(`/panel/usuarios/api/${id}/eliminar/`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}'
-                }
+        fetch(`/panel/usuarios/api/${userId}/cambiar-password/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                password: newPass
             })
+        })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Eliminado',
-                        text: 'El usuario ha sido eliminado',
+                        title: 'Éxito',
+                        text: 'Contraseña actualizada correctamente',
                         timer: 2000,
                         showConfirmButton: false
                     }).then(() => {
-                        location.reload();
+                        bootstrap.Modal.getInstance(document.getElementById('passwordModal')).hide();
+                        document.getElementById('passwordForm').reset();
                     });
                 } else {
-                    throw new Error(data.error || 'Error al eliminar');
+                    throw new Error(data.error || 'Error desconocido');
                 }
             })
             .catch(error => {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'No se pudo eliminar el usuario: ' + error.message
+                    text: 'No se pudo actualizar la contraseña: ' + error.message
                 });
             });
-        }
-    });
-}
+    }
 
-// Limpiar modal al cerrarlo
-document.getElementById('usuarioModal').addEventListener('hidden.bs.modal', function () {
-    document.getElementById('usuarioForm').classList.remove('was-validated');
-    document.getElementById('usuarioForm').reset();
-    document.getElementById('usuarioId').value = '';
-    document.getElementById('usuarioModalTitle').innerHTML = '<i class="fas fa-user-plus me-2"></i>Nuevo Usuario';
-    document.getElementById('passwordFields').style.display = 'flex';
-    document.getElementById('password').setAttribute('required', 'required');
-    document.getElementById('password_confirm').setAttribute('required', 'required');
-    document.getElementById('previewNombre').textContent = 'Nuevo Usuario';
-    document.getElementById('previewAvatar').textContent = 'N';
-    document.getElementById('previewEmail').textContent = 'email@ejemplo.com';
-    document.getElementById('previewRol').textContent = 'Usuario';
-    document.getElementById('previewRol').className = 'badge bg-info ms-2';
-    document.getElementById('passwordStrength').className = 'password-strength';
-});
+    function guardarUsuario() {
+        const form = document.getElementById('usuarioForm');
+        if (!form.checkValidity()) {
+            form.classList.add('was-validated');
+            return;
+        }
+
+        const id = document.getElementById('usuarioId').value;
+
+        // Solo verificar contraseñas si es nuevo usuario
+        if (!id) {
+            const password = document.getElementById('password').value;
+            const passwordConfirm = document.getElementById('password_confirm').value;
+
+            if (password !== passwordConfirm) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Las contraseñas no coinciden'
+                });
+                return;
+            }
+
+            if (password.length < 8) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'La contraseña debe tener al menos 8 caracteres'
+                });
+                return;
+            }
+        }
+
+        const data = {
+            username: document.getElementById('username').value,
+            email: document.getElementById('email').value,
+            first_name: document.getElementById('first_name').value,
+            last_name: document.getElementById('last_name').value,
+            is_active: document.getElementById('is_active').checked,
+            is_staff: document.getElementById('is_staff').checked,
+            is_superuser: document.getElementById('is_superuser').checked,
+            group_id: document.getElementById('rol').value || null
+        };
+
+        if (!id) {
+            data.password = document.getElementById('password').value;
+        }
+
+        const url = id ?
+            `/panel/usuarios/api/${id}/actualizar/` :
+            `/panel/usuarios/api/crear/`;
+
+        const method = id ? 'PUT' : 'POST';
+
+        fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Éxito',
+                        text: id ? 'Usuario actualizado correctamente' : 'Usuario creado correctamente',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    throw new Error(data.error || 'Error desconocido');
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudo guardar el usuario: ' + error.message
+                });
+            });
+    }
+
+    function eliminarUsuario(id, nombre) {
+        Swal.fire({
+            title: '¿Eliminar usuario?',
+            html: `¿Está seguro de eliminar a <strong>${nombre}</strong>?<br>
+               <small class="text-muted">Esta acción no se puede deshacer</small>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/panel/usuarios/api/${id}/eliminar/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Eliminado',
+                                text: 'El usuario ha sido eliminado',
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            throw new Error(data.error || 'Error al eliminar');
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'No se pudo eliminar el usuario: ' + error.message
+                        });
+                    });
+            }
+        });
+    }
+
+    // Limpiar modal al cerrarlo
+    document.getElementById('usuarioModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('usuarioForm').classList.remove('was-validated');
+        document.getElementById('usuarioForm').reset();
+        document.getElementById('usuarioId').value = '';
+        document.getElementById('usuarioModalTitle').innerHTML = '<i class="fas fa-user-plus me-2"></i>Nuevo Usuario';
+        document.getElementById('passwordFields').style.display = 'flex';
+        document.getElementById('password').setAttribute('required', 'required');
+        document.getElementById('password_confirm').setAttribute('required', 'required');
+        document.getElementById('previewNombre').textContent = 'Nuevo Usuario';
+        document.getElementById('previewAvatar').textContent = 'N';
+        document.getElementById('previewEmail').textContent = 'email@ejemplo.com';
+        document.getElementById('previewRol').textContent = 'Usuario';
+        document.getElementById('previewRol').className = 'badge bg-info ms-2';
+        document.getElementById('passwordStrength').className = 'password-strength';
+    });
 </script>
 {% endblock %}
