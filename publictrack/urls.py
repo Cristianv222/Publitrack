@@ -12,6 +12,8 @@ from django.http import HttpResponse, JsonResponse
 from django.views.generic import TemplateView
 from django.views.decorators.cache import cache_control
 from django.templatetags.static import static as static_url
+from django.views.static import serve
+from django.urls import re_path
 
 def home_redirect(request):
     """Redirige a la página apropiada según el estado del usuario"""
@@ -288,8 +290,11 @@ urlpatterns = [
 # Servir archivos MEDIA siempre (desarrollo Y producción)
 # Esto es necesario porque Django con DEBUG=False no sirve media por defecto
 # En un entorno con nginx, esto sería manejado por el servidor web
-# Pero como usamos solo Docker + Whitenoise, necesitamos esta configuración
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Servir archivos media tanto en desarrollo como producción
+urlpatterns += [
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+]
 
 # Servir archivos STATIC solo en desarrollo (Whitenoise los maneja en producción)
 if settings.DEBUG:

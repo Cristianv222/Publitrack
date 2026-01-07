@@ -22,7 +22,7 @@ AUTH_USER_MODEL = 'authentication.CustomUser'
 
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-production')
 DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='publictrack.fronteratech.ec,localhost,127.0.0.1,146.190.217.68', cast=Csv())
+ALLOWED_HOSTS = ['*']
 
 # =============================================================================
 # APPLICATION DEFINITION
@@ -270,11 +270,11 @@ X_FRAME_OPTIONS = 'DENY'
 
 # Configuraciones SSL (se activan solo en producción)
 if not DEBUG:
-    SECURE_SSL_REDIRECT = False
-    SESSION_COOKIE_SECURE = False
-    CSRF_COOKIE_SECURE = False
+    #     SECURE_SSL_REDIRECT = False
+    #     SESSION_COOKIE_SECURE = False
+    #     CSRF_COOKIE_SECURE = False
     SECURE_HSTS_SECONDS = 31536000  # 1 año
-    SECURE_SSL_REDIRECT = True
+    #     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = 31536000
