@@ -535,9 +535,9 @@ def api_cliente_detalle(request, id):
 
 # ==================== CONTRATOS GENERADOS ====================
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(lambda u: u.es_admin or u.es_doctor)
 def contratos_generados_list(request):
-    """Vista principal para gestión de contratos generados"""
+    """Vista principal para gestión de contratos generados - Accesible para Admin y Doctor"""
     
     print("\n" + "="*80)
     print("🔍 INICIANDO contratos_generados_list")
@@ -1300,9 +1300,9 @@ def plantilla_contrato_descargar_api(request, id):
 
 # ============= DASHBOARD =============
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(lambda u: u.es_admin or u.es_doctor)
 def dashboard(request):
-    """Dashboard principal"""
+    """Dashboard principal - Accesible para Admin y Doctor"""
     context = {
         'total_usuarios': User.objects.count(),
         'usuarios_activos': User.objects.filter(is_active=True).count(),
@@ -7491,9 +7491,9 @@ def reports_detalle_vendedor(request, vendedor_id):
         return redirect('custom_admin:reports_dashboard_vendedores')
 # ==================== DASHBOARD PRINCIPAL DE REPORTES ====================
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(lambda u: u.es_admin or u.es_doctor)
 def reports_dashboard_principal(request):
-    """Dashboard principal unificado de reportes"""
+    """Dashboard principal unificado de reportes - Accesible para Admin y Doctor"""
     
     # Verificar disponibilidad de modelos
     modelos_disponibles = CONTENT_MODELS_AVAILABLE and AUTH_MODELS_AVAILABLE

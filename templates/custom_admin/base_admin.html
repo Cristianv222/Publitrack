@@ -936,6 +936,7 @@
 
         <div class="sidebar-menu">
             <!-- Dashboard -->
+            {% if not request.user.es_doctor %}
             <div class="menu-section">
                 <a href="{% url 'custom_admin:dashboard' %}"
                     class="menu-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
@@ -943,8 +944,32 @@
                     <span>Dashboard</span>
                 </a>
             </div>
+            {% endif %}
+
+            <!-- MENÚ PARA DOCTORES -->
+            {% if request.user.es_doctor %}
+            <div class="menu-section">
+                <div class="menu-section-title">PANEL MÉDICO</div>
+                <a href="{% url 'authentication:doctor_dashboard' %}"
+                    class="menu-link {% if 'doctor_dashboard' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-home menu-icon"></i>
+                    <span>Inicio</span>
+                </a>
+                <a href="{% url 'custom_admin:reportes_dashboard' %}"
+                    class="menu-link {% if 'reportes_dashboard' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-chart-line menu-icon"></i>
+                    <span>Reportes</span>
+                </a>
+                <a href="{% url 'custom_admin:inventory_list' %}"
+                    class="menu-link {% if 'inventory' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-boxes menu-icon"></i>
+                    <span>Inventario</span>
+                </a>
+            </div>
+            {% endif %}
 
             <!-- AUTENTICACIÓN -->
+            {% if not request.user.es_doctor %}
             <div class="menu-section">
                 <div class="menu-section-title">AUTENTICACIÓN</div>
                 <div class="accordion menu-accordion" id="authAccordion">
@@ -1051,7 +1076,7 @@
                                     class="submenu-link {% if 'ordenes_produccion' in request.resolver_match.url_name %}active{% endif %}">
                                     <i class="fas fa-cogs"></i>Órdenes de Producción
                                 </a>
-                    
+
                                 <a href="{% url 'custom_admin:ordenes_autorizacion_list' %}"
                                     class="submenu-link {% if 'ordenes_autorizacion' in request.resolver_match.url_name %}active{% endif %}">
                                     <i class="fas fa-file-signature"></i>Orden de Autorizacion
@@ -1184,6 +1209,7 @@
 
                 </a>
             </div>
+            {% endif %} <!-- Cierre de if not es_doctor -->
 
         </div>
     </nav>

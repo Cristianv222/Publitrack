@@ -63,6 +63,8 @@ def login_view(request):
             return redirect('authentication:productor_dashboard')
         elif request.user.es_btr: 
             return redirect('authentication:btr_dashboard')
+        elif request.user.es_doctor:
+            return redirect('authentication:doctor_dashboard')
         else: 
             return redirect('authentication:cliente_dashboard')
     
@@ -93,6 +95,8 @@ def login_view(request):
                         return redirect('authentication:productor_dashboard')
                     elif user.es_btr: 
                         return redirect('authentication:btr_dashboard')
+                    elif user.es_doctor:
+                        return redirect('authentication:doctor_dashboard')
                     else: 
                         return redirect('authentication:cliente_dashboard')
                 else:
@@ -1271,3 +1275,20 @@ def btr_dashboard(request):
         'btr_active': True  # Flag para identificar el dashboard activo
     }
     return render(request, 'dashboard/btr.html', context)
+
+# ============================================================================
+# VISTA PARA DOCTOR (PÁGINA DE BIENVENIDA)
+# ============================================================================
+@login_required
+def doctor_dashboard(request):
+    """Dashboard de bienvenida para el Doctor"""
+    if not request.user.es_doctor and not request.user.es_admin:
+        messages.error(request, 'No tienes permisos para ver esta página.')
+        return redirect('authentication:profile')
+    
+    context = {
+        'user': request.user,
+        'segment_doctor_dashboard': True,
+    }
+
+    return render(request, 'dashboard/doctor.html', context)

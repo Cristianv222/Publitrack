@@ -273,15 +273,22 @@
             <p class="text-muted mb-0">Administra el inventario de equipos y suministros</p>
         </div>
         <div class="management-buttons">
+            {% if not request.user.es_doctor %}
             <button class="btn btn-outline-primary" onclick="mostrarConfiguracion()">
                 <i class="fas fa-cog me-2"></i>Configurar
             </button>
+            {% endif %}
             <a href="{% url 'custom_admin:inventory_export' %}?formato=csv" class="btn btn-outline-secondary">
                 <i class="fas fa-file-csv me-2"></i>Exportar CSV
             </a>
+            <button class="btn btn-danger" onclick="exportInventoryPDF()">
+                <i class="fas fa-file-pdf me-2"></i>Exportar PDF
+            </button>
+            {% if not request.user.es_doctor %}
             <button class="btn btn-primary" onclick="abrirModalCrearItem()">
                 <i class="fas fa-plus me-2"></i>Nuevo Ítem
             </button>
+            {% endif %}
         </div>
     </div>
 
@@ -354,7 +361,7 @@
     <div class="card">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover" id="inventoryTable">
                     <thead class="table-light">
                         <tr>
                             <th>Código</th>
@@ -364,12 +371,14 @@
                             <th>Ubicación</th>
                             <th>Cantidad</th>
                             <th>Stock</th>
+                            {% if not request.user.es_doctor %}
                             <th>Acciones</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in page_obj %}
-                        <tr onclick="verDetalleItem({{ item.id }})"
+                        <tr {% if not request.user.es_doctor %}onclick="verDetalleItem({{ item.id }})" {% endif %}
                             style="cursor: pointer; {% if not item.is_active %}opacity: 0.65; background-color: rgba(0,0,0,0.02);{% endif %}">
                             <td>
                                 <strong>{{ item.code }}</strong>
@@ -403,18 +412,19 @@
                             </td>
                             <td>{{ item.quantity }} {{ item.unit_of_measure }}</td>
                             <td>
-                                {% if item.quantity <= item.min_quantity %}
-                                <span class="badge stock-bajo">Bajo Stock</span>
-                                <small class="text-danger d-block">¡Necesita reabastecimiento!</small>
-                                {% elif item.quantity <= item.min_quantity|add:10 %}
-                                <span class="badge stock-advertencia">Próximo a agotar</span>
-                                <small class="text-warning d-block">Monitorear stock</small>
-                                {% else %}
-                                <span class="badge stock-normal">Stock Normal</span>
-                                <small class="text-success d-block">En niveles adecuados</small>
-                                {% endif %}
+                                {% if item.quantity <= item.min_quantity %} <span class="badge stock-bajo">Bajo
+                                    Stock</span>
+                                    <small class="text-danger d-block">¡Necesita reabastecimiento!</small>
+                                    {% elif item.quantity <= item.min_quantity|add:10 %} <span
+                                        class="badge stock-advertencia">Próximo a agotar</span>
+                                        <small class="text-warning d-block">Monitorear stock</small>
+                                        {% else %}
+                                        <span class="badge stock-normal">Stock Normal</span>
+                                        <small class="text-success d-block">En niveles adecuados</small>
+                                        {% endif %}
                             </td>
                             <td onclick="event.stopPropagation();">
+                                {% if not request.user.es_doctor %}
                                 <button class="btn btn-sm btn-info btn-action"
                                     onclick="event.stopPropagation(); verDetalleItem({{ item.id }})"
                                     title="Ver detalles">
@@ -429,6 +439,7 @@
                                     title="Eliminar">
                                     <i class="fas fa-trash"></i>
                                 </button>
+                                {% endif %}
                             </td>
                         </tr>
                         {% empty %}
@@ -466,34 +477,33 @@
                     {% endif %}
 
                     {% for num in page_obj.paginator.page_range %}
-                        {% if page_obj.number == num %}
-                        <li class="page-item active">
-                            <span class="page-link">{{ num }}</span>
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %} <li class="page-item">
+                        <a class="page-link"
+                            href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">
+                            {{ num }}
+                        </a>
                         </li>
-                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
                         <li class="page-item">
                             <a class="page-link"
-                                href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">
-                                {{ num }}
+                                href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">
+                                <i class="fas fa-angle-right"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link"
+                                href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">
+                                <i class="fas fa-angle-double-right"></i>
                             </a>
                         </li>
                         {% endif %}
-                    {% endfor %}
-
-                    {% if page_obj.has_next %}
-                    <li class="page-item">
-                        <a class="page-link"
-                            href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">
-                            <i class="fas fa-angle-right"></i>
-                        </a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link"
-                            href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">
-                            <i class="fas fa-angle-double-right"></i>
-                        </a>
-                    </li>
-                    {% endif %}
                 </ul>
             </nav>
             {% endif %}
@@ -2011,5 +2021,37 @@
     window.eliminarItem = eliminarItem;
 
     console.log("✅ JavaScript de inventario simplificado cargado correctamente");
+</script>
+
+<!-- jsPDF para Exportar PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+    window.exportInventoryPDF = function () {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        doc.setFontSize(18);
+        doc.text("Reporte de Inventario - PubliTrack", 14, 22);
+
+        doc.setFontSize(11);
+        doc.setTextColor(100);
+        doc.text(`Generado el: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 30);
+        doc.text(`Solicitado por: Administrador`, 14, 36);
+
+        doc.autoTable({
+            html: '#inventoryTable',
+            startY: 45,
+            theme: 'striped',
+            headStyles: { fillColor: [66, 66, 66] },
+            styles: { fontSize: 9 },
+            columnStyles: { 0: { fontStyle: 'bold' } },
+            // Excluir columna de Acciones (índice 7)
+            columns: [0, 1, 2, 3, 4, 5, 6]
+        });
+
+        doc.save('Inventario_PubliTrack_Admin.pdf');
+    };
 </script>
 {% endblock %}

@@ -35,6 +35,7 @@ urlpatterns = [
     path('dashboard/productor/', views.productor_dashboard, name='productor_dashboard'),  # ← AGREGADO
         # NUEVO: Panel exclusivo para el rol BTR
     path('dashboard/btr/', views.btr_dashboard, name='btr_dashboard'),
+    path('dashboard/doctor/', views.doctor_dashboard, name='doctor_dashboard'),
     
     # ============================================================================
     # GESTIÓN DE CLIENTES PARA VENDEDORES

@@ -357,6 +357,11 @@ class CustomUser(AbstractUser):
     def es_btr(self):
         """Verifica si el usuario es BTR"""
         return self.rol == 'btr'
+
+    @property
+    def es_doctor(self):
+        """Verifica si el usuario es doctor"""
+        return self.rol == 'doctor'
     
     @property
     def esta_activo(self):
