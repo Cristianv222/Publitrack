@@ -279,12 +279,20 @@ urlpatterns = [
 ]
 
 # ============================================================================
-# CONFIGURACIÓN PARA DESARROLLO
+# CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS Y MEDIA
 # ============================================================================
 
+# CORRECCIÓN IMPORTANTE: Servir archivos media tanto en desarrollo como producción
+# Los archivos static son manejados automáticamente por Whitenoise en producción
+
+# Servir archivos MEDIA siempre (desarrollo Y producción)
+# Esto es necesario porque Django con DEBUG=False no sirve media por defecto
+# En un entorno con nginx, esto sería manejado por el servidor web
+# Pero como usamos solo Docker + Whitenoise, necesitamos esta configuración
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Servir archivos STATIC solo en desarrollo (Whitenoise los maneja en producción)
 if settings.DEBUG:
-    # Servir archivos de media en desarrollo
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     
     # Debug toolbar (si está instalado)

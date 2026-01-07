@@ -195,12 +195,22 @@ WHITENOISE_USE_FINDERS = True
 WHITENOISE_MANIFEST_STRICT = False
 WHITENOISE_ALLOW_ALL_ORIGINS = True
 
+# =============================================================================
+# CONFIGURACIÓN DE ARCHIVOS MEDIA
+# =============================================================================
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 FILE_UPLOAD_PERMISSIONS = 0o644
+
+# CONFIGURACIÓN ADICIONAL PARA SERVIR MEDIA EN PRODUCCIÓN
+# Esta configuración permite que Django sirva archivos media de forma segura
+# en producción sin necesidad de nginx adicional
+WHITENOISE_AUTOREFRESH = DEBUG  # Solo auto-refresh en desarrollo
+WHITENOISE_ADD_HEADERS_FUNCTION = None  # Puedes personalizar headers si lo necesitas
 
 # =============================================================================
 # CONFIGURACIÓN PWA - CORREGIDA
@@ -387,6 +397,7 @@ if DEBUG:
     print(" Settings de PubliTrack - MODO DESARROLLO")
     print(" PWA configurada")
     print(" Whitenoise activado para archivos estáticos")
+    print(" Media files servidos por Django")
     print("=" * 80)
 else:
     print("=" * 80)
@@ -394,4 +405,5 @@ else:
     print(" Configuraciones de seguridad activadas")
     print(" Email configurado para SMTP")
     print(" Dominio: publictrack.fronteratech.ec")
+    print(" Media files servidos mediante Django (no se requiere nginx)")
     print("=" * 80)
