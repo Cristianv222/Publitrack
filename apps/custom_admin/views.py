@@ -6182,9 +6182,9 @@ def parte_mortorio_descargar_api(request, parte_generado_id):
         return redirect('custom_admin:parte_mortorios_list')
 # ==================== VISTAS DE REPORTES DE CONTRATOS ====================
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(lambda u: u.es_admin or u.es_doctor)
 def reports_dashboard_contratos(request):
-    """Dashboard principal de contratos - ACTUALIZADO con gráficas Plotly"""
+    """Dashboard principal de contratos - ACTUALIZADO con gráficas Plotly - Accesible para Admin y Doctor"""
     
     # Verificar disponibilidad de modelos
     if not CONTENT_MODELS_AVAILABLE:
@@ -6917,9 +6917,9 @@ def reports_ingresos_contratos(request):
         return redirect('custom_admin:reports_dashboard_contratos')
 # ==================== REPORTES DE VENDEDORES ====================
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(lambda u: u.es_admin or u.es_doctor)
 def reports_dashboard_vendedores(request):
-    """Dashboard de reportes de vendedores - VERSIÓN CORREGIDA"""
+    """Dashboard de reportes de vendedores - VERSIÓN CORREGIDA - Accesible para Admin y Doctor"""
     
     # Verificar disponibilidad de modelos
     if not AUTH_MODELS_AVAILABLE or not CONTENT_MODELS_AVAILABLE:
@@ -7970,11 +7970,11 @@ def _calcular_estadisticas_contratos():
     except Exception as e:
         print(f"❌ ERROR en _calcular_estadisticas_contratos: {e}")
         return {}
-# ==================== DASHBOARD DE PARTES MORTUORIOS ====================
+# ==================== REPORTES DE PARTES MORTUORIOS ====================
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(lambda u: u.es_admin or u.es_doctor)
 def reports_dashboard_partes_mortuorios(request):
-    """Dashboard principal de partes mortuorios - VERSIÓN CORREGIDA CON 5 TARJETAS"""
+    """Dashboard de reportes de partes mortuorios - Accesible para Admin y Doctor"""
     
     # Verificar disponibilidad del módulo
     if not PARTE_MORTORIO_MODELS_AVAILABLE:

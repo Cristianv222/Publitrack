@@ -62,7 +62,7 @@
         color: var(--gray-900);
         line-height: 1.5;
     }
-    
+
     .container-fluid {
         max-width: 1600px;
         margin: 0 auto;
@@ -231,10 +231,21 @@
         opacity: 1;
     }
 
-    .metric-card.primary::before { background-color: var(--primary-color); }
-    .metric-card.success::before { background-color: var(--success-color); }
-    .metric-card.warning::before { background-color: var(--warning-color); }
-    .metric-card.info::before { background-color: var(--info-color); }
+    .metric-card.primary::before {
+        background-color: var(--primary-color);
+    }
+
+    .metric-card.success::before {
+        background-color: var(--success-color);
+    }
+
+    .metric-card.warning::before {
+        background-color: var(--warning-color);
+    }
+
+    .metric-card.info::before {
+        background-color: var(--info-color);
+    }
 
     .metric-content {
         display: flex;
@@ -260,26 +271,26 @@
         transform: scale(1.1) rotate(5deg);
     }
 
-    .metric-icon.primary { 
-        background-color: var(--primary-light); 
+    .metric-icon.primary {
+        background-color: var(--primary-light);
         color: var(--primary-color);
         box-shadow: 0 0 0 8px rgba(37, 99, 235, 0.08);
     }
-    
-    .metric-icon.success { 
-        background-color: var(--success-light); 
+
+    .metric-icon.success {
+        background-color: var(--success-light);
         color: var(--success-color);
         box-shadow: 0 0 0 8px rgba(16, 185, 129, 0.08);
     }
-    
-    .metric-icon.warning { 
-        background-color: var(--warning-light); 
+
+    .metric-icon.warning {
+        background-color: var(--warning-light);
         color: var(--warning-color);
         box-shadow: 0 0 0 8px rgba(245, 158, 11, 0.08);
     }
-    
-    .metric-icon.info { 
-        background-color: var(--info-light); 
+
+    .metric-icon.info {
+        background-color: var(--info-light);
         color: var(--info-color);
         box-shadow: 0 0 0 8px rgba(6, 182, 212, 0.08);
     }
@@ -391,8 +402,13 @@
         transform-origin: left;
     }
 
-    .financial-value.success { color: var(--success-color); }
-    .financial-value.info { color: var(--info-color); }
+    .financial-value.success {
+        color: var(--success-color);
+    }
+
+    .financial-value.info {
+        color: var(--info-color);
+    }
 
     /* Tabs */
     .custom-tabs {
@@ -585,11 +601,25 @@
         display: inline-block;
     }
 
-    .categoria-badge.alimentos { background: linear-gradient(135deg, #FF9A9E 0%, #FAD0C4 100%); }
-    .categoria-badge.automoviles { background: linear-gradient(135deg, #A1C4FD 0%, #C2E9FB 100%); }
-    .categoria-badge.educacion { background: linear-gradient(135deg, #FFECD2 0%, #FCB69F 100%); }
-    .categoria-badge.salud { background: linear-gradient(135deg, #84FAB0 0%, #8FD3F4 100%); }
-    .categoria-badge.entretenimiento { background: linear-gradient(135deg, #D4FC79 0%, #96E6A1 100%); }
+    .categoria-badge.alimentos {
+        background: linear-gradient(135deg, #FF9A9E 0%, #FAD0C4 100%);
+    }
+
+    .categoria-badge.automoviles {
+        background: linear-gradient(135deg, #A1C4FD 0%, #C2E9FB 100%);
+    }
+
+    .categoria-badge.educacion {
+        background: linear-gradient(135deg, #FFECD2 0%, #FCB69F 100%);
+    }
+
+    .categoria-badge.salud {
+        background: linear-gradient(135deg, #84FAB0 0%, #8FD3F4 100%);
+    }
+
+    .categoria-badge.entretenimiento {
+        background: linear-gradient(135deg, #D4FC79 0%, #96E6A1 100%);
+    }
 
     /* Action Buttons */
     .action-btn {
@@ -715,7 +745,8 @@
         display: block;
     }
 
-    .form-control, .form-select {
+    .form-control,
+    .form-select {
         border: 1px solid var(--border-color);
         border-radius: 8px;
         padding: 10px 14px;
@@ -723,7 +754,8 @@
         transition: all 0.2s ease;
     }
 
-    .form-control:focus, .form-select:focus {
+    .form-control:focus,
+    .form-select:focus {
         border-color: var(--primary-color);
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         outline: none;
@@ -930,7 +962,7 @@
     }
 
     /* Responsive */
-    
+
     /* Large Desktop - 1400px+ */
     @media (min-width: 1400px) {
         .container-fluid {
@@ -938,28 +970,28 @@
             padding-left: 32px;
             padding-right: 32px;
         }
-        
+
         .metrics-grid {
             grid-template-columns: repeat(4, 1fr);
             gap: 20px;
         }
-        
+
         .financial-grid {
             grid-template-columns: repeat(2, 1fr);
             gap: 20px;
         }
-        
+
         .metric-card {
             padding: 20px;
             min-height: 120px;
         }
-        
+
         .financial-card {
             padding: 24px 28px;
             min-height: 120px;
         }
     }
-    
+
     /* Desktop - 1200px to 1399px */
     @media (min-width: 1200px) and (max-width: 1399px) {
         .container-fluid {
@@ -967,45 +999,45 @@
             padding-left: 28px;
             padding-right: 28px;
         }
-        
+
         .metrics-grid {
             grid-template-columns: repeat(4, 1fr);
             gap: 18px;
         }
-        
+
         .financial-grid {
             grid-template-columns: repeat(2, 1fr);
             gap: 18px;
         }
     }
-    
+
     /* Desktop - 992px to 1199px */
     @media (min-width: 992px) and (max-width: 1199px) {
         .container-fluid {
             padding-left: 24px;
             padding-right: 24px;
         }
-        
+
         .metrics-grid {
             grid-template-columns: repeat(2, 1fr);
             gap: 16px;
         }
-        
+
         .financial-grid {
             grid-template-columns: repeat(2, 1fr);
             gap: 16px;
         }
-        
+
         .metric-value {
             font-size: 28px;
         }
-        
+
         .metric-icon {
             width: 48px;
             height: 48px;
             font-size: 20px;
         }
-        
+
         .financial-value {
             font-size: 24px;
         }
@@ -1017,66 +1049,66 @@
             padding-left: 20px;
             padding-right: 20px;
         }
-        
+
         .dashboard-header {
             padding: 20px;
         }
-        
+
         .dashboard-title {
             font-size: 24px;
         }
-        
+
         .metrics-grid {
             grid-template-columns: repeat(2, 1fr);
             gap: 16px;
         }
-        
+
         .metric-card {
             padding: 20px;
         }
-        
+
         .metric-value {
             font-size: 26px;
         }
-        
+
         .metric-icon {
             width: 44px;
             height: 44px;
             font-size: 20px;
         }
-        
+
         .financial-grid {
             grid-template-columns: repeat(2, 1fr);
             gap: 16px;
         }
-        
+
         .financial-value {
             font-size: 24px;
         }
-        
+
         .custom-tabs {
             padding: 6px;
             gap: 6px;
         }
-        
+
         .custom-tab {
             padding: 10px 16px;
             font-size: 13px;
         }
-        
+
         .content-section {
             padding: 20px;
         }
-        
+
         .data-table {
             font-size: 13px;
         }
-        
+
         .data-table thead th {
             padding: 10px 12px;
             font-size: 11px;
         }
-        
+
         .data-table tbody td {
             padding: 12px;
         }
@@ -1087,21 +1119,21 @@
         .container-fluid {
             padding: 16px;
         }
-        
+
         .dashboard-header {
             padding: 16px;
             margin-bottom: 16px;
         }
-        
+
         .dashboard-title {
             font-size: 22px;
             gap: 8px;
         }
-        
+
         .dashboard-subtitle {
             font-size: 13px;
         }
-        
+
         .action-buttons {
             width: 100%;
             flex-direction: column;
@@ -1112,58 +1144,58 @@
             justify-content: center;
             padding: 12px;
         }
-        
+
         .date-display {
             font-size: 12px;
             padding: 8px 12px;
         }
-        
+
         .metrics-grid {
             grid-template-columns: 1fr;
             gap: 12px;
             margin-bottom: 16px;
         }
-        
+
         .metric-card {
             padding: 16px;
         }
-        
+
         .metric-content {
             gap: 12px;
         }
-        
+
         .metric-value {
             font-size: 28px;
         }
-        
+
         .metric-icon {
             width: 52px;
             height: 52px;
             font-size: 24px;
         }
-        
+
         .metric-label {
             font-size: 11px;
         }
-        
+
         .metric-description {
             font-size: 11px;
         }
-        
+
         .financial-grid {
             grid-template-columns: 1fr;
             gap: 12px;
             margin-bottom: 16px;
         }
-        
+
         .financial-card {
             padding: 16px;
         }
-        
+
         .financial-value {
             font-size: 26px;
         }
-        
+
         .custom-tabs {
             flex-direction: column;
             gap: 0;
@@ -1181,71 +1213,71 @@
             border: 1px solid var(--border-color);
             box-shadow: var(--shadow-sm);
         }
-        
+
         .custom-tab.active {
             border: 2px solid var(--primary-color);
         }
-        
+
         .content-section {
             padding: 16px;
             margin-bottom: 16px;
         }
-        
+
         .section-header {
             margin-bottom: 16px;
             padding-bottom: 12px;
         }
-        
+
         .section-icon {
             width: 36px;
             height: 36px;
             font-size: 16px;
         }
-        
+
         .section-title {
             font-size: 18px;
         }
-        
+
         .table-responsive {
             border-radius: 8px;
             margin: 0 -16px;
         }
-        
+
         .data-table {
             font-size: 12px;
         }
-        
+
         .data-table thead th {
             padding: 8px;
             font-size: 10px;
             white-space: nowrap;
         }
-        
+
         .data-table tbody td {
             padding: 10px 8px;
         }
-        
+
         .badge-status {
             font-size: 10px;
             padding: 4px 8px;
         }
-        
+
         .action-btn {
             width: 32px;
             height: 32px;
             font-size: 12px;
         }
-        
+
         .empty-icon {
             width: 64px;
             height: 64px;
             font-size: 28px;
         }
-        
+
         .empty-title {
             font-size: 16px;
         }
-        
+
         .empty-description {
             font-size: 13px;
         }
@@ -1256,36 +1288,36 @@
         body {
             font-size: 14px;
         }
-        
+
         .container-fluid {
             padding: 12px;
         }
-        
+
         .dashboard-header {
             padding: 16px;
             margin-bottom: 12px;
         }
-        
+
         .dashboard-header .d-flex {
             flex-direction: column;
             align-items: stretch !important;
             gap: 16px !important;
         }
-        
+
         .dashboard-title {
             font-size: 20px;
             gap: 8px;
         }
-        
+
         .dashboard-title i {
             font-size: 20px;
         }
-        
+
         .dashboard-subtitle {
             font-size: 12px;
             margin-top: 6px;
         }
-        
+
         .action-buttones {
             width: 100%;
             flex-direction: column;
@@ -1298,100 +1330,100 @@
             padding: 12px 16px;
             font-size: 13px;
         }
-        
+
         .date-display {
             font-size: 11px;
             padding: 6px 10px;
             justify-content: center;
         }
-        
+
         .metrics-grid {
             grid-template-columns: 1fr;
             gap: 12px;
             margin-bottom: 12px;
         }
-        
+
         .metric-card {
             padding: 16px;
         }
-        
+
         .metric-card::before {
             width: 3px;
         }
-        
+
         .metric-content {
             flex-direction: row;
             gap: 12px;
         }
-        
+
         .metric-icon {
             width: 48px;
             height: 48px;
             font-size: 20px;
             border-radius: 10px;
         }
-        
+
         .metric-info {
             text-align: left;
         }
-        
+
         .metric-label {
             font-size: 10px;
             margin-bottom: 6px;
         }
-        
+
         .metric-value {
             font-size: 24px;
             margin-bottom: 2px;
         }
-        
+
         .metric-description {
             font-size: 10px;
         }
-        
+
         .financial-grid {
             grid-template-columns: 1fr;
             gap: 12px;
             margin-bottom: 12px;
         }
-        
+
         .financial-card {
             padding: 16px;
         }
-        
+
         .financial-label {
             font-size: 12px;
             margin-bottom: 10px;
         }
-        
+
         .financial-value {
             font-size: 24px;
         }
-        
+
         .progress-bar-custom {
             height: 14px;
         }
-        
+
         .progress-text {
             font-size: 10px;
         }
-        
+
         .progress-info {
             flex-direction: column;
             gap: 8px;
             align-items: flex-start;
         }
-        
+
         .progress-label,
         .progress-amount {
             font-size: 12px;
         }
-        
+
         .progress-status {
             font-size: 10px;
             padding: 6px 10px;
         }
-        
+
         .custom-tabs {
             flex-direction: column;
             gap: 0;
@@ -1412,20 +1444,20 @@
             box-shadow: var(--shadow-sm);
             font-size: 13px;
         }
-        
+
         .custom-tab.active {
             border: 2px solid var(--primary-color);
         }
-        
+
         .custom-tab i {
             font-size: 14px;
         }
-        
+
         .content-section {
             padding: 12px;
             margin-bottom: 12px;
         }
-        
+
         .section-header {
             flex-direction: column;
             align-items: flex-start;
@@ -1433,239 +1465,239 @@
             margin-bottom: 16px;
             padding-bottom: 12px;
         }
-        
+
         .section-icon {
             width: 32px;
             height: 32px;
             font-size: 14px;
         }
-        
+
         .section-title {
             font-size: 16px;
         }
-        
+
         .table-responsive {
             border-radius: 8px;
             margin: 0 -12px;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
         }
-        
+
         .data-table {
             font-size: 11px;
             min-width: 600px;
         }
-        
+
         .data-table thead th {
             padding: 8px 6px;
             font-size: 9px;
             white-space: nowrap;
         }
-        
+
         .data-table tbody td {
             padding: 10px 6px;
         }
-        
+
         .data-table tbody td strong {
             font-size: 12px;
         }
-        
+
         .badge-status {
             font-size: 9px;
             padding: 3px 6px;
         }
-        
+
         .info-badge {
             font-size: 9px;
             padding: 3px 8px;
         }
-        
+
         .action-btn {
             width: 30px;
             height: 30px;
             font-size: 11px;
         }
-        
+
         .view-all-btn {
             width: 100%;
             justify-content: center;
             font-size: 13px;
             padding: 12px;
         }
-        
+
         .empty-state {
             padding: 40px 12px;
         }
-        
+
         .empty-icon {
             width: 56px;
             height: 56px;
             font-size: 24px;
             margin-bottom: 16px;
         }
-        
+
         .empty-title {
             font-size: 15px;
         }
-        
+
         .empty-description {
             font-size: 12px;
             margin-bottom: 20px;
         }
-        
+
         /* Modal adjustments for mobile */
         .modal-dialog {
             margin: 0.5rem;
         }
-        
+
         .modal-content {
             border-radius: 12px;
         }
-        
+
         .modal-header {
             padding: 16px;
         }
-        
+
         .modal-title {
             font-size: 16px;
         }
-        
+
         .modal-body {
             padding: 16px;
         }
-        
+
         .modal-footer {
             padding: 12px 16px;
             flex-direction: column;
             gap: 8px;
         }
-        
+
         .modal-footer .btn {
             width: 100%;
             margin: 0 !important;
         }
-        
+
         .form-section {
             margin-bottom: 20px;
         }
-        
+
         .form-section-title {
             font-size: 13px;
             margin-bottom: 12px;
         }
-        
+
         .form-label {
             font-size: 12px;
         }
-        
+
         .form-control,
         .form-select {
             font-size: 14px;
             padding: 10px 12px;
         }
-        
+
         .step-indicator {
             padding: 0 8px;
             margin-bottom: 24px;
         }
-        
+
         .step-number {
             width: 32px;
             height: 32px;
             font-size: 14px;
             border-width: 2px;
         }
-        
+
         .step-label {
             font-size: 10px;
         }
-        
+
         .preview-card {
             padding: 12px;
             margin-top: 12px;
         }
-        
+
         .preview-card-header {
             font-size: 12px;
             margin-bottom: 10px;
         }
-        
+
         .preview-card-body h6 {
             font-size: 14px;
             margin-bottom: 10px;
         }
-        
+
         .preview-info {
             grid-template-columns: 1fr;
             gap: 8px;
         }
-        
+
         .preview-info-label {
             font-size: 11px;
         }
-        
+
         .preview-info-value {
             font-size: 13px;
         }
-        
+
         .calculation-box {
             padding: 12px;
         }
-        
+
         .calculation-value {
             font-size: 22px;
         }
-        
+
         .btn-action i,
         .custom-tab i {
             margin-right: 6px !important;
         }
     }
-    
+
     /* iPhone SE / Small devices - 375px and below */
     @media (max-width: 375px) {
         .dashboard-title {
             font-size: 18px;
         }
-        
+
         .metric-value {
             font-size: 22px;
         }
-        
+
         .metric-icon {
             width: 44px;
             height: 44px;
             font-size: 18px;
         }
-        
+
         .financial-value {
             font-size: 22px;
         }
-        
+
         .data-table {
             min-width: 550px;
         }
     }
-    
+
     /* Landscape mode for mobile */
     @media (max-height: 500px) and (orientation: landscape) {
         .dashboard-header {
             padding: 12px 16px;
         }
-        
+
         .metrics-grid {
             grid-template-columns: repeat(2, 1fr);
         }
-        
+
         .financial-grid {
             grid-template-columns: repeat(2, 1fr);
         }
-        
+
         .metric-card,
         .financial-card {
             padding: 12px;
         }
-        
+
         .content-section {
             padding: 16px;
         }
@@ -1705,7 +1737,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Métricas principales -->
     <div class="metrics-grid">
         <!-- Total Clientes -->
@@ -1721,7 +1753,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Contratos Totales -->
         <div class="metric-card info">
             <div class="metric-content">
@@ -1735,7 +1767,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Contratos Activos -->
         <div class="metric-card success">
             <div class="metric-content">
@@ -1749,7 +1781,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Cuñas Activas -->
         <div class="metric-card warning">
             <div class="metric-content">
@@ -1764,7 +1796,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Métricas financieras -->
     <div class="financial-grid">
         <div class="financial-card">
@@ -1776,7 +1808,7 @@
                 ${{ ventas_mes|floatformat:2 }}
             </div>
         </div>
-        
+
         <div class="financial-card">
             <div class="financial-label">
                 <i class="fas fa-percentage"></i>
@@ -1787,7 +1819,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Tabs -->
     <div class="custom-tabs">
         <button class="custom-tab active" onclick="cambiarTab('clientes', this)">
@@ -1803,7 +1835,7 @@
             Contratos Activos
         </button>
     </div>
-    
+
     <!-- Content -->
     <div class="tab-content-wrapper">
         <!-- Tab: Mis Clientes -->
@@ -1815,7 +1847,7 @@
                     </div>
                     <h5 class="section-title">Clientes Asignados</h5>
                 </div>
-                
+
                 {% if clientes_recientes %}
                 <div class="table-responsive">
                     <table class="data-table">
@@ -1833,7 +1865,13 @@
                             {% for cliente in clientes_recientes %}
                             <tr>
                                 <td>
-                                    <strong style="display: block; margin-bottom: 4px;">{{ cliente.get_full_name }}</strong>
+                                    <strong style="display: block; margin-bottom: 4px;">
+                                        {% if cliente.first_name or cliente.last_name %}
+                                            {{ cliente.first_name }} {{ cliente.last_name }}
+                                        {% else %}
+                                            {{ cliente.empresa|default:"Sin nombre" }}
+                                        {% endif %}
+                                    </strong>
                                     {% if cliente.profesion %}
                                     <span class="info-badge profesion">{{ cliente.profesion }}</span>
                                     {% endif %}
@@ -1846,28 +1884,31 @@
                                 <td>
                                     <div style="font-size: 13px;">
                                         <div>{{ cliente.email }}</div>
-                                        <div style="color: #64748b; margin-top: 2px;">{{ cliente.telefono|default:"—" }}</div>
+                                        <div style="color: #64748b; margin-top: 2px;">{{ cliente.telefono|default:"—" }}
+                                        </div>
                                     </div>
                                 </td>
                                 <td>
                                     {% if cliente.status == 'activo' %}
-                                        <span class="badge-status success">
-                                            <i class="fas fa-circle" style="font-size: 6px;"></i>
-                                            Activo
-                                        </span>
+                                    <span class="badge-status success">
+                                        <i class="fas fa-circle" style="font-size: 6px;"></i>
+                                        Activo
+                                    </span>
                                     {% else %}
-                                        <span class="badge-status secondary">
-                                            <i class="fas fa-circle" style="font-size: 6px;"></i>
-                                            {{ cliente.get_status_display }}
-                                        </span>
+                                    <span class="badge-status secondary">
+                                        <i class="fas fa-circle" style="font-size: 6px;"></i>
+                                        {{ cliente.get_status_display }}
+                                    </span>
                                     {% endif %}
                                 </td>
                                 <td style="text-align: center;">
                                     <div style="display: inline-flex; gap: 8px;">
-                                        <button class="action-btn" onclick="verDetalleCliente({{ cliente.pk }})" title="Ver detalle">
+                                        <button class="action-btn" onclick="verDetalleCliente({{ cliente.pk }})"
+                                            title="Ver detalle">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="action-btn warning" onclick="editarCliente({{ cliente.pk }})" title="Editar">
+                                        <button class="action-btn warning" onclick="editarCliente({{ cliente.pk }})"
+                                            title="Editar">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                     </div>
@@ -1877,7 +1918,7 @@
                         </tbody>
                     </table>
                 </div>
-                
+
                 {% if total_clientes > 10 %}
                 <div class="text-center mt-4">
                     <a href="#" class="view-all-btn">
@@ -1886,7 +1927,7 @@
                     </a>
                 </div>
                 {% endif %}
-                
+
                 {% else %}
                 <div class="empty-state">
                     <div class="empty-icon">
@@ -1902,7 +1943,7 @@
                 {% endif %}
             </div>
         </div>
-        
+
         <!-- Tab: Contratos Recientes -->
         <div class="tab-panel" id="tab-contratos" style="display: none;">
             <div class="content-section">
@@ -1912,7 +1953,7 @@
                     </div>
                     <h5 class="section-title">Contratos Recientes</h5>
                 </div>
-                
+
                 {% if contratos_recientes %}
                 <div class="table-responsive">
                     <table class="data-table">
@@ -1947,44 +1988,43 @@
                                 </td>
                                 <td>
                                     {% if contrato.estado == 'validado' %}
-                                        <span class="badge-status primary">
-                                            <i class="fas fa-check"></i>
-                                            Validado
-                                        </span>
+                                    <span class="badge-status primary">
+                                        <i class="fas fa-check"></i>
+                                        Validado
+                                    </span>
                                     {% elif contrato.estado == 'generado' %}
-                                        <span class="badge-status success">
-                                            <i class="fas fa-check-circle"></i>
-                                            Generado
-                                        </span>
+                                    <span class="badge-status success">
+                                        <i class="fas fa-check-circle"></i>
+                                        Generado
+                                    </span>
                                     {% elif contrato.estado == 'borrador' %}
-                                        <span class="badge-status warning">
-                                            <i class="fas fa-clock"></i>
-                                            Borrador
-                                        </span>
+                                    <span class="badge-status warning">
+                                        <i class="fas fa-clock"></i>
+                                        Borrador
+                                    </span>
                                     {% elif contrato.estado == 'firmado' %}
-                                        <span class="badge-status info">
-                                            <i class="fas fa-pen"></i>
-                                            Firmado
-                                        </span>
+                                    <span class="badge-status info">
+                                        <i class="fas fa-pen"></i>
+                                        Firmado
+                                    </span>
                                     {% else %}
-                                        <span class="badge-status secondary">{{ contrato.get_estado_display }}</span>
+                                    <span class="badge-status secondary">{{ contrato.get_estado_display }}</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if contrato.cuña %}
-                                        <span class="badge-status success">
-                                            <i class="fas fa-check"></i>
-                                            {{ contrato.cuña.codigo }}
-                                        </span>
+                                    <span class="badge-status success">
+                                        <i class="fas fa-check"></i>
+                                        {{ contrato.cuña.codigo }}
+                                    </span>
                                     {% else %}
-                                        <span class="badge-status secondary">Sin cuña</span>
+                                    <span class="badge-status secondary">Sin cuña</span>
                                     {% endif %}
                                 </td>
                                 <td style="text-align: center;">
                                     {% if contrato.archivo_contrato_pdf %}
-                                    <a href="{{ contrato.archivo_contrato_pdf.url }}" 
-                                       class="action-btn danger" 
-                                       target="_blank" title="Ver PDF">
+                                    <a href="{{ contrato.archivo_contrato_pdf.url }}" class="action-btn danger"
+                                        target="_blank" title="Ver PDF">
                                         <i class="fas fa-file-pdf"></i>
                                     </a>
                                     {% else %}
@@ -1996,7 +2036,7 @@
                         </tbody>
                     </table>
                 </div>
-                
+
                 {% if total_contratos > 10 %}
                 <div class="text-center mt-4">
                     <a href="#" class="view-all-btn">
@@ -2005,7 +2045,7 @@
                     </a>
                 </div>
                 {% endif %}
-                
+
                 {% else %}
                 <div class="empty-state">
                     <div class="empty-icon">
@@ -2021,7 +2061,7 @@
                 {% endif %}
             </div>
         </div>
-        
+
         <!-- Tab: Contratos Activos -->
         <div class="tab-panel" id="tab-activos" style="display: none;">
             <div class="content-section">
@@ -2031,7 +2071,7 @@
                     </div>
                     <h5 class="section-title">Contratos Activos (Validados)</h5>
                 </div>
-                
+
                 {% if contratos_activos %}
                 <div class="table-responsive">
                     <table class="data-table">
@@ -2061,27 +2101,28 @@
                                 </td>
                                 <td>
                                     {% if contrato.cuña %}
-                                        <strong style="display: block;">{{ contrato.cuña.codigo }}</strong>
-                                        <small style="color: #64748b;">{{ contrato.cuña.titulo }}</small>
+                                    <strong style="display: block;">{{ contrato.cuña.codigo }}</strong>
+                                    <small style="color: #64748b;">{{ contrato.cuña.titulo }}</small>
                                     {% else %}
-                                        —
+                                    —
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if contrato.cuña and contrato.cuña.categoria %}
-                                        <span class="categoria-badge">{{ contrato.cuña.categoria.nombre }}</span>
+                                    <span class="categoria-badge">{{ contrato.cuña.categoria.nombre }}</span>
                                     {% else %}
-                                        <small style="color: #64748b;">Sin categoría</small>
+                                    <small style="color: #64748b;">Sin categoría</small>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if contrato.cuña %}
-                                        <div style="font-size: 13px;">
-                                            <div><strong>Inicio:</strong> {{ contrato.cuña.fecha_inicio|date:"d/m/Y" }}</div>
-                                            <div><strong>Fin:</strong> {{ contrato.cuña.fecha_fin|date:"d/m/Y" }}</div>
+                                    <div style="font-size: 13px;">
+                                        <div><strong>Inicio:</strong> {{ contrato.cuña.fecha_inicio|date:"d/m/Y" }}
                                         </div>
+                                        <div><strong>Fin:</strong> {{ contrato.cuña.fecha_fin|date:"d/m/Y" }}</div>
+                                    </div>
                                     {% else %}
-                                        —
+                                    —
                                     {% endif %}
                                 </td>
                                 <td>
@@ -2091,30 +2132,29 @@
                                 </td>
                                 <td>
                                     {% if contrato.cuña %}
-                                        {% if contrato.cuña.estado == 'activa' %}
-                                            <span class="badge-status success">
-                                                <i class="fas fa-play-circle"></i>
-                                                Activa
-                                            </span>
-                                        {% elif contrato.cuña.estado == 'pendiente_revision' %}
-                                            <span class="badge-status warning">
-                                                <i class="fas fa-clock"></i>
-                                                Pendiente
-                                            </span>
-                                        {% else %}
-                                            <span class="badge-status secondary">
-                                                {{ contrato.cuña.get_estado_display }}
-                                            </span>
-                                        {% endif %}
+                                    {% if contrato.cuña.estado == 'activa' %}
+                                    <span class="badge-status success">
+                                        <i class="fas fa-play-circle"></i>
+                                        Activa
+                                    </span>
+                                    {% elif contrato.cuña.estado == 'pendiente_revision' %}
+                                    <span class="badge-status warning">
+                                        <i class="fas fa-clock"></i>
+                                        Pendiente
+                                    </span>
                                     {% else %}
-                                        —
+                                    <span class="badge-status secondary">
+                                        {{ contrato.cuña.get_estado_display }}
+                                    </span>
+                                    {% endif %}
+                                    {% else %}
+                                    —
                                     {% endif %}
                                 </td>
                                 <td style="text-align: center;">
                                     {% if contrato.archivo_contrato_pdf %}
-                                    <a href="{{ contrato.archivo_contrato_pdf.url }}" 
-                                       class="action-btn danger" 
-                                       target="_blank" title="Ver PDF">
+                                    <a href="{{ contrato.archivo_contrato_pdf.url }}" class="action-btn danger"
+                                        target="_blank" title="Ver PDF">
                                         <i class="fas fa-file-pdf"></i>
                                     </a>
                                     {% else %}
@@ -2126,7 +2166,7 @@
                         </tbody>
                     </table>
                 </div>
-                
+
                 {% else %}
                 <div class="empty-state">
                     <div class="empty-icon">
@@ -2158,7 +2198,7 @@
                     <input type="hidden" id="cliente_id" name="cliente_id">
                     <!-- Campo de usuario oculto que se generará automáticamente -->
                     <input type="hidden" id="username" name="username">
-                    
+
                     <div class="form-section">
                         <h6 class="form-section-title">
                             <i class="fas fa-building"></i>
@@ -2166,11 +2206,13 @@
                         </h6>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">RUC/Cédula <span style="color: var(--danger-color);">*</span></label>
+                                <label class="form-label">RUC/Cédula <span
+                                        style="color: var(--danger-color);">*</span></label>
                                 <input type="text" class="form-control" name="ruc_dni" id="ruc_dni" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Nombre de la Empresa <span style="color: var(--danger-color);">*</span></label>
+                                <label class="form-label">Nombre de la Empresa <span
+                                        style="color: var(--danger-color);">*</span></label>
                                 <input type="text" class="form-control" name="empresa" id="empresa" required>
                             </div>
                             <div class="col-md-12">
@@ -2212,11 +2254,13 @@
                                 <input type="text" class="form-control" name="last_name" id="last_name">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Correo Electrónico <span style="color: var(--danger-color);">*</span></label>
+                                <label class="form-label">Correo Electrónico <span
+                                        style="color: var(--danger-color);">*</span></label>
                                 <input type="email" class="form-control" name="email" id="email" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Teléfono <span style="color: var(--danger-color);">*</span></label>
+                                <label class="form-label">Teléfono <span
+                                        style="color: var(--danger-color);">*</span></label>
                                 <input type="text" class="form-control" name="telefono" id="telefono" required>
                             </div>
                         </div>
@@ -2229,16 +2273,19 @@
                         </h6>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Ciudad <span style="color: var(--danger-color);">*</span></label>
+                                <label class="form-label">Ciudad <span
+                                        style="color: var(--danger-color);">*</span></label>
                                 <input type="text" class="form-control" name="ciudad" id="ciudad" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Provincia/Estado <span style="color: var(--danger-color);">*</span></label>
+                                <label class="form-label">Provincia/Estado <span
+                                        style="color: var(--danger-color);">*</span></label>
                                 <input type="text" class="form-control" name="provincia" id="provincia" required>
                             </div>
                             <div class="col-md-12">
                                 <label class="form-label">Dirección Exacta</label>
-                                <textarea class="form-control" name="direccion_exacta" id="direccion_exacta" rows="2"></textarea>
+                                <textarea class="form-control" name="direccion_exacta" id="direccion_exacta"
+                                    rows="2"></textarea>
                             </div>
                         </div>
                     </div>
@@ -2332,7 +2379,7 @@
                                     <option value="">-- Seleccione plantilla --</option>
                                 </select>
                             </div>
-                            
+
                             <div id="contratoPlantillaPreview" class="d-none">
                                 <div class="preview-card active">
                                     <div class="preview-card-header">
@@ -2355,7 +2402,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Paso 2: Cliente -->
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -2367,7 +2414,7 @@
                                     <option value="">-- Primero seleccione plantilla --</option>
                                 </select>
                             </div>
-                            
+
                             <div id="contratoClientePreview" class="d-none">
                                 <div class="preview-card active">
                                     <div class="preview-card-header">
@@ -2387,7 +2434,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Paso 3: Configuración -->
                     <div id="contratoDatosSection" class="d-none">
                         <hr style="margin: 32px 0;">
@@ -2395,7 +2442,7 @@
                             <i class="fas fa-edit" style="color: var(--primary-color);"></i>
                             3. Configura los Detalles del Contrato
                         </h6>
-                        
+
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label">Fecha de Inicio</label>
@@ -2407,21 +2454,21 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Valor por Segundo (S/)</label>
-                                <input type="number" class="form-control" id="contratoValorSegundo" 
-                                       step="0.01" min="0" placeholder="0.14" required>
+                                <input type="number" class="form-control" id="contratoValorSegundo" step="0.01" min="0"
+                                    placeholder="0.14" required>
                             </div>
                         </div>
-                        
+
                         <div class="row g-3 mt-2">
                             <div class="col-md-4">
                                 <label class="form-label">Spots por Día</label>
-                                <input type="number" class="form-control" id="contratoSpotsDia" 
-                                       min="1" value="1" required>
+                                <input type="number" class="form-control" id="contratoSpotsDia" min="1" value="1"
+                                    required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Duración del Spot (segundos)</label>
-                                <input type="number" class="form-control" id="contratoDuracionSpot" 
-                                       min="1" value="30" required>
+                                <input type="number" class="form-control" id="contratoDuracionSpot" min="1" value="30"
+                                    required>
                             </div>
                             <!-- NUEVO: Campo para categoría -->
                             <div class="col-md-4">
@@ -2430,15 +2477,106 @@
                                     <option value="">-- Seleccione categoría --</option>
                                     <!-- Las categorías se cargarán dinámicamente -->
                                 </select>
-                                <small class="text-muted" style="font-size: 11px;">Clasifica la cuña publicitaria</small>
+                                <small class="text-muted" style="font-size: 11px;">Clasifica la cuña
+                                    publicitaria</small>
                             </div>
                         </div>
-                        
-                        <div class="row mt-2">
+
+                        <!-- SECCIÓN DE EXCLUSIONES -->
+                        <div class="row mt-3 p-3 bg-light rounded border">
+                            <h6 class="text-primary mb-3" style="font-size: 14px;"><i
+                                    class="fas fa-calendar-times me-2"></i>Días Excluidos</h6>
+
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="contratoExcluirFinesSemana"
+                                        onchange="calcularTotalContrato()">
+                                    <label class="form-check-label" for="contratoExcluirFinesSemana">Excluir Fines de
+                                        Semana (Sáb/Dom)</label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label" style="font-size: 13px;">Excluir fechas específicas</label>
+                                <div class="input-group mb-2">
+                                    <input type="date" class="form-control form-control-sm"
+                                        id="contratoFechaEspecificaPicker">
+                                    <button class="btn btn-outline-danger btn-sm" type="button"
+                                        onclick="vendorAgregarFechaExcluida()">
+                                        <i class="fas fa-plus"></i> Excluir
+                                    </button>
+                                </div>
+                                <div id="vendorListaFechasExcluidas" class="d-flex flex-wrap gap-2"></div>
+                                <input type="hidden" id="vendorFechasExcluidasHidden">
+                            </div>
+
+                            <div class="col-12 mt-2">
+                                <small class="text-muted" id="infoDiasEfectivos"><i class="fas fa-info-circle"></i> Los
+                                    días excluidos no se cobrarán.</small>
+                            </div>
+                        </div>
+
+                        <!-- SECCIÓN DE COMPROMISOS DEL CANAL -->
+                        <div class="row mt-3 p-3 bg-light rounded border">
+                            <h6 class="text-primary mb-3" style="font-size: 14px;"><i
+                                    class="fas fa-handshake me-2"></i>Compromisos del Canal</h6>
+
+                            <!-- Spots Bonificados -->
+                            <div class="col-12 mb-3">
+                                <label class="form-label" style="font-size: 13px;">Spots Bonificados (Texto)</label>
+                                <textarea class="form-control form-control-sm" id="contratoCompromisoSpot" rows="2"
+                                    placeholder="Ej: 10 spots adicionales bonificados..."></textarea>
+                            </div>
+
+                            <!-- Transmisión de Eventos -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" style="font-size: 13px;">Transmisión de Eventos</label>
+                                <textarea class="form-control form-control-sm mb-2"
+                                    id="contratoCompromisoTransmisionTexto" rows="2"
+                                    placeholder="Descripción del evento..."></textarea>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <input type="number" class="form-control form-control-sm"
+                                            id="contratoCompromisoTransmisionCantidad" placeholder="Cant." min="0">
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text">S/</span>
+                                            <input type="number" class="form-control"
+                                                id="contratoCompromisoTransmisionValor" placeholder="Valor" min="0"
+                                                step="0.01" onchange="calcularTotalContrato()">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Notas de Prensa / Redes -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" style="font-size: 13px;">Notas de Prensa / Redes</label>
+                                <textarea class="form-control form-control-sm mb-2" id="contratoCompromisoNotasTexto"
+                                    rows="2" placeholder="Descripción de notas..."></textarea>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <input type="number" class="form-control form-control-sm"
+                                            id="contratoCompromisoNotasCantidad" placeholder="Cant." min="0">
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text">S/</span>
+                                            <input type="number" class="form-control" id="contratoCompromisoNotasValor"
+                                                placeholder="Valor" min="0" step="0.01"
+                                                onchange="calcularTotalContrato()">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
                             <div class="col-md-8">
                                 <label class="form-label">Observaciones (Opcional)</label>
-                                <textarea class="form-control" id="contratoObservaciones" rows="3" 
-                                          placeholder="Añade notas o comentarios adicionales sobre este contrato..."></textarea>
+                                <textarea class="form-control" id="contratoObservaciones" rows="3"
+                                    placeholder="Añade notas o comentarios adicionales sobre este contrato..."></textarea>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Total Calculado</label>
@@ -2455,7 +2593,8 @@
                     <i class="fas fa-times"></i>
                     Cancelar
                 </button>
-                <button type="button" class="btn btn-success" id="btnGenerarContrato" onclick="generarContrato()" disabled>
+                <button type="button" class="btn btn-success" id="btnGenerarContrato" onclick="generarContrato()"
+                    disabled>
                     <i class="fas fa-file-download"></i>
                     Generar Contrato
                 </button>
@@ -2468,752 +2607,1062 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-let modalCliente, modalDetalleCliente, modalContrato;
-let plantillaSeleccionada = null;
-let clienteSeleccionado = null;
+    let modalCliente, modalDetalleCliente, modalContrato;
+    let plantillaSeleccionada = null;
+    let clienteSeleccionado = null;
+    let vendorFechasExcluidas = []; // Array para almacenar fechas excluidas
 
-document.addEventListener('DOMContentLoaded', function() {
-    modalCliente = new bootstrap.Modal(document.getElementById('modalCliente'));
-    modalDetalleCliente = new bootstrap.Modal(document.getElementById('modalDetalleCliente'));
-    modalContrato = new bootstrap.Modal(document.getElementById('modalContrato'));
-    
-    // Configurar eventos para generación automática de usuario
-    configurarEventosUsuario();
-    
-    // Mostrar mensajes del servidor al cargar la página
-    mostrarMensajesServidor();
-});
-
-// ==================== FUNCIONES DE TABS ====================
-function cambiarTab(tabId, button) {
-    // Ocultar todos los tabs
-    document.querySelectorAll('.tab-panel').forEach(panel => {
-        panel.style.display = 'none';
-    });
-    
-    // Remover clase active de todos los botones
-    document.querySelectorAll('.custom-tab').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
-    // Mostrar tab seleccionado
-    document.getElementById('tab-' + tabId).style.display = 'block';
-    
-    // Añadir clase active al botón clickeado
-    button.classList.add('active');
-}
-
-// ==================== FUNCIONES PARA GENERAR USUARIO AUTOMÁTICO ====================
-
-// Generador de usuarios aleatorios
-function generarUsuarioAleatorio() {
-    const prefijos = ['cli', 'client', 'usr', 'user', 'cust', 'customer'];
-    const sufijos = ['tv', 'media', 'adv', 'pub', 'channel', 'broadcast'];
-    const numeros = Math.floor(1000 + Math.random() * 9000);
-    
-    const prefijo = prefijos[Math.floor(Math.random() * prefijos.length)];
-    const sufijo = sufijos[Math.floor(Math.random() * sufijos.length)];
-    
-    return `${prefijo}_${sufijo}_${numeros}`;
-}
-
-// Generador de usuarios basado en información del cliente
-function generarUsuarioDesdeInfo(empresa, ruc, email) {
-    if (empresa && empresa.trim() !== '') {
-        // Crear usuario desde el nombre de la empresa
-        const empresaSlug = empresa
-            .toLowerCase()
-            .replace(/[^a-z0-9]/g, '_')
-            .replace(/_+/g, '_')
-            .substring(0, 15);
+    document.addEventListener('DOMContentLoaded', function () {
+        // Inicializar modales de Bootstrap
+        const modalClienteElement = document.getElementById('modalCliente');
+        const modalDetalleClienteElement = document.getElementById('modalDetalleCliente');
+        const modalContratoElement = document.getElementById('modalContrato');
         
-        const numeros = Math.floor(100 + Math.random() * 900);
-        return `${empresaSlug}_${numeros}`;
-    } else if (ruc && ruc.trim() !== '') {
-        // Usar RUC/DNI si está disponible
-        return `cli_${ruc}`;
-    } else if (email && email.trim() !== '') {
-        // Usar parte del email antes del @
-        const usuarioEmail = email.split('@')[0]
-            .toLowerCase()
-            .replace(/[^a-z0-9]/g, '_')
-            .replace(/_+/g, '_')
-            .substring(0, 12);
-        
-        const numeros = Math.floor(100 + Math.random() * 900);
-        return `${usuarioEmail}_${numeros}`;
-    } else {
-        // Generar usuario completamente aleatorio
-        return generarUsuarioAleatorio();
-    }
-}
+        if (modalClienteElement) {
+            modalCliente = new bootstrap.Modal(modalClienteElement);
+        }
+        if (modalDetalleClienteElement) {
+            modalDetalleCliente = new bootstrap.Modal(modalDetalleClienteElement);
+        }
+        if (modalContratoElement) {
+            modalContrato = new bootstrap.Modal(modalContratoElement);
+        }
 
-function configurarEventosUsuario() {
-    // Generar usuario cuando se abre el modal para crear cliente
-    document.getElementById('modalCliente')?.addEventListener('show.bs.modal', function() {
-        const clienteId = document.getElementById('cliente_id').value;
-        if (!clienteId) {
-            // Solo generar para nuevos clientes
-            const usuarioGenerado = generarUsuarioAleatorio();
-            document.getElementById('username').value = usuarioGenerado;
-        }
-    });
-    
-    // Generar usuario basado en información cuando se llenan campos
-    document.getElementById('empresa')?.addEventListener('blur', function() {
-        const clienteId = document.getElementById('cliente_id').value;
-        if (!clienteId) {
-            const empresa = document.getElementById('empresa').value;
-            const ruc = document.getElementById('ruc_dni').value;
-            const email = document.getElementById('email').value;
-            
-            if (empresa || ruc || email) {
-                const usuarioGenerado = generarUsuarioDesdeInfo(empresa, ruc, email);
-                document.getElementById('username').value = usuarioGenerado;
-            }
-        }
-    });
-    
-    document.getElementById('ruc_dni')?.addEventListener('blur', function() {
-        const clienteId = document.getElementById('cliente_id').value;
-        if (!clienteId) {
-            const empresa = document.getElementById('empresa').value;
-            const ruc = document.getElementById('ruc_dni').value;
-            const email = document.getElementById('email').value;
-            
-            if (ruc && (!empresa || empresa.trim() === '')) {
-                const usuarioGenerado = generarUsuarioDesdeInfo(empresa, ruc, email);
-                document.getElementById('username').value = usuarioGenerado;
-            }
-        }
-    });
-    
-    document.getElementById('email')?.addEventListener('blur', function() {
-        const clienteId = document.getElementById('cliente_id').value;
-        if (!clienteId) {
-            const empresa = document.getElementById('empresa').value;
-            const ruc = document.getElementById('ruc_dni').value;
-            const email = document.getElementById('email').value;
-            
-            if (email && (!empresa || empresa.trim() === '') && (!ruc || ruc.trim() === '')) {
-                const usuarioGenerado = generarUsuarioDesdeInfo(empresa, ruc, email);
-                document.getElementById('username').value = usuarioGenerado;
-            }
-        }
-    });
-}
+        // Configurar eventos para generación automática de usuario
+        configurarEventosUsuario();
 
-// ==================== FUNCIONES DE CLIENTES ====================
-function abrirModalCrearCliente() {
-    document.getElementById('modalClienteTitulo').innerHTML = '<i class="fas fa-user-plus"></i> Nuevo Cliente';
-    document.getElementById('formCliente').reset();
-    document.getElementById('cliente_id').value = '';
-    
-    // Generar usuario automáticamente
-    const usuarioGenerado = generarUsuarioAleatorio();
-    document.getElementById('username').value = usuarioGenerado;
-    
-    modalCliente.show();
-}
+        // Mostrar mensajes del servidor al cargar la página
+        mostrarMensajesServidor();
 
-function editarCliente(clienteId) {
-    document.getElementById('modalClienteTitulo').innerHTML = '<i class="fas fa-user-edit"></i> Editar Cliente';
-    document.getElementById('cliente_id').value = clienteId;
-    
-    fetch(`/auth/vendedor/clientes/${clienteId}/detalle/`)
-        .then(response => response.json())
-        .then(data => {
-            // En edición, no tocamos el campo de usuario (ya existe)
-            document.getElementById('first_name').value = data.first_name || '';
-            document.getElementById('last_name').value = data.last_name || '';
-            document.getElementById('email').value = data.email;
-            document.getElementById('telefono').value = data.telefono || '';
-            document.getElementById('empresa').value = data.empresa || '';
-            document.getElementById('ruc_dni').value = data.ruc_dni || '';
-            document.getElementById('razon_social').value = data.razon_social || '';
-            document.getElementById('giro_comercial').value = data.giro_comercial || '';
-            document.getElementById('ciudad').value = data.ciudad || '';
-            document.getElementById('provincia').value = data.provincia || '';
-            document.getElementById('direccion_exacta').value = data.direccion_exacta || '';
-            document.getElementById('profesion').value = data.profesion || '';
-            document.getElementById('cargo_empresa').value = data.cargo_empresa || '';
-            
-            modalCliente.show();
-        })
-        .catch(error => {
-            mostrarAlerta('Error', 'Error al cargar datos del cliente', 'error');
+        // Configurar event listeners para cálculos de contrato
+        configurarEventosCalculoContrato();
+    });
+
+    // ==================== FUNCIONES DE TABS ====================
+    function cambiarTab(tabId, button) {
+        // Ocultar todos los tabs
+        document.querySelectorAll('.tab-panel').forEach(panel => {
+            panel.style.display = 'none';
         });
-}
 
-function guardarCliente() {
-    const clienteId = document.getElementById('cliente_id').value;
-    const form = document.getElementById('formCliente');
-    
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
+        // Remover clase active de todos los botones
+        document.querySelectorAll('.custom-tab').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // Mostrar tab seleccionado
+        const tabElement = document.getElementById('tab-' + tabId);
+        if (tabElement) {
+            tabElement.style.display = 'block';
+        }
+
+        // Añadir clase active al botón clickeado
+        button.classList.add('active');
     }
-    
-    const formData = new FormData(form);
-    
-    modalCliente.hide();
-    
-    mostrarAlerta('Procesando...', 'Por favor espere', 'info', false);
-    
-    const url = clienteId 
-        ? `/auth/vendedor/clientes/${clienteId}/editar/`
-        : '/auth/vendedor/clientes/crear/';
-    
-    fetch(url, {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': '{{ csrf_token }}'
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            mostrarAlerta('Éxito', data.message || 'Operación completada correctamente', 'success');
-            setTimeout(() => {
-                location.reload();
-            }, 1500);
-        } else {
-            // Mostrar mensaje de error sin HTML
-            let mensajeError = data.message || 'Error al guardar el cliente';
-            mostrarAlerta('Error', mensajeError, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        mostrarAlerta('Error', 'Error de conexión con el servidor', 'error');
-    });
-}
 
-function verDetalleCliente(clienteId) {
-    modalDetalleCliente.show();
-    
-    fetch(`/auth/vendedor/clientes/${clienteId}/detalle/`)
-        .then(response => response.json())
-        .then(data => {
-            let infoProfesional = '';
-            if (data.profesion || data.cargo_empresa) {
-                infoProfesional = `
+    // ==================== FUNCIONES PARA GENERAR USUARIO AUTOMÁTICO ====================
+
+    // Generador de usuarios aleatorios
+    function generarUsuarioAleatorio() {
+        const prefijos = ['cli', 'client', 'usr', 'user', 'cust', 'customer'];
+        const sufijos = ['tv', 'media', 'adv', 'pub', 'channel', 'broadcast'];
+        const numeros = Math.floor(1000 + Math.random() * 9000);
+
+        const prefijo = prefijos[Math.floor(Math.random() * prefijos.length)];
+        const sufijo = sufijos[Math.floor(Math.random() * sufijos.length)];
+
+        return `${prefijo}_${sufijo}_${numeros}`;
+    }
+
+    // Generador de usuarios basado en información del cliente
+    function generarUsuarioDesdeInfo(empresa, ruc, email) {
+        if (empresa && empresa.trim() !== '') {
+            // Crear usuario desde el nombre de la empresa
+            const empresaSlug = empresa
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, '_')
+                .replace(/_+/g, '_')
+                .substring(0, 15);
+
+            const numeros = Math.floor(100 + Math.random() * 900);
+            return `${empresaSlug}_${numeros}`;
+        } else if (ruc && ruc.trim() !== '') {
+            // Usar RUC/DNI si está disponible
+            return `cli_${ruc}`;
+        } else if (email && email.trim() !== '') {
+            // Usar parte del email antes del @
+            const usuarioEmail = email.split('@')[0]
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, '_')
+                .replace(/_+/g, '_')
+                .substring(0, 12);
+
+            const numeros = Math.floor(100 + Math.random() * 900);
+            return `${usuarioEmail}_${numeros}`;
+        } else {
+            // Generar usuario completamente aleatorio
+            return generarUsuarioAleatorio();
+        }
+    }
+
+    function configurarEventosUsuario() {
+        // Generar usuario cuando se abre el modal para crear cliente
+        document.getElementById('modalCliente')?.addEventListener('show.bs.modal', function () {
+            const clienteId = document.getElementById('cliente_id').value;
+            if (!clienteId) {
+                // Solo generar para nuevos clientes
+                const usuarioGenerado = generarUsuarioAleatorio();
+                document.getElementById('username').value = usuarioGenerado;
+            }
+        });
+
+        // Generar usuario basado en información cuando se llenan campos
+        const empresaInput = document.getElementById('empresa');
+        const rucInput = document.getElementById('ruc_dni');
+        const emailInput = document.getElementById('email');
+
+        if (empresaInput) {
+            empresaInput.addEventListener('blur', function () {
+                const clienteId = document.getElementById('cliente_id').value;
+                if (!clienteId) {
+                    const empresa = empresaInput.value;
+                    const ruc = rucInput ? rucInput.value : '';
+                    const email = emailInput ? emailInput.value : '';
+
+                    if (empresa || ruc || email) {
+                        const usuarioGenerado = generarUsuarioDesdeInfo(empresa, ruc, email);
+                        document.getElementById('username').value = usuarioGenerado;
+                    }
+                }
+            });
+        }
+
+        if (rucInput) {
+            rucInput.addEventListener('blur', function () {
+                const clienteId = document.getElementById('cliente_id').value;
+                if (!clienteId) {
+                    const empresa = empresaInput ? empresaInput.value : '';
+                    const ruc = rucInput.value;
+                    const email = emailInput ? emailInput.value : '';
+
+                    if (ruc && (!empresa || empresa.trim() === '')) {
+                        const usuarioGenerado = generarUsuarioDesdeInfo(empresa, ruc, email);
+                        document.getElementById('username').value = usuarioGenerado;
+                    }
+                }
+            });
+        }
+
+        if (emailInput) {
+            emailInput.addEventListener('blur', function () {
+                const clienteId = document.getElementById('cliente_id').value;
+                if (!clienteId) {
+                    const empresa = empresaInput ? empresaInput.value : '';
+                    const ruc = rucInput ? rucInput.value : '';
+                    const email = emailInput.value;
+
+                    if (email && (!empresa || empresa.trim() === '') && (!ruc || ruc.trim() === '')) {
+                        const usuarioGenerado = generarUsuarioDesdeInfo(empresa, ruc, email);
+                        document.getElementById('username').value = usuarioGenerado;
+                    }
+                }
+            });
+        }
+    }
+
+    // ==================== FUNCIONES DE CLIENTES ====================
+    function abrirModalCrearCliente() {
+        const modalTitulo = document.getElementById('modalClienteTitulo');
+        if (modalTitulo) {
+            modalTitulo.innerHTML = '<i class="fas fa-user-plus"></i> Nuevo Cliente';
+        }
+        
+        const form = document.getElementById('formCliente');
+        if (form) {
+            form.reset();
+        }
+        
+        document.getElementById('cliente_id').value = '';
+
+        // Generar usuario automáticamente
+        const usuarioGenerado = generarUsuarioAleatorio();
+        document.getElementById('username').value = usuarioGenerado;
+
+        if (modalCliente) {
+            modalCliente.show();
+        }
+    }
+
+    function editarCliente(clienteId) {
+        const modalTitulo = document.getElementById('modalClienteTitulo');
+        if (modalTitulo) {
+            modalTitulo.innerHTML = '<i class="fas fa-user-edit"></i> Editar Cliente';
+        }
+        document.getElementById('cliente_id').value = clienteId;
+
+        fetch(`/auth/vendedor/clientes/${clienteId}/detalle/`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // En edición, no tocamos el campo de usuario (ya existe)
+                document.getElementById('first_name').value = data.first_name || '';
+                document.getElementById('last_name').value = data.last_name || '';
+                document.getElementById('email').value = data.email || '';
+                document.getElementById('telefono').value = data.telefono || '';
+                document.getElementById('empresa').value = data.empresa || '';
+                document.getElementById('ruc_dni').value = data.ruc_dni || '';
+                document.getElementById('razon_social').value = data.razon_social || '';
+                document.getElementById('giro_comercial').value = data.giro_comercial || '';
+                document.getElementById('ciudad').value = data.ciudad || '';
+                document.getElementById('provincia').value = data.provincia || '';
+                document.getElementById('direccion_exacta').value = data.direccion_exacta || '';
+                document.getElementById('profesion').value = data.profesion || '';
+                document.getElementById('cargo_empresa').value = data.cargo_empresa || '';
+
+                if (modalCliente) {
+                    modalCliente.show();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                mostrarAlerta('Error', 'Error al cargar datos del cliente', 'error');
+            });
+    }
+
+    function guardarCliente() {
+        const form = document.getElementById('formCliente');
+        if (!form) {
+            mostrarAlerta('Error', 'Formulario no encontrado', 'error');
+            return;
+        }
+
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const clienteId = document.getElementById('cliente_id').value;
+        const formData = new FormData(form);
+
+        if (modalCliente) {
+            modalCliente.hide();
+        }
+
+        mostrarAlerta('Procesando...', 'Por favor espere', 'info', false);
+
+        const url = clienteId
+            ? `/auth/vendedor/clientes/${clienteId}/editar/`
+            : '/auth/vendedor/clientes/crear/';
+
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    mostrarAlerta('Éxito', data.message || 'Operación completada correctamente', 'success');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    // Mostrar mensaje de error sin HTML
+                    let mensajeError = data.message || 'Error al guardar el cliente';
+                    mostrarAlerta('Error', mensajeError, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                mostrarAlerta('Error', 'Error de conexión con el servidor', 'error');
+            });
+    }
+
+    function verDetalleCliente(clienteId) {
+        if (modalDetalleCliente) {
+            modalDetalleCliente.show();
+        }
+
+        fetch(`/auth/vendedor/clientes/${clienteId}/detalle/`)
+            .then(response => response.json())
+            .then(data => {
+                let infoProfesional = '';
+                if (data.profesion || data.cargo_empresa) {
+                    infoProfesional = `
                     <hr style="margin: 24px 0;">
                     <h6 style="font-size: 14px; font-weight: 700; margin-bottom: 16px;">Información Profesional</h6>
                     ${data.profesion ? `<p style="margin-bottom: 8px;"><strong>Profesión:</strong> <span class="info-badge profesion">${data.profesion}</span></p>` : ''}
                     ${data.cargo_empresa ? `<p style="margin-bottom: 8px;"><strong>Cargo:</strong> <span class="info-badge cargo">${data.cargo_empresa}</span></p>` : ''}
                 `;
-            }
-            
-            document.getElementById('detalleClienteContent').innerHTML = `
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div style="padding: 12px; background: #f8fafc; border-radius: 8px;">
-                            <div style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px;">EMPRESA</div>
-                            <div style="font-size: 15px; font-weight: 600; color: var(--dark-color);">${data.empresa || '-'}</div>
+                }
+
+                const detalleContent = document.getElementById('detalleClienteContent');
+                if (detalleContent) {
+                    detalleContent.innerHTML = `
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div style="padding: 12px; background: #f8fafc; border-radius: 8px;">
+                                <div style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px;">EMPRESA</div>
+                                <div style="font-size: 15px; font-weight: 600; color: var(--dark-color);">${data.empresa || '-'}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div style="padding: 12px; background: #f8fafc; border-radius: 8px;">
+                                <div style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px;">RUC/DNI</div>
+                                <div style="font-size: 15px; font-weight: 600; color: var(--dark-color);">${data.ruc_dni || '-'}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div style="padding: 12px; background: #f8fafc; border-radius: 8px;">
+                                <div style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px;">EMAIL</div>
+                                <div style="font-size: 15px; font-weight: 600; color: var(--dark-color);">${data.email || '-'}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div style="padding: 12px; background: #f8fafc; border-radius: 8px;">
+                                <div style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px;">TELÉFONO</div>
+                                <div style="font-size: 15px; font-weight: 600; color: var(--dark-color);">${data.telefono || '-'}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div style="padding: 12px; background: #f8fafc; border-radius: 8px;">
+                                <div style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px;">DIRECCIÓN</div>
+                                <div style="font-size: 15px; font-weight: 600; color: var(--dark-color);">${data.direccion_exacta || '-'}</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <div style="padding: 12px; background: #f8fafc; border-radius: 8px;">
-                            <div style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px;">RUC/DNI</div>
-                            <div style="font-size: 15px; font-weight: 600; color: var(--dark-color);">${data.ruc_dni || '-'}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div style="padding: 12px; background: #f8fafc; border-radius: 8px;">
-                            <div style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px;">EMAIL</div>
-                            <div style="font-size: 15px; font-weight: 600; color: var(--dark-color);">${data.email}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div style="padding: 12px; background: #f8fafc; border-radius: 8px;">
-                            <div style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px;">TELÉFONO</div>
-                            <div style="font-size: 15px; font-weight: 600; color: var(--dark-color);">${data.telefono || '-'}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-12">
-                        <div style="padding: 12px; background: #f8fafc; border-radius: 8px;">
-                            <div style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px;">DIRECCIÓN</div>
-                            <div style="font-size: 15px; font-weight: 600; color: var(--dark-color);">${data.direccion_exacta || '-'}</div>
-                        </div>
-                    </div>
-                </div>
-                ${infoProfesional}
-            `;
-        })
-        .catch(error => {
-            document.getElementById('detalleClienteContent').innerHTML = '<div class="alert alert-danger">Error al cargar detalles</div>';
-        });
-}
-
-// ==================== FUNCIONES DE CONTRATOS ====================
-
-// Nueva función para cargar categorías
-function cargarCategoriasContrato() {
-    fetch('/auth/vendedor/api/categorias/')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const select = document.getElementById('contratoCategoriaSelect');
-                select.innerHTML = '<option value="">-- Seleccione categoría --</option>';
-                
-                data.categorias.forEach(categoria => {
-                    const option = document.createElement('option');
-                    option.value = categoria.id;
-                    option.textContent = categoria.nombre;
-                    option.dataset.color = categoria.color_codigo || '#4facfe';
-                    option.dataset.tarifa = categoria.tarifa_base || '0';
-                    select.appendChild(option);
-                });
-            } else {
-                console.error('Error cargando categorías:', data.error);
-                const select = document.getElementById('contratoCategoriaSelect');
-                select.innerHTML = '<option value="">-- No hay categorías disponibles --</option>';
-            }
-        })
-        .catch(error => {
-            console.error('Error cargando categorías:', error);
-            const select = document.getElementById('contratoCategoriaSelect');
-            select.innerHTML = '<option value="">-- Error cargando categorías --</option>';
-        });
-}
-
-function abrirModalCrearContrato() {
-    document.getElementById('formContrato').reset();
-    plantillaSeleccionada = null;
-    clienteSeleccionado = null;
-    
-    document.getElementById('contratoPlantillaPreview').classList.add('d-none');
-    document.getElementById('contratoClientePreview').classList.add('d-none');
-    document.getElementById('contratoDatosSection').classList.add('d-none');
-    document.getElementById('contratoClienteSelect').disabled = true;
-    document.getElementById('btnGenerarContrato').disabled = true;
-    
-    document.getElementById('contratoStep1').classList.add('active');
-    document.getElementById('contratoStep1').classList.remove('completed');
-    document.getElementById('contratoStep2').classList.remove('active', 'completed');
-    document.getElementById('contratoStep3').classList.remove('active', 'completed');
-    
-    cargarPlantillasContrato();
-    cargarClientesContrato();
-    cargarCategoriasContrato();
-    
-    modalContrato.show();
-}
-
-function cargarPlantillasContrato() {
-    fetch('/auth/vendedor/api/plantillas/')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const select = document.getElementById('contratoPlantillaSelect');
-                select.innerHTML = '<option value="">-- Seleccione plantilla --</option>';
-                
-                data.plantillas.forEach(p => {
-                    const option = document.createElement('option');
-                    option.value = p.id;
-                    option.textContent = p.nombre + (p.is_default ? ' ★' : '');
-                    option.dataset.nombre = p.nombre;
-                    option.dataset.tipo = p.tipo_contrato_display;
-                    option.dataset.version = p.version;
-                    select.appendChild(option);
-                });
-            } else {
-                console.error('Error cargando plantillas:', data.error);
-                mostrarAlerta('Error', 'No se pudieron cargar las plantillas', 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error cargando plantillas:', error);
-            mostrarAlerta('Error', 'Error al cargar las plantillas', 'error');
-        });
-}
-
-function cargarClientesContrato() {
-    // Esta función se basa en los datos ya cargados en el template
-    const select = document.getElementById('contratoClienteSelect');
-    select.innerHTML = '<option value="">-- Seleccione cliente --</option>';
-    
-    {% for cliente in clientes_recientes %}
-    const opt{{ forloop.counter }} = document.createElement('option');
-    opt{{ forloop.counter }}.value = {{ cliente.pk }};
-    opt{{ forloop.counter }}.textContent = '{{ cliente.empresa|default:cliente.get_full_name|escapejs }} ({{ cliente.ruc_dni|escapejs }})';
-    opt{{ forloop.counter }}.dataset.nombre = '{{ cliente.empresa|default:cliente.get_full_name|escapejs }}';
-    opt{{ forloop.counter }}.dataset.ruc = '{{ cliente.ruc_dni|escapejs }}';
-    select.appendChild(opt{{ forloop.counter }});
-    {% endfor %}
-}
-
-// Event listeners para contrato
-document.getElementById('contratoPlantillaSelect')?.addEventListener('change', function() {
-    const plantillaId = this.value;
-    
-    if (plantillaId) {
-        plantillaSeleccionada = plantillaId;
-        const option = this.options[this.selectedIndex];
-        
-        document.getElementById('contratoPreviewNombre').textContent = option.dataset.nombre;
-        document.getElementById('contratoPreviewTipo').textContent = option.dataset.tipo;
-        document.getElementById('contratoPreviewVersion').textContent = 'v' + option.dataset.version;
-        
-        document.getElementById('contratoPlantillaPreview').classList.remove('d-none');
-        document.getElementById('contratoClienteSelect').disabled = false;
-        
-        document.getElementById('contratoStep1').classList.add('completed');
-        document.getElementById('contratoStep2').classList.add('active');
+                    ${infoProfesional}
+                `;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const detalleContent = document.getElementById('detalleClienteContent');
+                if (detalleContent) {
+                    detalleContent.innerHTML = '<div class="alert alert-danger">Error al cargar detalles</div>';
+                }
+            });
     }
-});
 
-document.getElementById('contratoClienteSelect')?.addEventListener('change', function() {
-    const clienteId = this.value;
-    
-    if (clienteId) {
-        clienteSeleccionado = clienteId;
-        const option = this.options[this.selectedIndex];
-        
-        document.getElementById('contratoPreviewClienteNombre').textContent = option.dataset.nombre;
-        document.getElementById('contratoPreviewClienteRUC').textContent = option.dataset.ruc;
-        
-        document.getElementById('contratoClientePreview').classList.remove('d-none');
-        document.getElementById('contratoDatosSection').classList.remove('d-none');
-        
-        document.getElementById('contratoStep2').classList.add('completed');
-        document.getElementById('contratoStep3').classList.add('active');
-        
-        document.getElementById('btnGenerarContrato').disabled = false;
-        
-        // Establecer fechas por defecto
-        const today = new Date().toISOString().split('T')[0];
-        const nextMonth = new Date();
-        nextMonth.setMonth(nextMonth.getMonth() + 1);
-        const nextMonthStr = nextMonth.toISOString().split('T')[0];
-        
-        document.getElementById('contratoFechaInicio').value = today;
-        document.getElementById('contratoFechaFin').value = nextMonthStr;
-        
-        // Recalcular total
+    // ==================== FUNCIONES DE CONTRATOS ====================
+
+    // Función para configurar eventos de cálculo de contrato
+    function configurarEventosCalculoContrato() {
+        const valorSegundoInput = document.getElementById('contratoValorSegundo');
+        const duracionSpotInput = document.getElementById('contratoDuracionSpot');
+        const spotsDiaInput = document.getElementById('contratoSpotsDia');
+        const fechaInicioInput = document.getElementById('contratoFechaInicio');
+        const fechaFinInput = document.getElementById('contratoFechaFin');
+
+        if (valorSegundoInput) {
+            valorSegundoInput.addEventListener('input', calcularTotalContrato);
+        }
+        if (duracionSpotInput) {
+            duracionSpotInput.addEventListener('input', calcularTotalContrato);
+        }
+        if (spotsDiaInput) {
+            spotsDiaInput.addEventListener('input', calcularTotalContrato);
+        }
+        if (fechaInicioInput) {
+            fechaInicioInput.addEventListener('change', calcularTotalContrato);
+        }
+        if (fechaFinInput) {
+            fechaFinInput.addEventListener('change', calcularTotalContrato);
+        }
+    }
+
+    // Nueva función para cargar categorías
+    function cargarCategoriasContrato() {
+        fetch('/auth/vendedor/api/categorias/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const select = document.getElementById('contratoCategoriaSelect');
+                    if (select) {
+                        select.innerHTML = '<option value="">-- Seleccione categoría --</option>';
+
+                        data.categorias.forEach(categoria => {
+                            const option = document.createElement('option');
+                            option.value = categoria.id;
+                            option.textContent = categoria.nombre;
+                            option.dataset.color = categoria.color_codigo || '#4facfe';
+                            option.dataset.tarifa = categoria.tarifa_base || '0';
+                            select.appendChild(option);
+                        });
+                    }
+                } else {
+                    console.error('Error cargando categorías:', data.error);
+                    const select = document.getElementById('contratoCategoriaSelect');
+                    if (select) {
+                        select.innerHTML = '<option value="">-- No hay categorías disponibles --</option>';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error cargando categorías:', error);
+                const select = document.getElementById('contratoCategoriaSelect');
+                if (select) {
+                    select.innerHTML = '<option value="">-- Error cargando categorías --</option>';
+                }
+            });
+    }
+
+    // Gestión de Fechas Excluidas
+    function vendorAgregarFechaExcluida() {
+        const picker = document.getElementById('contratoFechaEspecificaPicker');
+        if (!picker) return;
+
+        const fecha = picker.value;
+
+        if (!fecha) {
+            mostrarAlerta('Fecha requerida', 'Por favor seleccione una fecha para excluir', 'warning');
+            return;
+        }
+
+        if (vendorFechasExcluidas.includes(fecha)) {
+            mostrarAlerta('Fecha duplicada', 'Esta fecha ya está en la lista de exclusiones', 'warning');
+            return;
+        }
+
+        vendorFechasExcluidas.push(fecha);
+        vendorActualizarListaFechasExcluidas();
+        picker.value = '';
         calcularTotalContrato();
     }
-});
 
-// Cálculo automático
-function calcularDiasContrato(fechaInicio, fechaFin) {
-    if (!fechaInicio || !fechaFin) return 0;
-    
-    const inicio = new Date(fechaInicio);
-    const fin = new Date(fechaFin);
-    return Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24)) + 1;
-}
+    function vendorActualizarListaFechasExcluidas() {
+        const lista = document.getElementById('vendorListaFechasExcluidas');
+        if (!lista) return;
 
-function calcularTotalContrato() {
-    const valorSegundo = parseFloat(document.getElementById('contratoValorSegundo').value) || 0;
-    const duracion = parseInt(document.getElementById('contratoDuracionSpot').value) || 0;
-    const spots = parseInt(document.getElementById('contratoSpotsDia').value) || 0;
-    const fechaInicio = document.getElementById('contratoFechaInicio').value;
-    const fechaFin = document.getElementById('contratoFechaFin').value;
-    
-    if (fechaInicio && fechaFin) {
-        const dias = calcularDiasContrato(fechaInicio, fechaFin);
-        const total = valorSegundo * duracion * spots * dias;
-        document.getElementById('contratoTotalCalculado').textContent = `S/ ${total.toFixed(2)}`;
-        return total;
-    }
-    return 0;
-}
+        lista.innerHTML = '';
 
-document.getElementById('contratoValorSegundo')?.addEventListener('input', calcularTotalContrato);
-document.getElementById('contratoDuracionSpot')?.addEventListener('input', calcularTotalContrato);
-document.getElementById('contratoSpotsDia')?.addEventListener('input', calcularTotalContrato);
-document.getElementById('contratoFechaInicio')?.addEventListener('change', calcularTotalContrato);
-document.getElementById('contratoFechaFin')?.addEventListener('change', calcularTotalContrato);
+        vendorFechasExcluidas.forEach(fecha => {
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-danger me-1 mb-1';
+            badge.style.cursor = 'pointer';
+            badge.innerHTML = `${fecha} <i class="fas fa-times ms-1"></i>`;
+            badge.onclick = () => vendorEliminarFechaExcluida(fecha);
+            lista.appendChild(badge);
+        });
 
-function generarContrato() {
-    if (!plantillaSeleccionada || !clienteSeleccionado) {
-        mostrarAlerta('Datos incompletos', 'Debe seleccionar plantilla y cliente', 'warning');
-        return;
-    }
-    
-    const valorTotal = calcularTotalContrato();
-    if (valorTotal <= 0) {
-        mostrarAlerta('Error en el valor', 'El valor total debe ser mayor a cero', 'error');
-        return;
-    }
-    
-    // Obtener categoría seleccionada
-    const categoriaSelect = document.getElementById('contratoCategoriaSelect');
-    const categoriaId = categoriaSelect.value || null;
-    
-    const data = {
-        plantilla_id: plantillaSeleccionada,
-        cliente_id: clienteSeleccionado,
-        fecha_inicio: document.getElementById('contratoFechaInicio').value,
-        fecha_fin: document.getElementById('contratoFechaFin').value,
-        valor_por_segundo: parseFloat(document.getElementById('contratoValorSegundo').value),
-        valor_total: valorTotal,
-        spots_dia: parseInt(document.getElementById('contratoSpotsDia').value),
-        duracion_spot: parseInt(document.getElementById('contratoDuracionSpot').value),
-        observaciones: document.getElementById('contratoObservaciones').value,
-        categoria_id: categoriaId
-    };
-    
-    modalContrato.hide();
-    
-    mostrarAlerta('Generando contrato', 'Por favor espere...', 'info', false);
-    
-    fetch('/auth/vendedor/contratos/crear/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        const hiddenInput = document.getElementById('vendorFechasExcluidasHidden');
+        if (hiddenInput) {
+            hiddenInput.value = JSON.stringify(vendorFechasExcluidas);
         }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            Swal.fire({
-                icon: 'success',
-                title: '¡Contrato generado!',
-                html: `<p style="font-size: 16px; margin-top: 12px;">Número: <strong>${data.numero_contrato}</strong></p>`,
-                showCancelButton: true,
-                confirmButtonText: '<i class="fas fa-download"></i> Descargar ahora',
-                cancelButtonText: 'Ver después',
-                confirmButtonColor: 'var(--success-color)',
-                cancelButtonColor: 'var(--secondary-color)'
-            }).then((result) => {
-                if (result.isConfirmed && data.archivo_url) {
-                    window.open(data.archivo_url, '_blank');
+    }
+
+    function vendorEliminarFechaExcluida(fecha) {
+        vendorFechasExcluidas = vendorFechasExcluidas.filter(f => f !== fecha);
+        vendorActualizarListaFechasExcluidas();
+        calcularTotalContrato();
+    }
+
+    function abrirModalCrearContrato() {
+        const form = document.getElementById('formContrato');
+        if (form) {
+            form.reset();
+        }
+        
+        plantillaSeleccionada = null;
+        clienteSeleccionado = null;
+
+        // Resetear exclusiones
+        vendorFechasExcluidas = [];
+        vendorActualizarListaFechasExcluidas();
+
+        // Reset Total
+        const totalCalculado = document.getElementById('contratoTotalCalculado');
+        if (totalCalculado) {
+            totalCalculado.textContent = 'S/ 0.00';
+        }
+
+        const plantillaPreview = document.getElementById('contratoPlantillaPreview');
+        const clientePreview = document.getElementById('contratoClientePreview');
+        const datosSection = document.getElementById('contratoDatosSection');
+        const clienteSelect = document.getElementById('contratoClienteSelect');
+        const generarBtn = document.getElementById('btnGenerarContrato');
+
+        if (plantillaPreview) plantillaPreview.classList.add('d-none');
+        if (clientePreview) clientePreview.classList.add('d-none');
+        if (datosSection) datosSection.classList.add('d-none');
+        if (clienteSelect) clienteSelect.disabled = true;
+        if (generarBtn) generarBtn.disabled = true;
+
+        // Reset steps
+        const step1 = document.getElementById('contratoStep1');
+        const step2 = document.getElementById('contratoStep2');
+        const step3 = document.getElementById('contratoStep3');
+
+        if (step1) {
+            step1.classList.add('active');
+            step1.classList.remove('completed');
+        }
+        if (step2) {
+            step2.classList.remove('active', 'completed');
+        }
+        if (step3) {
+            step3.classList.remove('active', 'completed');
+        }
+
+        cargarPlantillasContrato();
+        cargarClientesContrato();
+        cargarCategoriasContrato();
+
+        if (modalContrato) {
+            modalContrato.show();
+        }
+    }
+
+    function cargarPlantillasContrato() {
+        fetch('/auth/vendedor/api/plantillas/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const select = document.getElementById('contratoPlantillaSelect');
+                    if (select) {
+                        select.innerHTML = '<option value="">-- Seleccione plantilla --</option>';
+
+                        data.plantillas.forEach(p => {
+                            const option = document.createElement('option');
+                            option.value = p.id;
+                            option.textContent = p.nombre + (p.is_default ? ' ★' : '');
+                            option.dataset.nombre = p.nombre;
+                            option.dataset.tipo = p.tipo_contrato_display;
+                            option.dataset.version = p.version;
+                            select.appendChild(option);
+                        });
+                    }
+                } else {
+                    console.error('Error cargando plantillas:', data.error);
+                    mostrarAlerta('Error', 'No se pudieron cargar las plantillas', 'error');
                 }
-                location.reload();
+            })
+            .catch(error => {
+                console.error('Error cargando plantillas:', error);
+                mostrarAlerta('Error', 'Error al cargar las plantillas', 'error');
             });
-        } else {
-            // Manejo de errores específicos
-            let mensajeError = 'No se pudo generar el contrato';
-            
-            if (data.error && data.error.includes('RUC/DNI')) {
-                mensajeError = 'El RUC/DNI ya está registrado';
-            } else if (data.error && data.error.includes('email')) {
-                mensajeError = 'El correo electrónico ya está registrado';
-            } else if (data.error) {
-                // Limpiar HTML del error
-                mensajeError = data.error.replace(/<[^>]*>/g, '');
-            }
-            
-            mostrarAlerta('Error', mensajeError, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        mostrarAlerta('Error', 'Ocurrió un error al generar el contrato', 'error');
-    });
-}
+    }
 
-// ==================== FUNCIÓN PARA MOSTRAR ALERTAS ====================
-function mostrarAlerta(titulo, texto, tipo = 'info', mostrarConfirmar = true) {
-    // LIMPIAR HTML DEL TEXTO (remover etiquetas HTML)
-    texto = texto.replace(/<[^>]*>/g, '');
-    
-    const iconos = {
-        'success': 'success',
-        'error': 'error',
-        'warning': 'warning',
-        'info': 'info'
-    };
-    
-    const icono = iconos[tipo] || 'info';
-    const color = tipo === 'success' ? 'var(--success-color)' : 
-                  tipo === 'error' ? 'var(--danger-color)' : 
-                  tipo === 'warning' ? 'var(--warning-color)' : 
-                  'var(--info-color)';
-    
-    if (!mostrarConfirmar) {
+    function cargarClientesContrato() {
+        const select = document.getElementById('contratoClienteSelect');
+        if (!select) return;
+
+        select.innerHTML = '<option value="">-- Seleccione cliente --</option>';
+
+        // Esta función se basa en datos del template, pero se ejecuta dinámicamente
+        fetch('/auth/vendedor/api/clientes/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    data.clientes.forEach(cliente => {
+                        const option = document.createElement('option');
+                        option.value = cliente.id;
+                        option.textContent = `${cliente.empresa || cliente.nombre} (${cliente.ruc_dni})`;
+                        option.dataset.nombre = cliente.empresa || cliente.nombre;
+                        option.dataset.ruc = cliente.ruc_dni;
+                        select.appendChild(option);
+                    });
+                } else {
+                    console.error('Error cargando clientes:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error cargando clientes:', error);
+            });
+    }
+
+    // Event listeners para contrato
+    const plantillaSelect = document.getElementById('contratoPlantillaSelect');
+    if (plantillaSelect) {
+        plantillaSelect.addEventListener('change', function () {
+            const plantillaId = this.value;
+
+            if (plantillaId) {
+                plantillaSeleccionada = plantillaId;
+                const option = this.options[this.selectedIndex];
+
+                const previewNombre = document.getElementById('contratoPreviewNombre');
+                const previewTipo = document.getElementById('contratoPreviewTipo');
+                const previewVersion = document.getElementById('contratoPreviewVersion');
+                const plantillaPreview = document.getElementById('contratoPlantillaPreview');
+                const clienteSelect = document.getElementById('contratoClienteSelect');
+                const step1 = document.getElementById('contratoStep1');
+                const step2 = document.getElementById('contratoStep2');
+
+                if (previewNombre) previewNombre.textContent = option.dataset.nombre;
+                if (previewTipo) previewTipo.textContent = option.dataset.tipo;
+                if (previewVersion) previewVersion.textContent = 'v' + option.dataset.version;
+                if (plantillaPreview) plantillaPreview.classList.remove('d-none');
+                if (clienteSelect) clienteSelect.disabled = false;
+
+                if (step1) step1.classList.add('completed');
+                if (step2) step2.classList.add('active');
+            }
+        });
+    }
+
+    const clienteSelect = document.getElementById('contratoClienteSelect');
+    if (clienteSelect) {
+        clienteSelect.addEventListener('change', function () {
+            const clienteId = this.value;
+
+            if (clienteId) {
+                clienteSeleccionado = clienteId;
+                const option = this.options[this.selectedIndex];
+
+                const previewClienteNombre = document.getElementById('contratoPreviewClienteNombre');
+                const previewClienteRUC = document.getElementById('contratoPreviewClienteRUC');
+                const clientePreview = document.getElementById('contratoClientePreview');
+                const datosSection = document.getElementById('contratoDatosSection');
+                const step2 = document.getElementById('contratoStep2');
+                const step3 = document.getElementById('contratoStep3');
+                const generarBtn = document.getElementById('btnGenerarContrato');
+
+                if (previewClienteNombre) previewClienteNombre.textContent = option.dataset.nombre;
+                if (previewClienteRUC) previewClienteRUC.textContent = option.dataset.ruc;
+                if (clientePreview) clientePreview.classList.remove('d-none');
+                if (datosSection) datosSection.classList.remove('d-none');
+                if (step2) step2.classList.add('completed');
+                if (step3) step3.classList.add('active');
+                if (generarBtn) generarBtn.disabled = false;
+
+                // Establecer fechas por defecto
+                const today = new Date().toISOString().split('T')[0];
+                const nextMonth = new Date();
+                nextMonth.setMonth(nextMonth.getMonth() + 1);
+                const nextMonthStr = nextMonth.toISOString().split('T')[0];
+
+                const fechaInicioInput = document.getElementById('contratoFechaInicio');
+                const fechaFinInput = document.getElementById('contratoFechaFin');
+
+                if (fechaInicioInput) fechaInicioInput.value = today;
+                if (fechaFinInput) fechaFinInput.value = nextMonthStr;
+
+                // Recalcular total
+                calcularTotalContrato();
+            }
+        });
+    }
+
+    // Cálculo automático
+    function calcularDiasContrato(fechaInicio, fechaFin) {
+        if (!fechaInicio || !fechaFin) return 0;
+
+        const inicio = new Date(fechaInicio);
+        const fin = new Date(fechaFin);
+        return Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24)) + 1;
+    }
+
+    // Función para obtener cookie CSRF
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Cálculo automático AVANZADO
+    function calcularTotalContrato() {
+        const fechaInicioInput = document.getElementById('contratoFechaInicio');
+        const fechaFinInput = document.getElementById('contratoFechaFin');
+        const valorSegundoInput = document.getElementById('contratoValorSegundo');
+        const spotsDiaInput = document.getElementById('contratoSpotsDia');
+        const duracionSpotInput = document.getElementById('contratoDuracionSpot');
+        const excluirFinesCheckbox = document.getElementById('contratoExcluirFinesSemana');
+
+        if (!fechaInicioInput || !fechaFinInput || !valorSegundoInput || !spotsDiaInput || !duracionSpotInput) {
+            const totalCalculado = document.getElementById('contratoTotalCalculado');
+            if (totalCalculado) {
+                totalCalculado.textContent = 'S/ 0.00';
+            }
+            return 0;
+        }
+
+        const fechaInicio = fechaInicioInput.value;
+        const fechaFin = fechaFinInput.value;
+        const valorSegundo = parseFloat(valorSegundoInput.value) || 0;
+        const spotsDia = parseInt(spotsDiaInput.value) || 0;
+        const duracionSpot = parseInt(duracionSpotInput.value) || 0;
+        const excluirFinesSemana = excluirFinesCheckbox?.checked || false;
+
+        if (!fechaInicio || !fechaFin || valorSegundo <= 0 || spotsDia <= 0 || duracionSpot <= 0) {
+            const totalCalculado = document.getElementById('contratoTotalCalculado');
+            if (totalCalculado) {
+                totalCalculado.textContent = 'S/ 0.00';
+            }
+            return 0;
+        }
+
+        // Calcular días efectivos
+        const inicio = new Date(fechaInicio);
+        const fin = new Date(fechaFin);
+
+        // Validar rango de fechas
+        if (fin < inicio) {
+            const totalCalculado = document.getElementById('contratoTotalCalculado');
+            if (totalCalculado) {
+                totalCalculado.textContent = 'S/ 0.00';
+            }
+            return 0;
+        }
+
+        let diasEfectivos = 0;
+
+        for (let d = new Date(inicio); d <= fin; d.setDate(d.getDate() + 1)) {
+            const diaSemana = d.getDay(); // 0 = Domingo, 6 = Sábado
+            const fechaStr = d.toISOString().split('T')[0];
+
+            // Verificar fines de semana
+            if (excluirFinesSemana && (diaSemana === 0 || diaSemana === 6)) {
+                continue;
+            }
+
+            // Verificar fechas específicas excluidas
+            if (vendorFechasExcluidas.includes(fechaStr)) {
+                continue;
+            }
+
+            diasEfectivos++;
+        }
+
+        // Actualizar info de días
+        const infoSpan = document.getElementById('infoDiasEfectivos');
+        if (infoSpan) {
+            infoSpan.innerHTML = `<i class="fas fa-info-circle"></i> Días a facturar: <strong>${diasEfectivos}</strong>`;
+        }
+
+        // Calcular Base
+        const costoPorSpot = valorSegundo * duracionSpot;
+        const costoTotalSpots = costoPorSpot * spotsDia * diasEfectivos;
+
+        // Sumar Compromisos (Valores adicionales)
+        const transmisionValor = parseFloat(document.getElementById('contratoCompromisoTransmisionValor')?.value) || 0;
+        const notasValor = parseFloat(document.getElementById('contratoCompromisoNotasValor')?.value) || 0;
+
+        const totalFinal = costoTotalSpots + transmisionValor + notasValor;
+
+        const totalCalculado = document.getElementById('contratoTotalCalculado');
+        if (totalCalculado) {
+            totalCalculado.textContent = `S/ ${totalFinal.toFixed(2)}`;
+        }
+        return totalFinal;
+    }
+
+    function generarContrato() {
+        if (!plantillaSeleccionada || !clienteSeleccionado) {
+            mostrarAlerta('Datos incompletos', 'Debe seleccionar plantilla y cliente', 'warning');
+            return;
+        }
+
+        const valorTotal = calcularTotalContrato();
+        if (valorTotal <= 0) {
+            mostrarAlerta('Error en el valor', 'El valor total debe ser mayor a cero. Verifique las fechas y montos.', 'error');
+            return;
+        }
+
+        // Obtener categoría seleccionada
+        const categoriaSelect = document.getElementById('contratoCategoriaSelect');
+        const categoriaId = categoriaSelect ? categoriaSelect.value : null;
+        const excluirFinesSemana = document.getElementById('contratoExcluirFinesSemana')?.checked || false;
+
+        const data = {
+            plantilla_id: plantillaSeleccionada,
+            cliente_id: clienteSeleccionado,
+            fecha_inicio: document.getElementById('contratoFechaInicio').value,
+            fecha_fin: document.getElementById('contratoFechaFin').value,
+            valor_por_segundo: parseFloat(document.getElementById('contratoValorSegundo').value),
+            valor_total: valorTotal,
+            spots_dia: parseInt(document.getElementById('contratoSpotsDia').value),
+            duracion_spot: parseInt(document.getElementById('contratoDuracionSpot').value),
+            observaciones: document.getElementById('contratoObservaciones')?.value || '',
+            categoria_id: categoriaId,
+
+            // Nuevos campos de Exclusiones
+            excluir_fines_semana: excluirFinesSemana,
+            fechas_excluidas: vendorFechasExcluidas,
+
+            // Nuevos campos de Compromisos
+            compromiso_spot: document.getElementById('contratoCompromisoSpot')?.value || '',
+            compromiso_transmision_texto: document.getElementById('contratoCompromisoTransmisionTexto')?.value || '',
+            compromiso_transmision_cantidad: parseInt(document.getElementById('contratoCompromisoTransmisionCantidad')?.value) || 0,
+            compromiso_transmision_valor: parseFloat(document.getElementById('contratoCompromisoTransmisionValor')?.value) || 0,
+            compromiso_notas_texto: document.getElementById('contratoCompromisoNotasTexto')?.value || '',
+            compromiso_notas_cantidad: parseInt(document.getElementById('contratoCompromisoNotasCantidad')?.value) || 0,
+            compromiso_notas_valor: parseFloat(document.getElementById('contratoCompromisoNotasValor')?.value) || 0
+        };
+
+        if (modalContrato) {
+            modalContrato.hide();
+        }
+
+        mostrarAlerta('Generando contrato', 'Por favor espere...', 'info', false);
+
+        fetch('/auth/vendedor/contratos/crear/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { 
+                        throw new Error(err.error || err.message || `HTTP ${response.status}`); 
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Contrato generado!',
+                        html: `<p style="font-size: 16px; margin-top: 12px;">Número: <strong>${data.numero_contrato}</strong></p>`,
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="fas fa-download"></i> Descargar ahora',
+                        cancelButtonText: 'Ver después',
+                        confirmButtonColor: 'var(--success-color)',
+                        cancelButtonColor: 'var(--secondary-color)'
+                    }).then((result) => {
+                        if (result.isConfirmed && data.archivo_url) {
+                            window.open(data.archivo_url, '_blank');
+                        }
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1000);
+                    });
+                } else {
+                    let mensajeError = data.error || data.message || 'No se pudo generar el contrato';
+                    mostrarAlerta('Error', mensajeError, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                mostrarAlerta('Error', error.message || 'Ocurrió un error al generar el contrato', 'error');
+            });
+    }
+
+    // ==================== FUNCIÓN PARA MOSTRAR ALERTAS ====================
+    function mostrarAlerta(titulo, texto, tipo = 'info', mostrarConfirmar = true) {
+        // LIMPIAR HTML DEL TEXTO (remover etiquetas HTML)
+        texto = texto.replace(/<[^>]*>/g, '');
+
+        const iconos = {
+            'success': 'success',
+            'error': 'error',
+            'warning': 'warning',
+            'info': 'info'
+        };
+
+        const icono = iconos[tipo] || 'info';
+        const color = tipo === 'success' ? 'var(--success-color)' :
+            tipo === 'error' ? 'var(--danger-color)' :
+                tipo === 'warning' ? 'var(--warning-color)' :
+                    'var(--info-color)';
+
+        if (!mostrarConfirmar) {
+            Swal.fire({
+                title: titulo,
+                text: texto,
+                icon: icono,
+                showConfirmButton: false,
+                allowOutsideClick: false,
+                timerProgressBar: true,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            return;
+        }
+
         Swal.fire({
             title: titulo,
             text: texto,
             icon: icono,
-            showConfirmButton: false,
-            allowOutsideClick: false,
-            timerProgressBar: true,
-            didOpen: () => {
-                Swal.showLoading();
-            }
+            confirmButtonColor: color,
+            confirmButtonText: 'Aceptar',
+            timer: tipo === 'success' ? 2000 : undefined,
+            timerProgressBar: tipo === 'success',
         });
-        return;
     }
-    
-    Swal.fire({
-        title: titulo,
-        text: texto,
-        icon: icono,
-        confirmButtonColor: color,
-        confirmButtonText: 'Aceptar',
-        timer: tipo === 'success' ? 2000 : undefined,
-        timerProgressBar: tipo === 'success',
-    });
-}
 
-// ==================== FUNCIÓN PARA MOSTRAR MENSAJES DEL SERVIDOR ====================
-function mostrarMensajesServidor() {
-    const urlParams = new URLSearchParams(window.location.search);
-    
-    if (urlParams.has('success')) {
-        const mensaje = urlParams.get('success');
-        mostrarAlerta('Éxito', mensaje.replace(/<[^>]*>/g, ''), 'success');
-        
-        // Limpiar parámetros de la URL
-        const url = new URL(window.location);
-        url.searchParams.delete('success');
-        window.history.replaceState({}, document.title, url.toString());
-    }
-    
-    if (urlParams.has('error')) {
-        const mensaje = urlParams.get('error');
-        
-        // Traducir mensajes de error comunes
-        let mensajeTraducido = mensaje.replace(/<[^>]*>/g, '');
-        
-        if (mensaje.includes('already exists') || mensaje.includes('duplicate')) {
-            if (mensaje.includes('username')) {
-                mensajeTraducido = 'El nombre de usuario ya existe';
-            } else if (mensaje.includes('email')) {
-                mensajeTraducido = 'El correo electrónico ya está registrado';
-            } else if (mensaje.includes('ruc_dni')) {
-                mensajeTraducido = 'El RUC/DNI ya está registrado';
-            } else {
-                mensajeTraducido = 'El registro ya existe en el sistema';
-            }
-        } else if (mensaje.includes('required') || mensaje.includes('blank')) {
-            mensajeTraducido = 'Complete todos los campos requeridos';
-        } else if (mensaje.includes('invalid')) {
-            mensajeTraducido = 'Datos inválidos ingresados';
+    // ==================== FUNCIÓN PARA MOSTRAR MENSAJES DEL SERVIDOR ====================
+    function mostrarMensajesServidor() {
+        const urlParams = new URLSearchParams(window.location.search);
+
+        if (urlParams.has('success')) {
+            const mensaje = urlParams.get('success');
+            mostrarAlerta('Éxito', mensaje.replace(/<[^>]*>/g, ''), 'success');
+
+            // Limpiar parámetros de la URL
+            const url = new URL(window.location);
+            url.searchParams.delete('success');
+            window.history.replaceState({}, document.title, url.toString());
         }
-        
-        mostrarAlerta('Error', mensajeTraducido, 'error');
-        
-        // Limpiar parámetros de la URL
-        const url = new URL(window.location);
-        url.searchParams.delete('error');
-        window.history.replaceState({}, document.title, url.toString());
-    }
-    
-    if (urlParams.has('cliente_creado')) {
-        mostrarAlerta('Cliente creado', 'El cliente se ha creado correctamente', 'success');
-        
-        // Limpiar parámetros de la URL
-        const url = new URL(window.location);
-        url.searchParams.delete('cliente_creado');
-        window.history.replaceState({}, document.title, url.toString());
-    }
-    
-    if (urlParams.has('cliente_actualizado')) {
-        mostrarAlerta('Cliente actualizado', 'El cliente se ha actualizado correctamente', 'success');
-        
-        // Limpiar parámetros de la URL
-        const url = new URL(window.location);
-        url.searchParams.delete('cliente_actualizado');
-        window.history.replaceState({}, document.title, url.toString());
-    }
-    
-    if (urlParams.has('contrato_creado')) {
-        mostrarAlerta('Contrato generado', 'El contrato se ha generado correctamente', 'success');
-        
-        // Limpiar parámetros de la URL
-        const url = new URL(window.location);
-        url.searchParams.delete('contrato_creado');
-        window.history.replaceState({}, document.title, url.toString());
-    }
-}
 
-// ==================== FUNCIÓN PARA MOSTRAR CONFIRMACIÓN ====================
-function mostrarConfirmacion(titulo, texto, callbackConfirmar) {
-    Swal.fire({
-        title: titulo,
-        text: texto,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: 'var(--primary-color)',
-        cancelButtonColor: 'var(--secondary-color)',
-        confirmButtonText: 'Sí',
-        cancelButtonText: 'No'
-    }).then((result) => {
-        if (result.isConfirmed && callbackConfirmar) {
-            callbackConfirmar();
+        if (urlParams.has('error')) {
+            const mensaje = urlParams.get('error');
+
+            // Traducir mensajes de error comunes
+            let mensajeTraducido = mensaje.replace(/<[^>]*>/g, '');
+
+            if (mensaje.includes('already exists') || mensaje.includes('duplicate')) {
+                if (mensaje.includes('username')) {
+                    mensajeTraducido = 'El nombre de usuario ya existe';
+                } else if (mensaje.includes('email')) {
+                    mensajeTraducido = 'El correo electrónico ya está registrado';
+                } else if (mensaje.includes('ruc_dni')) {
+                    mensajeTraducido = 'El RUC/DNI ya está registrado';
+                } else {
+                    mensajeTraducido = 'El registro ya existe en el sistema';
+                }
+            } else if (mensaje.includes('required') || mensaje.includes('blank')) {
+                mensajeTraducido = 'Complete todos los campos requeridos';
+            } else if (mensaje.includes('invalid')) {
+                mensajeTraducido = 'Datos inválidos ingresados';
+            }
+
+            mostrarAlerta('Error', mensajeTraducido, 'error');
+
+            // Limpiar parámetros de la URL
+            const url = new URL(window.location);
+            url.searchParams.delete('error');
+            window.history.replaceState({}, document.title, url.toString());
         }
-    });
-}
 
-// ==================== VALIDACIÓN DE FORMULARIOS ====================
-function validarRUC(ruc) {
-    // Validación básica de RUC/DNI
-    if (!ruc) return false;
-    
-    // Eliminar espacios y guiones
-    const rucLimpio = ruc.replace(/\s+/g, '').replace(/-/g, '');
-    
-    // Validar que sea numérico
-    if (!/^\d+$/.test(rucLimpio)) return false;
-    
-    // Validar longitud (DNI: 8, RUC: 11)
-    if (rucLimpio.length !== 8 && rucLimpio.length !== 11) return false;
-    
-    return true;
-}
+        if (urlParams.has('cliente_creado')) {
+            mostrarAlerta('Cliente creado', 'El cliente se ha creado correctamente', 'success');
 
-function validarEmail(email) {
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return regex.test(email);
-}
+            // Limpiar parámetros de la URL
+            const url = new URL(window.location);
+            url.searchParams.delete('cliente_creado');
+            window.history.replaceState({}, document.title, url.toString());
+        }
 
-// Validar RUC/DNI en tiempo real
-document.getElementById('ruc_dni')?.addEventListener('blur', function() {
-    const ruc = this.value;
-    if (ruc && !validarRUC(ruc)) {
-        mostrarAlerta('RUC/DNI inválido', 'Por favor ingrese un RUC o DNI válido (8 o 11 dígitos numéricos)', 'warning');
-        this.focus();
+        if (urlParams.has('cliente_actualizado')) {
+            mostrarAlerta('Cliente actualizado', 'El cliente se ha actualizado correctamente', 'success');
+
+            // Limpiar parámetros de la URL
+            const url = new URL(window.location);
+            url.searchParams.delete('cliente_actualizado');
+            window.history.replaceState({}, document.title, url.toString());
+        }
+
+        if (urlParams.has('contrato_creado')) {
+            mostrarAlerta('Contrato generado', 'El contrato se ha generado correctamente', 'success');
+
+            // Limpiar parámetros de la URL
+            const url = new URL(window.location);
+            url.searchParams.delete('contrato_creado');
+            window.history.replaceState({}, document.title, url.toString());
+        }
     }
-});
 
-// Validar email en tiempo real
-document.getElementById('email')?.addEventListener('blur', function() {
-    const email = this.value;
-    if (email && !validarEmail(email)) {
-        mostrarAlerta('Email inválido', 'Por favor ingrese un correo electrónico válido', 'warning');
-        this.focus();
-    }
-});
-
-// ==================== FUNCIÓN PARA LIMPIAR FORMULARIOS ====================
-function limpiarFormulario(formId) {
-    const form = document.getElementById(formId);
-    if (form) {
-        form.reset();
-        
-        // Limpiar selectores
-        const selects = form.querySelectorAll('select');
-        selects.forEach(select => {
-            select.selectedIndex = 0;
-        });
-        
-        // Limpiar campos ocultos
-        const hiddenInputs = form.querySelectorAll('input[type="hidden"]');
-        hiddenInputs.forEach(input => {
-            if (input.id !== 'csrfmiddlewaretoken') {
-                input.value = '';
+    // ==================== FUNCIÓN PARA MOSTRAR CONFIRMACIÓN ====================
+    function mostrarConfirmacion(titulo, texto, callbackConfirmar) {
+        Swal.fire({
+            title: titulo,
+            text: texto,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: 'var(--primary-color)',
+            cancelButtonColor: 'var(--secondary-color)',
+            confirmButtonText: 'Sí',
+            cancelButtonText: 'No'
+        }).then((result) => {
+            if (result.isConfirmed && callbackConfirmar) {
+                callbackConfirmar();
             }
         });
     }
-}
+
+    // ==================== VALIDACIÓN DE FORMULARIOS ====================
+    function validarRUC(ruc) {
+        // Validación básica de RUC/DNI
+        if (!ruc) return false;
+
+        // Eliminar espacios y guiones
+        const rucLimpio = ruc.replace(/\s+/g, '').replace(/-/g, '');
+
+        // Validar que sea numérico
+        if (!/^\d+$/.test(rucLimpio)) return false;
+
+        // Validar longitud (DNI: 8, RUC: 11)
+        if (rucLimpio.length !== 8 && rucLimpio.length !== 11) return false;
+
+        return true;
+    }
+
+    function validarEmail(email) {
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return regex.test(email);
+    }
+
+    // Validar RUC/DNI en tiempo real
+    const rucInput = document.getElementById('ruc_dni');
+    if (rucInput) {
+        rucInput.addEventListener('blur', function () {
+            const ruc = this.value;
+            if (ruc && !validarRUC(ruc)) {
+                mostrarAlerta('RUC/DNI inválido', 'Por favor ingrese un RUC o DNI válido (8 o 11 dígitos numéricos)', 'warning');
+                this.focus();
+            }
+        });
+    }
+
+    // Validar email en tiempo real
+    const emailInput = document.getElementById('email');
+    if (emailInput) {
+        emailInput.addEventListener('blur', function () {
+            const email = this.value;
+            if (email && !validarEmail(email)) {
+                mostrarAlerta('Email inválido', 'Por favor ingrese un correo electrónico válido', 'warning');
+                this.focus();
+            }
+        });
+    }
+
+    // ==================== FUNCIÓN PARA LIMPIAR FORMULARIOS ====================
+    function limpiarFormulario(formId) {
+        const form = document.getElementById(formId);
+        if (form) {
+            form.reset();
+
+            // Limpiar selectores
+            const selects = form.querySelectorAll('select');
+            selects.forEach(select => {
+                select.selectedIndex = 0;
+            });
+
+            // Limpiar campos ocultos
+            const hiddenInputs = form.querySelectorAll('input[type="hidden"]');
+            hiddenInputs.forEach(input => {
+                if (input.id !== 'csrfmiddlewaretoken') {
+                    input.value = '';
+                }
+            });
+        }
+    }
 </script>
 {% endblock %}

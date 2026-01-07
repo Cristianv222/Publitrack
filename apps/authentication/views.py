@@ -367,10 +367,17 @@ def vendedor_dashboard(request):
     
     # Importar modelos necesarios
     try:
-        from apps.content_management.models import ContratoGenerado, CuñaPublicitaria
+        from apps.content_management.models import (
+            ContratoGenerado, 
+            CuñaPublicitaria, 
+            PlantillaContrato,
+            CategoriaPublicitaria
+        )
     except ImportError:
         ContratoGenerado = None
         CuñaPublicitaria = None
+        PlantillaContrato = None
+        CategoriaPublicitaria = None
     
     # Obtener fechas para filtros
     hoy = timezone.now().date()
@@ -438,13 +445,27 @@ def vendedor_dashboard(request):
         if user.meta_mensual and user.meta_mensual > 0:
             porcentaje_meta = min(int((ventas_mes / user.meta_mensual) * 100), 100)
         
+        # ========== PLANTILLAS Y CATEGORÍAS PARA CONTRATOS ==========
+        plantillas = []
+        plantillas_activas_count = 0
+        categorias = []
+        
+        if PlantillaContrato:
+            plantillas = PlantillaContrato.objects.filter(is_active=True).order_by('-is_default', 'nombre')
+            plantillas_activas_count = plantillas.count()
+        
+        if CategoriaPublicitaria:
+            categorias = CategoriaPublicitaria.objects.filter(is_active=True).order_by('nombre')
+        
         context.update({
             # Estadísticas generales
             'total_clientes': clientes.count(),
             'total_contratos': contratos_vendedor.count() if ContratoGenerado else 0,
             'contratos_activos_count': contratos_activos.count() if ContratoGenerado else 0,
+            'contratos_pendientes': contratos_vendedor.filter(estado='generado').count() if ContratoGenerado else 0,
             'cuñas_activas': cuñas_activas,
             'cuñas_pendientes': cuñas_pendientes,
+            'plantillas_activas': plantillas_activas_count,
             
             # Métricas financieras
             'ventas_mes': ventas_mes,
@@ -453,9 +474,14 @@ def vendedor_dashboard(request):
             'meta_mensual': user.meta_mensual or Decimal('0.00'),
             
             # Listados para la vista
+            'clientes': clientes.select_related().order_by('empresa', 'first_name'),  # Todos los clientes para el selector
             'clientes_recientes': clientes.order_by('-created_at')[:10],
             'contratos_recientes': contratos_vendedor[:10] if ContratoGenerado else [],
             'contratos_activos': contratos_activos[:10] if ContratoGenerado else [],
+            
+            # Para creación de contratos
+            'plantillas': plantillas,
+            'categorias': categorias,
         })
     
     # Si es admin, mostrar estadísticas generales
@@ -1048,6 +1074,34 @@ def vendedor_editar_cliente(request, cliente_id):
 
 @login_required
 @user_passes_test(is_vendedor_or_admin)
+def vendedor_clientes_api(request):
+    """API para obtener lista de clientes (JSON)"""
+    try:
+        queryset = CustomUser.objects.filter(rol='cliente', is_active=True)
+        
+        # Si es vendedor, filtrar solo sus clientes asignados
+        if request.user.es_vendedor:
+            queryset = queryset.filter(vendedor_asignado=request.user)
+            
+        clientes = list(queryset.values(
+            'id', 'username', 'first_name', 'last_name', 'empresa', 'ruc_dni'
+        ).order_by('-date_joined'))
+        
+        # Añadir nombre completo manualmente ya que no es un campo de base de datos directo en values
+        for c in clientes:
+            nombre = f"{c['first_name']} {c['last_name']}".strip()
+            c['nombre'] = nombre if nombre else c['username']
+
+        return JsonResponse({
+            'success': True,
+            'clientes': clientes
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@user_passes_test(is_vendedor_or_admin)
 def vendedor_detalle_cliente_api(request, cliente_id):
     """API para obtener detalles de un cliente (JSON)"""
     try:
@@ -1089,51 +1143,98 @@ def vendedor_detalle_cliente_api(request, cliente_id):
 # VISTAS PARA GESTIÓN DE CONTRATOS POR VENDEDORES
 # ============================================================================
 
-@login_required
-@user_passes_test(is_vendedor_or_admin)
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
 def vendedor_crear_contrato(request):
-    """Crear un nuevo contrato (vendedor o admin)"""
+    """Crear un nuevo contrato (vendedor o admin) - Lógica espejo de Admin"""
+    # Verificación manual de autenticación para evitar redirecciones HTML en AJAX
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Su sesión ha expirado. Por favor recargue la página.'}, status=401)
+    
+    if not (request.user.es_vendedor or request.user.es_admin):
+        return JsonResponse({'success': False, 'error': 'No tiene permisos para realizar esta acción.'}, status=403)
+
     if request.method == 'POST':
         try:
             # Importar modelos necesarios
-            from apps.content_management.models import PlantillaContrato, ContratoGenerado
+            from apps.content_management.models import PlantillaContrato, ContratoGenerado, CategoriaPublicitaria
+            from datetime import datetime
             
             data = json.loads(request.body)
             
             # Obtener plantilla y cliente
             plantilla = get_object_or_404(PlantillaContrato, pk=data['plantilla_id'])
-            cliente = get_object_or_404(CustomUser, pk=data['cliente_id'], rol='cliente')
             
-            # Verificar que el cliente pertenece al vendedor (si no es admin)
-            if request.user.es_vendedor and cliente.vendedor_asignado != request.user:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'No tienes permisos para crear contratos para este cliente'
-                }, status=403)
+            try:
+                cliente = CustomUser.objects.get(pk=data['cliente_id'], rol='cliente')
+            except CustomUser.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'Cliente no encontrado'}, status=404)
             
+            # Verificar permisos de vendedor
+            if request.user.es_vendedor:
+                if hasattr(cliente, 'vendedor_asignado') and cliente.vendedor_asignado and cliente.vendedor_asignado != request.user:
+                     return JsonResponse({'success': False, 'error': 'Este cliente está asignado a otro vendedor'}, status=403)
+            
+            # Determinar vendedor asignado
+            vendedor_asignado = request.user if request.user.es_vendedor else getattr(cliente, 'vendedor_asignado', None)
+
+            # Obtener Categoría
+            categoria_id = data.get('categoria_id')
+            categoria = None
+            if categoria_id:
+                try:
+                    categoria = CategoriaPublicitaria.objects.get(id=categoria_id, is_active=True)
+                except CategoriaPublicitaria.DoesNotExist:
+                    pass
+
             with transaction.atomic():
-                # Calcular valores
-                valor_sin_iva = Decimal(str(data['valor_total']))
+                # Procesar fechas excluidas: convertir array JSON a string separado por comas si es necesario
+                # El modelo espera TextField default '', así que guardaremos el JSON string para preservar estructura
+                fechas_excluidas_raw = data.get('fechas_excluidas', [])
+                fechas_excluidas_str = json.dumps(fechas_excluidas_raw) if isinstance(fechas_excluidas_raw, list) else str(fechas_excluidas_raw)
                 
-                # Crear el contrato
+                # Crear contrato usando campos explícitos del modelo
                 contrato = ContratoGenerado.objects.create(
                     plantilla_usada=plantilla,
                     cliente=cliente,
+                    vendedor_asignado=vendedor_asignado,
                     nombre_cliente=cliente.empresa or cliente.get_full_name(),
                     ruc_dni_cliente=cliente.ruc_dni or '',
-                    valor_sin_iva=valor_sin_iva,
+                    valor_sin_iva=Decimal(str(data['valor_total'])),
                     generado_por=request.user,
-                    vendedor_asignado=request.user if request.user.es_vendedor else cliente.vendedor_asignado
+                    estado='borrador',
+                    observaciones=data.get('observaciones', ''),
+                    
+                    # Campos de compromisos y exclusiones
+                    spots_por_mes=int(data.get('spots_mes', 0)) if data.get('spots_mes') else 0,
+                    
+                    compromiso_spot_texto=data.get('compromiso_spot', ''),
+                    
+                    compromiso_transmision_texto=data.get('compromiso_transmision_texto', ''),
+                    compromiso_transmision_cantidad=int(data.get('compromiso_transmision_cantidad', 0)) if data.get('compromiso_transmision_cantidad') else 0,
+                    compromiso_transmision_valor=Decimal(str(data.get('compromiso_transmision_valor', '0.00'))),
+                    
+                    compromiso_notas_texto=data.get('compromiso_notas_texto', ''),
+                    compromiso_notas_cantidad=int(data.get('compromiso_notas_cantidad', 0)) if data.get('compromiso_notas_cantidad') else 0,
+                    compromiso_notas_valor=Decimal(str(data.get('compromiso_notas_valor', '0.00'))),
+                    
+                    excluir_fines_semana=data.get('excluir_fines_semana', False),
+                    fechas_excluidas=fechas_excluidas_str
                 )
                 
-                # Guardar datos de generación
+                # Guardar datos de generación para el PDF
                 contrato.datos_generacion = {
                     'FECHA_INICIO_RAW': data['fecha_inicio'],
                     'FECHA_FIN_RAW': data['fecha_fin'],
-                    'SPOTS_DIA': str(data['spots_dia']),
-                    'DURACION_SPOT': str(data['duracion_spot']),
-                    'VALOR_POR_SEGUNDO': str(data['valor_por_segundo']),
+                    'SPOTS_DIA': data.get('spots_dia', 1),
+                    'DURACION_SPOT': data.get('duracion_spot', 30),
+                    'VALOR_POR_SEGUNDO': data.get('valor_por_segundo', 0),
                     'OBSERVACIONES': data.get('observaciones', ''),
+                    'VENDEDOR_ASIGNADO_ID': vendedor_asignado.id if vendedor_asignado else None,
+                    'VENDEDOR_ASIGNADO_NOMBRE': vendedor_asignado.get_full_name() if vendedor_asignado else None,
+                    'CATEGORIA_ID': categoria.id if categoria else None,
+                    'CATEGORIA_NOMBRE': categoria.nombre if categoria else None
                 }
                 
                 contrato.save()
@@ -1142,6 +1243,7 @@ def vendedor_crear_contrato(request):
                 if contrato.generar_contrato():
                     return JsonResponse({
                         'success': True,
+                        'message': 'Contrato generado exitosamente',
                         'contrato_id': contrato.id,
                         'numero_contrato': contrato.numero_contrato,
                         'archivo_url': contrato.archivo_contrato_pdf.url if contrato.archivo_contrato_pdf else None
@@ -1153,12 +1255,12 @@ def vendedor_crear_contrato(request):
                     }, status=500)
                 
         except Exception as e:
-            print(f"Error creando contrato: {e}")
+            print(f"Error creando contrato VENDEDOR: {str(e)}")
             import traceback
             traceback.print_exc()
             return JsonResponse({
                 'success': False,
-                'error': f'Error al crear el contrato: {str(e)}'
+                'error': f'Error técnico: {str(e)}'
             }, status=500)
     
     return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)

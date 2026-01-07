@@ -43,6 +43,7 @@ urlpatterns = [
     path('vendedor/clientes/crear/', views.vendedor_crear_cliente, name='vendedor_crear_cliente'),
     path('vendedor/clientes/<int:cliente_id>/editar/', views.vendedor_editar_cliente, name='vendedor_editar_cliente'),
     path('vendedor/clientes/<int:cliente_id>/detalle/', views.vendedor_detalle_cliente_api, name='vendedor_detalle_cliente_api'),
+    path('vendedor/api/clientes/', views.vendedor_clientes_api, name='vendedor_clientes_api'),
     
     # ============================================================================
     # GESTIÓN DE CONTRATOS PARA VENDEDORES
