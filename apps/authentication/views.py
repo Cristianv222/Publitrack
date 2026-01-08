@@ -1207,6 +1207,7 @@ def vendedor_crear_contrato(request):
                     observaciones=data.get('observaciones', ''),
                     
                     # Campos de compromisos y exclusiones
+                    # Campos de compromisos y exclusiones
                     spots_por_mes=int(data.get('spots_mes', 0)) if data.get('spots_mes') else 0,
                     
                     compromiso_spot_texto=data.get('compromiso_spot', ''),
@@ -1220,16 +1221,20 @@ def vendedor_crear_contrato(request):
                     compromiso_notas_valor=Decimal(str(data.get('compromiso_notas_valor', '0.00'))),
                     
                     excluir_fines_semana=data.get('excluir_fines_semana', False),
-                    fechas_excluidas=fechas_excluidas_str
+                    fechas_excluidas=fechas_excluidas_str,
+
+                    # ✅ NUEVOS CAMPOS: Lógica de Precios (Simplificada 2026)
+                    valor_unitario_spot=Decimal(str(data.get('valor_unitario_spot', '0.00'))),
+                    cantidad_total_spots=int(data.get('cantidad_total_spots', 0))
                 )
                 
                 # Guardar datos de generación para el PDF
                 contrato.datos_generacion = {
                     'FECHA_INICIO_RAW': data['fecha_inicio'],
                     'FECHA_FIN_RAW': data['fecha_fin'],
-                    'SPOTS_DIA': data.get('spots_dia', 1),
+                    'CANTIDAD_TOTAL_SPOTS': data.get('cantidad_total_spots', 0),
+                    'VALOR_UNITARIO_SPOT': data.get('valor_unitario_spot', 0),
                     'DURACION_SPOT': data.get('duracion_spot', 30),
-                    'VALOR_POR_SEGUNDO': data.get('valor_por_segundo', 0),
                     'OBSERVACIONES': data.get('observaciones', ''),
                     'VENDEDOR_ASIGNADO_ID': vendedor_asignado.id if vendedor_asignado else None,
                     'VENDEDOR_ASIGNADO_NOMBRE': vendedor_asignado.get_full_name() if vendedor_asignado else None,

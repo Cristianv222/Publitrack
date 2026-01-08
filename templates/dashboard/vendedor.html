@@ -1867,9 +1867,9 @@
                                 <td>
                                     <strong style="display: block; margin-bottom: 4px;">
                                         {% if cliente.first_name or cliente.last_name %}
-                                            {{ cliente.first_name }} {{ cliente.last_name }}
+                                        {{ cliente.first_name }} {{ cliente.last_name }}
                                         {% else %}
-                                            {{ cliente.empresa|default:"Sin nombre" }}
+                                        {{ cliente.empresa|default:"Sin nombre" }}
                                         {% endif %}
                                     </strong>
                                     {% if cliente.profesion %}
@@ -2453,17 +2453,17 @@
                                 <input type="date" class="form-control" id="contratoFechaFin" required>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Valor por Segundo (S/)</label>
-                                <input type="number" class="form-control" id="contratoValorSegundo" step="0.01" min="0"
-                                    placeholder="0.14" required>
+                                <label class="form-label">Valor Unitario Spot (S/)</label>
+                                <input type="number" class="form-control" id="contratoValorUnitarioSpot" step="0.01"
+                                    min="0" placeholder="0.00" required>
                             </div>
                         </div>
 
                         <div class="row g-3 mt-2">
                             <div class="col-md-4">
-                                <label class="form-label">Spots por Día</label>
-                                <input type="number" class="form-control" id="contratoSpotsDia" min="1" value="1"
-                                    required>
+                                <label class="form-label">Spots por Contrato</label>
+                                <input type="number" class="form-control" id="contratoCantidadTotalSpots" min="1"
+                                    value="1" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Duración del Spot (segundos)</label>
@@ -2535,16 +2535,23 @@
                                     id="contratoCompromisoTransmisionTexto" rows="2"
                                     placeholder="Descripción del evento..."></textarea>
                                 <div class="row g-2">
-                                    <div class="col-6">
+                                    <div class="col-3">
                                         <input type="number" class="form-control form-control-sm"
-                                            id="contratoCompromisoTransmisionCantidad" placeholder="Cant." min="0">
+                                            id="contratoCompromisoTransmisionCantidad" placeholder="Cant." min="0"
+                                            oninput="calcularSubtotalTransmisiones()">
+                                    </div>
+                                    <div class="col-3">
+                                        <input type="number" class="form-control form-control-sm"
+                                            id="contratoCompromisoTransmisionUnitario" placeholder="V. Unit." min="0"
+                                            step="0.01" oninput="calcularSubtotalTransmisiones()">
                                     </div>
                                     <div class="col-6">
                                         <div class="input-group input-group-sm">
-                                            <span class="input-group-text">S/</span>
+                                            <span class="input-group-text" style="background-color: #f8fafc;">S/</span>
                                             <input type="number" class="form-control"
-                                                id="contratoCompromisoTransmisionValor" placeholder="Valor" min="0"
-                                                step="0.01" onchange="calcularTotalContrato()">
+                                                id="contratoCompromisoTransmisionValor" placeholder="Total" min="0"
+                                                step="0.01" readonly
+                                                style="background-color: #f8fafc; font-weight: 600;">
                                         </div>
                                     </div>
                                 </div>
@@ -2556,16 +2563,22 @@
                                 <textarea class="form-control form-control-sm mb-2" id="contratoCompromisoNotasTexto"
                                     rows="2" placeholder="Descripción de notas..."></textarea>
                                 <div class="row g-2">
-                                    <div class="col-6">
+                                    <div class="col-3">
                                         <input type="number" class="form-control form-control-sm"
-                                            id="contratoCompromisoNotasCantidad" placeholder="Cant." min="0">
+                                            id="contratoCompromisoNotasCantidad" placeholder="Cant." min="0"
+                                            oninput="calcularSubtotalNotas()">
+                                    </div>
+                                    <div class="col-3">
+                                        <input type="number" class="form-control form-control-sm"
+                                            id="contratoCompromisoNotasUnitario" placeholder="V. Unit." min="0"
+                                            step="0.01" oninput="calcularSubtotalNotas()">
                                     </div>
                                     <div class="col-6">
                                         <div class="input-group input-group-sm">
-                                            <span class="input-group-text">S/</span>
+                                            <span class="input-group-text" style="background-color: #f8fafc;">S/</span>
                                             <input type="number" class="form-control" id="contratoCompromisoNotasValor"
-                                                placeholder="Valor" min="0" step="0.01"
-                                                onchange="calcularTotalContrato()">
+                                                placeholder="Total" min="0" step="0.01" readonly
+                                                style="background-color: #f8fafc; font-weight: 600;">
                                         </div>
                                     </div>
                                 </div>
@@ -2617,7 +2630,7 @@
         const modalClienteElement = document.getElementById('modalCliente');
         const modalDetalleClienteElement = document.getElementById('modalDetalleCliente');
         const modalContratoElement = document.getElementById('modalContrato');
-        
+
         if (modalClienteElement) {
             modalCliente = new bootstrap.Modal(modalClienteElement);
         }
@@ -2776,12 +2789,12 @@
         if (modalTitulo) {
             modalTitulo.innerHTML = '<i class="fas fa-user-plus"></i> Nuevo Cliente';
         }
-        
+
         const form = document.getElementById('formCliente');
         if (form) {
             form.reset();
         }
-        
+
         document.getElementById('cliente_id').value = '';
 
         // Generar usuario automáticamente
@@ -2960,20 +2973,17 @@
 
     // Función para configurar eventos de cálculo de contrato
     function configurarEventosCalculoContrato() {
-        const valorSegundoInput = document.getElementById('contratoValorSegundo');
-        const duracionSpotInput = document.getElementById('contratoDuracionSpot');
-        const spotsDiaInput = document.getElementById('contratoSpotsDia');
+        const valorUnitarioInput = document.getElementById('contratoValorUnitarioSpot');
+        const cantidadSpotsInput = document.getElementById('contratoCantidadTotalSpots');
+
         const fechaInicioInput = document.getElementById('contratoFechaInicio');
         const fechaFinInput = document.getElementById('contratoFechaFin');
 
-        if (valorSegundoInput) {
-            valorSegundoInput.addEventListener('input', calcularTotalContrato);
+        if (valorUnitarioInput) {
+            valorUnitarioInput.addEventListener('input', calcularTotalContrato);
         }
-        if (duracionSpotInput) {
-            duracionSpotInput.addEventListener('input', calcularTotalContrato);
-        }
-        if (spotsDiaInput) {
-            spotsDiaInput.addEventListener('input', calcularTotalContrato);
+        if (cantidadSpotsInput) {
+            cantidadSpotsInput.addEventListener('input', calcularTotalContrato);
         }
         if (fechaInicioInput) {
             fechaInicioInput.addEventListener('change', calcularTotalContrato);
@@ -3074,7 +3084,7 @@
         if (form) {
             form.reset();
         }
-        
+
         plantillaSeleccionada = null;
         clienteSeleccionado = null;
 
@@ -3282,80 +3292,73 @@
     }
 
     // Cálculo automático AVANZADO
+    function calcularSubtotalTransmisiones() {
+        const cantidad = parseFloat(document.getElementById('contratoCompromisoTransmisionCantidad').value) || 0;
+        const unitario = parseFloat(document.getElementById('contratoCompromisoTransmisionUnitario').value) || 0;
+        const total = cantidad * unitario;
+        const inputValor = document.getElementById('contratoCompromisoTransmisionValor');
+        if (inputValor) inputValor.value = total.toFixed(2);
+        calcularTotalContrato();
+    }
+
+    function calcularSubtotalNotas() {
+        const cantidad = parseFloat(document.getElementById('contratoCompromisoNotasCantidad').value) || 0;
+        const unitario = parseFloat(document.getElementById('contratoCompromisoNotasUnitario').value) || 0;
+        const total = cantidad * unitario;
+        const inputValor = document.getElementById('contratoCompromisoNotasValor');
+        if (inputValor) inputValor.value = total.toFixed(2);
+        calcularTotalContrato();
+    }
+
     function calcularTotalContrato() {
         const fechaInicioInput = document.getElementById('contratoFechaInicio');
         const fechaFinInput = document.getElementById('contratoFechaFin');
-        const valorSegundoInput = document.getElementById('contratoValorSegundo');
-        const spotsDiaInput = document.getElementById('contratoSpotsDia');
-        const duracionSpotInput = document.getElementById('contratoDuracionSpot');
+
+        // Nuevos campos
+        const valorUnitarioInput = document.getElementById('contratoValorUnitarioSpot');
+        const cantidadSpotsInput = document.getElementById('contratoCantidadTotalSpots');
         const excluirFinesCheckbox = document.getElementById('contratoExcluirFinesSemana');
 
-        if (!fechaInicioInput || !fechaFinInput || !valorSegundoInput || !spotsDiaInput || !duracionSpotInput) {
-            const totalCalculado = document.getElementById('contratoTotalCalculado');
-            if (totalCalculado) {
-                totalCalculado.textContent = 'S/ 0.00';
-            }
-            return 0;
-        }
+        if (!fechaInicioInput || !fechaFinInput) return 0;
 
         const fechaInicio = fechaInicioInput.value;
         const fechaFin = fechaFinInput.value;
-        const valorSegundo = parseFloat(valorSegundoInput.value) || 0;
-        const spotsDia = parseInt(spotsDiaInput.value) || 0;
-        const duracionSpot = parseInt(duracionSpotInput.value) || 0;
-        const excluirFinesSemana = excluirFinesCheckbox?.checked || false;
 
-        if (!fechaInicio || !fechaFin || valorSegundo <= 0 || spotsDia <= 0 || duracionSpot <= 0) {
-            const totalCalculado = document.getElementById('contratoTotalCalculado');
-            if (totalCalculado) {
-                totalCalculado.textContent = 'S/ 0.00';
+        // Calcular días efectivos (Solo para visualizar)
+        if (fechaInicio && fechaFin) {
+            const inicio = new Date(fechaInicio);
+            const fin = new Date(fechaFin);
+
+            if (fin >= inicio) {
+                let diasEfectivos = 0;
+                const excluirFinesSemana = excluirFinesCheckbox?.checked || false;
+
+                for (let d = new Date(inicio); d <= fin; d.setDate(d.getDate() + 1)) {
+                    const diaSemana = d.getDay();
+                    const fechaStr = d.toISOString().split('T')[0];
+
+                    if (excluirFinesSemana && (diaSemana === 0 || diaSemana === 6)) continue;
+                    if (vendorFechasExcluidas.includes(fechaStr)) continue;
+
+                    diasEfectivos++;
+                }
+
+                // Actualizar info de días
+                const infoSpan = document.getElementById('infoDiasEfectivos');
+                if (infoSpan) {
+                    infoSpan.innerHTML = `<i class="fas fa-info-circle"></i> Días a facturar: <strong>${diasEfectivos}</strong>`;
+                }
             }
-            return 0;
         }
 
-        // Calcular días efectivos
-        const inicio = new Date(fechaInicio);
-        const fin = new Date(fechaFin);
+        // --- CÁLCULO MONETARIO ---
+        const valorUnitarioSpot = parseFloat(valorUnitarioInput?.value) || 0;
+        const cantidadTotalSpots = parseInt(cantidadSpotsInput?.value) || 0;
 
-        // Validar rango de fechas
-        if (fin < inicio) {
-            const totalCalculado = document.getElementById('contratoTotalCalculado');
-            if (totalCalculado) {
-                totalCalculado.textContent = 'S/ 0.00';
-            }
-            return 0;
-        }
+        // Calcular Base: Cantidad Total * Valor Unitario
+        const costoTotalSpots = valorUnitarioSpot * cantidadTotalSpots;
 
-        let diasEfectivos = 0;
-
-        for (let d = new Date(inicio); d <= fin; d.setDate(d.getDate() + 1)) {
-            const diaSemana = d.getDay(); // 0 = Domingo, 6 = Sábado
-            const fechaStr = d.toISOString().split('T')[0];
-
-            // Verificar fines de semana
-            if (excluirFinesSemana && (diaSemana === 0 || diaSemana === 6)) {
-                continue;
-            }
-
-            // Verificar fechas específicas excluidas
-            if (vendorFechasExcluidas.includes(fechaStr)) {
-                continue;
-            }
-
-            diasEfectivos++;
-        }
-
-        // Actualizar info de días
-        const infoSpan = document.getElementById('infoDiasEfectivos');
-        if (infoSpan) {
-            infoSpan.innerHTML = `<i class="fas fa-info-circle"></i> Días a facturar: <strong>${diasEfectivos}</strong>`;
-        }
-
-        // Calcular Base
-        const costoPorSpot = valorSegundo * duracionSpot;
-        const costoTotalSpots = costoPorSpot * spotsDia * diasEfectivos;
-
-        // Sumar Compromisos (Valores adicionales)
+        // Sumar Compromisos (Valores adicionales ya calculados)
         const transmisionValor = parseFloat(document.getElementById('contratoCompromisoTransmisionValor')?.value) || 0;
         const notasValor = parseFloat(document.getElementById('contratoCompromisoNotasValor')?.value) || 0;
 
@@ -3390,9 +3393,13 @@
             cliente_id: clienteSeleccionado,
             fecha_inicio: document.getElementById('contratoFechaInicio').value,
             fecha_fin: document.getElementById('contratoFechaFin').value,
-            valor_por_segundo: parseFloat(document.getElementById('contratoValorSegundo').value),
             valor_total: valorTotal,
-            spots_dia: parseInt(document.getElementById('contratoSpotsDia').value),
+            // Nuevos Campos
+            valor_unitario_spot: parseFloat(document.getElementById('contratoValorUnitarioSpot').value),
+            cantidad_total_spots: parseInt(document.getElementById('contratoCantidadTotalSpots').value),
+
+            // Legacy / Metadata
+            spots_dia: 0, // Ya no se usa para cálculo
             duracion_spot: parseInt(document.getElementById('contratoDuracionSpot').value),
             observaciones: document.getElementById('contratoObservaciones')?.value || '',
             categoria_id: categoriaId,
@@ -3427,8 +3434,8 @@
         })
             .then(response => {
                 if (!response.ok) {
-                    return response.json().then(err => { 
-                        throw new Error(err.error || err.message || `HTTP ${response.status}`); 
+                    return response.json().then(err => {
+                        throw new Error(err.error || err.message || `HTTP ${response.status}`);
                     });
                 }
                 return response.json();
