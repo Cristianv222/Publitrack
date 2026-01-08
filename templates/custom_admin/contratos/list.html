@@ -516,22 +516,31 @@
                             <div class="col-12"><label
                                     class="form-label fw-bold small text-uppercase text-muted">Transmisiones</label>
                             </div>
-                            <div class="col-md-6 mb-2">
+                            <div class="col-md-4 mb-2">
                                 <textarea class="form-control form-control-sm" id="compromisoTransmisionTexto" rows="2"
                                     placeholder="Listado de transmisiones..."></textarea>
                             </div>
-                            <div class="col-md-3 mb-2">
+                            <div class="col-md-2 mb-2">
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text">Cant.</span>
                                     <input type="number" class="form-control" id="compromisoTransmisionCantidad"
-                                        value="0" min="0" oninput="calcularTotal()">
+                                        value="0" min="0" oninput="calcularSubtotalTransmisiones()">
+                                </div>
+                            </div>
+                            <!-- NUEVO: Valor Unitario -->
+                            <div class="col-md-3 mb-2">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">V. Unit.</span>
+                                    <input type="number" class="form-control" id="compromisoTransmisionValorUnitario"
+                                        placeholder="0.00" step="0.01" min="0"
+                                        oninput="calcularSubtotalTransmisiones()">
                                 </div>
                             </div>
                             <div class="col-md-3 mb-2">
                                 <div class="input-group input-group-sm">
-                                    <span class="input-group-text">S/</span>
-                                    <input type="number" class="form-control" id="compromisoTransmisionValor"
-                                        value="0.00" step="0.01" min="0" oninput="calcularTotal()">
+                                    <span class="input-group-text">Total</span>
+                                    <input type="number" class="form-control bg-light" id="compromisoTransmisionValor"
+                                        value="0.00" step="0.01" min="0" readonly>
                                 </div>
                             </div>
                         </div>
@@ -540,22 +549,30 @@
                         <div class="row">
                             <div class="col-12"><label class="form-label fw-bold small text-uppercase text-muted">Notas
                                     Informativas</label></div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <textarea class="form-control form-control-sm" id="compromisoNotasTexto" rows="2"
                                     placeholder="Listado de notas informativas..."></textarea>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text">Cant.</span>
                                     <input type="number" class="form-control" id="compromisoNotasCantidad" value="0"
-                                        min="0" oninput="calcularTotal()">
+                                        min="0" oninput="calcularSubtotalNotas()">
+                                </div>
+                            </div>
+                            <!-- NUEVO: Valor Unitario -->
+                            <div class="col-md-3">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">V. Unit.</span>
+                                    <input type="number" class="form-control" id="compromisoNotasValorUnitario"
+                                        placeholder="0.00" step="0.01" min="0" oninput="calcularSubtotalNotas()">
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="input-group input-group-sm">
-                                    <span class="input-group-text">S/</span>
-                                    <input type="number" class="form-control" id="compromisoNotasValor" value="0.00"
-                                        step="0.01" min="0" oninput="calcularTotal()">
+                                    <span class="input-group-text">Total</span>
+                                    <input type="number" class="form-control bg-light" id="compromisoNotasValor"
+                                        value="0.00" step="0.01" min="0" readonly>
                                 </div>
                             </div>
                         </div>
@@ -1749,8 +1766,29 @@
         }
     });
 
+    // ✅ Funciones para cálculo de subtotales (Compromisos)
+    function calcularSubtotalTransmisiones() {
+        const cant = parseFloat(document.getElementById('compromisoTransmisionCantidad').value) || 0;
+        const unit = parseFloat(document.getElementById('compromisoTransmisionValorUnitario').value) || 0;
+        const total = cant * unit;
+        document.getElementById('compromisoTransmisionValor').value = total.toFixed(2);
+        // Llamar al cálculo global
+        calcularTotalContrato();
+    }
+
+    function calcularSubtotalNotas() {
+        const cant = parseFloat(document.getElementById('compromisoNotasCantidad').value) || 0;
+        const unit = parseFloat(document.getElementById('compromisoNotasValorUnitario').value) || 0;
+        const total = cant * unit;
+        document.getElementById('compromisoNotasValor').value = total.toFixed(2);
+        // Llamar al cálculo global
+        calcularTotalContrato();
+    }
+
     // ✅ Hacer disponibles funciones globalmente para onclick
     window.calcularTotal = calcularTotalContrato;
+    window.calcularSubtotalTransmisiones = calcularSubtotalTransmisiones;
+    window.calcularSubtotalNotas = calcularSubtotalNotas;
     window.verDetalleContrato = verDetalleContrato;
     window.subirContratoValidado = subirContratoValidado;
     window.eliminarContrato = eliminarContrato;
