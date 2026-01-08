@@ -2,27 +2,30 @@
 {% load pwa %}
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}PublicTrack - Sistema de Gestión Radial{% endblock %}</title>
-    
+
     <!-- PWA Meta Tags generados automáticamente por django-pwa -->
     {% progressive_web_app_meta %}
-    
+
     <!-- Favicons con versioning para forzar actualización -->
     <link rel="icon" type="image/x-icon" href="{% static 'img/logo_publictrack.png' %}">
     <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/logo_publictrack.png' %}">
     <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/logo_publictrack.png' %}">
     <link rel="apple-touch-icon" href="{% static 'img/logo_publictrack.png' %}">
-    
+
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <!-- Custom CSS -->
     <style>
         :root {
@@ -34,50 +37,50 @@
             --dark-color: #1f2937;
             --light-color: #f3f4f6;
         }
-        
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background-color: #f9fafb;
         }
-        
+
         .navbar-brand {
             font-weight: 700;
             font-size: 1.5rem;
         }
-        
+
         .btn-primary {
             background-color: var(--primary-color);
             border-color: var(--primary-color);
         }
-        
+
         .btn-primary:hover {
             background-color: var(--secondary-color);
             border-color: var(--secondary-color);
         }
-        
+
         .alert {
             border-radius: 0.5rem;
             border: none;
         }
-        
+
         .card {
             border: none;
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
             border-radius: 0.75rem;
         }
-        
+
         .form-control:focus {
             border-color: var(--primary-color);
             box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25);
         }
-        
+
         /* Animación de carga */
         .spinner-border-sm {
             width: 1rem;
             height: 1rem;
             border-width: 0.2em;
         }
-        
+
         /* Indicador de actualización disponible */
         .update-toast {
             position: fixed;
@@ -87,9 +90,10 @@
             min-width: 300px;
         }
     </style>
-    
+
     {% block extra_css %}{% endblock %}
 </head>
+
 <body>
     {% if user.is_authenticated %}
     <!-- Navbar para usuarios autenticados -->
@@ -104,15 +108,16 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+                            data-bs-toggle="dropdown">
                             <i class="fas fa-user-circle me-1"></i>
                             {{ user.nombre_completo }}
                             <span class="badge bg-info ms-1">{{ user.get_rol_display }}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item text-danger" href="{% url 'authentication:logout' %}">
-                                <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
-                            </a></li>
+                                    <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
+                                </a></li>
                         </ul>
                     </li>
                 </ul>
@@ -120,7 +125,7 @@
         </div>
     </nav>
     {% endif %}
-    
+
     <!-- Toast de actualización disponible -->
     <div id="update-toast" class="toast update-toast" role="alert" style="display: none;">
         <div class="toast-header bg-info text-white">
@@ -135,41 +140,42 @@
             </button>
         </div>
     </div>
-    
+
     <!-- Mensajes Flash -->
     {% if messages %}
     <div class="container mt-3">
         {% for message in messages %}
         <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+            <i
+                class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
             {{ message }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         {% endfor %}
     </div>
     {% endif %}
-    
+
     <!-- Contenido Principal -->
     <main class="{% block main_class %}container mt-4{% endblock %}">
         {% block content %}{% endblock %}
     </main>
-    
+
     <!-- Footer -->
     <footer class="mt-auto py-3 bg-light">
         <div class="container text-center">
             <span class="text-muted">© 2025 PublicTrack - Sistema de Gestión de Publicidad Radial</span>
         </div>
     </footer>
-    
+
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jQuery (opcional) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    
+
     <!-- PWA Service Worker Registration -->
     <script>
         let swRegistration;
-        
+
         // Registro del Service Worker - django-pwa lo sirve en /serviceworker.js
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -177,17 +183,17 @@
                     .then(registration => {
                         console.log('✅ Service Worker registrado:', registration.scope);
                         swRegistration = registration;
-                        
+
                         // Verificar actualizaciones cada 5 minutos
                         setInterval(() => {
                             registration.update();
                         }, 1000 * 60 * 5);
-                        
+
                         // Listener para actualizaciones
                         registration.addEventListener('updatefound', () => {
                             const newWorker = registration.installing;
                             console.log('📦 Nueva versión del Service Worker encontrada');
-                            
+
                             newWorker.addEventListener('statechange', () => {
                                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                                     // Nuevo SW instalado, mostrar notificación de actualización
@@ -197,7 +203,7 @@
                                 }
                             });
                         });
-                        
+
                         // Verificar si ya está activo
                         if (registration.active) {
                             console.log('✅ Service Worker ya está activo');
@@ -208,7 +214,7 @@
                     });
             });
         }
-        
+
         // Función para mostrar notificación de actualización
         function showUpdateNotification() {
             const updateToast = document.getElementById('update-toast');
@@ -218,7 +224,7 @@
                 toast.show();
             }
         }
-        
+
         // Botón de actualización
         const updateBtn = document.getElementById('update-app-btn');
         if (updateBtn) {
@@ -231,31 +237,32 @@
                 }
             });
         }
-        
+
         // Detectar si está ejecutándose como PWA
-        if (window.matchMedia('(display-mode: standalone)').matches || 
+        if (window.matchMedia('(display-mode: standalone)').matches ||
             window.navigator.standalone === true) {
             console.log('🚀 Ejecutando como PWA instalada');
             document.body.classList.add('pwa-installed');
         }
-        
+
         // Listener para cuando el SW toma control
         navigator.serviceWorker.addEventListener('controllerchange', () => {
             console.log('🔄 Service Worker actualizado, recargando...');
             window.location.reload();
         });
-        
+
         // Log cuando se instale la PWA
         window.addEventListener('appinstalled', () => {
             console.log('✅ PWA instalada exitosamente');
         });
-        
+
         // Capturar el evento de instalación pero sin hacer nada visible
         window.addEventListener('beforeinstallprompt', (e) => {
             console.log('📊 PWA disponible para instalar - usar botón del navegador');
         });
     </script>
-    
+
     {% block extra_js %}{% endblock %}
 </body>
+
 </html>

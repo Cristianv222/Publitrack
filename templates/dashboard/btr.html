@@ -206,6 +206,11 @@
                                         class="btn btn-sm btn-light btn-pastel border">
                                         <i class="fas fa-search"></i>
                                     </button>
+                                    <button
+                                        onclick="abrirModalDescargaOrden({{ orden.id }}, '{{ orden.codigo }}', {{ orden.archivo_orden_firmada|yesno:'true,false' }}, {{ orden.ordenes_generadas.first.id|default:'null' }}, 'toma')"
+                                        class="btn btn-sm btn-light btn-pastel border ms-1" title="Descargar">
+                                        <i class="fas fa-download"></i>
+                                    </button>
                                 </td>
                             </tr>
                             {% empty %}
@@ -246,6 +251,11 @@
                                     <button onclick="verDetalle({{ orden.id }})"
                                         class="btn btn-sm btn-light btn-pastel border">
                                         <i class="fas fa-search"></i>
+                                    </button>
+                                    <button
+                                        onclick="abrirModalDescargaOrden({{ orden.id }}, '{{ orden.codigo }}', {{ orden.archivo_orden_firmada|yesno:'true,false' }}, {{ orden.ordenes_generadas.first.id|default:'null' }}, 'toma')"
+                                        class="btn btn-sm btn-light btn-pastel border ms-1" title="Descargar">
+                                        <i class="fas fa-download"></i>
                                     </button>
                                 </td>
                             </tr>
@@ -295,6 +305,11 @@
                                     <button class="btn btn-sm btn-light btn-pastel border"
                                         onclick="editarOrdenProduccion({{ orden.id }})" title="Editar">
                                         <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button
+                                        onclick="abrirModalDescargaOrden({{ orden.id }}, '{{ orden.codigo }}', {{ orden.archivo_orden_firmada|yesno:'true,false' }}, {{ orden.ordenes_generadas_produccion.first.id|default:'null' }}, 'orden_produccion')"
+                                        class="btn btn-sm btn-light btn-pastel border ms-1" title="Descargar">
+                                        <i class="fas fa-download"></i>
                                     </button>
                                 </td>
                             </tr>
@@ -510,6 +525,94 @@
     </div>
 </div>
 
+<!-- Modal Opciones Descarga -->
+<div class="modal fade" id="modalOpcionesDescarga" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-download me-2"></i>Descargar Orden
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <h6 class="text-muted mb-1">Seleccione una opción para la orden:</h6>
+                    <h4 id="descargaOrdenCodigo" class="fw-bold text-primary"></h4>
+                </div>
+
+                <div class="d-grid gap-3">
+                    <button class="btn btn-outline-primary btn-lg p-3 text-start d-flex align-items-center"
+                        onclick="procederDescargaSistema()">
+                        <div class="bg-primary bg-opacity-10 p-3 rounded-circle me-3">
+                            <i class="fas fa-file-contract fa-2x text-primary"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold">Versión del Sistema</div>
+                            <small class="text-muted">Generada automáticamente a partir de los datos</small>
+                        </div>
+                        <i class="fas fa-chevron-right ms-auto text-muted"></i>
+                    </button>
+
+                    <button id="btnDescargaValidada"
+                        class="btn btn-outline-success btn-lg p-3 text-start d-flex align-items-center"
+                        onclick="procederDescargaValidado()">
+                        <div class="bg-success bg-opacity-10 p-3 rounded-circle me-3">
+                            <i class="fas fa-file-signature fa-2x text-success"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold">Versión Validada</div>
+                            <small class="text-muted">Documento firmado subido por el usuario</small>
+                        </div>
+                        <i class="fas fa-chevron-right ms-auto text-muted"></i>
+                    </button>
+
+                    <div id="msgNoValidada" class="text-center text-muted small mt-2" style="display:none;">
+                        <i class="fas fa-info-circle me-1"></i> No hay versión validada disponible
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Seleccionar Plantilla -->
+<div class="modal fade" id="modalSeleccionarPlantilla" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-alt me-2"></i>Seleccionar Plantilla
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <h6 class="text-muted mb-1">Seleccione una plantilla para la orden:</h6>
+                    <h5 id="plantillaOrdenCodigo" class="fw-bold text-primary"></h5>
+                </div>
+
+                <div class="mb-4">
+                    <label for="plantillaOrden" class="form-label">Plantilla:</label>
+                    <select class="form-select" id="plantillaOrden">
+                        <option value="">Cargando plantillas...</option>
+                    </select>
+                    <small class="text-muted">
+                        Seleccione la plantilla que desea utilizar para generar el PDF
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="generarOrdenConPlantilla()">
+                    <i class="fas fa-file-pdf me-2"></i>Generar PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -527,10 +630,19 @@
     updateBTRClock();
 
     let modalOrden, modalOrdenProduccion;
+    // Variables para descarga
+    let modalOpcionesDescarga;
+    let modalSeleccionarPlantilla;
+    let ordenDescargaActual = null;
+    let ordenGeneradaActualId = null;
+    let ordenDescargaTipo = 'toma'; // 'toma' o 'orden_produccion'
 
     document.addEventListener('DOMContentLoaded', function () {
         modalOrden = new bootstrap.Modal(document.getElementById('modalOrden'));
         modalOrdenProduccion = new bootstrap.Modal(document.getElementById('modalOrdenProduccion'));
+        // Inicializar modales de descarga
+        modalOpcionesDescarga = new bootstrap.Modal(document.getElementById('modalOpcionesDescarga'));
+        modalSeleccionarPlantilla = new bootstrap.Modal(document.getElementById('modalSeleccionarPlantilla'));
     });
 
     // --- Ordenes Toma Functions ---
@@ -948,6 +1060,191 @@
             case 'pausado': return 'bg-secondary';
             default: return 'bg-light text-dark border';
         }
+    }
+
+    // --- Download Functions ---
+    function abrirModalDescargaOrden(ordenId, codigo, tieneValidado, ordenGeneradaId, tipo = 'toma') {
+        ordenDescargaActual = ordenId;
+        ordenGeneradaActualId = ordenGeneradaId;
+        ordenDescargaTipo = tipo;
+        document.getElementById('descargaOrdenCodigo').textContent = codigo;
+
+        const btnValidada = document.getElementById('btnDescargaValidada');
+        const msgNoValidada = document.getElementById('msgNoValidada');
+
+        if (tieneValidado) {
+            btnValidada.disabled = false;
+            btnValidada.classList.remove('opacity-50');
+            msgNoValidada.style.display = 'none';
+        } else {
+            btnValidada.disabled = true;
+            btnValidada.classList.add('opacity-50');
+            msgNoValidada.style.display = 'block';
+        }
+
+        modalOpcionesDescarga.show();
+    }
+
+    function procederDescargaSistema() {
+        if (ordenDescargaActual) {
+            modalOpcionesDescarga.hide();
+            // Pequeño timeout para permitir que el modal se cierre visualmente antes de abrir el siguiente
+            // y evitar conflictos de foco/aria-hidden
+            setTimeout(() => {
+                cargarPlantillasYMostrarModal();
+            }, 300);
+        }
+    }
+
+    function procederDescargaValidado() {
+        if (ordenDescargaActual) {
+            let url = '';
+            if (ordenDescargaTipo === 'orden_produccion') {
+                url = `/panel/ordenes-produccion/${ordenDescargaActual}/descargar-validado/`;
+            } else {
+                url = `/panel/orders/${ordenDescargaActual}/descargar-validado/`;
+            }
+            window.open(url, '_blank');
+            modalOpcionesDescarga.hide();
+        }
+    }
+
+    function cargarPlantillasYMostrarModal() {
+        const select = document.getElementById('plantillaOrden');
+        select.innerHTML = '<option value="">Cargando...</option>';
+        document.getElementById('plantillaOrdenCodigo').textContent = document.getElementById('descargaOrdenCodigo').textContent;
+
+        modalSeleccionarPlantilla.show();
+
+        let url = '';
+        if (ordenDescargaTipo === 'orden_produccion') {
+            url = `/panel/ordenes-produccion/${ordenDescargaActual}/plantillas/`;
+        } else {
+            url = `/panel/orders/${ordenDescargaActual}/plantillas/`;
+        }
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    select.innerHTML = '';
+                    if (data.plantillas.length === 0) {
+                        select.innerHTML = '<option value="">No hay plantillas disponibles</option>';
+                    } else {
+                        data.plantillas.forEach(p => {
+                            const option = document.createElement('option');
+                            option.value = p.id;
+                            option.text = p.nombre + (p.is_default ? ' (Por defecto)' : '');
+                            if (p.is_default) option.selected = true;
+                            select.appendChild(option);
+                        });
+                    }
+                } else {
+                    select.innerHTML = '<option value="">Error al cargar</option>';
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                select.innerHTML = '<option value="">Error de conexión</option>';
+            });
+    }
+
+    function generarOrdenConPlantilla() {
+        console.log('Iniciando generación de PDF...');
+        const plantillaId = document.getElementById('plantillaOrden').value;
+        if (!plantillaId) {
+            alert('Por favor seleccione una plantilla');
+            return;
+        }
+
+        modalSeleccionarPlantilla.hide();
+
+        Swal.fire({
+            title: 'Generando PDF...',
+            html: 'Por favor espere mientras se genera el documento.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Get CSRF token safely
+        const csrfTokenEl = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (!csrfTokenEl) {
+            console.error('CSRF Token no encontrado');
+            Swal.fire('Error', 'Token de seguridad no encontrado', 'error');
+            return;
+        }
+
+        let url = '';
+        if (ordenDescargaTipo === 'orden_produccion') {
+            url = `/panel/ordenes-produccion/${ordenDescargaActual}/generar/`;
+        } else {
+            url = `/panel/orders/${ordenDescargaActual}/generar/`;
+        }
+
+        console.log('Solicitando generación a:', url);
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfTokenEl.value
+            },
+            body: JSON.stringify({
+                plantilla_id: plantillaId
+            })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error en el servidor: ' + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Respuesta generación:', data);
+                if (data.success) {
+                    Swal.close();
+                    if (data.archivo_url) {
+                        try {
+                            // Usar un enlace temporal para evitar bloqueo de popups
+                            const link = document.createElement('a');
+                            link.href = data.archivo_url;
+                            link.target = '_blank';
+                            // Intentar forzar descarga con nombre de archivo si es posible
+                            if (data.numero_orden) {
+                                link.download = `Orden_${data.numero_orden}.pdf`;
+                            }
+                            document.body.appendChild(link);
+                            link.click();
+                            setTimeout(() => {
+                                document.body.removeChild(link);
+                            }, 100);
+                        } catch (e) {
+                            console.error('Error al intentar abrir el enlace:', e);
+                            // Fallback
+                            window.open(data.archivo_url, '_blank');
+                        }
+                    } else {
+                        Swal.fire('Atención', 'El PDF se generó pero no se recibió la URL de descarga.', 'warning');
+                    }
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error || 'Error al generar el PDF'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error en generarOrdenConPlantilla:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error de conexión o del servidor al generar el PDF. Revise la consola para más detalles.'
+                });
+            });
     }
 </script>
 {% endblock %}
