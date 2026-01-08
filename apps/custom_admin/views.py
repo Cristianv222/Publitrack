@@ -693,7 +693,7 @@ def api_categorias_publicitarias(request):
 @user_passes_test(is_admin)
 @require_http_methods(["POST"])
 def contrato_generar_api(request):
-    """API para generar un contrato desde una plantilla - CON CATEGORÍA"""
+    """API para generar un contrato desde una plantilla - CON CATEGORÍA Y NUEVA LÓGICA 2026"""
     try:
         from apps.content_management.models import ContratoGenerado, CategoriaPublicitaria
         from datetime import datetime
@@ -723,6 +723,18 @@ def contrato_generar_api(request):
                 'error': 'La plantilla no tiene un archivo asociado'
             }, status=400)
         
+        # ✅ NUEVA LÓGICA DE PRECIOS
+        valor_unitario_spot = Decimal(str(data.get('valor_unitario_spot', '0.00')))
+        cantidad_total_spots = int(data.get('cantidad_total_spots', 0))
+        
+        # Extras
+        compromiso_transmision_valor = Decimal(str(data.get('compromiso_transmision_valor', '0.00')))
+        compromiso_notas_valor = Decimal(str(data.get('compromiso_notas_valor', '0.00')))
+        
+        # Calcular Valor Total (Validación Backend)
+        valor_base = valor_unitario_spot * cantidad_total_spots
+        valor_total_calculado = valor_base + compromiso_transmision_valor + compromiso_notas_valor
+        
         # ✅ CREAR CONTRATO CON VENDEDOR ASIGNADO Y CATEGORÍA
         contrato = ContratoGenerado.objects.create(
             plantilla_usada=plantilla,
@@ -730,7 +742,7 @@ def contrato_generar_api(request):
             vendedor_asignado=vendedor_asignado,
             nombre_cliente=cliente.empresa or cliente.get_full_name(),
             ruc_dni_cliente=cliente.ruc_dni or '',
-            valor_sin_iva=Decimal(str(data['valor_total'])),
+            valor_sin_iva=valor_total_calculado, # Usamos el valor calculado
             generado_por=request.user,
             estado='borrador',
             observaciones=data.get('observaciones', ''),
@@ -741,24 +753,29 @@ def contrato_generar_api(request):
             
             compromiso_transmision_texto=data.get('compromiso_transmision_texto', ''),
             compromiso_transmision_cantidad=int(data.get('compromiso_transmision_cantidad', 0)),
-            compromiso_transmision_valor=Decimal(str(data.get('compromiso_transmision_valor', '0.00'))),
+            compromiso_transmision_valor=compromiso_transmision_valor,
             
             compromiso_notas_texto=data.get('compromiso_notas_texto', ''),
             compromiso_notas_cantidad=int(data.get('compromiso_notas_cantidad', 0)),
-            compromiso_notas_valor=Decimal(str(data.get('compromiso_notas_valor', '0.00'))),
+            compromiso_notas_valor=compromiso_notas_valor,
             
             excluir_fines_semana=data.get('excluir_fines_semana', False),
             dias_semana_excluidos=data.get('dias_semana_excluidos', ''),
-            fechas_excluidas=data.get('fechas_excluidas', '')
+            fechas_excluidas=data.get('fechas_excluidas', ''),
+            
+            # ✅ GUARDAR NUEVOS CAMPOS DE PRECIO
+            valor_unitario_spot=valor_unitario_spot,
+            cantidad_total_spots=cantidad_total_spots
         )
         
         # ✅ GUARDAR DATOS PARA USAR DESPUÉS AL CREAR LA CUÑA (INCLUYENDO CATEGORÍA)
         contrato.datos_generacion = {
             'FECHA_INICIO_RAW': data['fecha_inicio'],
             'FECHA_FIN_RAW': data['fecha_fin'],
-            'SPOTS_DIA': data.get('spots_dia', 1),
+            # 'SPOTS_DIA': data.get('spots_dia', 1), # Ya no es mandatorio, pero se puede guardar si viene
+            'CANTIDAD_TOTAL_SPOTS': cantidad_total_spots,
+            'VALOR_UNITARIO_SPOT': float(valor_unitario_spot),
             'DURACION_SPOT': data.get('duracion_spot', 30),
-            'VALOR_POR_SEGUNDO': data.get('valor_por_segundo', 0),
             'OBSERVACIONES': data.get('observaciones', ''),
             'VENDEDOR_ASIGNADO_ID': vendedor_asignado.id if vendedor_asignado else None,
             'VENDEDOR_ASIGNADO_NOMBRE': vendedor_asignado.get_full_name() if vendedor_asignado else None,
@@ -775,7 +792,7 @@ def contrato_generar_api(request):
                 'contrato_id': contrato.id,
                 'numero_contrato': contrato.numero_contrato,
                 'vendedor_asignado': vendedor_asignado.get_full_name() if vendedor_asignado else 'No asignado',
-                'categoria_asignada': categoria.nombre if categoria else 'No asignada',  # ✅ NUEVO: Informar categoría
+                'categoria_asignada': categoria.nombre if categoria else 'No asignada',
                 'archivo_url': contrato.archivo_contrato_pdf.url if contrato.archivo_contrato_pdf else None
             })
         else:

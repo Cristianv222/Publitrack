@@ -1208,6 +1208,11 @@ class ContratoGenerado(models.Model):
     # Almacena fechas YYYY-MM-DD separadas por coma
     fechas_excluidas = models.TextField('Fechas Específicas Excluidas', blank=True, default='')
 
+    # ✅ NUEVOS CAMPOS: Lógica de Precios (Simplificada 2026)
+    valor_unitario_spot = models.DecimalField('Valor Unitario Spot', max_digits=10, decimal_places=2, default=Decimal('0.00'), help_text='Valor por cada spot publicitario')
+    cantidad_total_spots = models.PositiveIntegerField('Cantidad Total Spots', default=0, help_text='Cantidad total de spots en el contrato')
+
+
     # ✅ NUEVOS CAMPOS PARA VALIDACIÓN
     fecha_validacion = models.DateTimeField('Fecha de Validación', null=True, blank=True)
     validado_por = models.ForeignKey(

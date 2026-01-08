@@ -382,10 +382,10 @@
                     </div>
                     <div class="col-md-4">
                         <div class="mb-3">
-                            <label class="form-label">Valor por Segundo (S/) *</label>
-                            <input type="number" class="form-control" id="valorPorSegundo" step="0.01" min="0"
-                                placeholder="0.14" required oninput="calcularTotal()">
-                            <small class="text-muted">Ej: 0.14</small>
+                            <label class="form-label">Valor Unitario Spot (S/) *</label>
+                            <input type="number" class="form-control" id="valorUnitarioSpot" step="0.01" min="0"
+                                placeholder="0.00" required oninput="calcularTotal()">
+                            <small class="text-muted">Valor por cada cuña</small>
                         </div>
                     </div>
                 </div>
@@ -469,9 +469,9 @@
                 <div class="row">
                     <div class="col-md-3">
                         <div class="mb-3">
-                            <label class="form-label">Spots por Día *</label>
-                            <input type="number" class="form-control" id="spotsDia" min="1" value="1" placeholder="#"
-                                required oninput="calcularTotal()">
+                            <label class="form-label">Spots por Contrato *</label>
+                            <input type="number" class="form-control" id="cantidadTotalSpots" min="1" value="1"
+                                placeholder="#" required oninput="calcularTotal()">
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -1107,10 +1107,12 @@
     function calcularTotalContrato() {
         const fechaInicio = document.getElementById('fechaInicio').value;
         const fechaFin = document.getElementById('fechaFin').value;
-        const valorSeg = parseMonto(document.getElementById('valorPorSegundo').value);
-        const spotsDia = parseInt(document.getElementById('spotsDia').value) || 0;
-        const spotsMes = parseInt(document.getElementById('spotsMes').value) || 0;
-        const duracionSpot = parseInt(document.getElementById('duracionSpot').value) || 0;
+
+        // NUEVOS CAMPOS LÓGICA 2026
+        const valorUnitario = parseMonto(document.getElementById('valorUnitarioSpot').value);
+        const totalSpots = parseInt(document.getElementById('cantidadTotalSpots').value) || 0;
+
+        // Extras
         const valTransmisiones = parseMonto(document.getElementById('compromisoTransmisionValor').value);
         const valNotas = parseMonto(document.getElementById('compromisoNotasValor').value);
 
@@ -1118,14 +1120,13 @@
         const displayInfo = document.getElementById('infoDiasEfectivos');
         const valorTotalInput = document.getElementById('valorTotal');
 
+        // Calcular días efectivos (Solo informativo ahora, no afecta precio)
         if (fechaInicio && fechaFin && fechaFin >= fechaInicio) {
-            // Lógica de Días Efectivos
+            // Lógica de Días Efectivos (Solo Display)
             const start = new Date(fechaInicio);
             const end = new Date(fechaFin);
             start.setMinutes(start.getMinutes() + start.getTimezoneOffset());
             end.setMinutes(end.getMinutes() + end.getTimezoneOffset());
-
-            const diffMonths = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
 
             let diasEfectivos = 0;
             let diasTotales = 0;
@@ -1159,45 +1160,30 @@
             }
 
             if (displayInfo) displayInfo.textContent = `Días Efectivos: ${diasEfectivos} / ${diasTotales}`;
-
-            // CALCULO
-            let totalBase = 0;
-            let formulaText = "";
-
-            if (spotsMes > 0) {
-                let totalSpots = spotsMes * diffMonths;
-                totalBase = totalSpots * duracionSpot * valorSeg;
-                formulaText = `(${diffMonths} meses x ${spotsMes} spots/mes x ${duracionSpot}s x S/${valorSeg})`;
-            } else {
-                totalBase = diasEfectivos * spotsDia * duracionSpot * valorSeg;
-                formulaText = `(${diasEfectivos} días x ${spotsDia} spots x ${duracionSpot}s x S/${valorSeg})`;
-            }
-
-            let totalExtras = valTransmisiones + valNotas;
-            let total = totalBase + totalExtras;
-
-            display.innerHTML = `<strong style="font-size: 1.5rem; color: #0f5132;">S/ ${total.toFixed(2)}</strong>
-                <div class="calculation-formula mt-1" style="color: #146c43 !important;">
-                    ${formulaText}<br>
-                    + Extras: S/${totalExtras.toFixed(2)}
-                </div>`;
-            valorTotalInput.value = total.toFixed(2);
-
-            const btnGenerar = document.getElementById('btnGenerar');
-            if (btnGenerar) {
-                btnGenerar.disabled = false;
-            }
-
-            return total;
         } else {
-            display.innerHTML = '<strong style="font-size: 1.5rem;">S/ 0.00</strong><div class="calculation-formula mt-1 text-muted">Complete las fechas</div>';
-            const btnGenerar = document.getElementById('btnGenerar');
-            if (btnGenerar) {
-                btnGenerar.disabled = true;
-            }
             if (displayInfo) displayInfo.textContent = 'Días Efectivos: 0';
-            return 0;
         }
+
+        // CALCULO SIMPLIFICADO
+        let totalBase = totalSpots * valorUnitario;
+        let formulaText = `(${totalSpots} spots x S/${valorUnitario.toFixed(2)})`;
+
+        let totalExtras = valTransmisiones + valNotas;
+        let total = totalBase + totalExtras;
+
+        display.innerHTML = `<strong style="font-size: 1.5rem; color: #0f5132;">S/ ${total.toFixed(2)}</strong>
+            <div class="calculation-formula mt-1" style="color: #146c43 !important;">
+                ${formulaText}<br>
+                + Extras: S/${totalExtras.toFixed(2)}
+            </div>`;
+        valorTotalInput.value = total.toFixed(2);
+
+        const btnGenerar = document.getElementById('btnGenerar');
+        if (btnGenerar) {
+            btnGenerar.disabled = false;
+        }
+
+        return total;
     }
 
     // ✅ Helper para VIÑETAS en textareas
@@ -1237,11 +1223,11 @@
 
         const fechaInicio = document.getElementById('fechaInicio').value;
         const fechaFin = document.getElementById('fechaFin').value;
-        const valorPorSegundo = document.getElementById('valorPorSegundo').value;
-        const duracionSpot = document.getElementById('duracionSpot').value;
+        const totalSpots = document.getElementById('cantidadTotalSpots').value;
+        const valorUnitario = document.getElementById('valorUnitarioSpot').value;
 
-        if (!fechaInicio || !fechaFin || !duracionSpot) {
-            Swal.fire({ icon: 'warning', title: 'Datos Incompletos', text: 'Complete fechas y duración del spot' });
+        if (!fechaInicio || !fechaFin || !totalSpots || !valorUnitario) {
+            Swal.fire({ icon: 'warning', title: 'Datos Incompletos', text: 'Complete las fechas y datos de spots' });
             return;
         }
 
@@ -1258,24 +1244,31 @@
 
         const categoriaId = document.getElementById('categoriaSelect').value;
 
+        // Recalcular montos de extras para envío seguro
+        const valTransmisiones = parseMonto(document.getElementById('compromisoTransmisionValor').value);
+        const valNotas = parseMonto(document.getElementById('compromisoNotasValor').value);
+
         const formData = {
             plantilla_id: plantillaSeleccionada,
             cliente_id: clienteSeleccionado,
             fecha_inicio: fechaInicio,
             fecha_fin: fechaFin,
-            valor_por_segundo: parseMonto(valorPorSegundo),
+
+            // NUEVOS CAMPOS IMPORTANTE
+            cantidad_total_spots: parseInt(totalSpots),
+            valor_unitario_spot: parseMonto(valorUnitario),
+
             valor_total: totalCalculado,
-            spots_dia: parseInt(document.getElementById('spotsDia').value) || 0,
-            spots_por_mes: parseInt(document.getElementById('spotsMes').value) || 0,
-            duracion_spot: parseInt(duracionSpot),
+            duracion_spot: parseInt(document.getElementById('duracionSpot').value) || 30,
 
             compromiso_spot_texto: document.getElementById('compromisoSpotTexto').value,
             compromiso_transmision_texto: document.getElementById('compromisoTransmisionTexto').value,
             compromiso_transmision_cantidad: parseInt(document.getElementById('compromisoTransmisionCantidad').value) || 0,
-            compromiso_transmision_valor: parseMonto(document.getElementById('compromisoTransmisionValor').value),
+            compromiso_transmision_valor: valTransmisiones,
+
             compromiso_notas_texto: document.getElementById('compromisoNotasTexto').value,
             compromiso_notas_cantidad: parseInt(document.getElementById('compromisoNotasCantidad').value) || 0,
-            compromiso_notas_valor: parseMonto(document.getElementById('compromisoNotasValor').value),
+            compromiso_notas_valor: valNotas,
 
             excluir_fines_semana: document.getElementById('excluirFinesSemana').checked,
             dias_excluidos: Array.from(document.querySelectorAll('.dia-excluido:checked')).map(cb => parseInt(cb.value)),
