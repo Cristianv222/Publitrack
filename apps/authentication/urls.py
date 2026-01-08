@@ -33,8 +33,8 @@ urlpatterns = [
     path('dashboard/vendedor/', views.vendedor_dashboard, name='vendedor_dashboard'),
     path('dashboard/cliente/', views.cliente_dashboard, name='cliente_dashboard'),
     path('dashboard/productor/', views.productor_dashboard, name='productor_dashboard'),  # ← AGREGADO
-        # NUEVO: Panel exclusivo para el rol BTR
-    path('dashboard/btr/', views.btr_dashboard, name='btr_dashboard'),
+    # NUEVO: Panel exclusivo para el rol VTR
+    path('dashboard/vtr/', views.vtr_dashboard, name='vtr_dashboard'),
     path('dashboard/doctor/', views.doctor_dashboard, name='doctor_dashboard'),
     
     # ============================================================================

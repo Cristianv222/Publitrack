@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Panel Operativo BTR - PublicTrack{% endblock %}
+{% block title %}Panel Operativo VTR - PublicTrack{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -51,8 +51,8 @@
         background-color: #fffdf0;
     }
 
-    /* Monitor BTR */
-    .monitor-btr {
+    /* Monitor VTR */
+    .monitor-vtr {
         background: #2d3436;
         color: #fab1a0;
         padding: 20px;
@@ -104,12 +104,12 @@
     <div class="row align-items-center mb-4">
         <div class="col-md-7">
             <h1 class="h3 mb-1 fw-bold text-dark">
-                <i class="fas fa-play-circle me-2 text-info"></i>Panel de Control BTR
+                <i class="fas fa-play-circle me-2 text-info"></i>Panel de Control VTR
             </h1>
-            <p class="text-muted">Operador: {{ user.get_full_name }} | Estación de Trabajo BTR-01</p>
+            <p class="text-muted">Operador: {{ user.get_full_name }} | Estación de Trabajo VTR-01</p>
         </div>
         <div class="col-md-5">
-            <div class="monitor-btr d-flex justify-content-between align-items-center">
+            <div class="monitor-vtr d-flex justify-content-between align-items-center">
                 <div>
                     <span class="on-air-text"><i class="fas fa-circle me-1"></i> Ready for Air</span>
                 </div>
@@ -154,7 +154,7 @@
                     <div class="text-xs fw-bold text-success text-uppercase mb-1">Listos para Emisión</div>
                     <div class="h4 mb-0 fw-bold text-gray-800">{{ material_listo.count|default:0 }}</div>
                     <div class="mt-2">
-                        <span class="badge bg-pastel-green text-success">Validado por BTR</span>
+                        <span class="badge bg-pastel-green text-success">Validado por VTR</span>
                     </div>
                 </div>
             </div>
@@ -617,8 +617,8 @@
 
 {% block extra_js %}
 <script>
-    // Reloj Digital para Operaciones BTR
-    function updateBTRClock() {
+    // Reloj Digital para Operaciones VTR
+    function updateVTRClock() {
         const now = new Date();
         const time = now.getHours().toString().padStart(2, '0') + ':' +
             now.getMinutes().toString().padStart(2, '0') + ':' +
@@ -626,8 +626,8 @@
         const clockEl = document.getElementById('clock');
         if (clockEl) clockEl.textContent = time;
     }
-    setInterval(updateBTRClock, 1000);
-    updateBTRClock();
+    setInterval(updateVTRClock, 1000);
+    updateVTRClock();
 
     let modalOrden, modalOrdenProduccion;
     // Variables para descarga

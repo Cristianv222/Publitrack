@@ -37,9 +37,9 @@ def is_productor(user):
 def is_productor_or_admin(user):
     """Verifica si el usuario es productor o admin"""
     return user.is_authenticated and user.rol in ['admin', 'productor']
-def is_btr(user):
-    """Verifica si el usuario es BTR"""
-    return user.is_authenticated and user.rol == 'btr'
+def is_vtr(user):
+    """Verifica si el usuario es VTR"""
+    return user.is_authenticated and user.rol == 'vtr'
 def get_client_ip(request):
     """Obtiene la IP del cliente"""
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -61,8 +61,8 @@ def login_view(request):
             return redirect('authentication:vendedor_dashboard')
         elif request.user.es_productor: 
             return redirect('authentication:productor_dashboard')
-        elif request.user.es_btr: 
-            return redirect('authentication:btr_dashboard')
+        elif request.user.es_vtr: 
+            return redirect('authentication:vtr_dashboard')
         elif request.user.es_doctor:
             return redirect('authentication:doctor_dashboard')
         else: 
@@ -93,8 +93,8 @@ def login_view(request):
                         return redirect('authentication:vendedor_dashboard')
                     elif user.es_productor: 
                         return redirect('authentication:productor_dashboard')
-                    elif user.es_btr: 
-                        return redirect('authentication:btr_dashboard')
+                    elif user.es_vtr: 
+                        return redirect('authentication:vtr_dashboard')
                     elif user.es_doctor:
                         return redirect('authentication:doctor_dashboard')
                     else: 
@@ -1356,9 +1356,9 @@ def vendedor_plantilla_detalle_api(request, plantilla_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 @login_required
-@user_passes_test(is_btr)
-def btr_dashboard(request):
-    """NUEVO: Panel exclusivo para BTR"""
+@user_passes_test(is_vtr)
+def vtr_dashboard(request):
+    """NUEVO: Panel exclusivo para VTR"""
     # Importar modelos aquí para evitar importaciones circulares
     try:
         from apps.orders.models import OrdenToma, OrdenProduccion
@@ -1379,9 +1379,9 @@ def btr_dashboard(request):
         'ordenes_toma': ordenes_toma,
         'ordenes_produccion': ordenes_produccion,
         'clientes': clientes,  # Para el dropdown de clientes en modales
-        'btr_active': True  # Flag para identificar el dashboard activo
+        'vtr_active': True  # Flag para identificar el dashboard activo
     }
-    return render(request, 'dashboard/btr.html', context)
+    return render(request, 'dashboard/vtr.html', context)
 
 # ============================================================================
 # VISTA PARA DOCTOR (PÁGINA DE BIENVENIDA)
