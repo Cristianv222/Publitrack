@@ -943,7 +943,8 @@
 
         <div class="sidebar-menu">
             <!-- Dashboard -->
-            {% if not request.user.es_doctor and not request.user.es_vtr and not request.user.es_productor %}
+            <!-- CORRECCIÓN COMPLETA: Todas las condiciones IF en una sola línea -->
+            {% if not request.user.es_doctor and not request.user.es_vtr and not request.user.es_productor and not request.user.es_vendedor %}
             <div class="menu-section">
                 <a href="{% url 'custom_admin:dashboard' %}"
                     class="menu-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
@@ -1020,7 +1021,40 @@
             </div>
             {% endif %}
 
-            {% if not request.user.es_doctor and not request.user.es_vtr and not request.user.es_productor %}
+            <!-- MENÚ PARA VENDEDOR -->
+            {% if request.user.es_vendedor %}
+            <div class="menu-section">
+                <div class="menu-section-title">PANEL VENDEDOR</div>
+                <a href="{% url 'authentication:vendedor_dashboard' %}"
+                    class="menu-link {% if 'vendedor_dashboard' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-home menu-icon"></i>
+                    <span>Inicio</span>
+                </a>
+                <a href="{% url 'custom_admin:clientes_list' %}"
+                    class="menu-link {% if 'clientes' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-users menu-icon"></i>
+                    <span>Clientes</span>
+                </a>
+                <a href="{% url 'custom_admin:contratos_list' %}"
+                    class="menu-link {% if 'contratos' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-file-contract menu-icon"></i>
+                    <span>Contratos</span>
+                </a>
+                <a href="{% url 'custom_admin:orders_list' %}"
+                    class="menu-link {% if 'orders' in request.resolver_match.url_name and 'production' not in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-video menu-icon"></i>
+                    <span>Órdenes de Toma</span>
+                </a>
+                <a href="{% url 'custom_admin:ordenes_produccion_list' %}"
+                    class="menu-link {% if 'ordenes_produccion' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-film menu-icon"></i>
+                    <span>Órdenes de Producción</span>
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- TODAS LAS CONDICIONES EN UNA SOLA LÍNEA -->
+            {% if not request.user.es_doctor and not request.user.es_vtr and not request.user.es_productor and not request.user.es_vendedor %}
             <!-- PROGRAMACIÓN Y EMISIÓN -->
             <div class="menu-section">
                 <div class="menu-section-title">PROGRAMACIÓN Y EMISIÓN</div>
@@ -1378,3 +1412,6 @@
     </script>
 
     {% block extra_js %}{% endblock %}
+</body>
+
+</html>

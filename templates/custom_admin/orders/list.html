@@ -195,17 +195,12 @@
                 <div class="col-md-3">
                     <select name="estado" class="form-select">
                         <option value="">Todos los estados</option>
-                        <option value="pendiente" {% if estado_filter == 'pendiente' %}selected{% endif %}>Pendiente
-                        </option>
+                        <option value="pendiente" {% if estado_filter == 'pendiente' %}selected{% endif %}>Pendiente</option>
                         <option value="validado" {% if estado_filter == 'validado' %}selected{% endif %}>Validado</option>
-                        <option value="en_produccion" {% if estado_filter == 'en_produccion' %}selected{% endif %}>En
-                            Producción</option>
-                        <option value="completado" {% if estado_filter == 'completado' %}selected{% endif %}>Completado
-                        </option>
-                        <option value="no_validado" {% if estado_filter == 'no_validado' %}selected{% endif %}>No Validado
-                        </option>
-                        <option value="cancelado" {% if estado_filter == 'cancelado' %}selected{% endif %}>Cancelado
-                        </option>
+                        <option value="en_produccion" {% if estado_filter == 'en_produccion' %}selected{% endif %}>En Producción</option>
+                        <option value="completado" {% if estado_filter == 'completado' %}selected{% endif %}>Completado</option>
+                        <option value="no_validado" {% if estado_filter == 'no_validado' %}selected{% endif %}>No Validado</option>
+                        <option value="cancelado" {% if estado_filter == 'cancelado' %}selected{% endif %}>Cancelado</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -401,6 +396,7 @@
 
 </div>
 
+<!-- El resto del código (modales y scripts) permanece igual -->
 <div class="modal fade" id="modalSubirOrden" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">

@@ -440,6 +440,33 @@ def vendedor_dashboard(request):
                 estado='pendiente_revision'
             ).count()
         
+        # ========== ÓRDENES DEL VENDEDOR ==========
+        ordenes_toma_vendedor = []
+        ordenes_produccion_vendedor = []
+        
+        try:
+            from apps.orders.models import OrdenToma, OrdenProduccion
+            
+            # Órdenes de Toma
+            ordenes_toma_vendedor = OrdenToma.objects.filter(
+                vendedor_asignado=user
+            ).select_related('cliente').order_by('-fecha_orden')
+            
+            # Órdenes de Producción
+            if hasattr(OrdenProduccion, 'vendedor_asignado'):
+                 ordenes_produccion_vendedor = OrdenProduccion.objects.filter(
+                    vendedor_asignado=user
+                 ).select_related('orden_toma__cliente').order_by('-pk')
+            else:
+                 ordenes_produccion_vendedor = OrdenProduccion.objects.filter(
+                    orden_toma__vendedor_asignado=user
+                 ).select_related('orden_toma__cliente').order_by('-pk')
+                 
+        except ImportError:
+            pass
+        except Exception as e:
+            print(f"Error fetching orders: {e}")
+        
         # ========== CÁLCULO DE META ==========
         porcentaje_meta = 0
         if user.meta_mensual and user.meta_mensual > 0:
@@ -482,6 +509,11 @@ def vendedor_dashboard(request):
             # Para creación de contratos
             'plantillas': plantillas,
             'categorias': categorias,
+            
+            # Nuevos listados de órdenes
+            'ordenes_toma_recientes': ordenes_toma_vendedor[:10],
+            'ordenes_produccion_recientes': ordenes_produccion_vendedor[:10],
+            'ordenes_toma_all': ordenes_toma_vendedor, # Para el selector
         })
     
     # Si es admin, mostrar estadísticas generales

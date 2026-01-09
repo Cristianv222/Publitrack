@@ -160,9 +160,9 @@ def is_admin_or_vtr(user):
             getattr(user, 'rol', None) in ['admin', 'vtr'])
 
 def is_admin_or_vtr_or_productor(user):
-    """Verifica si el usuario es administrador, VTR o Productor"""
+    """Verifica si el usuario es administrador, VTR, Productor o Vendedor"""
     return (user.is_superuser or user.is_staff or 
-            getattr(user, 'rol', None) in ['admin', 'vtr', 'productor'])
+            getattr(user, 'rol', None) in ['admin', 'vtr', 'productor', 'vendedor'])
 
 # IMPORTS CONDICIONALES PARA MODELOS - ACTUALIZAR ESTA SECCIÓN
 try:
@@ -425,7 +425,7 @@ def api_panteones(request):
 # ==================== APIs PARA CONTRATOS ====================
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(lambda u: u.es_admin or u.es_vendedor)
 def api_plantillas_contrato(request):
     """API para obtener todas las plantillas de contrato activas"""
     try:
@@ -452,14 +452,16 @@ def api_plantillas_contrato(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(lambda u: u.es_admin or u.es_vendedor)
 def api_clientes_activos(request):
-    """API para obtener todos los clientes activos"""
+    """API para obtener todos los clientes activos - Filtrado por vendedor"""
     try:
-        clientes = CustomUser.objects.filter(
-            rol='cliente',
-            is_active=True
-        ).order_by('empresa', 'first_name', 'last_name')
+        qs = CustomUser.objects.filter(rol='cliente', is_active=True)
+        
+        if request.user.es_vendedor:
+            qs = qs.filter(vendedor_asignado=request.user)
+            
+        clientes = qs.order_by('empresa', 'first_name', 'last_name')
         
         data = []
         for cliente in clientes:
@@ -542,9 +544,10 @@ def api_cliente_detalle(request, id):
 
 # ==================== CONTRATOS GENERADOS ====================
 @login_required
-@user_passes_test(lambda u: u.es_admin or u.es_doctor)
+@login_required
+@user_passes_test(lambda u: u.es_admin or u.es_doctor or u.es_vendedor)
 def contratos_generados_list(request):
-    """Vista principal para gestión de contratos generados - Accesible para Admin y Doctor"""
+    """Vista principal para gestión de contratos generados - Accesible para Admin, Doctor y Vendedor"""
     
     print("\n" + "="*80)
     print("🔍 INICIANDO contratos_generados_list")
@@ -552,13 +555,20 @@ def contratos_generados_list(request):
     
     # Obtener plantillas activas
     plantillas = PlantillaContrato.objects.filter(is_active=True).order_by('-is_default', 'nombre')
-    print(f"📄 Plantillas encontradas: {plantillas.count()}")
     
-    # Obtener clientes activos
-    clientes = CustomUser.objects.filter(
-        rol='cliente',
-        is_active=True
-    ).order_by('empresa', 'username')
+    # Obtener clientes activos (filtrado por vendedor)
+    if request.user.es_vendedor:
+        clientes = CustomUser.objects.filter(
+            rol='cliente',
+            is_active=True,
+            vendedor_asignado=request.user
+        ).order_by('empresa', 'username')
+    else:
+        clientes = CustomUser.objects.filter(
+            rol='cliente',
+            is_active=True
+        ).order_by('empresa', 'username')
+        
     print(f"👥 Clientes encontrados: {clientes.count()}")
     
     # Inicializar variables
@@ -566,78 +576,57 @@ def contratos_generados_list(request):
     total_contratos = 0
     contratos_hoy = 0
     contratos_mes = 0
-    contratos_activos = 0  # ✅ NUEVA VARIABLE
-    contratos_pendientes = 0  # ✅ NUEVA VARIABLE
+    contratos_activos = 0
+    contratos_pendientes = 0
     
-    # Verificar disponibilidad del modelo
-    print(f"\n📊 CONTENT_MODELS_AVAILABLE: {CONTENT_MODELS_AVAILABLE}")
-    
-    if CONTENT_MODELS_AVAILABLE:
-        print(f"📊 ContratoGenerado is None: {ContratoGenerado is None}")
-        
-        if ContratoGenerado is not None:
-            try:
-                from datetime import timedelta
-                
-                # ✅ Obtener TODOS los contratos sin filtros
-                all_contratos = ContratoGenerado.objects.all()
-                print(f"\n✅ Total contratos en BD (sin filtros): {all_contratos.count()}")
-                
-                # Listar los primeros 3 contratos para debug
-                if all_contratos.exists():
-                    print("\n📋 Primeros 3 contratos (RAW):")
-                    for idx, c in enumerate(all_contratos[:3], 1):
-                        print(f"   {idx}. ID:{c.id} | Num:{c.numero_contrato} | Cliente:{c.nombre_cliente} | Estado:{c.estado}")
-                
-                # Obtener contratos recientes con select_related
-                contratos_recientes = list(
-                    ContratoGenerado.objects
-                    .select_related('cliente', 'plantilla_usada', 'generado_por')
-                    .order_by('-fecha_generacion')[:10]
-                )
-                
-                print(f"✅ Contratos recientes (después de select_related): {len(contratos_recientes)}")
-                
-                # Calcular estadísticas
-                total_contratos = ContratoGenerado.objects.count()
-                contratos_hoy = ContratoGenerado.objects.filter(
-                    fecha_generacion__date=timezone.now().date()
-                ).count()
-                contratos_mes = ContratoGenerado.objects.filter(
-                    fecha_generacion__gte=timezone.now() - timedelta(days=30)
-                ).count()
-                
-                # ✅ NUEVAS ESTADÍSTICAS: Contratos activos y pendientes
-                contratos_activos = ContratoGenerado.objects.filter(
-                    estado='validado'
-                ).count()
-                
-                contratos_pendientes = ContratoGenerado.objects.filter(
-                    estado='generado'
-                ).count()
-                
-                print(f"✅ Contratos hoy: {contratos_hoy}")
-                print(f"✅ Contratos último mes: {contratos_mes}")
-                print(f"✅ Contratos activos (validados): {contratos_activos}")  # ✅ NUEVO
-                print(f"✅ Contratos pendientes (generados): {contratos_pendientes}")  # ✅ NUEVO
-                
-                # Detalles de cada contrato reciente
-                if contratos_recientes:
-                    print("\n📋 Detalles de contratos recientes:")
-                    for idx, c in enumerate(contratos_recientes, 1):
+    if CONTENT_MODELS_AVAILABLE and ContratoGenerado is not None:
+        try:
+            from datetime import timedelta
+            
+            # Base QuerySet (Ocultando borradores a petición del usuario)
+            if request.user.es_vendedor:
+                base_qs = ContratoGenerado.objects.filter(vendedor_asignado=request.user).exclude(estado='borrador')
+            else:
+                base_qs = ContratoGenerado.objects.exclude(estado='borrador')
+            
+            # Obtener contratos recientes
+            contratos_recientes = list(
+                base_qs.select_related('cliente', 'plantilla_usada', 'generado_por')
+                .order_by('-fecha_generacion')[:10]
+            )
+            
+            # Calcular estadísticas
+            total_contratos = base_qs.count()
+            contratos_hoy = base_qs.filter(
+                fecha_generacion__date=timezone.now().date()
+            ).count()
+            contratos_mes = base_qs.filter(
+                fecha_generacion__gte=timezone.now() - timedelta(days=30)
+            ).count()
+            
+            contratos_activos = base_qs.filter(estado='validado').count()
+            contratos_pendientes = base_qs.filter(estado='generado').count()
+            
+            # Detalles de cada contrato reciente
+            if contratos_recientes:
+                print("\n📋 Detalles de contratos recientes:")
+                for idx, c in enumerate(contratos_recientes, 1):
+                    try:
                         print(f"   {idx}. {c.numero_contrato} | {c.nombre_cliente} | {c.estado} | {c.fecha_generacion}")
                         print(f"      - Cliente ID: {c.cliente_id if hasattr(c, 'cliente_id') else 'N/A'}")
                         print(f"      - Plantilla: {c.plantilla_usada.nombre if c.plantilla_usada else 'N/A'}")
-                        if idx >= 3:  # Solo mostrar 3 para no llenar los logs
-                            break
-                
-            except Exception as e:
-                import traceback
-                print(f"\n❌ ERROR al cargar contratos:")
-                print(f"   Tipo de error: {type(e).__name__}")
-                print(f"   Mensaje: {str(e)}")
-                print(f"\n📋 Traceback completo:")
-                print(traceback.format_exc())
+                    except:
+                        pass
+                    if idx >= 3:
+                        break
+
+        except Exception as e:
+            import traceback
+            print(f"\n❌ ERROR al cargar contratos:")
+            print(f"   Tipo de error: {type(e).__name__}")
+            print(f"   Mensaje: {str(e)}")
+            print(f"\n📋 Traceback completo:")
+            print(traceback.format_exc())
         else:
             print("❌ ContratoGenerado es None")
     else:
@@ -697,7 +686,7 @@ def api_categorias_publicitarias(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(lambda u: u.es_admin or u.es_vendedor)
 @require_http_methods(["POST"])
 def contrato_generar_api(request):
     """API para generar un contrato desde una plantilla - CON CATEGORÍA Y NUEVA LÓGICA 2026"""
@@ -742,38 +731,48 @@ def contrato_generar_api(request):
         valor_base = valor_unitario_spot * cantidad_total_spots
         valor_total_calculado = valor_base + compromiso_transmision_valor + compromiso_notas_valor
         
-        # ✅ CREAR CONTRATO CON VENDEDOR ASIGNADO Y CATEGORÍA
-        contrato = ContratoGenerado.objects.create(
-            plantilla_usada=plantilla,
-            cliente=cliente,
-            vendedor_asignado=vendedor_asignado,
-            nombre_cliente=cliente.empresa or cliente.get_full_name(),
-            ruc_dni_cliente=cliente.ruc_dni or '',
-            valor_sin_iva=valor_total_calculado, # Usamos el valor calculado
-            generado_por=request.user,
-            estado='borrador',
-            observaciones=data.get('observaciones', ''),
-            
-            # ✅ NUEVOS CAMPOS: Compromisos y Exclusiones
-            spots_por_mes=int(data.get('spots_mes', 0)),
-            compromiso_spot_texto=data.get('compromiso_spot_texto', ''),
-            
-            compromiso_transmision_texto=data.get('compromiso_transmision_texto', ''),
-            compromiso_transmision_cantidad=int(data.get('compromiso_transmision_cantidad', 0)),
-            compromiso_transmision_valor=compromiso_transmision_valor,
-            
-            compromiso_notas_texto=data.get('compromiso_notas_texto', ''),
-            compromiso_notas_cantidad=int(data.get('compromiso_notas_cantidad', 0)),
-            compromiso_notas_valor=compromiso_notas_valor,
-            
-            excluir_fines_semana=data.get('excluir_fines_semana', False),
-            dias_semana_excluidos=data.get('dias_semana_excluidos', ''),
-            fechas_excluidas=data.get('fechas_excluidas', ''),
-            
-            # ✅ GUARDAR NUEVOS CAMPOS DE PRECIO
-            valor_unitario_spot=valor_unitario_spot,
-            cantidad_total_spots=cantidad_total_spots
-        )
+        # ✅ RETRY LOGIC PARA EVITAR COLISIONES DE NUMERO_CONTRATO Y CORREGIR ERROR DE CLAVE PRIMARIA
+        from django.db import IntegrityError
+        import time
+        
+        contrato = None
+        for attempt in range(3):
+            try:
+                contrato = ContratoGenerado.objects.create(
+                    plantilla_usada=plantilla,
+                    cliente=cliente,
+                    vendedor_asignado=vendedor_asignado,
+                    nombre_cliente=cliente.empresa or cliente.get_full_name(),
+                    ruc_dni_cliente=cliente.ruc_dni or '',
+                    valor_sin_iva=valor_total_calculado, # Usamos el valor calculado
+                    generado_por=request.user,
+                    estado='borrador',
+                    observaciones=data.get('observaciones', ''),
+                    
+                    # ✅ NUEVOS CAMPOS: Compromisos y Exclusiones
+                    spots_por_mes=int(data.get('spots_mes', 0)),
+                    compromiso_spot_texto=data.get('compromiso_spot_texto', ''),
+                    
+                    compromiso_transmision_texto=data.get('compromiso_transmision_texto', ''),
+                    compromiso_transmision_cantidad=int(data.get('compromiso_transmision_cantidad', 0)),
+                    compromiso_transmision_valor=compromiso_transmision_valor,
+                    
+                    compromiso_notas_texto=data.get('compromiso_notas_texto', ''),
+                    compromiso_notas_cantidad=int(data.get('compromiso_notas_cantidad', 0)),
+                    compromiso_notas_valor=compromiso_notas_valor,
+                    
+                    excluir_fines_semana=data.get('excluir_fines_semana', False),
+                    dias_semana_excluidos=data.get('dias_semana_excluidos', ''),
+                    fechas_excluidas=data.get('fechas_excluidas', ''),
+                    
+                    # ✅ GUARDAR NUEVOS CAMPOS DE PRECIO
+                    valor_unitario_spot=valor_unitario_spot,
+                    cantidad_total_spots=cantidad_total_spots
+                )
+                break # Éxito, salir del loop
+            except IntegrityError:
+                if attempt == 2: raise # Si falla 3 veces, lanzar error
+                time.sleep(0.3) # Esperar un poco antes de reintentar para que el timestamp/count cambie
         
         # ✅ GUARDAR DATOS PARA USAR DESPUÉS AL CREAR LA CUÑA (INCLUYENDO CATEGORÍA)
         contrato.datos_generacion = {
@@ -3421,6 +3420,10 @@ def orders_list(request):
 
     ordenes = OrdenToma.objects.select_related('cliente', 'vendedor_asignado').all()
     
+    # Filtrar por vendedor si es el caso
+    if request.user.es_vendedor:
+        ordenes = ordenes.filter(vendedor_asignado=request.user)
+    
     if search:
         ordenes = ordenes.filter(
             Q(codigo__icontains=search) |
@@ -3547,9 +3550,14 @@ def order_create_api(request):
         
         cliente = get_object_or_404(CustomUser, pk=cliente_id, rol='cliente')
         
+        # Determinar vendedor asignado (Si el usuario actual es vendedor, se asigna a sí mismo)
+        vendedor_orden = cliente.vendedor_asignado
+        if request.user.es_vendedor:
+            vendedor_orden = request.user
+
         orden = OrdenToma.objects.create(
             cliente=cliente,
-            vendedor_asignado=cliente.vendedor_asignado, # ✅ Asegurar asignación explícita
+            vendedor_asignado=vendedor_orden,
             detalle_productos=data.get('detalle_productos', ''),
             cantidad=int(data.get('cantidad', 1)),
             total=Decimal(data.get('total', '0.00')),
@@ -4510,6 +4518,14 @@ def ordenes_produccion_list(request):
     ordenes = OrdenProduccion.objects.select_related(
         'orden_toma', 'productor_asignado', 'created_by'
     ).all()
+    
+    # Filtrar por vendedor si es el caso
+    if request.user.es_vendedor:
+        # Intentar filtrar por campo directo primero, si no por orden_toma
+        if hasattr(OrdenProduccion, 'vendedor_asignado'):
+             ordenes = ordenes.filter(vendedor_asignado=request.user)
+        else:
+             ordenes = ordenes.filter(orden_toma__vendedor_asignado=request.user)
     
     if search:
         ordenes = ordenes.filter(

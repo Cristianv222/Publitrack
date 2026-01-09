@@ -212,7 +212,7 @@
             <a href="{% url 'custom_admin:orders_list' %}" class="btn btn-outline-primary me-2">
                 <i class="fas fa-arrow-left me-2"></i>Ver Órdenes de Toma
             </a>
-            {% if user.es_admin or user.es_productor %}
+            {% if user.es_admin or user.es_productor or user.es_vendedor %}
             <button class="btn btn-primary" onclick="abrirModalCrear()">
                 <i class="fas fa-plus me-2"></i>Nueva Orden
             </button>
@@ -271,23 +271,18 @@
                 <div class="col-md-2">
                     <select name="estado" class="form-select">
                         <option value="">Todos los estados</option>
-                        <option value="pendiente" {% if estado_filter == 'pendiente' %}selected{% endif %}>Pendiente
-                        </option>
-                        <option value="en_produccion" {% if estado_filter == 'en_produccion' %}selected{% endif %}>En
-                            Producción</option>
-                        <option value="completado" {% if estado_filter == 'completado' %}selected{% endif %}>Completado
-                        </option>
+                        <option value="pendiente" {% if estado_filter == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                        <option value="en_produccion" {% if estado_filter == 'en_produccion' %}selected{% endif %}>En Producción</option>
+                        <option value="completado" {% if estado_filter == 'completado' %}selected{% endif %}>Completado</option>
                         <option value="validado" {% if estado_filter == 'validado' %}selected{% endif %}>Validado</option>
-                        <option value="cancelado" {% if estado_filter == 'cancelado' %}selected{% endif %}>Cancelado
-                        </option>
+                        <option value="cancelado" {% if estado_filter == 'cancelado' %}selected{% endif %}>Cancelado</option>
                     </select>
                 </div>
                 <div class="col-md-2">
                     <select name="tipo" class="form-select">
                         <option value="">Todos los tipos</option>
                         {% for tipo_val, tipo_label in tipos_produccion %}
-                        <option value="{{ tipo_val }}" {% if tipo_filter == tipo_val %}selected{% endif %}>{{ tipo_label
-                            }}</option>
+                        <option value="{{ tipo_val }}" {% if tipo_filter == tipo_val %}selected{% endif %}>{{ tipo_label }}</option>
                         {% endfor %}
                     </select>
                 </div>
