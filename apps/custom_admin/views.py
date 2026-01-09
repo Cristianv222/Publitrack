@@ -5221,8 +5221,8 @@ def parte_mortorio_detail_api(request, parte_id):
         data = {
             'id': parte.id,
             'codigo': parte.codigo,
-            'cliente_id': parte.cliente.id,
-            'cliente_nombre': parte.cliente.get_full_name(),
+            'cliente_id': parte.cliente.id if parte.cliente else None,
+            'cliente_nombre': parte.cliente.get_full_name() if parte.cliente else 'No registrado',
             'nombre_fallecido': parte.nombre_fallecido,
             'edad_fallecido': parte.edad_fallecido,
             'dni_fallecido': parte.dni_fallecido,
@@ -5259,7 +5259,10 @@ def parte_mortorio_detail_api(request, parte_id):
             'fecha_solicitud': parte.fecha_solicitud.strftime('%d/%m/%Y %H:%M'),
             'creado_por_nombre': parte.creado_por.get_full_name() if parte.creado_por else '',
             # ✅ CUÑAS ASOCIADAS
-            'cunas_asociadas': cunas_asociadas
+            'cunas_asociadas': cunas_asociadas,
+            # Contacto Opcional
+            'nombre_contacto': parte.nombre_contacto,
+            'telefono_contacto': parte.telefono_contacto
         }
         
         return JsonResponse(data)
@@ -5281,8 +5284,8 @@ def parte_mortorio_create_api(request):
         
         data = json.loads(request.body)
         
-        # Validar campos requeridos
-        required_fields = ['cliente_id', 'nombre_fallecido', 'fecha_fallecimiento', 'precio_total']
+        # Validar campos requeridos (cliente_id es opcional)
+        required_fields = ['nombre_fallecido', 'fecha_fallecimiento', 'precio_total']
         for field in required_fields:
             if not data.get(field):
                 return JsonResponse({
@@ -5290,18 +5293,22 @@ def parte_mortorio_create_api(request):
                     'error': f'El campo {field} es obligatorio'
                 }, status=400)
         
-        # Obtener cliente
-        try:
-            cliente = CustomUser.objects.get(pk=data['cliente_id'], rol='cliente')
-        except CustomUser.DoesNotExist:
-            return JsonResponse({
-                'success': False,
-                'error': 'Cliente no encontrado'
-            }, status=404)
+        # Obtener cliente (Opcional)
+        cliente = None
+        if data.get('cliente_id'):
+            try:
+                cliente = CustomUser.objects.get(pk=data['cliente_id'], rol='cliente')
+            except CustomUser.DoesNotExist:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Cliente no encontrado'
+                }, status=404)
         
         # Crear el parte mortorio
         parte = ParteMortorio.objects.create(
             cliente=cliente,
+            nombre_contacto=data.get('nombre_contacto'),
+            telefono_contacto=data.get('telefono_contacto'),
             nombre_fallecido=data['nombre_fallecido'],
             edad_fallecido=data.get('edad_fallecido'),
             dni_fallecido=data.get('dni_fallecido'),
@@ -5408,8 +5415,8 @@ def crear_cuña_desde_parte_mortorio(parte_mortorio, usuario):
     # Calcular precio por segundo basado en el precio total del parte mortorio
     precio_por_segundo = parte_mortorio.precio_total / Decimal(str(duracion_segundos))
     
-    # Crear título descriptivo para la cuña
-    titulo_cuña = f"Parte Mortorio - {parte_mortorio.nombre_fallecido}"
+    # Crear título descriptivo para la cuña (Solo nombre del fallecido)
+    titulo_cuña = parte_mortorio.nombre_fallecido
     
     # Crear descripción con información del fallecido
     descripcion = f"Transmisión por fallecimiento de {parte_mortorio.nombre_fallecido}"
@@ -5471,6 +5478,22 @@ def parte_mortorio_update_api(request, parte_id):
         else:
             data = request.POST.dict()
         
+        # Actualizar Cliente y Contacto
+        if 'cliente_id' in data:
+            if data['cliente_id']:
+                try:
+                    parte.cliente = CustomUser.objects.get(pk=data['cliente_id'])
+                except CustomUser.DoesNotExist:
+                    pass
+            else:
+                parte.cliente = None
+
+        if 'nombre_contacto' in data:
+            parte.nombre_contacto = data['nombre_contacto']
+
+        if 'telefono_contacto' in data:
+            parte.telefono_contacto = data['telefono_contacto']
+
         # Actualizar campos básicos
         if 'nombre_fallecido' in data:
             parte.nombre_fallecido = data['nombre_fallecido']

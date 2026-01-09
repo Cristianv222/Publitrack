@@ -38,7 +38,26 @@ class ParteMortorio(models.Model):
         on_delete=models.CASCADE,
         limit_choices_to={'rol': 'cliente'},
         related_name='partes_mortorios',
-        verbose_name='Cliente/Familiar'
+        verbose_name='Cliente/Familiar',
+        null=True,
+        blank=True
+    )
+    
+    # Campos de contacto directo (opcional si no hay cliente)
+    nombre_contacto = models.CharField(
+        'Nombre de Contacto',
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text='Nombre de la persona de contacto (si no es cliente registrado)'
+    )
+    
+    telefono_contacto = models.CharField(
+        'Teléfono de Contacto',
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text='Número de teléfono de contacto'
     )
     
     # ==================== INFORMACIÓN DEL FALLECIDO ====================

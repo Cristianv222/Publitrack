@@ -515,7 +515,9 @@ class CuñaPublicitaria(models.Model):
         on_delete=models.CASCADE,
         limit_choices_to={'rol': 'cliente'},
         related_name='cuñas_publicitarias',
-        verbose_name='Cliente'
+        verbose_name='Cliente',
+        null=True,
+        blank=True
     )
     
     vendedor_asignado = models.ForeignKey(
