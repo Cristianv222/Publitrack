@@ -2254,14 +2254,12 @@
                                 <input type="text" class="form-control" name="last_name" id="last_name">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Correo Electrónico <span
-                                        style="color: var(--danger-color);">*</span></label>
-                                <input type="email" class="form-control" name="email" id="email" required>
+                                <label class="form-label">Correo Electrónico</label>
+                                <input type="email" class="form-control" name="email" id="email">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Teléfono <span
-                                        style="color: var(--danger-color);">*</span></label>
-                                <input type="text" class="form-control" name="telefono" id="telefono" required>
+                                <label class="form-label">Teléfono</label>
+                                <input type="text" class="form-control" name="telefono" id="telefono">
                             </div>
                         </div>
                     </div>
@@ -3615,8 +3613,9 @@
         // Validar que sea numérico
         if (!/^\d+$/.test(rucLimpio)) return false;
 
-        // Validar longitud (DNI: 8, RUC: 11)
-        if (rucLimpio.length !== 8 && rucLimpio.length !== 11) return false;
+        // Validar longitud (Permitir entre 8 y 20 dígitos)
+        // DNI (8), RUC Perú (11), RUC Ecuador (13), Pasaportes/Otros (>13)
+        if (rucLimpio.length < 8 || rucLimpio.length > 20) return false;
 
         return true;
     }
@@ -3631,9 +3630,10 @@
     if (rucInput) {
         rucInput.addEventListener('blur', function () {
             const ruc = this.value;
+            // Solo validar si hay valor y no está vacío
             if (ruc && !validarRUC(ruc)) {
-                mostrarAlerta('RUC/DNI inválido', 'Por favor ingrese un RUC o DNI válido (8 o 11 dígitos numéricos)', 'warning');
-                this.focus();
+                mostrarAlerta('RUC/DNI inválido', 'Por favor ingrese un documento válido (entre 8 y 20 dígitos numéricos)', 'warning');
+                // IMPORTANTE: No usar this.focus() aquí para evitar bucles infinitos
             }
         });
     }

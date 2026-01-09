@@ -10,69 +10,81 @@
         padding: 20px;
         margin-bottom: 20px;
         background: white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
+
     .stats-card h3 {
         font-size: 2rem;
         margin: 0;
         color: #333;
     }
+
     .stats-card p {
         margin: 5px 0 0 0;
         color: #666;
         font-size: 0.9rem;
     }
+
     .badge-status {
         padding: 5px 12px;
         border-radius: 20px;
         font-size: 0.85rem;
         font-weight: 500;
     }
+
     .badge-activo {
         background-color: #d4edda;
         color: #155724;
     }
+
     .badge-inactivo {
         background-color: #f8d7da;
         color: #721c24;
     }
+
     .badge-suspendido {
         background-color: #fff3cd;
         color: #856404;
     }
+
     .table-hover tbody tr:hover {
         background-color: #f8f9fa;
         cursor: pointer;
     }
+
     .btn-action {
         padding: 5px 10px;
         font-size: 0.875rem;
     }
-    
+
     /* Estilos para modales animados */
     .animated-modal {
         border-radius: 15px !important;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.2) !important;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
     }
+
     .animated-modal .swal2-title {
         font-size: 1.75rem;
         font-weight: 600;
     }
+
     .animated-modal .swal2-html-container {
         font-size: 1rem;
         line-height: 1.6;
     }
+
     .swal2-popup.animated-modal .btn {
         padding: 10px 24px;
         border-radius: 8px;
         font-weight: 500;
         transition: all 0.3s ease;
     }
+
     .swal2-popup.animated-modal .btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
-    
+
     /* Estilos para información profesional */
     .profesion-badge {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -82,6 +94,7 @@
         font-size: 0.75rem;
         font-weight: 600;
     }
+
     .cargo-badge {
         background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         color: white;
@@ -90,6 +103,7 @@
         font-size: 0.75rem;
         font-weight: 600;
     }
+
     .info-profesional {
         background: #f8f9fa;
         border: 1px solid #e9ecef;
@@ -97,7 +111,7 @@
         padding: 15px;
         margin-top: 10px;
     }
-    
+
     /* Ocultar campo de usuario */
     .username-field {
         display: none !important;
@@ -107,7 +121,7 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    
+
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -150,51 +164,53 @@
             </div>
         </div>
     </div>
-
-    <!-- Filtros -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <form method="get" class="row g-3">
-                <div class="col-md-4">
-                    <input type="text" name="search" class="form-control" 
-                           placeholder="Buscar por nombre, empresa, RUC, profesión..." 
-                           value="{{ search }}">
-                </div>
-                <div class="col-md-2">
-                    <select name="status" class="form-select">
-                        <option value="">Todos los estados</option>
-                        <option value="activo" {% if status_filter == 'activo' %}selected{% endif %}>Activos</option>
-                        <option value="inactivo" {% if status_filter == 'inactivo' %}selected{% endif %}>Inactivos</option>
-                        <option value="suspendido" {% if status_filter == 'suspendido' %}selected{% endif %}>Suspendidos</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <select name="tiene_profesion" class="form-select">
-                        <option value="">Todos</option>
-                        <option value="si" {% if tiene_profesion_filter == 'si' %}selected{% endif %}>Con profesión</option>
-                        <option value="no" {% if tiene_profesion_filter == 'no' %}selected{% endif %}>Sin profesión</option>
-                    </select>
-                </div>
-                {% if user.es_admin %}
-                <div class="col-md-2">
-                    <select name="vendedor" class="form-select">
-                        <option value="">Todos los vendedores</option>
-                        {% for vendedor in vendedores %}
-                        <option value="{{ vendedor.id }}" {% if vendedor_filter == vendedor.id|stringformat:"s" %}selected{% endif %}>
-                            {{ vendedor.get_full_name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                {% endif %}
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-search me-2"></i>Filtrar
-                    </button>
-                </div>
-            </form>
-        </div>
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <input type="text" name="search" class="form-control"
+                    placeholder="Buscar por nombre, empresa, RUC, profesión..." value="{{ search }}">
+            </div>
+            <div class="col-md-2">
+                <select name="status" class="form-select">
+                    <option value="">Todos los estados</option>
+                    <option value="activo" {% if status_filter == 'activo' %}selected{% endif %}>Activos</option>
+                    <option value="inactivo" {% if status_filter == 'inactivo' %}selected{% endif %}>Inactivos
+                    </option>
+                    <option value="suspendido" {% if status_filter == 'suspendido' %}selected{% endif %}>Suspendidos
+                    </option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="tiene_profesion" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="si" {% if tiene_profesion_filter == 'si' %}selected{% endif %}>Con profesión
+                    </option>
+                    <option value="no" {% if tiene_profesion_filter == 'no' %}selected{% endif %}>Sin profesión
+                    </option>
+                </select>
+            </div>
+            {% if user.es_admin %}
+            <div class="col-md-2">
+                <select name="vendedor" class="form-select">
+                    <option value="">Todos los vendedores</option>
+                    {% for vendedor in vendedores %}
+                    <option value="{{ vendedor.id }}" {% if vendedor_filter == vendedor.id|stringformat:"s" %}selected{% endif %}>
+                        {{ vendedor.get_full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-2"></i>Filtrar
+                </button>
+            </div>
+        </form>
     </div>
+</div>
 
     <!-- Tabla de Clientes -->
     <div class="card">
@@ -243,37 +259,35 @@
                             <td>{{ cliente.ciudad|default:"-" }}</td>
                             <td>
                                 {% if cliente.vendedor_asignado %}
-                                    <span class="badge bg-info">{{ cliente.vendedor_asignado.get_full_name }}</span>
+                                <span class="badge bg-info">{{ cliente.vendedor_asignado.get_full_name }}</span>
                                 {% else %}
-                                    <span class="text-muted">Sin asignar</span>
+                                <span class="text-muted">Sin asignar</span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if cliente.status == 'activo' %}
-                                    <span class="badge-status badge-activo">Activo</span>
+                                <span class="badge-status badge-activo">Activo</span>
                                 {% elif cliente.status == 'inactivo' %}
-                                    <span class="badge-status badge-inactivo">Inactivo</span>
+                                <span class="badge-status badge-inactivo">Inactivo</span>
                                 {% else %}
-                                    <span class="badge-status badge-suspendido">Suspendido</span>
+                                <span class="badge-status badge-suspendido">Suspendido</span>
                                 {% endif %}
                             </td>
                             <td>
-                                <button class="btn btn-sm btn-info btn-action" 
-                                        onclick="verDetalleCliente({{ cliente.id }})"
-                                        title="Ver detalles">
+                                <button class="btn btn-sm btn-info btn-action"
+                                    onclick="verDetalleCliente({{ cliente.id }})" title="Ver detalles">
                                     <i class="fas fa-eye"></i>
                                 </button>
                                 {% if user.es_admin or user.es_vendedor and cliente.vendedor_asignado == user %}
-                                <button class="btn btn-sm btn-warning btn-action" 
-                                        onclick="editarCliente({{ cliente.id }})"
-                                        title="Editar">
+                                <button class="btn btn-sm btn-warning btn-action"
+                                    onclick="editarCliente({{ cliente.id }})" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </button>
                                 {% endif %}
                                 {% if user.es_admin %}
-                                <button class="btn btn-sm btn-danger btn-action" 
-                                        onclick="eliminarCliente({{ cliente.id }}, '{{ cliente.empresa|escapejs }}')"
-                                        title="Eliminar">
+                                <button class="btn btn-sm btn-danger btn-action"
+                                    onclick="eliminarCliente({{ cliente.id }}, '{{ cliente.empresa|escapejs }}')"
+                                    title="Eliminar">
                                     <i class="fas fa-trash"></i>
                                 </button>
                                 {% endif %}
@@ -307,12 +321,12 @@
                 <form id="formCliente">
                     {% csrf_token %}
                     <input type="hidden" id="cliente_id" name="cliente_id">
-                    
+
                     <!-- Campo de usuario oculto con valor generado automáticamente -->
                     <div class="username-field">
                         <input type="text" class="form-control" name="username" id="username" required readonly>
                     </div>
-                    
+
                     <!-- Información Básica -->
                     <h6 class="mb-3 text-primary">Información Básica</h6>
                     <div class="row g-3 mb-4">
@@ -335,14 +349,14 @@
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label">Profesión</label>
-                            <input type="text" class="form-control" name="profesion" id="profesion" 
-                                   placeholder="Ej: Ingeniero Civil, Licenciado en Administración, Médico...">
+                            <input type="text" class="form-control" name="profesion" id="profesion"
+                                placeholder="Ej: Ingeniero Civil, Licenciado en Administración, Médico...">
                             <small class="text-muted">Profesión del contacto principal para contratos</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Cargo en la Empresa</label>
-                            <input type="text" class="form-control" name="cargo_empresa" id="cargo_empresa" 
-                                   placeholder="Ej: Gerente General, Propietario, Director...">
+                            <input type="text" class="form-control" name="cargo_empresa" id="cargo_empresa"
+                                placeholder="Ej: Gerente General, Propietario, Director...">
                             <small class="text-muted">Cargo que desempeña en la empresa</small>
                         </div>
                     </div>
@@ -359,12 +373,12 @@
                             <input type="text" class="form-control" name="last_name" id="last_name">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Correo Electrónico <span class="text-danger">*</span></label>
-                            <input type="email" class="form-control" name="email" id="email" required>
+                            <label class="form-label">Correo Electrónico</label>
+                            <input type="email" class="form-control" name="email" id="email">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Teléfono <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="telefono" id="telefono" required>
+                            <label class="form-label">Teléfono</label>
+                            <input type="text" class="form-control" name="telefono" id="telefono">
                         </div>
                     </div>
 
@@ -381,7 +395,8 @@
                         </div>
                         <div class="col-md-12">
                             <label class="form-label">Dirección Exacta</label>
-                            <textarea class="form-control" name="direccion_exacta" id="direccion_exacta" rows="2"></textarea>
+                            <textarea class="form-control" name="direccion_exacta" id="direccion_exacta"
+                                rows="2"></textarea>
                         </div>
                     </div>
 
@@ -405,7 +420,8 @@
                         {% endif %}
                         <div class="col-md-6">
                             <label class="form-label">Límite de Crédito</label>
-                            <input type="number" class="form-control" name="limite_credito" id="limite_credito" step="0.01" value="0">
+                            <input type="number" class="form-control" name="limite_credito" id="limite_credito"
+                                step="0.01" value="0">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Días de Crédito</label>
@@ -456,187 +472,187 @@
 
 {% block extra_js %}
 <script>
-let modalCliente;
-let modalDetalleCliente;
+    let modalCliente;
+    let modalDetalleCliente;
 
-// Generador de usuarios aleatorios
-function generarUsuarioAleatorio() {
-    const prefijos = ['cli', 'client', 'usr', 'user', 'cust', 'customer'];
-    const sufijos = ['tv', 'media', 'adv', 'pub', 'channel', 'broadcast'];
-    const numeros = Math.floor(1000 + Math.random() * 9000);
-    
-    const prefijo = prefijos[Math.floor(Math.random() * prefijos.length)];
-    const sufijo = sufijos[Math.floor(Math.random() * sufijos.length)];
-    
-    return `${prefijo}_${sufijo}_${numeros}`;
-}
+    // Generador de usuarios aleatorios
+    function generarUsuarioAleatorio() {
+        const prefijos = ['cli', 'client', 'usr', 'user', 'cust', 'customer'];
+        const sufijos = ['tv', 'media', 'adv', 'pub', 'channel', 'broadcast'];
+        const numeros = Math.floor(1000 + Math.random() * 9000);
 
-// Generador de usuarios basado en información del cliente
-function generarUsuarioDesdeInfo(empresa, ruc, email) {
-    if (empresa && empresa.trim() !== '') {
-        // Crear usuario desde el nombre de la empresa
-        const empresaSlug = empresa
-            .toLowerCase()
-            .replace(/[^a-z0-9]/g, '_')
-            .replace(/_+/g, '_')
-            .substring(0, 15);
-        
-        const numeros = Math.floor(100 + Math.random() * 900);
-        return `${empresaSlug}_${numeros}`;
-    } else if (ruc && ruc.trim() !== '') {
-        // Usar RUC/DNI si está disponible
-        return `cli_${ruc}`;
-    } else if (email && email.trim() !== '') {
-        // Usar parte del email antes del @
-        const usuarioEmail = email.split('@')[0]
-            .toLowerCase()
-            .replace(/[^a-z0-9]/g, '_')
-            .replace(/_+/g, '_')
-            .substring(0, 12);
-        
-        const numeros = Math.floor(100 + Math.random() * 900);
-        return `${usuarioEmail}_${numeros}`;
-    } else {
-        // Generar usuario completamente aleatorio
-        return generarUsuarioAleatorio();
+        const prefijo = prefijos[Math.floor(Math.random() * prefijos.length)];
+        const sufijo = sufijos[Math.floor(Math.random() * sufijos.length)];
+
+        return `${prefijo}_${sufijo}_${numeros}`;
     }
-}
 
-document.addEventListener('DOMContentLoaded', function() {
-    modalCliente = new bootstrap.Modal(document.getElementById('modalCliente'));
-    modalDetalleCliente = new bootstrap.Modal(document.getElementById('modalDetalleCliente'));
-    
-    // Generar usuario automáticamente cuando se abre el modal para crear
-    document.getElementById('modalCliente').addEventListener('show.bs.modal', function() {
-        const clienteId = document.getElementById('cliente_id').value;
-        if (!clienteId) {
-            // Solo generar para nuevos clientes, no para edición
-            const usuarioGenerado = generarUsuarioAleatorio();
-            document.getElementById('username').value = usuarioGenerado;
-            console.log('Usuario generado automáticamente:', usuarioGenerado);
+    // Generador de usuarios basado en información del cliente
+    function generarUsuarioDesdeInfo(empresa, ruc, email) {
+        if (empresa && empresa.trim() !== '') {
+            // Crear usuario desde el nombre de la empresa
+            const empresaSlug = empresa
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, '_')
+                .replace(/_+/g, '_')
+                .substring(0, 15);
+
+            const numeros = Math.floor(100 + Math.random() * 900);
+            return `${empresaSlug}_${numeros}`;
+        } else if (ruc && ruc.trim() !== '') {
+            // Usar RUC/DNI si está disponible
+            return `cli_${ruc}`;
+        } else if (email && email.trim() !== '') {
+            // Usar parte del email antes del @
+            const usuarioEmail = email.split('@')[0]
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, '_')
+                .replace(/_+/g, '_')
+                .substring(0, 12);
+
+            const numeros = Math.floor(100 + Math.random() * 900);
+            return `${usuarioEmail}_${numeros}`;
+        } else {
+            // Generar usuario completamente aleatorio
+            return generarUsuarioAleatorio();
         }
-    });
-    
-    // Generar usuario basado en información cuando se llenan campos
-    document.getElementById('empresa').addEventListener('blur', function() {
-        const clienteId = document.getElementById('cliente_id').value;
-        if (!clienteId) {
-            const empresa = document.getElementById('empresa').value;
-            const ruc = document.getElementById('ruc_dni').value;
-            const email = document.getElementById('email').value;
-            
-            if (empresa || ruc || email) {
-                const usuarioGenerado = generarUsuarioDesdeInfo(empresa, ruc, email);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        modalCliente = new bootstrap.Modal(document.getElementById('modalCliente'));
+        modalDetalleCliente = new bootstrap.Modal(document.getElementById('modalDetalleCliente'));
+
+        // Generar usuario automáticamente cuando se abre el modal para crear
+        document.getElementById('modalCliente').addEventListener('show.bs.modal', function () {
+            const clienteId = document.getElementById('cliente_id').value;
+            if (!clienteId) {
+                // Solo generar para nuevos clientes, no para edición
+                const usuarioGenerado = generarUsuarioAleatorio();
                 document.getElementById('username').value = usuarioGenerado;
-                console.log('Usuario generado desde info:', usuarioGenerado);
+                console.log('Usuario generado automáticamente:', usuarioGenerado);
             }
-        }
-    });
-    
-    document.getElementById('ruc_dni').addEventListener('blur', function() {
-        const clienteId = document.getElementById('cliente_id').value;
-        if (!clienteId) {
-            const empresa = document.getElementById('empresa').value;
-            const ruc = document.getElementById('ruc_dni').value;
-            const email = document.getElementById('email').value;
-            
-            if (ruc && (!empresa || empresa.trim() === '')) {
-                const usuarioGenerado = generarUsuarioDesdeInfo(empresa, ruc, email);
-                document.getElementById('username').value = usuarioGenerado;
-                console.log('Usuario generado desde RUC:', usuarioGenerado);
-            }
-        }
-    });
-});
-
-function abrirModalCrear() {
-    document.getElementById('modalClienteTitulo').textContent = 'Nuevo Cliente';
-    document.getElementById('formCliente').reset();
-    document.getElementById('cliente_id').value = '';
-    
-    // Generar usuario automáticamente al abrir el modal
-    const usuarioGenerado = generarUsuarioAleatorio();
-    document.getElementById('username').value = usuarioGenerado;
-    console.log('Usuario generado al abrir modal:', usuarioGenerado);
-    
-    modalCliente.show();
-}
-
-function editarCliente(clienteId) {
-    document.getElementById('modalClienteTitulo').textContent = 'Editar Cliente';
-    document.getElementById('cliente_id').value = clienteId;
-    
-    // Cargar datos del cliente
-    fetch(`/panel/clientes/${clienteId}/detalle/`)
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('username').value = data.username;
-            document.getElementById('first_name').value = data.first_name || '';
-            document.getElementById('last_name').value = data.last_name || '';
-            document.getElementById('email').value = data.email;
-            document.getElementById('telefono').value = data.telefono || '';
-            document.getElementById('empresa').value = data.empresa || '';
-            document.getElementById('ruc_dni').value = data.ruc_dni || '';
-            document.getElementById('razon_social').value = data.razon_social || '';
-            document.getElementById('giro_comercial').value = data.giro_comercial || '';
-            document.getElementById('ciudad').value = data.ciudad || '';
-            document.getElementById('provincia').value = data.provincia || '';
-            document.getElementById('direccion_exacta').value = data.direccion_exacta || '';
-            document.getElementById('limite_credito').value = data.limite_credito || '0';
-            document.getElementById('dias_credito').value = data.dias_credito || '0';
-            document.getElementById('status').value = data.status;
-            
-            // CORRECCIÓN: Cargar información profesional correctamente
-            document.getElementById('profesion').value = data.profesion || '';
-            document.getElementById('cargo_empresa').value = data.cargo_empresa || '';
-            
-            if (document.getElementById('vendedor_asignado')) {
-                document.getElementById('vendedor_asignado').value = data.vendedor_asignado_id || '';
-            }
-            
-            console.log("Datos cargados para edición:", {
-                profesion: data.profesion,
-                cargo_empresa: data.cargo_empresa
-            });
-            
-            modalCliente.show();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Error al cargar los datos del cliente',
-                confirmButtonColor: '#3085d6'
-            });
         });
-}
 
-function guardarCliente() {
-    const clienteId = document.getElementById('cliente_id').value;
-    const form = document.getElementById('formCliente');
-    
-    // DEBUG: Mostrar datos antes de enviar
-    console.log("=== DEBUG FRONTEND ANTES DE ENVIAR ===");
-    console.log("Usuario generado:", document.getElementById('username').value);
-    const formData = new FormData(form);
-    for (let [key, value] of formData.entries()) {
-        console.log(`📝 ${key}: '${value}'`);
+        // Generar usuario basado en información cuando se llenan campos
+        document.getElementById('empresa').addEventListener('blur', function () {
+            const clienteId = document.getElementById('cliente_id').value;
+            if (!clienteId) {
+                const empresa = document.getElementById('empresa').value;
+                const ruc = document.getElementById('ruc_dni').value;
+                const email = document.getElementById('email').value;
+
+                if (empresa || ruc || email) {
+                    const usuarioGenerado = generarUsuarioDesdeInfo(empresa, ruc, email);
+                    document.getElementById('username').value = usuarioGenerado;
+                    console.log('Usuario generado desde info:', usuarioGenerado);
+                }
+            }
+        });
+
+        document.getElementById('ruc_dni').addEventListener('blur', function () {
+            const clienteId = document.getElementById('cliente_id').value;
+            if (!clienteId) {
+                const empresa = document.getElementById('empresa').value;
+                const ruc = document.getElementById('ruc_dni').value;
+                const email = document.getElementById('email').value;
+
+                if (ruc && (!empresa || empresa.trim() === '')) {
+                    const usuarioGenerado = generarUsuarioDesdeInfo(empresa, ruc, email);
+                    document.getElementById('username').value = usuarioGenerado;
+                    console.log('Usuario generado desde RUC:', usuarioGenerado);
+                }
+            }
+        });
+    });
+
+    function abrirModalCrear() {
+        document.getElementById('modalClienteTitulo').textContent = 'Nuevo Cliente';
+        document.getElementById('formCliente').reset();
+        document.getElementById('cliente_id').value = '';
+
+        // Generar usuario automáticamente al abrir el modal
+        const usuarioGenerado = generarUsuarioAleatorio();
+        document.getElementById('username').value = usuarioGenerado;
+        console.log('Usuario generado al abrir modal:', usuarioGenerado);
+
+        modalCliente.show();
     }
-    
-    // Validación básica antes de enviar
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
+
+    function editarCliente(clienteId) {
+        document.getElementById('modalClienteTitulo').textContent = 'Editar Cliente';
+        document.getElementById('cliente_id').value = clienteId;
+
+        // Cargar datos del cliente
+        fetch(`/panel/clientes/${clienteId}/detalle/`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('username').value = data.username;
+                document.getElementById('first_name').value = data.first_name || '';
+                document.getElementById('last_name').value = data.last_name || '';
+                document.getElementById('email').value = data.email;
+                document.getElementById('telefono').value = data.telefono || '';
+                document.getElementById('empresa').value = data.empresa || '';
+                document.getElementById('ruc_dni').value = data.ruc_dni || '';
+                document.getElementById('razon_social').value = data.razon_social || '';
+                document.getElementById('giro_comercial').value = data.giro_comercial || '';
+                document.getElementById('ciudad').value = data.ciudad || '';
+                document.getElementById('provincia').value = data.provincia || '';
+                document.getElementById('direccion_exacta').value = data.direccion_exacta || '';
+                document.getElementById('limite_credito').value = data.limite_credito || '0';
+                document.getElementById('dias_credito').value = data.dias_credito || '0';
+                document.getElementById('status').value = data.status;
+
+                // CORRECCIÓN: Cargar información profesional correctamente
+                document.getElementById('profesion').value = data.profesion || '';
+                document.getElementById('cargo_empresa').value = data.cargo_empresa || '';
+
+                if (document.getElementById('vendedor_asignado')) {
+                    document.getElementById('vendedor_asignado').value = data.vendedor_asignado_id || '';
+                }
+
+                console.log("Datos cargados para edición:", {
+                    profesion: data.profesion,
+                    cargo_empresa: data.cargo_empresa
+                });
+
+                modalCliente.show();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error al cargar los datos del cliente',
+                    confirmButtonColor: '#3085d6'
+                });
+            });
     }
-    
-    // Cerrar modal de cliente
-    modalCliente.hide();
-    
-    // Mostrar loading
-    Swal.fire({
-        title: clienteId ? 'Actualizando...' : 'Guardando...',
-        html: `
+
+    function guardarCliente() {
+        const clienteId = document.getElementById('cliente_id').value;
+        const form = document.getElementById('formCliente');
+
+        // DEBUG: Mostrar datos antes de enviar
+        console.log("=== DEBUG FRONTEND ANTES DE ENVIAR ===");
+        console.log("Usuario generado:", document.getElementById('username').value);
+        const formData = new FormData(form);
+        for (let [key, value] of formData.entries()) {
+            console.log(`📝 ${key}: '${value}'`);
+        }
+
+        // Validación básica antes de enviar
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        // Cerrar modal de cliente
+        modalCliente.hide();
+
+        // Mostrar loading
+        Swal.fire({
+            title: clienteId ? 'Actualizando...' : 'Guardando...',
+            html: `
             <div class="text-center py-3">
                 <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
                     <span class="visually-hidden">Guardando...</span>
@@ -644,43 +660,43 @@ function guardarCliente() {
                 <p class="text-muted mb-0">Por favor espere un momento</p>
             </div>
         `,
-        allowOutsideClick: false,
-        showConfirmButton: false,
-        customClass: {
-            popup: 'animated-modal'
-        },
-        showClass: {
-            popup: 'animate__animated animate__fadeIn animate__faster'
-        }
-    });
-    
-    // Enviar el formulario normalmente
-    form.action = clienteId 
-        ? `/panel/clientes/${clienteId}/editar/`
-        : '/panel/clientes/crear/';
-    form.method = 'POST';
-    form.submit();
-}
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            customClass: {
+                popup: 'animated-modal'
+            },
+            showClass: {
+                popup: 'animate__animated animate__fadeIn animate__faster'
+            }
+        });
 
-function verDetalleCliente(clienteId) {
-    // Mostrar loading
-    const loadingHtml = `
+        // Enviar el formulario normalmente
+        form.action = clienteId
+            ? `/panel/clientes/${clienteId}/editar/`
+            : '/panel/clientes/crear/';
+        form.method = 'POST';
+        form.submit();
+    }
+
+    function verDetalleCliente(clienteId) {
+        // Mostrar loading
+        const loadingHtml = `
         <div class="text-center py-4">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Cargando...</span>
             </div>
         </div>
     `;
-    document.getElementById('detalleClienteContent').innerHTML = loadingHtml;
-    modalDetalleCliente.show();
-    
-    fetch(`/panel/clientes/${clienteId}/detalle/`)
-        .then(response => response.json())
-        .then(data => {
-            // Construir HTML para información profesional
-            let infoProfesionalHtml = '';
-            if (data.profesion) {
-                infoProfesionalHtml = `
+        document.getElementById('detalleClienteContent').innerHTML = loadingHtml;
+        modalDetalleCliente.show();
+
+        fetch(`/panel/clientes/${clienteId}/detalle/`)
+            .then(response => response.json())
+            .then(data => {
+                // Construir HTML para información profesional
+                let infoProfesionalHtml = '';
+                if (data.profesion) {
+                    infoProfesionalHtml = `
                     <div class="info-profesional">
                         <h6 class="mb-3">Información Profesional</h6>
                         <div class="row">
@@ -697,9 +713,9 @@ function verDetalleCliente(clienteId) {
                         </div>
                     </div>
                 `;
-            }
-            
-            const html = `
+                }
+
+                const html = `
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <strong>Empresa:</strong><br>
@@ -764,24 +780,24 @@ function verDetalleCliente(clienteId) {
                 </div>
                 ${infoProfesionalHtml}
             `;
-            document.getElementById('detalleClienteContent').innerHTML = html;
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            document.getElementById('detalleClienteContent').innerHTML = `
+                document.getElementById('detalleClienteContent').innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('detalleClienteContent').innerHTML = `
                 <div class="alert alert-danger">
                     <i class="fas fa-exclamation-circle me-2"></i>
                     Error al cargar los detalles del cliente
                 </div>
             `;
-        });
-}
+            });
+    }
 
-// FUNCIÓN ELIMINAR
-function eliminarCliente(clienteId, nombreEmpresa) {
-    Swal.fire({
-        title: '¿Eliminar cliente?',
-        html: `
+    // FUNCIÓN ELIMINAR
+    function eliminarCliente(clienteId, nombreEmpresa) {
+        Swal.fire({
+            title: '¿Eliminar cliente?',
+            html: `
             <div class="text-center mb-3">
                 <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
                 <p class="mb-2">¿Estás seguro de eliminar el cliente:</p>
@@ -792,31 +808,31 @@ function eliminarCliente(clienteId, nombreEmpresa) {
                 </small>
             </div>
         `,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="fas fa-trash me-2"></i>Sí, eliminar',
-        cancelButtonText: '<i class="fas fa-times me-2"></i>Cancelar',
-        reverseButtons: true,
-        customClass: {
-            popup: 'animated-modal',
-            confirmButton: 'btn btn-lg px-4',
-            cancelButton: 'btn btn-lg px-4'
-        },
-        buttonsStyling: false,
-        showClass: {
-            popup: 'animate__animated animate__zoomIn animate__faster'
-        },
-        hideClass: {
-            popup: 'animate__animated animate__zoomOut animate__faster'
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Mostrar loading
-            Swal.fire({
-                title: 'Eliminando...',
-                html: `
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-trash me-2"></i>Sí, eliminar',
+            cancelButtonText: '<i class="fas fa-times me-2"></i>Cancelar',
+            reverseButtons: true,
+            customClass: {
+                popup: 'animated-modal',
+                confirmButton: 'btn btn-lg px-4',
+                cancelButton: 'btn btn-lg px-4'
+            },
+            buttonsStyling: false,
+            showClass: {
+                popup: 'animate__animated animate__zoomIn animate__faster'
+            },
+            hideClass: {
+                popup: 'animate__animated animate__zoomOut animate__faster'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Mostrar loading
+                Swal.fire({
+                    title: 'Eliminando...',
+                    html: `
                     <div class="text-center py-3">
                         <div class="spinner-border text-danger mb-3" style="width: 3rem; height: 3rem;" role="status">
                             <span class="visually-hidden">Eliminando...</span>
@@ -824,46 +840,46 @@ function eliminarCliente(clienteId, nombreEmpresa) {
                         <p class="text-muted mb-0">Por favor espere un momento</p>
                     </div>
                 `,
-                allowOutsideClick: false,
-                showConfirmButton: false,
-                customClass: {
-                    popup: 'animated-modal'
-                },
-                showClass: {
-                    popup: 'animate__animated animate__fadeIn animate__faster'
-                }
-            });
-            
-            // Crear un formulario temporal para hacer el POST
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = `/panel/clientes/${clienteId}/eliminar/`;
-            
-            // Agregar CSRF token
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = 'csrfmiddlewaretoken';
-            csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
-            form.appendChild(csrfInput);
-            
-            // Agregar al body y enviar
-            document.body.appendChild(form);
-            form.submit();
-        }
-    });
-}
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    customClass: {
+                        popup: 'animated-modal'
+                    },
+                    showClass: {
+                        popup: 'animate__animated animate__fadeIn animate__faster'
+                    }
+                });
 
-// Función para probar el último cliente creado
-function debugUltimoCliente() {
-    fetch('/panel/debug/ultimo-cliente/')
-        .then(response => response.json())
-        .then(data => {
-            console.log("=== DEBUG ÚLTIMO CLIENTE ===");
-            console.log("Datos del último cliente:", data);
-            
-            Swal.fire({
-                title: 'Último Cliente Creado',
-                html: `
+                // Crear un formulario temporal para hacer el POST
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/panel/clientes/${clienteId}/eliminar/`;
+
+                // Agregar CSRF token
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrfmiddlewaretoken';
+                csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                form.appendChild(csrfInput);
+
+                // Agregar al body y enviar
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
+
+    // Función para probar el último cliente creado
+    function debugUltimoCliente() {
+        fetch('/panel/debug/ultimo-cliente/')
+            .then(response => response.json())
+            .then(data => {
+                console.log("=== DEBUG ÚLTIMO CLIENTE ===");
+                console.log("Datos del último cliente:", data);
+
+                Swal.fire({
+                    title: 'Último Cliente Creado',
+                    html: `
                     <div class="text-left">
                         <p><strong>Empresa:</strong> ${data.empresa || '-'}</p>
                         <p><strong>Usuario:</strong> ${data.username || '-'}</p>
@@ -874,13 +890,13 @@ function debugUltimoCliente() {
                         <p><strong>Fecha creación:</strong> ${data.fecha_creacion}</p>
                     </div>
                 `,
-                icon: 'info',
-                confirmButtonText: 'Cerrar'
+                    icon: 'info',
+                    confirmButtonText: 'Cerrar'
+                });
+            })
+            .catch(error => {
+                console.error('Error en debug:', error);
             });
-        })
-        .catch(error => {
-            console.error('Error en debug:', error);
-        });
-}
+    }
 </script>
 {% endblock %}

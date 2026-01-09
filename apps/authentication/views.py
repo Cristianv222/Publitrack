@@ -909,6 +909,13 @@ def vendedor_crear_cliente(request):
                         return redirect('authentication:vendedor_dashboard')
                 
                 # VALIDAR UNICIDAD DE EMAIL
+                if not email:
+                     # Generar email unico si no se proporciona
+                    import time
+                    timestamp = int(time.time())
+                    rand = random.randint(1000, 9999)
+                    email = f"nocontiene_{timestamp}_{rand}@sinemail.com"
+
                 if email and CustomUser.objects.filter(email=email).exists():
                     error_msg = 'El correo electrónico ya está registrado'
                     if is_ajax:
@@ -1013,6 +1020,19 @@ def vendedor_editar_cliente(request, cliente_id):
                 
                 # VALIDAR UNICIDAD DE EMAIL (excluyendo cliente actual)
                 email = request.POST.get('email')
+                
+                if not email:
+                    # Si ya tiene un email dummy, mantenerlo
+                    if cliente.email and cliente.email.startswith('nocontiene_'):
+                        email = cliente.email
+                    else:
+                        # Generar nuevo email dummy
+                        import time
+                        import random
+                        timestamp = int(time.time())
+                        rand = random.randint(1000, 9999)
+                        email = f"nocontiene_{timestamp}_{rand}@sinemail.com"
+
                 if email and CustomUser.objects.filter(
                     email=email
                 ).exclude(pk=cliente_id).exists():

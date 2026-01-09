@@ -3137,6 +3137,14 @@ def cliente_create_api(request):
         email = request.POST.get('email')
         print(f"🟡 Email: {email}")
         
+        if not email:
+             # Generar email unico si no se proporciona
+            import time
+            import random
+            timestamp = int(time.time())
+            rand = random.randint(1000, 9999)
+            email = f"nocontiene_{timestamp}_{rand}@sinemail.com"
+
         if CustomUser.objects.filter(email=email).exists():
             messages.error(request, f'El email "{email}" ya está registrado')
             return redirect('custom_admin:clientes_list')
