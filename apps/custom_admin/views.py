@@ -3254,6 +3254,26 @@ def cliente_update_api(request, cliente_id):
         # Actualizar datos
         cliente.first_name = request.POST.get('first_name', cliente.first_name)
         cliente.last_name = request.POST.get('last_name', cliente.last_name)
+        
+        # Validar y actualizar Email
+        new_email = request.POST.get('email')
+        
+        # Si el usuario limpia el campo (y antes tenía uno real o dummy), generar uno nuevo dummy
+        if not new_email:
+            import time
+            import random
+            timestamp = int(time.time())
+            rand = random.randint(1000, 9999)
+            new_email = f"nocontiene_{timestamp}_{rand}@sinemail.com"
+            cliente.email = new_email
+        
+        # Si el email cambió, validar unicidad
+        elif new_email != cliente.email:
+             if CustomUser.objects.filter(email=new_email).exclude(pk=cliente.pk).exists():
+                messages.error(request, f'El email "{new_email}" ya está registrado por otro usuario')
+                return redirect('custom_admin:clientes_list')
+             cliente.email = new_email
+
         cliente.telefono = request.POST.get('telefono', cliente.telefono)
         cliente.empresa = request.POST.get('empresa', cliente.empresa)
         cliente.ruc_dni = request.POST.get('ruc_dni', cliente.ruc_dni)
