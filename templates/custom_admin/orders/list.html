@@ -151,7 +151,7 @@
             </h2>
             <p class="text-muted mb-0">Administra las órdenes de toma del sistema</p>
         </div>
-        {% if user.es_admin or user.es_vendedor %}
+        {% if user.es_admin or user.es_vendedor or user.es_productor or user.es_vtr %}
         <button class="btn btn-primary" onclick="abrirModalCrear()">
             <i class="fas fa-plus me-2"></i>Nueva Orden
         </button>
@@ -195,26 +195,26 @@
                 <div class="col-md-3">
                     <select name="estado" class="form-select">
                         <option value="">Todos los estados</option>
-                        <option value="pendiente" {% if estado_filter == "pendiente" %}selected{% endif %}>Pendiente
+                        <option value="pendiente" {% if estado_filter == 'pendiente' %}selected{% endif %}>Pendiente
                         </option>
-                        <option value="validado" {% if estado_filter == "validado" %}selected{% endif %}>Validado</option>
-                        <option value="en_produccion" {% if estado_filter == "en_produccion" %}selected{% endif %}>En
+                        <option value="validado" {% if estado_filter == 'validado' %}selected{% endif %}>Validado</option>
+                        <option value="en_produccion" {% if estado_filter == 'en_produccion' %}selected{% endif %}>En
                             Producción</option>
-                        <option value="completado" {% if estado_filter == "completado" %}selected{% endif %}>Completado
+                        <option value="completado" {% if estado_filter == 'completado' %}selected{% endif %}>Completado
                         </option>
-                        <option value="no_validado" {% if estado_filter == "no_validado" %}selected{% endif %}>No Validado
+                        <option value="no_validado" {% if estado_filter == 'no_validado' %}selected{% endif %}>No Validado
                         </option>
-                        <option value="cancelado" {% if estado_filter == "cancelado" %}selected{% endif %}>Cancelado
+                        <option value="cancelado" {% if estado_filter == 'cancelado' %}selected{% endif %}>Cancelado
                         </option>
                     </select>
                 </div>
                 <div class="col-md-3">
                     <select name="prioridad" class="form-select">
                         <option value="">Todas las prioridades</option>
-                        <option value="urgente" {% if prioridad_filter == "urgente" %}selected{% endif %}>Urgente</option>
-                        <option value="alta" {% if prioridad_filter == "alta" %}selected{% endif %}>Alta</option>
-                        <option value="normal" {% if prioridad_filter == "normal" %}selected{% endif %}>Normal</option>
-                        <option value="baja" {% if prioridad_filter == "baja" %}selected{% endif %}>Baja</option>
+                        <option value="urgente" {% if prioridad_filter == 'urgente' %}selected{% endif %}>Urgente</option>
+                        <option value="alta" {% if prioridad_filter == 'alta' %}selected{% endif %}>Alta</option>
+                        <option value="normal" {% if prioridad_filter == 'normal' %}selected{% endif %}>Normal</option>
+                        <option value="baja" {% if prioridad_filter == 'baja' %}selected{% endif %}>Baja</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -335,7 +335,7 @@
                                     </button>
                                     {% endif %}
 
-                                    {% if user.es_admin or user.es_vendedor %}
+                                    {% if user.es_admin or user.es_vendedor or user.es_productor or user.es_vtr %}
                                     <button class="btn btn-warning btn-action" onclick="editarOrden({{ orden.id }})"
                                         title="Editar">
                                         <i class="fas fa-edit"></i>
@@ -936,8 +936,8 @@
                                                                            value="${orden.hora_inicio || ''}">
                                                                 </div>
                                                                 <div class="col-md-6">
-                                                                    <label class="form-label">Hora Fin <span class="text-danger">*</span></label>
-                                                                    <input type="time" class="form-control" name="hora_fin" required
+                                                                    <label class="form-label">Hora Fin</label>
+                                                                    <input type="time" class="form-control" name="hora_fin"
                                                                            value="${orden.hora_fin || ''}">
                                                                 </div>
                                                             </div>

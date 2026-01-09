@@ -943,7 +943,7 @@
 
         <div class="sidebar-menu">
             <!-- Dashboard -->
-            {% if not request.user.es_doctor and not request.user.es_vtr %}
+            {% if not request.user.es_doctor and not request.user.es_vtr and not request.user.es_productor %}
             <div class="menu-section">
                 <a href="{% url 'custom_admin:dashboard' %}"
                     class="menu-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
@@ -1003,7 +1003,24 @@
             </div>
             {% endif %}
 
-            {% if not request.user.es_doctor and not request.user.es_vtr %}
+            <!-- MENÚ PARA PRODUCTOR -->
+            {% if request.user.es_productor %}
+            <div class="menu-section">
+                <div class="menu-section-title">PANEL PRODUCTOR</div>
+                <a href="{% url 'custom_admin:orders_list' %}"
+                    class="menu-link {% if 'orders' in request.resolver_match.url_name and 'production' not in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-video menu-icon"></i>
+                    <span>Órdenes de Toma</span>
+                </a>
+                <a href="{% url 'custom_admin:ordenes_produccion_list' %}"
+                    class="menu-link {% if 'ordenes_produccion' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-film menu-icon"></i>
+                    <span>Órdenes de Producción</span>
+                </a>
+            </div>
+            {% endif %}
+
+            {% if not request.user.es_doctor and not request.user.es_vtr and not request.user.es_productor %}
             <!-- PROGRAMACIÓN Y EMISIÓN -->
             <div class="menu-section">
                 <div class="menu-section-title">PROGRAMACIÓN Y EMISIÓN</div>

@@ -1,769 +1,124 @@
-{% extends "base.html" %}
+{% extends "custom_admin/base_admin.html" %}
 {% load static %}
-{% load grilla_filters %}
 
-{% block title %}Dashboard Productor{% endblock %}
+{% block title %}Panel Productor - PubliTrack{% endblock %}
 
-{# ================================================== #}
-{# ESTILOS ESPECÍFICOS - AHORA EN BLOQUE extra_css #}
-{# ================================================== #}
 {% block extra_css %}
 <style>
-    /* Estilos del calendario (igual que programación del canal) */
-    .calendario-grid {
-        display: grid;
-        grid-template-columns: 80px repeat(7, 1fr);
-        gap: 1px;
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-    }
-
-    .calendario-header {
-        background: #6c757d;
+    .welcome-card {
+        background: linear-gradient(135deg, #4dabf7 0%, #339af0 100%);
         color: white;
-        padding: 12px 8px;
-        text-align: center;
-        font-weight: 600;
-        font-size: 0.85rem;
-    }
-
-    .calendario-hora {
-        background: #f8f9fa;
-        padding: 8px;
-        text-align: center;
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: #495057;
-        border-right: 1px solid #dee2e6;
-    }
-
-    .calendario-celda {
-        background: white;
-        min-height: 80px;
-        padding: 4px;
-        border-right: 1px solid #dee2e6;
-        border-bottom: 1px solid #dee2e6;
-        position: relative;
-        cursor: pointer;
-    }
-
-    .calendario-celda:hover {
-        background-color: #f8f9fa !important;
-    }
-
-    /* Bloques de programación */
-    .bloque-programacion {
-        background: #4dabf7;
-        color: white;
-        padding: 4px 6px;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        margin-bottom: 2px;
-        border-left: 3px solid;
-        position: relative;
-        min-height: 60px;
-    }
-
-    /* Contenedor para las bolitas - en la parte inferior */
-    .contenedor-bolitas {
-        position: absolute;
-        bottom: 2px;
-        left: 0;
-        right: 0;
-        height: 20px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 3px;
-        padding: 0 5px;
-    }
-
-    /* Bolitas de ubicaciones */
-    .bolita-ubicacion {
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 9px;
-        color: white;
-        font-weight: bold;
-        transition: all 0.2s ease;
-        border: 1px solid rgba(255, 255, 255, 0.5);
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-        flex-shrink: 0;
-    }
-
-    .bolita-ubicacion:hover {
-        transform: scale(1.3);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    }
-
-    /* Colores para las bolitas */
-    .bolita-sin-cunas {
-        background: linear-gradient(135deg, #ffd43b, #fcc419);
-    }
-
-    .bolita-con-cunas {
-        background: linear-gradient(135deg, #51cf66, #40c057);
-    }
-
-    .bolita-ocupada {
-        background: linear-gradient(135deg, #fa5252, #e03131);
-    }
-
-    /* Contador de ubicaciones */
-    .contador-ubicaciones {
-        position: absolute;
-        top: 2px;
-        left: 2px;
-        background: rgba(0, 0, 0, 0.7);
-        color: white;
-        border-radius: 50%;
-        width: 16px;
-        height: 16px;
-        font-size: 0.6rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 5;
-    }
-
-    /* Indicador de hora en las bolitas */
-    .hora-bolita {
-        position: absolute;
-        bottom: -15px;
-        font-size: 0.5rem;
-        color: #666;
-        white-space: nowrap;
-    }
-
-    /* Ubicaciones publicitarias */
-    .ubicacion-publicitaria {
-        background: #fff9db;
-        border: 1px solid #ffd43b;
-        border-radius: 4px;
-        padding: 4px 6px;
-        margin-bottom: 2px;
-        font-size: 0.7rem;
-        position: relative;
-    }
-
-    .ubicacion-header {
-        font-weight: bold;
-        color: #000;
-        font-size: 0.7rem;
-    }
-
-    .ubicacion-info {
-        color: #666;
-        font-size: 0.65rem;
-    }
-
-    /* Asignaciones de cuñas */
-    .asignacion-cuna {
-        background: #51cf66;
-        color: white;
-        border-radius: 3px;
-        padding: 2px 4px;
-        margin-top: 2px;
-        font-size: 0.65rem;
-        border-left: 2px solid #2b8a3e;
-    }
-
-    .cuna-info {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .cuna-codigo {
-        font-weight: bold;
-    }
-
-    .cuna-duracion {
-        font-size: 0.6rem;
-        opacity: 0.9;
-    }
-
-    .btn-asignar {
-        background: #51cf66;
         border: none;
-        color: white;
-        padding: 2px 6px;
-        border-radius: 3px;
-        font-size: 0.6rem;
-        cursor: pointer;
-        margin-top: 2px;
-        width: 100%;
-    }
-
-    .btn-asignar:hover {
-        background: #40c057;
-    }
-
-    .btn-eliminar-asignacion {
-        background: #fa5252;
-        border: none;
-        color: white;
-        padding: 1px 4px;
-        border-radius: 3px;
-        font-size: 0.6rem;
-        cursor: pointer;
-        margin-left: 2px;
-    }
-
-    .btn-eliminar-asignacion:hover {
-        background: #e03131;
-    }
-
-    /* Leyenda */
-    .leyenda-superior {
-        background: #f8f9fa;
-        border-radius: 8px;
-        padding: 12px 16px;
-        margin-bottom: 16px;
-        border: 1px solid #e9ecef;
-    }
-
-    .estadisticas-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
+        border-radius: 15px;
+        padding: 2rem;
         margin-bottom: 2rem;
+        box-shadow: 0 4px 15px rgba(51, 154, 240, 0.3);
     }
 
-    .estadistica-card {
+    .module-card {
         background: white;
-        border-radius: 8px;
+        border-radius: 12px;
         padding: 1.5rem;
+        height: 100%;
+        transition: transform 0.2s, box-shadow 0.2s;
+        border: 1px solid #e9ecef;
+        text-decoration: none;
+        color: #495057;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
         text-align: center;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        border-left: 4px solid #4dabf7;
     }
 
-    .estadistica-card.success {
-        border-left-color: #51cf66;
+    .module-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        color: #228be6;
+        border-color: #228be6;
     }
 
-    .estadistica-card.warning {
-        border-left-color: #ffd43b;
+    .module-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
     }
 
-    .estadistica-card.info {
-        border-left-color: #339af0;
+    .toma-icon {
+        background-color: #e7f5ff;
+        color: #228be6;
     }
 
-    .estadistica-valor {
-        font-size: 2rem;
-        font-weight: bold;
-        margin-bottom: 0.5rem;
+    .produccion-icon {
+        background-color: #fff0f6;
+        color: #faa2c1;
     }
 
-    .estadistica-label {
-        color: #6c757d;
+    .stat-badge {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
         font-size: 0.9rem;
-    }
-
-    .celda-vacia {
-        color: #6c757d;
-        font-size: 0.7rem;
-        text-align: center;
-        padding: 5px;
-    }
-
-    /* Tooltip personalizado para bolitas */
-    .bolita-tooltip {
-        position: relative;
-    }
-
-    .bolita-tooltip:hover::after {
-        content: attr(title);
-        position: absolute;
-        bottom: 100%;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(0, 0, 0, 0.8);
-        color: white;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 0.7rem;
-        white-space: nowrap;
-        z-index: 1000;
+        backdrop-filter: blur(5px);
     }
 </style>
-{% endblock extra_css %}
+{% endblock %}
 
-{# ================================================== #}
-{# CONTENIDO PRINCIPAL - ÚNICO BLOQUE content #}
-{# ================================================== #}
 {% block content %}
-<div class="container-fluid">
-    {% if not grilla_available %}
-    <div class="alert alert-danger">
-        <i class="fas fa-exclamation-triangle me-2"></i>
-        El módulo de Grilla Publicitaria no está disponible.
-    </div>
-    {% else %}
-
-    <!-- Header y Filtros -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <h4 class="text-gray-800">
-                <i class="fas fa-calendar-alt text-primary me-2"></i>
-                Grilla Publicitaria
-            </h4>
-            {% if programacion_actual %}
-            <p class="text-muted mb-0">
-                {{ programacion_actual.nombre }} -
-                Del {{ programacion_actual.fecha_inicio_semana|date:"d/m/Y" }} al 
-                {% if programacion_actual.fecha_fin_semana %}
-                    {{ programacion_actual.fecha_fin_semana|date:"d/m/Y" }}
-                {% else %}
-                    Fecha no disponible
-                {% endif %}
-            </p>
-            {% endif %}
-        </div>
-        <div class="col-md-6 text-end">
-            <form method="get" class="d-inline">
-                <select name="programacion_id" class="form-select d-inline-block w-auto" onchange="this.form.submit()">
-                    <option value="">Seleccionar programación...</option>
-                    {% for programacion in programaciones %}
-                    <option value="{{ programacion.id }}" {% if programacion_actual and programacion.id == programacion_actual.id %}selected{% endif %}>
-                        {{ programacion.nombre }} ({{ programacion.fecha_inicio_semana|date:"d/m/Y" }})
-                    </option>
-                    {% endfor %}
-                </select>
-            </form>
-        </div>
-    </div>
-
-    <!-- Leyenda -->
-    <div class="leyenda-superior">
-        <div class="d-flex flex-wrap gap-3 align-items-center">
-            <span class="text-muted small fw-bold">Leyenda:</span>
-            <span class="badge" style="background: #4dabf7; color: white;">
-                <i class="fas fa-tv me-1"></i>Programación
-            </span>
-            <span class="badge" style="background: #ffd43b; color: black;">
-                <i class="fas fa-circle me-1"></i>Pausa Disponible
-            </span>
-            <span class="badge" style="background: #51cf66; color: white;">
-                <i class="fas fa-circle me-1"></i>Con Cuñas
-            </span>
-            <span class="badge" style="background: #fa5252; color: white;">
-                <i class="fas fa-circle me-1"></i>Llena
-            </span>
-            <span class="text-muted small ms-2">
-                <i class="fas fa-info-circle me-1"></i>Haz clic en el bloque para crear ubicaciones, en las bolitas para
-                gestionar cuñas
-            </span>
-        </div>
-    </div>
-
-    <!-- Calendario Integrado -->
-    <div class="admin-card">
-        <div class="admin-card-body p-0">
-            <div class="calendario-grid">
-                <!-- Header de horas -->
-                <div class="calendario-header">HORA</div>
-                {% for dia in dias_semana %}
-                <div class="calendario-header">{{ dia|upper }}</div>
-                {% endfor %}
-
-                <!-- Filas de horas (cada 30 minutos) -->
-                {% for hora in horas_dia %}
-                <div class="calendario-hora">{{ hora }}</div>
-
-                {% for dia_index in "0123456" %}
-                {% with dia_num=dia_index|add:"0" %}
-                <div class="calendario-celda" onclick="abrirModalCrearUbicacion({{ dia_num }}, '{{ hora }}')">
-
-                    <!-- Bloques de Programación -->
-                    {% for bloque in bloques_semana %}
-                    {% if bloque.dia_semana == dia_num %}
-                    {% if bloque.hora_inicio|date:"H:i" <= hora and bloque.hora_fin|date:"H:i" > hora %}
-                        <div class="bloque-programacion"
-                            style="background: {{ bloque.programa.color }}; border-left-color: {{ bloque.programa.color }};"
-                            data-bs-toggle="tooltip"
-                            title="{{ bloque.programa.nombre }} - {{ bloque.hora_inicio|time:'H:i' }} a {{ bloque.hora_fin|time:'H:i' }}">
-
-                            <!-- Contador de ubicaciones -->
-                            {% with ubicaciones_count=0 %}
-                            {% for ubicacion in ubicaciones %}
-                            {% if ubicacion.bloque_programacion.id == bloque.id %}
-                            {% with ubicaciones_count=ubicaciones_count|add:1 %}{% endwith %}
-                            {% endif %}
-                            {% endfor %}
-
-                            {% if ubicaciones_count > 0 %}
-                            <div class="contador-ubicaciones"
-                                title="{{ ubicaciones_count }} ubicación(es) publicitaria(s)">
-                                {{ ubicaciones_count }}
-                            </div>
-                            {% endif %}
-                            {% endwith %}
-
-                            <div class="small text-white">
-                                <strong>{{ bloque.programa.nombre|truncatechars:15 }}</strong>
-                                <br>
-                                <small>{{ bloque.hora_inicio|time:"H:i" }} - {{ bloque.hora_fin|time:"H:i" }}</small>
-                            </div>
-
-                            <!-- BOLITAS DE UBICACIONES - EN FILA HORIZONTAL -->
-                            <div class="contenedor-bolitas">
-                                {% for ubicacion in ubicaciones %}
-                                {% if ubicacion.bloque_programacion.id == bloque.id %}
-                                {% if ubicacion|is_in_slot:hora %}
-                                {% with asignaciones_count=ubicacion.asignaciones.count %}
-                                <div class="bolita-ubicacion bolita-tooltip 
-                                                    {% if asignaciones_count >= ubicacion.capacidad_cuñas %}bolita-ocupada
-                                                    {% elif asignaciones_count > 0 %}bolita-con-cunas
-                                                    {% else %}bolita-sin-cunas{% endif %}"
-                                    onclick="event.stopPropagation(); abrirModalGestionUbicacion({{ ubicacion.id }})"
-                                    title="{{ ubicacion.nombre }} - {{ ubicacion.hora_pausa|time:'H:i' }}
-{% if asignaciones_count > 0 %}({{ asignaciones_count }}/{{ ubicacion.capacidad_cuñas }} cuñas){% else %}(Disponible){% endif %}">
-                                    {% if asignaciones_count > 0 %}
-                                    {{ asignaciones_count }}
-                                    {% else %}
-                                    •
-                                    {% endif %}
-                                </div>
-                                {% endwith %}
-                                {% endif %}
-                                {% endif %}
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {% endif %}
-                        {% endif %}
-                        {% endfor %}
-
-                        <!-- Si no hay nada en la celda -->
-                        {% if not bloques_semana %}
-                        <div class="celda-vacia">
-                            <i class="fas fa-plus"></i><br>
-                            <small>Crear ubicación</small>
-                        </div>
-                        {% endif %}
-
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="welcome-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="fw-bold mb-1">¡Bienvenido, {{ request.user.first_name }}!</h2>
+                    <p class="mb-0 opacity-75">Panel de Producción</p>
                 </div>
-                {% endwith %}
-                {% endfor %}
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Cuñas Disponibles -->
-    <div class="card mt-4">
-        <div class="card-header">
-            <h5 class="card-title mb-0">
-                <i class="fas fa-list me-2"></i>
-                Cuñas Disponibles para Programar
-            </h5>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                {% for cuña in cuñas_disponibles %}
-                <div class="col-md-6 col-lg-4 mb-3">
-                    <div class="card h-100 border-success">
-                        <div class="card-body">
-                            <h6 class="card-title">
-                                <span class="badge"
-                                    style="background: {{ cuña.categoria.color_codigo|default:'#007bff' }}; color: white;">
-                                    {{ cuña.codigo }}
-                                </span>
-                                {{ cuña.titulo }}
-                            </h6>
-                            <p class="card-text small mb-1">
-                                <strong>Cliente:</strong> {{ cuña.cliente.get_full_name }}<br>
-                                <strong>Duración:</strong> {{ cuña.duracion_planeada }}s<br>
-                                <strong>Precio:</strong> ${{ cuña.precio_total }}<br>
-                                <strong>Período:</strong> {{ cuña.fecha_inicio }} - {{ cuña.fecha_fin }}
-                            </p>
-                        </div>
+                <div class="d-flex gap-2">
+                    <div class="stat-badge">
+                        <i class="fas fa-video me-2"></i>
+                        {{ ordenes_toma_pendientes|default:"0" }} Tomas Pendientes
+                    </div>
+                    <div class="stat-badge">
+                        <i class="fas fa-film me-2"></i>
+                        {{ ordenes_produccion_en_proceso|default:"0" }} Prod. en Proceso
                     </div>
                 </div>
-                {% empty %}
-                <div class="col-12">
-                    <div class="alert alert-info text-center">
-                        <i class="fas fa-info-circle me-2"></i>
-                        No hay cuñas disponibles para programar
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-
-    {% endif %}
-</div>
-
-<!-- Modal para crear ubicación -->
-<div class="modal fade" id="modalCrearUbicacion" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Crear Ubicación Publicitaria</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="formCrearUbicacion">
-                    <input type="hidden" id="crear_dia_semana" name="dia_semana">
-                    <input type="hidden" id="crear_hora_emision" name="hora_emision">
-
-                    <div class="mb-3">
-                        <label for="nombre_ubicacion" class="form-label">Nombre de la Ubicación *</label>
-                        <input type="text" id="nombre_ubicacion" name="nombre" class="form-control" required
-                            placeholder="Ej: Pausa Publicitaria Mañana">
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="hora_inicio_pausa" class="form-label">Hora Inicio Pausa *</label>
-                        <input type="time" id="hora_inicio_pausa" name="hora_inicio_pausa" class="form-control" required
-                            step="300">
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="duracion_minutos" class="form-label">Duración de la Pausa (minutos) *</label>
-                        <select id="duracion_minutos" name="duracion_minutos" class="form-select" required>
-                            <option value="1">1 minuto</option>
-                            <option value="2" selected>2 minutos</option>
-                            <option value="3">3 minutos</option>
-                            <option value="5">5 minutos</option>
-                            <option value="10">10 minutos</option>
-                        </select>
-                        <div class="form-text">Tiempo total de la pausa publicitaria</div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="capacidad" class="form-label">Capacidad de Cuñas *</label>
-                        <input type="number" id="capacidad" name="capacidad" class="form-control" min="1" max="10"
-                            value="3" required>
-                        <div class="form-text">Número máximo de cuñas que caben en esta pausa</div>
-                    </div>
-
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <span id="infoCrearUbicacion"></span>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="crearUbicacion()">Crear Ubicación</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal para gestionar ubicación -->
-<div class="modal fade" id="modalGestionUbicacion" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="tituloGestionUbicacion">Gestionar Ubicación Publicitaria</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="contenidoGestionUbicacion">
-                    <!-- Contenido dinámico se carga aquí -->
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-            </div>
-        </div>
+<div class="row g-4">
+    <div class="col-md-6">
+        <h5 class="text-muted mb-3">Módulos de Gestión</h5>
     </div>
 </div>
-{% endblock content %}
 
-{# ================================================== #}
-{# JAVASCRIPT - EN BLOQUE extra_js #}
-{# ================================================== #}
-{% block extra_js %}
-<script>
-    // Funciones para la grilla
-    function abrirModalCrearUbicacion(dia, hora) {
-        document.getElementById('crear_dia_semana').value = dia;
-        document.getElementById('crear_hora_emision').value = hora;
-        document.getElementById('hora_inicio_pausa').value = hora + ':00';
-        document.getElementById('infoCrearUbicacion').textContent =
-            `Creando ubicación para ${getDiaNombre(dia)} en el bloque de las ${hora}`;
-        new bootstrap.Modal(document.getElementById('modalCrearUbicacion')).show();
-    }
-
-    function abrirModalGestionUbicacion(ubicacionId) {
-        console.log('Iniciando carga de ubicación ID:', ubicacionId);
-        const urlTemplate = "{% url 'custom_admin:grilla_ubicacion_detalle_api' 999999 %}";
-        const url = urlTemplate.replace('999999', ubicacionId.toString());
-
-        fetch(url)
-            .then(response => {
-                if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    mostrarModalGestion(data.ubicacion, data.asignaciones, data.cunas_disponibles);
-                } else {
-                    alert('Error: ' + data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('No se pudo cargar la ubicación: ' + error.message);
-            });
-    }
-
-    function mostrarModalGestion(ubicacion, asignaciones, cunasDisponibles) {
-        const titulo = document.getElementById('tituloGestionUbicacion');
-        const contenido = document.getElementById('contenidoGestionUbicacion');
-
-        titulo.textContent = `Gestionar: ${ubicacion.nombre}`;
-
-        let html = `
-        <div class="row">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h6 class="card-title mb-0">Información de la Ubicación</h6>
-                    </div>
-                    <div class="card-body">
-                        <p><strong>Nombre:</strong> ${ubicacion.nombre}</p>
-                        <p><strong>Bloque:</strong> ${ubicacion.bloque_programacion}</p>
-                        <p><strong>Hora Inicio:</strong> ${ubicacion.hora_inicio_pausa}</p>
-                        <p><strong>Duración:</strong> ${Math.round(ubicacion.duracion_segundos / 60)} minutos</p>
-                        <p><strong>Capacidad:</strong> ${ubicacion.cunas_asignadas_count}/${ubicacion.capacidad_cunas} cuñas</p>
-                        <p><strong>Espacios disponibles:</strong> ${ubicacion.espacios_disponibles}</p>
-                    </div>
-                </div>
+<div class="row g-4">
+    <!-- Órdenes de Toma -->
+    <div class="col-md-6 col-lg-3">
+        <a href="{% url 'custom_admin:orders_list' %}" class="module-card">
+            <div class="module-icon toma-icon">
+                <i class="fas fa-video"></i>
             </div>
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h6 class="card-title mb-0">Asignar Nueva Cuña</h6>
-                    </div>
-                    <div class="card-body">
-    `;
+            <h5 class="fw-bold mb-2">Órdenes de Toma</h5>
+            <p class="small text-muted mb-0">Gestión de solicitudes de grabación y tomas</p>
+        </a>
+    </div>
 
-        if (ubicacion.espacios_disponibles > 0 && cunasDisponibles.length > 0) {
-            html += `
-            <form id="formAsignarCuna">
-                <input type="hidden" name="ubicacion_id" value="${ubicacion.id}">
-                <div class="mb-3">
-                    <label for="cuna_id" class="form-label">Seleccionar Cuña</label>
-                    <select id="cuna_id" name="cuna_id" class="form-select" required>
-                        <option value="">Seleccionar cuña...</option>
-        `;
-            cunasDisponibles.forEach(cuna => {
-                html += `<option value="${cuna.id}">${cuna.codigo} - ${cuna.titulo} (${cuna.duracion_planeada}s)</option>`;
-            });
-            html += `
-                    </select>
-                </div>
-                <button type="button" class="btn btn-success btn-sm" onclick="asignarCunaDesdeGestion()">Asignar Cuña</button>
-            </form>
-        `;
-        } else if (ubicacion.espacios_disponibles <= 0) {
-            html += `<div class="alert alert-warning mb-0">No hay espacios disponibles en esta ubicación.</div>`;
-        } else {
-            html += `<div class="alert alert-info mb-0">No hay cuñas disponibles para asignar.</div>`;
-        }
-
-        html += `
-                    </div>
-                </div>
+    <!-- Órdenes de Producción -->
+    <div class="col-md-6 col-lg-3">
+        <a href="{% url 'custom_admin:ordenes_produccion_list' %}" class="module-card">
+            <div class="module-icon produccion-icon">
+                <i class="fas fa-film"></i>
             </div>
-        </div>
-        
-        <div class="card mt-3">
-            <div class="card-header">
-                <h6 class="card-title mb-0">Cuñas Asignadas (${asignaciones.length})</h6>
-            </div>
-            <div class="card-body">
-    `;
-
-        if (asignaciones.length > 0) {
-            html += `<div class="table-responsive"><table class="table table-sm table-striped">
-            <thead><tr><th>Cuña</th><th>Duración</th><th>Cliente</th><th>Acciones</th></tr></thead><tbody>`;
-            asignaciones.forEach(asignacion => {
-                html += `<tr>
-                <td><strong>${asignacion.cuna_codigo}</strong><br><small>${asignacion.cuna_titulo}</small></td>
-                <td>${asignacion.cuna_duracion}s</td>
-                <td>${asignacion.cuna_cliente}</td>
-                <td><button class="btn btn-danger btn-sm" onclick="eliminarAsignacion(${asignacion.id})" title="Eliminar"><i class="fas fa-trash"></i></button></td>
-            </tr>`;
-            });
-            html += `</tbody></table></div>`;
-        } else {
-            html += `<div class="alert alert-info text-center mb-0">No hay cuñas asignadas a esta ubicación.</div>`;
-        }
-
-        html += `</div></div>`;
-        contenido.innerHTML = html;
-        new bootstrap.Modal(document.getElementById('modalGestionUbicacion')).show();
-    }
-
-    function asignarCunaDesdeGestion() {
-        const form = document.getElementById('formAsignarCuna');
-        const formData = new FormData(form);
-        if (!formData.get('cuna_id')) return alert('Selecciona una cuña');
-
-        fetch("{% url 'custom_admin:grilla_asignar_cuna_api' %}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-            body: JSON.stringify({ ubicacion_id: formData.get('ubicacion_id'), cuña_id: formData.get('cuna_id') })
-        })
-            .then(r => r.json())
-            .then(data => data.success ? location.reload() : alert('Error: ' + data.error));
-    }
-
-    function crearUbicacion() {
-        const formData = {
-            dia_semana: document.getElementById('crear_dia_semana').value,
-            hora_emision: document.getElementById('crear_hora_emision').value,
-            nombre: document.getElementById('nombre_ubicacion').value,
-            hora_inicio_pausa: document.getElementById('hora_inicio_pausa').value,
-            duracion_minutos: document.getElementById('duracion_minutos').value,
-            capacidad: document.getElementById('capacidad').value
-        };
-
-        fetch("{% url 'custom_admin:grilla_crear_ubicacion_api' %}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-            body: JSON.stringify(formData)
-        })
-            .then(r => r.json())
-            .then(data => data.success ? location.reload() : alert('Error: ' + data.error));
-    }
-
-    function eliminarAsignacion(asignacionId) {
-        if (confirm('¿Eliminar esta asignación?')) {
-            fetch(`{% url 'custom_admin:grilla_eliminar_asignacion_api' 0 %}`.replace('0', asignacionId), {
-                method: 'DELETE',
-                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
-            })
-                .then(r => r.json())
-                .then(data => data.success ? location.reload() : alert('Error: ' + data.error));
-        }
-    }
-
-    function getDiaNombre(diaIndex) {
-        const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-        return dias[parseInt(diaIndex)];
-    }
-
-    // Inicializar tooltips de Bootstrap
-    document.addEventListener('DOMContentLoaded', function () {
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-    });
-</script>
-{% endblock extra_js %}
+            <h5 class="fw-bold mb-2">Órdenes de Producción</h5>
+            <p class="small text-muted mb-0">Seguimiento y edición de material</p>
+        </a>
+    </div>
+</div>
+{% endblock %}

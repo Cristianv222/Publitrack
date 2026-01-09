@@ -719,157 +719,28 @@ from django.utils import timezone
 
 @login_required
 def productor_dashboard(request):
-    """Dashboard específico para productores con proyectos, cuñas y GRILLA PUBLICITARIA"""
+    """Dashboard simplificado para productores - Muestra estadísticas y accesos directos"""
     if not request.user.es_productor:
         messages.error(request, 'No tienes permisos para ver esta página.')
         return redirect('authentication:profile')
     
-    # Importar modelos necesarios
     try:
-        from apps.content_management.models import CuñaPublicitaria
-        from apps.programacion_canal.models import ProgramacionSemanal, BloqueProgramacion
-        from apps.grilla_publicitaria.models import UbicacionPublicitaria, AsignacionCuña
-        GRILLA_AVAILABLE = True
-    except ImportError as e:
-        print(f"Error importando módulos en productor_dashboard: {e}")
-        GRILLA_AVAILABLE = False
-        CuñaPublicitaria = None
-        ProgramacionSemanal = BloqueProgramacion = UbicacionPublicitaria = AsignacionCuña = None
-    
-    hoy = timezone.now().date()
-    inicio_mes = hoy.replace(day=1)
+        from apps.orders.models import OrdenToma, OrdenProduccion
+        
+        # Conteos para dashboard
+        ordenes_toma_pendientes = OrdenToma.objects.filter(estado='pendiente').count()
+        ordenes_produccion_en_proceso = OrdenProduccion.objects.filter(estado='en_produccion').count()
 
-    # ====================================================================
-    # GRILLA PUBLICITARIA — 100% A PRUEBA DE ERRORES
-    # ====================================================================
-    # Horas del día (Intervalos de 30 minutos, 24 horas - IGUAL QUE GRILLA PUBLICITARIA)
-    horas_dia = []
-    for hora in range(0, 24):
-        for minuto in [0, 30]:
-            horas_dia.append(f"{hora:02d}:{minuto:02d}")
-
-    dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-
-    # Inicializar variables
-    programaciones = []
-    programacion_actual = None
-    bloques_semana = []
-    ubicaciones = []
-    asignaciones = []
-    cuñas_disponibles = []
+    except ImportError:
+        ordenes_toma_pendientes = 0
+        ordenes_produccion_en_proceso = 0
     
-    # Estadísticas para el dashboard
-    total_cuñas = 0
-    cuñas_programadas = 0
-    cuñas_pendientes = 0
-    ingresos_totales = 0
-
-    if GRILLA_AVAILABLE:
-        try:
-            # 1. Obtener programaciones
-            programaciones = ProgramacionSemanal.objects.all().order_by('-fecha_inicio_semana')
-    
-            programacion_id = request.GET.get('programacion_id')
-            if programacion_id:
-                programacion_actual = ProgramacionSemanal.objects.filter(id=programacion_id).first()
-    
-            if not programacion_actual and programaciones:
-                programacion_actual = ProgramacionSemanal.objects.filter(
-                    fecha_inicio_semana__lte=hoy,
-                    fecha_fin_semana__gte=hoy
-                ).first() or programaciones.first()
-    
-            if programacion_actual:
-                # 2. Bloques de programación
-                bloques_semana = BloqueProgramacion.objects.filter(
-                    programacion_semanal=programacion_actual
-                ).select_related('programa').order_by('dia_semana', 'hora_inicio')
-    
-                # 3. Ubicaciones publicitarias (con prefetch de cuñas para la grilla)
-                ubicaciones = UbicacionPublicitaria.objects.filter(
-                    bloque_programacion__programacion_semanal=programacion_actual,
-                    activo=True
-                ).select_related('bloque_programacion', 'bloque_programacion__programa').prefetch_related('asignaciones__cuña')
-    
-                # 4. Asignaciones (para estadísticas y uso general)
-                asignaciones = AsignacionCuña.objects.filter(
-                    ubicacion__bloque_programacion__programacion_semanal=programacion_actual
-                ).select_related('cuña', 'ubicacion')
-                
-                # 5. Cuñas disponibles para programar
-                if CuñaPublicitaria:
-                    cuñas_disponibles = CuñaPublicitaria.objects.filter(
-                        estado='activa',
-                        fecha_inicio__lte=hoy,
-                        fecha_fin__gte=hoy
-                    ).select_related('cliente', 'categoria')
-                    
-                    # Estadísticas
-                    total_cuñas = CuñaPublicitaria.objects.filter(estado='activa').count()
-                
-                cuñas_programadas = asignaciones.count()
-                cuñas_pendientes = max(0, total_cuñas - cuñas_programadas)
-                
-                # Calcular ingresos
-                for asignacion in asignaciones:
-                    try:
-                        ingresos_totales += float(asignacion.cuña.precio_total)
-                    except (AttributeError, TypeError, ValueError):
-                        continue
-                        
-        except Exception as e:
-            print(f"Error cargando datos del dashboard productor despues de importarlos: {e}")
-            pass
-
     context = {
         'user': request.user,
-        'hoy': hoy,
-        'inicio_mes': inicio_mes,
-        
-        # GRILLA
-        'programaciones': programaciones,
-        'programacion_actual': programacion_actual,
-        'bloques_semana': bloques_semana,
-        'ubicaciones': ubicaciones,
-        'asignaciones': asignaciones,
-        'cuñas_disponibles': cuñas_disponibles,
-        'horas_dia': horas_dia,
-        'dias_semana': dias_semana,
-        'grilla_available': GRILLA_AVAILABLE,
-        
-        # Estadísticas de Grilla
-        'total_cuñas': total_cuñas,
-        'cuñas_programadas': cuñas_programadas,
-        'cuñas_pendientes': cuñas_pendientes,
-        'ingresos_totales': ingresos_totales,
+        'ordenes_toma_pendientes': ordenes_toma_pendientes,
+        'ordenes_produccion_en_proceso': ordenes_produccion_en_proceso,
+        'productor_active': True,
     }
-    
-    if CuñaPublicitaria:
-        cuñas_en_produccion = CuñaPublicitaria.objects.filter(estado='en_produccion').count()
-        cuñas_pendientes = CuñaPublicitaria.objects.filter(estado='pendiente_revision').count()
-        cuñas_completadas_hoy = CuñaPublicitaria.objects.filter(updated_at__date=hoy, estado='aprobada').count()
-        cuñas_activas = CuñaPublicitaria.objects.filter(estado='activa', fecha_inicio__lte=hoy, fecha_fin__gte=hoy).count()
-        ultimas_cuñas = CuñaPublicitaria.objects.select_related('cliente', 'vendedor_asignado').order_by('-created_at')[:10]
-
-        context.update({
-            'cuñas_en_produccion': cuñas_en_produccion,
-            'cuñas_pendientes': cuñas_pendientes,
-            'cuñas_completadas_hoy': cuñas_completadas_hoy,
-            'cuñas_activas': cuñas_activas,
-            'ultimas_cuñas': ultimas_cuñas,
-            'cuñas_por_estado': {
-                'en_produccion': cuñas_en_produccion,
-                'pendientes': cuñas_pendientes,
-                'completadas_hoy': cuñas_completadas_hoy,
-                'activas': cuñas_activas,
-            },
-        })
-    else:
-        context.update({
-            'cuñas_en_produccion': 0, 'cuñas_pendientes': 0,
-            'cuñas_completadas_hoy': 0, 'cuñas_activas': 0,
-            'ultimas_cuñas': [], 'cuñas_por_estado': {},
-        })
 
     return render(request, 'dashboard/productor.html', context)
 

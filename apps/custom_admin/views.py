@@ -152,14 +152,17 @@ def is_admin(user):
     """Verifica si el usuario es administrador"""
     return user.is_superuser or user.is_staff or getattr(user, 'rol', None) == 'admin'
 
-def is_admin_or_vtr(user):
-    """Verifica si el usuario es administrador o VTR"""
-    return is_admin(user) or (user.is_authenticated and getattr(user, 'rol', None) == 'vtr')
+
 
 def is_admin_or_vtr(user):
     """Verifica si el usuario es administrador o VTR"""
     return (user.is_superuser or user.is_staff or 
             getattr(user, 'rol', None) in ['admin', 'vtr'])
+
+def is_admin_or_vtr_or_productor(user):
+    """Verifica si el usuario es administrador, VTR o Productor"""
+    return (user.is_superuser or user.is_staff or 
+            getattr(user, 'rol', None) in ['admin', 'vtr', 'productor'])
 
 # IMPORTS CONDICIONALES PARA MODELOS - ACTUALIZAR ESTA SECCIÓN
 try:
@@ -3407,7 +3410,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr_or_productor)
 def orders_list(request):
     from apps.orders.models import OrdenToma
     from apps.authentication.models import CustomUser
@@ -3461,7 +3464,7 @@ def orders_list(request):
     }
     return render(request, 'custom_admin/orders/list.html', context)
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr_or_productor)
 def order_detail_api(request, order_id):
     """API para obtener detalle de orden - MEJORADO con órdenes generadas"""
     try:
@@ -3529,7 +3532,7 @@ def order_detail_api(request, order_id):
         traceback.print_exc()
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 @login_required
-@user_passes_test(is_admin_or_vtr)
+@user_passes_test(is_admin_or_vtr_or_productor)
 @require_http_methods(["POST"])
 def order_create_api(request):
     """API para crear orden manualmente"""
@@ -3582,7 +3585,7 @@ def order_create_api(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 @login_required
-@user_passes_test(is_admin_or_vtr)
+@user_passes_test(is_admin_or_vtr_or_productor)
 @require_http_methods(["PUT", "POST"])
 def order_update_api(request, order_id):
     """API para actualizar orden - CORREGIDO para guardar todos los campos del modal"""
@@ -3733,7 +3736,7 @@ def order_update_api(request, order_id):
         print(traceback.format_exc())
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr_or_productor)
 @require_http_methods(["DELETE", "POST"])
 def order_delete_api(request, order_id):
     """API para eliminar orden"""
@@ -3762,7 +3765,7 @@ def order_delete_api(request, order_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 @login_required
-@user_passes_test(is_admin_or_vtr)
+@user_passes_test(is_admin_or_vtr_or_productor)
 def orden_toma_descargar_validada_api(request, order_id):
     """API para descargar la orden de toma validada (firmada)"""
     try:
@@ -3800,7 +3803,7 @@ def orden_toma_descargar_validada_api(request, order_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr_or_productor)
 @require_http_methods(["POST"])
 def orden_toma_subir_firmada_api(request, order_id):
     """API para subir orden de toma firmada"""
@@ -3884,7 +3887,7 @@ def orden_toma_subir_firmada_api(request, order_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @login_required
-@user_passes_test(is_admin_or_vtr)
+@user_passes_test(is_admin_or_vtr_or_productor)
 @require_http_methods(["GET"])
 def orden_toma_obtener_plantillas_api(request, order_id):
     """API para obtener plantillas disponibles para una orden de toma"""
@@ -3913,7 +3916,7 @@ def orden_toma_obtener_plantillas_api(request, order_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @login_required
-@user_passes_test(is_admin_or_vtr)
+@user_passes_test(is_admin_or_vtr_or_productor)
 def orden_toma_descargar_plantilla_api(request, order_id):
     """API para generar y descargar orden de toma basada en plantilla"""
     try:
@@ -4067,7 +4070,7 @@ def plantilla_orden_crear_api(request):
 # ==================== VISTAS PARA GENERAR ÓRDENES ====================
 
 @login_required
-@user_passes_test(is_admin_or_vtr)
+@user_passes_test(is_admin_or_vtr_or_productor)
 def orden_generar_api(request, orden_toma_id):
     """API para generar orden desde orden de toma"""
     try:
@@ -4096,7 +4099,7 @@ def orden_generar_api(request, orden_toma_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @login_required
-@user_passes_test(is_admin_or_vtr)
+@user_passes_test(is_admin_or_vtr_or_productor)
 @require_http_methods(["POST"])
 def orden_completar_y_generar_api(request, orden_toma_id):
     """Completa la orden y genera la orden para imprimir"""
@@ -4111,7 +4114,7 @@ def orden_completar_y_generar_api(request, orden_toma_id):
         campos_requeridos = [
             'proyecto_campania', 'titulo_material', 'descripcion_breve',
             'locaciones', 'fecha_produccion_inicio', 'fecha_produccion_fin',
-            'hora_inicio', 'hora_fin', 'equipo_asignado'
+            'hora_inicio', 'equipo_asignado'
         ]
         
         campos_faltantes = []
@@ -4157,7 +4160,7 @@ def orden_completar_y_generar_api(request, orden_toma_id):
         print(traceback.format_exc())
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr_or_productor)
 @require_http_methods(["POST"])
 def orden_subir_validada_api(request, orden_generada_id):
     """API para subir orden validada - CORREGIDA para crear orden de producción"""
@@ -4242,7 +4245,7 @@ def orden_subir_validada_api(request, orden_generada_id):
             'error': f'Error al subir el archivo: {str(e)}'
         }, status=500)
 @login_required
-@user_passes_test(is_admin_or_vtr)
+@user_passes_test(is_admin_or_vtr_or_productor)
 def orden_descargar_api(request, orden_generada_id):
     """Descargar orden generada"""
     try:
@@ -4441,7 +4444,7 @@ def plantilla_orden_descargar_api(request, id):
         # Agregar estas vistas en custom_admin/views.py
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr_or_productor)
 def api_plantillas_orden(request):
     """API para obtener todas las plantillas de orden activas"""
     try:
@@ -4494,7 +4497,7 @@ def actualizar_datos_clientes_ordenes():
     print("✅ Todas las órdenes actualizadas")    
 # ==================== VISTAS PARA ÓRDENES DE PRODUCCIÓN ====================
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr_or_productor)
 def ordenes_produccion_list(request):
     """Lista de órdenes de producción"""
     from apps.orders.models import OrdenProduccion
@@ -4570,7 +4573,7 @@ def ordenes_produccion_list(request):
     }
     return render(request, 'custom_admin/ordenes_produccion/list.html', context)
 @login_required
-@user_passes_test(is_admin_or_vtr)
+@user_passes_test(is_admin_or_vtr_or_productor)
 def orden_produccion_detail_api(request, order_id):
     """API para obtener detalle de orden de producción"""
     try:
@@ -4617,7 +4620,7 @@ def orden_produccion_detail_api(request, order_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 @login_required
-@user_passes_test(is_admin_or_vtr)
+@user_passes_test(is_admin_or_vtr_or_productor)
 @require_http_methods(["POST"])
 def orden_produccion_create_api(request):
     """API para crear orden de producción manualmente"""
@@ -4670,7 +4673,7 @@ def orden_produccion_create_api(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 @login_required
-@user_passes_test(is_admin_or_vtr)
+@user_passes_test(is_admin_or_vtr_or_productor)
 @require_http_methods(["PUT", "POST"])
 def orden_produccion_update_api(request, order_id):
     """API para actualizar orden de producción"""
@@ -4722,7 +4725,7 @@ def orden_produccion_update_api(request, order_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr_or_productor)
 @require_http_methods(["DELETE", "POST"])
 def orden_produccion_delete_api(request, order_id):
     """API para eliminar orden de producción"""
@@ -4750,7 +4753,7 @@ def orden_produccion_delete_api(request, order_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr_or_productor)
 @require_http_methods(["POST"])
 def orden_produccion_iniciar_api(request, order_id):
     """API para iniciar producción"""
@@ -4777,7 +4780,7 @@ def orden_produccion_iniciar_api(request, order_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr_or_productor)
 @require_http_methods(["POST"])
 def orden_produccion_completar_api(request, order_id):
     """API para completar producción"""
@@ -4804,7 +4807,7 @@ def orden_produccion_completar_api(request, order_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr_or_productor)
 @require_http_methods(["POST"])
 def orden_produccion_validar_api(request, order_id):
     """API para validar orden de producción"""
@@ -4831,7 +4834,7 @@ def orden_produccion_validar_api(request, order_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 # Añade estas APIs en views.py
 @login_required
-@user_passes_test(is_admin_or_vtr)
+@user_passes_test(is_admin_or_vtr_or_productor)
 @require_http_methods(["POST"])
 def orden_produccion_generar_api(request, order_id):
     """API para generar orden de producción desde plantilla - VERSIÓN CORREGIDA"""
@@ -4884,7 +4887,7 @@ def orden_produccion_generar_api(request, order_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
         
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr_or_productor)
 @require_http_methods(["POST"])
 def orden_produccion_subir_firmada_api(request, order_id):
     """API para subir orden de producción firmada"""
@@ -4924,7 +4927,7 @@ def orden_produccion_subir_firmada_api(request, order_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @login_required
-@user_passes_test(is_admin_or_vtr)
+@user_passes_test(is_admin_or_vtr_or_productor)
 def orden_produccion_descargar_plantilla_api(request, order_id):
     """API para descargar la orden generada desde plantilla"""
     try:
@@ -4973,7 +4976,7 @@ def orden_produccion_descargar_plantilla_api(request, order_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @login_required
-@user_passes_test(is_admin_or_vtr)
+@user_passes_test(is_admin_or_vtr_or_productor)
 def orden_produccion_descargar_validada_api(request, order_id):
     """API para descargar la orden validada (firmada)"""
     try:
@@ -5000,7 +5003,7 @@ def orden_produccion_descargar_validada_api(request, order_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @login_required
-@user_passes_test(is_admin_or_vtr)
+@user_passes_test(is_admin_or_vtr_or_productor)
 def orden_produccion_obtener_plantillas_api(request, order_id):
     """API para obtener plantillas disponibles para orden de producción - MEJORADO"""
     try:
