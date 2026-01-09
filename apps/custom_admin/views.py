@@ -154,6 +154,10 @@ def is_admin(user):
 
 def is_admin_or_vtr(user):
     """Verifica si el usuario es administrador o VTR"""
+    return is_admin(user) or (user.is_authenticated and getattr(user, 'rol', None) == 'vtr')
+
+def is_admin_or_vtr(user):
+    """Verifica si el usuario es administrador o VTR"""
     return (user.is_superuser or user.is_staff or 
             getattr(user, 'rol', None) in ['admin', 'vtr'])
 
@@ -8900,7 +8904,7 @@ def grilla_publicitaria_list(request):
     
     return render(request, 'custom_admin/grilla_publicitaria/list.html', context)
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 @require_http_methods(["POST"])
 def grilla_asignar_cuna_api(request):
     """API para asignar cuña a una ubicación - VERSIÓN CORREGIDA"""
@@ -9005,7 +9009,7 @@ def grilla_asignar_cuna_api(request):
         print(f"📋 Detalles:\n{traceback.format_exc()}")
         return JsonResponse({'success': False, 'error': str(e)})
 
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 @require_http_methods(["DELETE"])
 def grilla_eliminar_asignacion_api(request, asignacion_id):
     """API para eliminar una asignación"""
@@ -9022,7 +9026,7 @@ def grilla_eliminar_asignacion_api(request, asignacion_id):
         return JsonResponse({'success': False, 'error': str(e)})
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 def grilla_generar_automatica_api(request, programacion_id):
     """API para generar grilla automáticamente"""
     try:
@@ -9267,7 +9271,7 @@ def grilla_editar_asignacion_api(request, asignacion_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 @require_http_methods(["POST"])
 def grilla_generar_ubicaciones_api(request):
     """API para generar ubicaciones automáticamente"""
@@ -10477,7 +10481,7 @@ def inventory_status_ajax_delete(request, status_id):
 # ==================== VISTAS DE AUTORIZACIÓN ====================
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 def ordenes_autorizacion_list(request):
     from apps.orders.models import OrdenAutorizacion
     from apps.authentication.models import CustomUser
@@ -10531,7 +10535,7 @@ def ordenes_autorizacion_list(request):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 def orden_autorizacion_detail_api(request, order_id):
     try:
         from apps.orders.models import OrdenAutorizacion
@@ -10559,7 +10563,7 @@ def orden_autorizacion_detail_api(request, order_id):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 @require_http_methods(["POST"])
 def orden_autorizacion_create_api(request):
     try:
@@ -10633,7 +10637,7 @@ def orden_autorizacion_create_api(request):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 @require_http_methods(["PUT"])
 def orden_autorizacion_update_api(request, order_id):
     try:
@@ -10665,7 +10669,7 @@ def orden_autorizacion_update_api(request, order_id):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 @require_http_methods(["DELETE", "POST"])
 def orden_autorizacion_delete_api(request, order_id):
     try:
@@ -10680,7 +10684,7 @@ def orden_autorizacion_delete_api(request, order_id):
 # ==================== VISTAS DE SUSPENSIÓN ====================
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 def ordenes_suspension_list(request):
     from apps.orders.models import OrdenSuspension
     from apps.authentication.models import CustomUser
@@ -10731,7 +10735,7 @@ def ordenes_suspension_list(request):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 def orden_suspension_detail_api(request, order_id):
     try:
         from apps.orders.models import OrdenSuspension
@@ -10756,7 +10760,7 @@ def orden_suspension_detail_api(request, order_id):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 @require_http_methods(["POST"])
 def orden_suspension_create_api(request):
     try:
@@ -10798,7 +10802,7 @@ def orden_suspension_create_api(request):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 @require_http_methods(["PUT"])
 def orden_suspension_update_api(request, order_id):
     try:
@@ -10826,7 +10830,7 @@ def orden_suspension_update_api(request, order_id):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 @require_http_methods(["DELETE", "POST"])
 def orden_suspension_delete_api(request, order_id):
     try:
@@ -10839,7 +10843,7 @@ def orden_suspension_delete_api(request, order_id):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 def orden_autorizacion_formularios_api(request, order_id):
     """Obtener plantillas disponibles para autorización"""
     try:
@@ -10851,7 +10855,7 @@ def orden_autorizacion_formularios_api(request, order_id):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 @require_http_methods(["POST"])
 def orden_autorizacion_generar_pdf_api(request, order_id):
     """Generar PDF de autorización"""
@@ -10897,7 +10901,7 @@ def orden_autorizacion_generar_pdf_api(request, order_id):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 @require_http_methods(["POST"])
 def orden_autorizacion_subir_firma_api(request, order_id):
     """Subir orden firmada y autorizar"""
@@ -10931,7 +10935,7 @@ def orden_autorizacion_subir_firma_api(request, order_id):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 def orden_autorizacion_descargar_validada_api(request, order_id):
     """API para descargar la orden de autorización validada (firmada)"""
     try:
@@ -10972,7 +10976,7 @@ def orden_autorizacion_descargar_validada_api(request, order_id):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 def orden_autorizacion_descargar_plantilla_api(request, order_id):
     """API para descargar la orden generada por el sistema"""
     try:
@@ -11008,7 +11012,7 @@ def orden_autorizacion_descargar_plantilla_api(request, order_id):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 def orden_suspension_formularios_api(request, order_id):
     """Obtener plantillas disponibles para suspensión"""
     try:
@@ -11020,7 +11024,7 @@ def orden_suspension_formularios_api(request, order_id):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 @require_http_methods(["POST"])
 def orden_suspension_generar_pdf_api(request, order_id):
     """Generar PDF de suspensión"""
@@ -11066,7 +11070,7 @@ def orden_suspension_generar_pdf_api(request, order_id):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 @require_http_methods(["POST"])
 def orden_suspension_subir_firma_api(request, order_id):
     """Subir orden suspensión firmada y procesar"""
@@ -11132,7 +11136,7 @@ def contrato_generado_detail_api(request, contrato_id):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 def orden_suspension_descargar_validada_api(request, order_id):
     """API para descargar la orden de suspensión validada (firmada)"""
     try:
@@ -11173,7 +11177,7 @@ def orden_suspension_descargar_validada_api(request, order_id):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_or_vtr)
 def orden_suspension_descargar_plantilla_api(request, order_id):
     """API para descargar la orden de suspensión generada por el sistema"""
     try:

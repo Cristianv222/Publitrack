@@ -1381,14 +1381,21 @@ def vtr_dashboard(request):
     """NUEVO: Panel exclusivo para VTR"""
     # Importar modelos aquí para evitar importaciones circulares
     try:
-        from apps.orders.models import OrdenToma, OrdenProduccion
+        from apps.orders.models import OrdenToma, OrdenProduccion, OrdenAutorizacion, OrdenSuspension
         
         # Obtener todas las órdenes ordenadas por fecha reciente
         ordenes_toma = OrdenToma.objects.all().order_by('-created_at')
         ordenes_produccion = OrdenProduccion.objects.all().order_by('-created_at')
+        
+        # Conteos para dashboard
+        ordenes_autorizacion_pendientes = OrdenAutorizacion.objects.filter(estado='pendiente').count()
+        ordenes_suspension_pendientes = OrdenSuspension.objects.filter(estado='pendiente').count()
+
     except ImportError:
         ordenes_toma = []
         ordenes_produccion = []
+        ordenes_autorizacion_pendientes = 0
+        ordenes_suspension_pendientes = 0
     
     # Obtener clientes activos para el modal de creación de órdenes
     clientes = CustomUser.objects.filter(rol='cliente', is_active=True).order_by('empresa', 'first_name')
@@ -1399,7 +1406,9 @@ def vtr_dashboard(request):
         'ordenes_toma': ordenes_toma,
         'ordenes_produccion': ordenes_produccion,
         'clientes': clientes,  # Para el dropdown de clientes en modales
-        'vtr_active': True  # Flag para identificar el dashboard activo
+        'vtr_active': True,  # Flag para identificar el dashboard activo
+        'ordenes_autorizacion_pendientes': ordenes_autorizacion_pendientes,
+        'ordenes_suspension_pendientes': ordenes_suspension_pendientes,
     }
     return render(request, 'dashboard/vtr.html', context)
 

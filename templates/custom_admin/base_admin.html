@@ -943,7 +943,7 @@
 
         <div class="sidebar-menu">
             <!-- Dashboard -->
-            {% if not request.user.es_doctor %}
+            {% if not request.user.es_doctor and not request.user.es_vtr %}
             <div class="menu-section">
                 <a href="{% url 'custom_admin:dashboard' %}"
                     class="menu-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
@@ -976,7 +976,34 @@
             </div>
             {% endif %}
 
-            {% if not request.user.es_doctor %}
+            <!-- MENÚ PARA VTR -->
+            {% if request.user.es_vtr %}
+            <div class="menu-section">
+                <div class="menu-section-title">PANEL VTR</div>
+                <a href="{% url 'custom_admin:ordenes_autorizacion_list' %}"
+                    class="menu-link {% if 'ordenes_autorizacion' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-file-signature menu-icon"></i>
+                    <span>Autorizaciones</span>
+                </a>
+                <a href="{% url 'custom_admin:ordenes_suspension_list' %}"
+                    class="menu-link {% if 'ordenes_suspension' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-ban menu-icon"></i>
+                    <span>Suspensiones</span>
+                </a>
+                <a href="{% url 'custom_admin:grilla_publicitaria_list' %}"
+                    class="menu-link {% if 'grilla_publicitaria' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-th menu-icon"></i>
+                    <span>Grilla Publicitaria</span>
+                </a>
+                <a href="{% url 'custom_admin:programacion_list' %}"
+                    class="menu-link {% if 'programacion' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-broadcast-tower menu-icon"></i>
+                    <span>Programación</span>
+                </a>
+            </div>
+            {% endif %}
+
+            {% if not request.user.es_doctor and not request.user.es_vtr %}
             <!-- PROGRAMACIÓN Y EMISIÓN -->
             <div class="menu-section">
                 <div class="menu-section-title">PROGRAMACIÓN Y EMISIÓN</div>
