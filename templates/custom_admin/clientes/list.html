@@ -165,53 +165,53 @@
         </div>
     </div>
     <!-- Filtros -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <form method="get" class="row g-3">
-                <div class="col-md-4">
-                    <input type="text" name="search" class="form-control"
-                        placeholder="Buscar por nombre, empresa, RUC, profesión..." value="{{ search }}">
-                </div>
-                <div class="col-md-2">
-                    <select name="status" class="form-select">
-                        <option value="">Todos los estados</option>
-                        <option value="activo" {% if status_filter=='activo' %}selected{% endif %}>Activos</option>
-                        <option value="inactivo" {% if status_filter=='inactivo' %}selected{% endif %}>Inactivos
-                        </option>
-                        <option value="suspendido" {% if status_filter=='suspendido' %}selected{% endif %}>Suspendidos
-                        </option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <select name="tiene_profesion" class="form-select">
-                        <option value="">Todos</option>
-                        <option value="si" {% if tiene_profesion_filter=='si' %}selected{% endif %}>Con profesión
-                        </option>
-                        <option value="no" {% if tiene_profesion_filter=='no' %}selected{% endif %}>Sin profesión
-                        </option>
-                    </select>
-                </div>
-                {% if user.es_admin %}
-                <div class="col-md-2">
-                    <select name="vendedor" class="form-select">
-                        <option value="">Todos los vendedores</option>
-                        {% for vendedor in vendedores %}
-                        <option value="{{ vendedor.id }}" {% if vendedor_filter==vendedor.id|stringformat:"s"
-                            %}selected{% endif %}>
-                            {{ vendedor.get_full_name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                {% endif %}
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-search me-2"></i>Filtrar
-                    </button>
-                </div>
-            </form>
-        </div>
+  <!-- En la sección de filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <input type="text" name="search" class="form-control"
+                    placeholder="Buscar por nombre, empresa, RUC, profesión..." value="{{ search }}">
+            </div>
+            <div class="col-md-2">
+                <select name="status" class="form-select">
+                    <option value="">Todos los estados</option>
+                    <option value="activo" {% if status_filter == "activo" %}selected{% endif %}>Activos</option>
+                    <option value="inactivo" {% if status_filter == "inactivo" %}selected{% endif %}>Inactivos
+                    </option>
+                    <option value="suspendido" {% if status_filter == "suspendido" %}selected{% endif %}>Suspendidos
+                    </option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="tiene_profesion" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="si" {% if tiene_profesion_filter == "si" %}selected{% endif %}>Con profesión
+                    </option>
+                    <option value="no" {% if tiene_profesion_filter == "no" %}selected{% endif %}>Sin profesión
+                    </option>
+                </select>
+            </div>
+            {% if user.es_admin %}
+            <div class="col-md-2">
+                <select name="vendedor" class="form-select">
+                    <option value="">Todos los vendedores</option>
+                    {% for vendedor in vendedores %}
+                    <option value="{{ vendedor.id }}" {% if vendedor_filter == vendedor.id|stringformat:"s" %}selected{% endif %}>
+                        {{ vendedor.get_full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-2"></i>Filtrar
+                </button>
+            </div>
+        </form>
     </div>
+</div>
 
     <!-- Tabla de Clientes -->
     <div class="card">
